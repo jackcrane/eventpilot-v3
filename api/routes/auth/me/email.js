@@ -5,7 +5,7 @@ import { serializeError } from "#serializeError";
 import { getChangedKeys } from "#getChangedKeys";
 
 export const get = [
-  verifyAuth(["instructor", "dispatcher", "manager"]),
+  verifyAuth(["manager"]),
   async (req, res) => {
     const user = await prisma.user.findFirst({
       where: {
@@ -28,7 +28,7 @@ export const get = [
 ];
 
 export const put = [
-  verifyAuth(["instructor", "dispatcher", "manager"]),
+  verifyAuth(["manager"]),
   async (req, res) => {
     // Validate email preferences
     const schema = z.strictObject({

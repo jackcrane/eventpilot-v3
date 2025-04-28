@@ -141,7 +141,7 @@ import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 
 export const post = [
-  verifyAuth(["instructor", "dispatcher", "manager"]),
+  verifyAuth(["manager"]),
   upload,
   async (req, res) => {
     const file = req.file;

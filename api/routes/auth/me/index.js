@@ -5,7 +5,7 @@ import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
 
 export const get = [
-  verifyAuth(["instructor", "dispatcher", "manager"]),
+  verifyAuth(["manager"]),
   (req, res) => {
     res.json({
       user: {
@@ -22,7 +22,7 @@ export const get = [
 ];
 
 export const put = [
-  verifyAuth(["instructor", "dispatcher", "manager"]),
+  verifyAuth(["manager"]),
   async (req, res) => {
     const schema = z
       .object({

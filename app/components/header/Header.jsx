@@ -8,7 +8,8 @@ const IconLogout = () => <Icon i={"logout"} size={18} />;
 const IconLogin2 = () => <Icon i={"login-2"} size={18} />;
 const IconSettings = () => <Icon i={"settings"} size={18} />;
 import logo from "../../assets/logotype.svg";
-import { useNavigate } from "react-router-dom";
+import icon from "../../assets/ico.png";
+import { Link, useLocation, useMatches, useNavigate } from "react-router-dom";
 
 export const Header = () => {
   const { user, loggedIn, login, logout, resendVerificationEmail } = useAuth();
@@ -32,7 +33,8 @@ export const Header = () => {
       )}
       <header className={styles.header}>
         <div className={styles.headerGroup}>
-          <img src={logo} className={styles.headerLogo} alt="Logo" />
+          <img src={icon} className={styles.headerLogo} alt="Logo" />
+          <Breadcrumbs />
         </div>
         <Dropdown
           prompt={loggedIn ? user?.name : "Account"}
@@ -68,4 +70,8 @@ export const Header = () => {
       </header>
     </>
   );
+};
+
+const Breadcrumbs = () => {
+  const location = useLocation();
 };

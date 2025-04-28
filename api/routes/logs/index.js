@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getGeolocation } from "#geolocation";
 
 export const get = [
-  verifyAuth(["instructor", "dispatcher", "manager"]),
+  verifyAuth(["manager"]),
   async (req, res) => {
     const logTypes = req.query.logTypes.split(",");
 
