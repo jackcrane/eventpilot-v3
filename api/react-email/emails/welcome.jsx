@@ -82,13 +82,8 @@ export const WelcomeEmail = ({ name, token }) => (
           </Heading>
           <Text>
             You have taken the next step in your journey to improving your
-            student experiences. We are so excited to have you on board and
-            can't wait to get you on the snow!
-          </Text>
-          <Text>
-            EventPilot is a fully featured ski school management system that
-            helps ski schools optimize operations, improve student experiences,
-            and make instructors more efficient, effective, and engaged.
+            volunteer and participant experiences. We are so excited to have you
+            on board and can't wait to get you started!
           </Text>
           <Text>
             Please click the button below to confirm your email and start your
@@ -96,7 +91,7 @@ export const WelcomeEmail = ({ name, token }) => (
           </Text>
           <Button
             as="a"
-            href={`https://EventPilot.jackcrane.rocks/api/auth/verify?token=${token}`}
+            href={`https://EventPilot.jackcrane.rocks/verify?verificationtoken=${token}`}
             style={styles.button}
           >
             Confirm Email

@@ -23,6 +23,7 @@
     "@react-email/components": "^0.0.31",
     "aws-sdk": "^2.1692.0",
     "bcrypt": "^5.1.1",
+    "chalk": "^5.4.1",
     "cors": "^2.8.5",
     "cuid": "^3.0.0",
     "dotenv": "^16.4.7",
