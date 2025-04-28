@@ -1,0 +1,37 @@
+{
+  "name": "app",
+  "version": "0.1.0",
+  "description": "",
+  "license": "MIT",
+  "scripts": {
+    "start": "vite",
+    "preview": "vite preview",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@uidotdev/usehooks": "^2.4.1",
+    "mitt": "^3.0.1",
+    "moment": "^2.30.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-dropzone": "^14.3.5",
+    "react-hot-toast": "^2.5.1",
+    "react-icons": "^5.4.0",
+    "react-router-dom": "^7.1.1",
+    "react-use": "^17.6.0",
+    "styled-components": "^6.1.14",
+    "swr": "^2.3.0",
+    "tabler-react-2": "0.1.91"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "babel-preset-nano-react-app": "^0.1.0",
+    "vite": "^5.2.6",
+    "vite-tsconfig-paths": "^5.1.4"
+  },
+  "babel": {
+    "presets": [
+      "nano-react-app"
+    ]
+  }
+}

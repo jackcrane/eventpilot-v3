@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  password String
+  name String
+  phoneNumber String?
+
+  emailVerified Boolean @default(false)
+
+  emailVerifications EmailVerification[]
+  logs Logs[]
+  forgotPasswordTokens ForgotPasswordToken[]
+  files File[]
+
+  emailPreferences EmailPreferences?
+
+  accountType AccountType @default(INSTRUCTOR)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  suspended Boolean @default(false)
+}
+
+enum AccountType {
+  MANAGER
+  DISPATCHER
+  INSTRUCTOR
+}
+
+model EmailPreferences {
+  id String @id @default(cuid())
+
+  userId String @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  login Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Logs {
+  id String @id @default(cuid())
+
+  userId String?
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emailId String?
+  email Email? @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  type LogType
+  ip String?
+
+  data Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Email {
+  id String @id @default(cuid())
+  messageId String
+  from String
+  to String
+  subject String
+
+  userId String?
+
+  responses EmailWebhooks[]
+
+  logs Logs[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EmailVerification {
+  id String @id @default(cuid())
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EmailWebhooks {
+  id String @id @default(cuid())
+  messageId String
+
+  emailId String
+  email Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  data String
+  type EmailWebhookType
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ForgotPasswordToken {
+  id String @id @default(cuid())
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum EmailWebhookType {
+  DELIVERY
+  OPEN
+  BOUNCE
+  SPAM_COMPLAINT
+  LINK_CLICK
+}
+
+// LogTypes are in form NOUN_VERB
+enum LogType {
+  USER_CREATED
+  USER_LOGIN
+  USER_PASSWORD_RESET_REQUEST
+  USER_PASSWORD_RESET
+  USER_EMAIL_VERIFICATION_RESENT
+  USER_ACCOUNT_UPDATED
+  USER_EMAIL_PREFERENCES_UPDATED
+  EMAIL_SENT
+  EMAIL_VERIFIED
+}
+
+model Geolocation {
+  id String @id @default(cuid())
+  ip String @unique
+  city String
+  regionName String
+  createdAt DateTime @default(now())
+}
+
+model File {
+  id String @id @default(cuid())
+
+  userId String?
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  key String
+  originalname String
+  mimetype String
+  contentType String
+  size Int
+  location String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
