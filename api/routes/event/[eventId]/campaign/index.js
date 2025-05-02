@@ -6,21 +6,14 @@ import { z } from "zod";
 export const get = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const events = await prisma.event.findMany({
+    const campaigns = await prisma.campaign.findMany({
       where: {
         userId: req.user.id,
-      },
-      include: {
-        logo: {
-          select: {
-            location: true,
-          },
-        },
       },
     });
 
     res.json({
-      events,
+      campaigns,
     });
   },
 ];
@@ -31,7 +24,6 @@ export const post = [
     const schema = z.object({
       name: z.string().min(2),
       description: z.string().min(10),
-      logoFileId: z.string().optional(),
       slug: z
         .string()
         .min(3)
@@ -48,13 +40,12 @@ export const post = [
       return res.status(400).json({ message: serializeError(result) });
     }
 
-    const event = await prisma.event.create({
+    const event = await prisma.campaign.create({
       data: {
         name: result.data.name,
         description: result.data.description,
-        userId: req.user.id,
-        logoFileId: result.data.logoFileId,
         slug: result.data.slug,
+        userId: req.user.id,
       },
     });
 

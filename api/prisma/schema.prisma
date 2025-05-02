@@ -31,6 +31,7 @@ model User {
   suspended Boolean @default(false)
 
   events Event[]
+  campaigns Campaign[]
 }
 
 enum AccountType {
@@ -176,9 +177,24 @@ model Event {
   userId String
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  slug String @unique
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   logoFileId    String?   @unique
   logo          File?     @relation(name: "EventLogo", fields: [logoFileId], references: [id], onDelete: Cascade)
+}
+
+model Campaign {
+  id String @id @default(cuid())
+  name String
+  description String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  slug String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
