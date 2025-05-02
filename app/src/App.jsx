@@ -11,7 +11,7 @@ import { UserProfile } from "./routes/auth/me";
 import { ForgotPassword } from "./routes/auth/forgot-password";
 import { useFavicon } from "react-use";
 import favicon from "../assets/ico.png";
-import { CreateEvent } from "./routes/event/create";
+import { Home } from "./routes/Home";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -48,7 +48,7 @@ export default () => {
             </>
           )}
           <Route path="/verify" element={<Verify />} />
-          <Route path="/create-event" element={<CreateEvent />} />
+          <Route path="/" element={<Home />} />
           {/* 404 error */}
           <Route
             path="*"

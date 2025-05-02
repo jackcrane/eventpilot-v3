@@ -1,6 +1,7 @@
 import useSWRMutation from "swr/mutation";
 import { authFetchWithoutContentType } from "../util/url";
 import toast from "react-hot-toast";
+import { useEffect } from "react";
 
 const uploadFiles = async (url, { arg }) => {
   const formData = new FormData();
@@ -40,27 +41,29 @@ export const useFileUploader = (endpoint, options) => {
     }
   );
 
-  const upload = async (fileOrFiles) => {
-    if (
-      !fileOrFiles ||
-      (Array.isArray(fileOrFiles) && fileOrFiles.length === 0)
-    ) {
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
+  const upload = async (files) => {
+    if (!files || (Array.isArray(files) && files.length === 0)) {
       throw { message: "No files provided", status: 400 };
     }
 
-    return trigger(fileOrFiles)
-      .catch((err) => {
-        console.error("Upload failed in hook:", err);
-        throw err; // Ensure error propagates correctly
-      })
-      .finally(() => {
-        if (!error) {
-          toast.success("File uploaded successfully");
-          if (onSuccessfulUpload) {
-            onSuccessfulUpload(data);
-          }
-        }
-      });
+    // await the actual result…
+    const result = await trigger(files).catch((err) => {
+      console.error("Upload failed in hook:", err);
+      throw err;
+    });
+
+    // now `result` is your JSON; SWR state may not be set yet,
+    // but you can call your callback immediately:
+    toast.success("File uploaded successfully");
+    onSuccessfulUpload?.(result);
+
+    return result;
   };
 
   return {

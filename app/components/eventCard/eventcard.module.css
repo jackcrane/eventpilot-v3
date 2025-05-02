@@ -1,0 +1,17 @@
+.eventCard {
+  text-decoration: none;
+  color: inherit;
+}
+
+.eventCard > div {
+  transition: border-color 0.15s ease-in-out;
+}
+
+.eventCard:hover {
+  text-decoration: none;
+  color: inherit;
+}
+
+.eventCard:hover > div {
+  border-color: var(--tblr-border-color-active);
+}

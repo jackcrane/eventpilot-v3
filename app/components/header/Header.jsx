@@ -10,6 +10,7 @@ const IconSettings = () => <Icon i={"settings"} size={18} />;
 import logo from "../../assets/logotype.svg";
 import icon from "../../assets/ico.png";
 import { Link, useLocation, useMatches, useNavigate } from "react-router-dom";
+import { EventPicker } from "../eventPicker/EventPicker";
 
 export const Header = () => {
   const { user, loggedIn, login, logout, resendVerificationEmail } = useAuth();
@@ -33,7 +34,9 @@ export const Header = () => {
       )}
       <header className={styles.header}>
         <div className={styles.headerGroup}>
-          <img src={icon} className={styles.headerLogo} alt="Logo" />
+          <Link to="/">
+            <img src={icon} className={styles.headerLogo} alt="Logo" />
+          </Link>
           <Breadcrumbs />
         </div>
         <Dropdown
@@ -73,5 +76,27 @@ export const Header = () => {
 };
 
 const Breadcrumbs = () => {
+  const { loggedIn } = useAuth();
   const location = useLocation();
+  const path = location.pathname.split("/");
+  path.shift();
+
+  if (!loggedIn) return null;
+
+  const builder = [];
+  if (path.length === 0 || path[0] === "") {
+    builder.push(<EventPicker go />);
+  } else if (path.length === 1) {
+    // builder.push("Picked event (id: " + path[0] + ")");
+    builder.push(<EventPicker go value={path[0]} />);
+    builder.push("Unpicked campaign");
+  }
+
+  return (
+    <>
+      {builder.map((item, index) => (
+        <>{item}</>
+      ))}
+    </>
+  );
 };

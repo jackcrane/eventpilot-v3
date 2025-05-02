@@ -1,5 +1,4 @@
 import { upload } from "#file";
-import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 
 export const post = [
@@ -7,10 +6,14 @@ export const post = [
   upload(),
   async (req, res) => {
     const file = req.file;
-    console.log(file);
+    const fileLog = req.fileLog;
     if (!file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-    res.json({ message: "File uploaded successfully", url: file.location });
+    res.json({
+      message: "File uploaded successfully",
+      url: file.location,
+      fileId: fileLog.id,
+    });
   },
 ];

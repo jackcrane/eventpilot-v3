@@ -29,6 +29,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   suspended Boolean @default(false)
+
+  events Event[]
 }
 
 enum AccountType {
@@ -163,4 +165,20 @@ model File {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  event        Event?   @relation(name: "EventLogo")
+}
+
+model Event {
+  id String @id @default(cuid())
+  name String
+  description String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logoFileId    String?   @unique
+  logo          File?     @relation(name: "EventLogo", fields: [logoFileId], references: [id], onDelete: Cascade)
 }
