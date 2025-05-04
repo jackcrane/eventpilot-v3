@@ -5,6 +5,7 @@ import { useAuth } from "../hooks";
 import { Login } from "./routes/auth/login";
 import { Header } from "../components/header/Header";
 import { Page } from "../components/page/Page";
+import { Event } from "./routes/events/[eventId]";
 import { Register } from "./routes/auth/register";
 import { Verify } from "./routes/auth/verify";
 import { UserProfile } from "./routes/auth/me";
@@ -48,7 +49,8 @@ export default () => {
             </>
           )}
           <Route path="/verify" element={<Verify />} />
-          <Route path="/" element={<Home />} />
+          <Route path="/events/:eventId" element={<Event />} />
+          <Route path="/events" element={<Home />} />
           {/* 404 error */}
           <Route
             path="*"

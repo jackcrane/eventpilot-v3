@@ -53,7 +53,7 @@ export const EventPicker = ({
       createEventModal();
     } else {
       if (go) {
-        document.location.href = `/${value.value}`;
+        document.location.href = `/events/${value.value}`;
       }
       onChange && onChange(value);
     }

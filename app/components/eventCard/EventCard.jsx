@@ -7,7 +7,7 @@ import classNames from "classnames";
 export const EventCard = ({ event }) => {
   return (
     <div className={"mb-2"}>
-      <Link to={`/${event.id}`} className={classNames(styles.eventCard)}>
+      <Link to={`/events/${event.id}`} className={classNames(styles.eventCard)}>
         <Card size="sm">
           <Row gap={1}>
             <img

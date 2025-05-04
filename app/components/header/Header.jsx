@@ -11,10 +11,12 @@ import logo from "../../assets/logotype.svg";
 import icon from "../../assets/ico.png";
 import { Link, useLocation, useMatches, useNavigate } from "react-router-dom";
 import { EventPicker } from "../eventPicker/EventPicker";
+import { useParsedUrl } from "../../hooks/useParsedUrl";
 
 export const Header = () => {
   const { user, loggedIn, login, logout, resendVerificationEmail } = useAuth();
   const { navigate } = useNavigate();
+  const url = useParsedUrl(window.location.pathname);
 
   return (
     <>
@@ -77,19 +79,21 @@ export const Header = () => {
 
 const Breadcrumbs = () => {
   const { loggedIn } = useAuth();
-  const location = useLocation();
-  const path = location.pathname.split("/");
-  path.shift();
+  const url = useParsedUrl(window.location.pathname);
 
   if (!loggedIn) return null;
 
   const builder = [];
-  if (path.length === 0 || path[0] === "") {
-    builder.push(<EventPicker go />);
-  } else if (path.length === 1) {
-    // builder.push("Picked event (id: " + path[0] + ")");
-    builder.push(<EventPicker go value={path[0]} />);
-    builder.push("Unpicked campaign");
+  if (url.events) {
+    builder.push(<EventPicker go value={url.events} />);
+    if (!url.campaigns) {
+      builder.push("Unpicked campaign");
+    }
+  }
+  if (url.campaigns === true) {
+    builder.push("Pick a campaign");
+  } else if (url.campaigns) {
+    builder.push(<EventPicker go value={url.campaigns} />);
   }
 
   return (
