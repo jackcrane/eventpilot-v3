@@ -14,6 +14,8 @@ import { useFavicon } from "react-use";
 import favicon from "../assets/ico.png";
 import { Home } from "./routes/Home";
 import { Campaign } from "./routes/events/[eventId]/campaigns/[campaignId]";
+import { CampaignVolunteers } from "./routes/events/[eventId]/campaigns/[campaignId]/volunteers";
+import { CampaignBuilder } from "./routes/events/[eventId]/campaigns/[campaignId]/builder";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -52,11 +54,19 @@ export default () => {
           <Route path="/verify" element={<Verify />} />
           <Route path="/events/:eventId" element={<Event />} />
           <Route path="/events" element={<Home />} />
+          <Route path="/events/:eventId/campaigns" element={<p>almost</p>} />
           <Route
             path="/events/:eventId/campaigns/:campaignId"
             element={<Campaign />}
           />
-          <Route path="/events/:eventId/campaigns" element={<p>almost</p>} />
+          <Route
+            path="/events/:eventId/campaigns/:campaignId/volunteers"
+            element={<CampaignVolunteers />}
+          />
+          <Route
+            path="/events/:eventId/campaigns/:campaignId/builder"
+            element={<CampaignBuilder />}
+          />
           {/* 404 error */}
           <Route
             path="*"

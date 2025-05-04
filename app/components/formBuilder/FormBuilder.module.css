@@ -1,0 +1,106 @@
+/* FormBuilder.module.css */
+.container {
+  display: flex;
+  height: 100%;
+}
+.sidebar {
+  width: 250px;
+  /* border-right: 1px solid #ddd; */
+  padding: 16px;
+  /* background: #f8f9fa; */
+}
+.fieldList {
+  /* optional styling for palette list */
+}
+.fieldItem {
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  background: #fafafa;
+  cursor: grab;
+}
+.canvas {
+  flex: 1;
+  padding: 16px;
+  background: #fff;
+}
+.dropzone {
+  min-height: 200px;
+  border: 2px dashed #bbb;
+  border-radius: 4px;
+  padding: 8px;
+}
+.fieldWrapper {
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fafafa;
+}
+.textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.previewBox {
+  background: rgb(255, 255, 255);
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  position: relative;
+}
+.previewNoticeContainer {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  height: 100%;
+  width: 100%;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.previewBox:hover .previewNotice {
+  opacity: 0.07;
+  color: red;
+}
+.previewNotice {
+  font-size: 40px;
+  line-height: 1;
+  color: #555;
+  opacity: 0.03;
+  position: absolute;
+  top: -30px;
+  right: 0px;
+  font-weight: 900;
+  z-index: 0;
+  pointer-events: none;
+  rotate: 5deg;
+}
+.previewBox * {
+  z-index: 1;
+}
+/* Collapsible field header */
+.collapsedHeader {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.collapsedHeader:hover .collapsedText {
+  text-decoration: underline;
+}
+.collapsedText {
+  margin-left: 8px;
+  font-weight: 500;
+}
+
+/* Expanded field content */
+.fieldContent {
+  padding-top: 8px;
+}
+
+/* Save button override (optional) */
+.saveButton {
+  margin-top: 8px;
+}
