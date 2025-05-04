@@ -184,6 +184,7 @@ model Event {
 
   logoFileId    String?   @unique
   logo          File?     @relation(name: "EventLogo", fields: [logoFileId], references: [id], onDelete: Cascade)
+  campaigns     Campaign[]
 }
 
 model Campaign {
@@ -192,6 +193,9 @@ model Campaign {
   description String
   userId String
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  eventId String
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   slug String @unique
 

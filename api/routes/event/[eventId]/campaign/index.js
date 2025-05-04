@@ -9,6 +9,7 @@ export const get = [
     const campaigns = await prisma.campaign.findMany({
       where: {
         userId: req.user.id,
+        eventId: req.params.eventId,
       },
     });
 
@@ -46,6 +47,7 @@ export const post = [
         description: result.data.description,
         slug: result.data.slug,
         userId: req.user.id,
+        eventId: req.params.eventId,
       },
     });
 
