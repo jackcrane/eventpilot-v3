@@ -12,6 +12,7 @@ import icon from "../../assets/ico.png";
 import { Link, useLocation, useMatches, useNavigate } from "react-router-dom";
 import { EventPicker } from "../eventPicker/EventPicker";
 import { useParsedUrl } from "../../hooks/useParsedUrl";
+import { CampaignPicker } from "../campaignPicker/CampaignPicker";
 
 export const Header = () => {
   const { user, loggedIn, login, logout, resendVerificationEmail } = useAuth();
@@ -87,13 +88,11 @@ const Breadcrumbs = () => {
   if (url.events) {
     builder.push(<EventPicker go value={url.events} />);
     if (!url.campaigns) {
-      builder.push("Unpicked campaign");
+      builder.push(<CampaignPicker go />);
     }
   }
-  if (url.campaigns === true) {
-    builder.push("Pick a campaign");
-  } else if (url.campaigns) {
-    builder.push(<EventPicker go value={url.campaigns} />);
+  if (url.campaigns) {
+    builder.push(<CampaignPicker go value={url.campaigns} />);
   }
 
   return (

@@ -2,23 +2,29 @@ import useSWR, { mutate } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { Input, Typography, Button, useModal, Badge } from "tabler-react-2";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dropzone } from "../components/dropzone/Dropzone";
 import { useSlugChecker } from "./useSlugChecker";
+import { useParams } from "react-router-dom";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
-export const useEvents = () => {
+export const useCampaigns = () => {
+  const { eventId } = useParams();
   const {
     data,
     error,
     isLoading,
     mutate: refetch,
-  } = useSWR(`/api/events`, fetcher);
+  } = useSWR(eventId ? `/api/events/${eventId}/campaigns` : null, fetcher);
 
-  const createEvent = async (data) => {
+  useEffect(() => {
+    refetch();
+  }, [eventId]);
+
+  const createCampaign = async (data) => {
     try {
-      const promise = authFetch(`/api/events`, {
+      const promise = authFetch(`/api/events/${eventId}/campaigns`, {
         method: "POST",
         body: JSON.stringify(data),
       }).then(async (r) => {
@@ -27,9 +33,9 @@ export const useEvents = () => {
       });
 
       await toast.promise(promise, {
-        loading: "Creating event...",
-        success: "Event created successfully",
-        error: "Error creating event",
+        loading: "Creating campaign...",
+        success: "Campaign created successfully",
+        error: "Error creating campaign",
       });
 
       return true;
@@ -38,33 +44,34 @@ export const useEvents = () => {
     }
   };
 
-  const { modal: createEventModal, ModalElement: CreateEventModalElement } =
-    useModal({
-      title: "Create a new event",
-      text: (
-        <CreateEvent
-          createEvent={async (data) => {
-            if (await createEvent(data)) document.location.reload();
-          }}
-        />
-      ),
-      buttons: [],
-    });
+  const {
+    modal: createCampaignModal,
+    ModalElement: CreateCampaignModalElement,
+  } = useModal({
+    title: "Create a new campaign",
+    text: (
+      <CreateCampaign
+        createCampaign={async (data) => {
+          if (await createCampaign(data)) document.location.reload();
+        }}
+      />
+    ),
+    buttons: [],
+  });
 
   return {
-    events: data?.events,
-    createEventModal,
-    CreateEventModalElement,
+    campaigns: data?.campaigns,
+    createCampaignModal,
+    CreateCampaignModalElement,
     loading: isLoading,
     error,
     refetch,
   };
 };
 
-export const CreateEvent = ({ createEvent }) => {
+export const CreateCampaign = ({ createCampaign }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [logo, setLogo] = useState(null);
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
 
@@ -81,25 +88,28 @@ export const CreateEvent = ({ createEvent }) => {
   };
 
   const currentSlug = slugTouched ? slug : generateSlug(name);
-  const { slugPresent } = useSlugChecker({ slug: currentSlug, type: "event" });
+  const { slugPresent } = useSlugChecker({
+    slug: currentSlug,
+    type: "campaign",
+  });
 
   return (
     <>
       <Input
-        label="Event Name"
-        placeholder="Event Name"
+        label="Campaign Name"
+        placeholder="Campaign Name"
         onInput={(val) => setName(val)}
         value={name}
         className="mb-0"
         variant={name.length > 0 && name.length < 2 ? "danger" : null}
       />
       <Typography.I className="text-muted">
-        <b>Event Name</b> is required and must be at least 2 characters long.
+        <b>Campaign Name</b> is required and must be at least 2 characters long.
       </Typography.I>
 
       <Input
-        label="Event Description"
-        placeholder="Event Description"
+        label="Campaign Description"
+        placeholder="Campaign Description"
         onInput={(val) => setDescription(val)}
         value={description}
         className="mt-3"
@@ -140,19 +150,16 @@ export const CreateEvent = ({ createEvent }) => {
       </Typography.I>
 
       <div className="mt-3" />
-      <label className="form-label">Logo or Image</label>
-      <Dropzone onSuccessfulUpload={(d) => setLogo(d.fileId)} />
       <Button
         onClick={() =>
-          createEvent({
+          createCampaign({
             name,
             description,
-            logoFileId: logo,
             slug: currentSlug,
           })
         }
       >
-        Create Event
+        Create Campaign
       </Button>
     </>
   );

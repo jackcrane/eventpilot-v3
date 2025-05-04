@@ -6,22 +6,15 @@ import { z } from "zod";
 export const get = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const event = await prisma.event.findFirst({
+    const campaign = await prisma.campaign.findFirst({
       where: {
         userId: req.user.id,
-        id: req.params.eventId,
-      },
-      include: {
-        logo: {
-          select: {
-            location: true,
-          },
-        },
+        id: req.params.campaignId,
       },
     });
 
     res.json({
-      event,
+      campaign,
     });
   },
 ];

@@ -13,6 +13,7 @@ import { ForgotPassword } from "./routes/auth/forgot-password";
 import { useFavicon } from "react-use";
 import favicon from "../assets/ico.png";
 import { Home } from "./routes/Home";
+import { Campaign } from "./routes/events/[eventId]/campaigns/[campaignId]";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -51,6 +52,11 @@ export default () => {
           <Route path="/verify" element={<Verify />} />
           <Route path="/events/:eventId" element={<Event />} />
           <Route path="/events" element={<Home />} />
+          <Route
+            path="/events/:eventId/campaigns/:campaignId"
+            element={<Campaign />}
+          />
+          <Route path="/events/:eventId/campaigns" element={<p>almost</p>} />
           {/* 404 error */}
           <Route
             path="*"
