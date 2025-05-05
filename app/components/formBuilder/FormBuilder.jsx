@@ -355,50 +355,50 @@ export const FieldSettings = ({ field, updateProp }) => {
   );
 };
 
-// Single draggable field item with collapse/expand
+// Single field item, locked fields are not draggable
 export const FieldItem = ({ field, index, updateProp, removeField }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(!!field.locked);
   const typeDef = FIELD_TYPES.find((t) => t.type === field.type);
-  return (
-    <Draggable key={field.id} draggableId={field.id} index={index}>
-      {(prov) => (
-        <div
-          ref={prov.innerRef}
-          {...prov.draggableProps}
-          {...prov.dragHandleProps}
-          className={styles.fieldWrapper}
-        >
-          {/* Collapse/Expand Header */}
-          <div
-            className={styles.collapsedHeader}
-            onClick={() => setCollapsed((prev) => !prev)}
-          >
-            <Icon i={collapsed ? "chevron-right" : "chevron-down"} />
-            <Typography.H3 className={classNames(styles.collapsedText, "mb-0")}>
-              {typeDef.label}
-              <i>{field.props.label ? `: ${field.props.label}` : ""}</i>
-            </Typography.H3>
-          </div>
 
-          {/* Expanded Content */}
-          {!collapsed && (
-            <div className={styles.fieldContent}>
-              <div className={styles.previewBox}>
-                <div className={styles.previewNoticeContainer}>
-                  <span className={styles.previewNotice}>
-                    PREVIEW PREVIEW PREVEIW PREVIEW PREVIEW PREVEIW PREVIEW
-                    PREVIEW PREVEIW PREVIEW PREVIEW PREVEIW PREVIEW PREVIEW
-                    PREVEIW PREVIEW PREVIEW PREVEIW PREVIEW PREVIEW PREVEIW
-                    PREVIEW PREVIEW PREVEIW
-                  </span>
-                </div>
-                <FieldPreview field={field} />
-                {field.props.description && (
-                  <div className={styles.previewDescription}>
-                    {field.props.description}
-                  </div>
-                )}
+  const content = (
+    <div className={styles.fieldWrapper}>
+      {/* Collapse/Expand Header */}
+      <div
+        className={styles.collapsedHeader}
+        onClick={() => setCollapsed((prev) => !prev)}
+      >
+        <Icon i={collapsed ? "chevron-right" : "chevron-down"} />
+        <Typography.H3 className={classNames(styles.collapsedText, "mb-0")}>
+          {typeDef.label}
+          <i>{field.props.label ? `: ${field.props.label}` : ""}</i>
+        </Typography.H3>
+      </div>
+
+      {/* Expanded Content */}
+      {!collapsed && (
+        <div className={styles.fieldContent}>
+          <div className={styles.previewBox}>
+            <div className={styles.previewNoticeContainer}>
+              <span className={styles.previewNotice}>
+                PREVIEW PREVIEW PREVEIW PREVIEW PREVIEW PREVEIW PREVIEW PREVIEW
+                PREVEIW PREVIEW PREVIEW PREVEIW PREVIEW PREVIEW PREVEIW PREVIEW
+                PREVIEW PREVEIW PREVIEW PREVIEW PREVEIW PREVIEW PREVIEW PREVEIW
+              </span>
+            </div>
+            <FieldPreview field={field} />
+            {field.props.description && (
+              <div className={styles.previewDescription}>
+                {field.props.description}
               </div>
+            )}
+          </div>
+          {field.locked && (
+            <Typography.Text className="mb-3">
+              EventPilot automatically collects the name and email of submitters
+            </Typography.Text>
+          )}
+          {!field.locked && (
+            <>
               <FieldSettings field={field} updateProp={updateProp} />
               <hr />
               <Button
@@ -409,47 +409,91 @@ export const FieldItem = ({ field, index, updateProp, removeField }) => {
               >
                 Delete
               </Button>
-            </div>
+            </>
           )}
+        </div>
+      )}
+    </div>
+  );
+
+  return field.locked ? (
+    content
+  ) : (
+    <Draggable key={field.id} draggableId={field.id} index={index}>
+      {(prov) => (
+        <div
+          ref={prov.innerRef}
+          {...prov.draggableProps}
+          {...prov.dragHandleProps}
+        >
+          {content}
         </div>
       )}
     </Draggable>
   );
 };
 
-// Canvas holding all fields and save button
-export const FieldCanvas = ({ fields, updateProp, removeField, saveForm }) => (
-  <div className={styles.canvas}>
-    <h4>Form</h4>
-    <Droppable droppableId="FORM">
-      {(provided) => (
-        <div
-          ref={provided.innerRef}
-          {...provided.droppableProps}
-          className={styles.dropzone}
-        >
-          {fields.map((f, i) => (
-            <FieldItem
-              key={f.id}
-              field={f}
-              index={i}
-              updateProp={updateProp}
-              removeField={removeField}
-            />
-          ))}
-          {provided.placeholder}
-        </div>
-      )}
-    </Droppable>
-    <Button className={styles.saveButton} onClick={saveForm}>
-      Save Form
-    </Button>
-  </div>
-);
+// Canvas holding all fields and save button, separating locked and draggable fields
+export const FieldCanvas = ({ fields, updateProp, removeField, saveForm }) => {
+  const lockedFields = fields.filter((f) => f.locked);
+  const draggableFields = fields.filter((f) => !f.locked);
+
+  return (
+    <div className={styles.canvas}>
+      <h4>Form</h4>
+      <Droppable droppableId="FORM">
+        {(provided) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={styles.dropzone}
+          >
+            {lockedFields.map((f, i) => (
+              <FieldItem
+                key={f.id}
+                field={f}
+                index={i}
+                updateProp={updateProp}
+                removeField={removeField}
+              />
+            ))}
+            {draggableFields.map((f, i) => (
+              <FieldItem
+                key={f.id}
+                field={f}
+                index={i}
+                updateProp={updateProp}
+                removeField={removeField}
+              />
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+
+      <Button className={styles.saveButton} onClick={saveForm}>
+        Save Form
+      </Button>
+    </div>
+  );
+};
 
 // Main builder component
 export const FormBuilder = () => {
-  const [fields, setFields] = useState([]);
+  const [fields, setFields] = useState(() => [
+    {
+      id: cuid(),
+      type: "text",
+      props: { ...DEFAULT_FIELD_PROPS, label: "Your Name", required: true },
+      locked: true,
+    },
+    {
+      id: cuid(),
+      type: "email",
+      props: { ...DEFAULT_FIELD_PROPS, label: "Your Email", required: true },
+      locked: true,
+    },
+  ]);
 
   const onDragEnd = ({ source, destination, draggableId }) => {
     if (!destination) return;
