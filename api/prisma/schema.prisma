@@ -201,4 +201,59 @@ model Campaign {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  formFields FormField[]
+  formResponses FormResponse[]
+}
+
+model FormField {
+  id            String               @id @default(cuid())
+  campaignId    String
+  campaign      Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  type          String
+  label         String
+  placeholder   String?
+  description   String?
+  required      Boolean              @default(false)
+  defaultValue  Boolean              @default(false)
+  prompt        String?
+  order         Int
+
+  options       FormFieldOption[]
+  fieldResponses FieldResponse[]
+
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+}
+
+model FormFieldOption {
+  id        String     @id @default(cuid())
+  fieldId   String
+  field     FormField  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  label     String
+  order     Int
+
+  @@index([fieldId])
+}
+
+model FormResponse {
+  id             String           @id @default(cuid())
+  campaignId     String
+  campaign       Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  fieldResponses FieldResponse[]
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model FieldResponse {
+  id          String        @id @default(cuid())
+  responseId  String
+  response    FormResponse  @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  fieldId     String
+  field       FormField     @relation(fields: [fieldId], references: [id])
+  value       String?
+
+  @@index([responseId])
+  @@index([fieldId])
 }

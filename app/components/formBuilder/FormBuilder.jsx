@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useFormBuilder } from "../../hooks/useFormBuilder";
+import { useParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import {
   Button,
@@ -480,20 +482,53 @@ export const FieldCanvas = ({ fields, updateProp, removeField, saveForm }) => {
 
 // Main builder component
 export const FormBuilder = () => {
-  const [fields, setFields] = useState(() => [
-    {
-      id: cuid(),
-      type: "text",
-      props: { ...DEFAULT_FIELD_PROPS, label: "Your Name", required: true },
-      locked: true,
-    },
-    {
-      id: cuid(),
-      type: "email",
-      props: { ...DEFAULT_FIELD_PROPS, label: "Your Email", required: true },
-      locked: true,
-    },
-  ]);
+  const { eventId, campaignId } = useParams();
+  const { fields, loading, error, updateFields } = useFormBuilder(
+    eventId,
+    campaignId
+  );
+
+  // Local state for fields being edited
+  const [localFields, setLocalFields] = useState([]);
+  useEffect(() => {
+    if (!loading && !error) {
+      const mapped = fields.map((f) => ({
+        id: f.id,
+        type: f.type,
+        props: {
+          label: f.label,
+          placeholder: f.placeholder,
+          description: f.description,
+          required: f.required,
+          defaultValue: f.defaultValue,
+          prompt: f.prompt,
+          options: (f.options || []).map((o) => ({ id: o.id, label: o.label })),
+        },
+      }));
+      setLocalFields([
+        {
+          id: cuid(),
+          type: "text",
+          props: { ...DEFAULT_FIELD_PROPS, label: "Your Name", required: true },
+          locked: true,
+        },
+        {
+          id: cuid(),
+          type: "email",
+          props: {
+            ...DEFAULT_FIELD_PROPS,
+            label: "Your Email",
+            required: true,
+          },
+          locked: true,
+        },
+        ...mapped,
+      ]);
+    }
+  }, [fields, loading, error]);
+
+  // Capture the original IDs for fields and options
+  const originalIds = new Set(fields.map((f) => f.id));
 
   const onDragEnd = ({ source, destination, draggableId }) => {
     if (!destination) return;
@@ -507,9 +542,9 @@ export const FormBuilder = () => {
         type: draggableId,
         props: { ...DEFAULT_FIELD_PROPS },
       };
-      const next = [...fields];
+      const next = [...localFields];
       next.splice(destination.index, 0, newField);
-      setFields(next);
+      setLocalFields(next);
       return;
     }
 
@@ -529,37 +564,62 @@ export const FormBuilder = () => {
           })),
         },
       };
-      const next = [...fields];
+      const next = [...localFields];
       next.splice(destination.index, 0, copied);
-      setFields(next);
+      setLocalFields(next);
       return;
     }
 
     if (source.droppableId === "FORM" && destination.droppableId === "FORM") {
-      const next = [...fields];
+      const next = [...localFields];
       const [moved] = next.splice(source.index, 1);
       next.splice(destination.index, 0, moved);
-      setFields(next);
+      setLocalFields(next);
     }
   };
 
   const updateProp = (id, prop, value) => {
-    setFields(
-      fields.map((f) =>
-        f.id === id ? { ...f, props: { ...f.props, [prop]: value } } : f
-      )
+    const next = localFields.map((f) =>
+      f.id === id ? { ...f, props: { ...f.props, [prop]: value } } : f
     );
+    setLocalFields(next);
   };
 
-  const removeField = (id) => setFields(fields.filter((f) => f.id !== id));
-  const saveForm = () =>
-    console.log(
-      JSON.stringify(
-        fields.map((f) => ({ id: f.id, type: f.type, ...f.props })),
-        null,
-        2
-      )
-    );
+  const removeField = (id) => {
+    const next = localFields.filter((f) => f.id !== id);
+    setLocalFields(next);
+  };
+
+  const saveForm = () => {
+    const syncFields = localFields.filter((f) => !f.locked);
+    const apiFields = syncFields.map((f, idx) => {
+      const isExisting = originalIds.has(f.id);
+      return {
+        ...(isExisting ? { id: f.id } : {}),
+        type: f.type,
+        label: f.props.label,
+        placeholder: f.props.placeholder || null,
+        description: f.props.description || null,
+        required: f.props.required,
+        defaultValue: f.props.defaultValue,
+        prompt: f.props.prompt || null,
+        order: idx,
+        options: (f.props.options || []).map((opt, optIdx) => ({
+          ...(originalIds.has(opt.id) ? { id: opt.id } : {}),
+          label: opt.label,
+          order: optIdx,
+        })),
+      };
+    });
+    return updateFields(apiFields);
+  };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  if (error) {
+    return <div>Error loading form fields.</div>;
+  }
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
@@ -569,7 +629,7 @@ export const FormBuilder = () => {
           <TemplatePalette templates={TEMPLATE_FIELDS} />
         </div>
         <FieldCanvas
-          fields={fields}
+          fields={localFields}
           updateProp={updateProp}
           removeField={removeField}
           saveForm={saveForm}
