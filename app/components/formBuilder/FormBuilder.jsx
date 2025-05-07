@@ -463,7 +463,7 @@ export const FieldCanvas = ({ fields, updateProp, removeField, saveForm }) => {
               <FieldItem
                 key={f.id}
                 field={f}
-                index={i}
+                index={lockedFields.length + i}
                 updateProp={updateProp}
                 removeField={removeField}
               />

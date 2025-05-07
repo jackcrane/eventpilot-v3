@@ -10,18 +10,26 @@ import { Register } from "./routes/auth/register";
 import { Verify } from "./routes/auth/verify";
 import { UserProfile } from "./routes/auth/me";
 import { ForgotPassword } from "./routes/auth/forgot-password";
-import { useFavicon } from "react-use";
+import { useFavicon, useLocation } from "react-use";
 import favicon from "../assets/ico.png";
 import { Home } from "./routes/Home";
 import { Campaign } from "./routes/events/[eventId]/campaigns/[campaignId]";
 import { CampaignVolunteers } from "./routes/events/[eventId]/campaigns/[campaignId]/volunteers";
 import { CampaignBuilder } from "./routes/events/[eventId]/campaigns/[campaignId]/builder";
+import { Consumer } from "./consumer/Consumer";
+import { useReducedSubdomain } from "../hooks/useReducedSubdomain";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
+  const location = useLocation();
   useFavicon(favicon);
+  const subdomain = useReducedSubdomain();
 
   if (loading) return null;
+
+  if (subdomain !== "eventpilot.com" && subdomain !== "localhost") {
+    return <Consumer subdomain={subdomain} />;
+  }
 
   if (user && user.suspended) {
     return (
@@ -29,7 +37,7 @@ export default () => {
         {/* <Header /> */}
         <div style={{ padding: "20px" }}>
           <h1>Your account has been suspended</h1>
-          <p>Please contact support@EventPilot.pro for assistance.</p>
+          <p>Please contact support@geteventpilot.com for assistance.</p>
         </div>
       </div>
     );

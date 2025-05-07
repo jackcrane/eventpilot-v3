@@ -9,13 +9,12 @@ const ROLE_HIERARCHY = {
 };
 
 export const verifyAuth =
-  (allowedRoles = []) =>
+  (allowedRoles = [], allowUnauthenticated = false) =>
   async (req, res, next) => {
     const authHeader = req.headers.authorization;
+    const token = authHeader?.split(" ")[1];
 
-    if (authHeader) {
-      const token = authHeader.split(" ")[1];
-
+    if (authHeader && token && token !== "null") {
       jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
         if (err) {
           return res.sendStatus(401); // Unauthorized
@@ -47,7 +46,7 @@ export const verifyAuth =
         );
         const minRequiredRoleLevel = Math.min(...requiredRoleLevels);
 
-        if (userRoleLevel < minRequiredRoleLevel) {
+        if (userRoleLevel < minRequiredRoleLevel && !allowUnauthenticated) {
           return res
             .status(403)
             .json({ message: "Access forbidden: insufficient permissions" });
@@ -56,6 +55,12 @@ export const verifyAuth =
         next();
       });
     } else {
-      res.sendStatus(401); // Unauthorized
+      if (allowUnauthenticated) {
+        req.user = {};
+        req.hasUser = false;
+        next();
+      } else {
+        res.sendStatus(401); // Unauthorized
+      }
     }
   };

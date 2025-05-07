@@ -30,11 +30,25 @@ const bodySchema = z.object({
 
 // GET → list fields
 export const get = [
-  verifyAuth(["manager"]),
+  verifyAuth(["manager"], true),
   async (req, res) => {
     const { campaignId } = req.params;
     const fields = await prisma.formField.findMany({
-      where: { campaignId },
+      where: {
+        AND: [
+          { OR: [{ campaignId }, { campaign: { slug: campaignId } }] },
+          {
+            OR: [
+              {
+                campaign: {
+                  eventId: req.params.eventId,
+                },
+              },
+              { campaign: { event: { slug: req.params.eventId } } },
+            ],
+          },
+        ],
+      },
       orderBy: { order: "asc" },
       include: { options: { orderBy: { order: "asc" } } },
     });
