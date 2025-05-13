@@ -222,6 +222,8 @@ model FormField {
   options       FormFieldOption[]
   fieldResponses FieldResponse[]
 
+  deleted       Boolean              @default(false)
+
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 }

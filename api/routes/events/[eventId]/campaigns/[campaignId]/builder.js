@@ -47,6 +47,7 @@ export const get = [
               { campaign: { event: { slug: req.params.eventId } } },
             ],
           },
+          { deleted: false },
         ],
       },
       orderBy: { order: "asc" },
@@ -68,10 +69,15 @@ export const post = [
     const { fields } = result.data;
 
     await prisma.$transaction(async (tx) => {
-      // delete any fields that were removed
+      // soft-delete fields that were removed
       const incomingIds = fields.map((f) => f.id).filter(Boolean);
-      await tx.formField.deleteMany({
-        where: { campaignId, id: { notIn: incomingIds } },
+      await tx.formField.updateMany({
+        where: {
+          campaignId,
+          id: { notIn: incomingIds },
+          deleted: false,
+        },
+        data: { deleted: true },
       });
 
       for (const f of fields) {

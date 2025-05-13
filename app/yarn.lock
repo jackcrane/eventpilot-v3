@@ -2243,10 +2243,10 @@ swr@^2.3.0:
     dequal "^2.0.3"
     use-sync-external-store "^1.4.0"
 
-tabler-react-2@0.1.92:
-  version "0.1.92"
-  resolved "https://registry.yarnpkg.com/tabler-react-2/-/tabler-react-2-0.1.92.tgz#fbd50b1b00fe388b1064ec94c14434c300632f3f"
-  integrity sha512-ZwU+Dm259wzF2PQO+AUflynpytyk7nW3siA0o/1OU+d95mlSDXCilMf7ZW7+tllpvTS3mPnOxzgEGZ/rbb/jww==
+tabler-react-2@0.1.97:
+  version "0.1.97"
+  resolved "https://registry.yarnpkg.com/tabler-react-2/-/tabler-react-2-0.1.97.tgz#4e9f3d75b37e885c3b4c4a72ae1d50b3c97417bd"
+  integrity sha512-dtWZvqc9QzzqN46C/OV6rXTLQpJrv6rIAihA408g2hNmpNEQoD5bYdJInQh3QfeCCaHWZ9QizVbCpqL8lXZnfA==
   dependencies:
     "@babel/cli" "^7.24.8"
     "@babel/core" "^7.24.8"

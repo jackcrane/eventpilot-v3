@@ -14,6 +14,7 @@ import styles from "./FormBuilder.module.css";
 import { Icon } from "../../util/Icon";
 import classNames from "classnames";
 import { Row } from "../../util/Flex";
+import toast from "react-hot-toast";
 
 // Default props for each new field
 const DEFAULT_FIELD_PROPS = {
@@ -358,8 +359,16 @@ export const FieldSettings = ({ field, updateProp }) => {
 };
 
 // Single field item, locked fields are not draggable
-export const FieldItem = ({ field, index, updateProp, removeField }) => {
-  const [collapsed, setCollapsed] = useState(!!field.locked);
+export const FieldItem = ({
+  field,
+  index,
+  updateProp,
+  removeField,
+  originalIds,
+}) => {
+  const [collapsed, setCollapsed] = useState(
+    field.locked || originalIds.has(field.id)
+  );
   const typeDef = FIELD_TYPES.find((t) => t.type === field.type);
 
   const content = (
@@ -436,7 +445,13 @@ export const FieldItem = ({ field, index, updateProp, removeField }) => {
 };
 
 // Canvas holding all fields and save button, separating locked and draggable fields
-export const FieldCanvas = ({ fields, updateProp, removeField, saveForm }) => {
+export const FieldCanvas = ({
+  fields,
+  updateProp,
+  removeField,
+  saveForm,
+  originalIds,
+}) => {
   const lockedFields = fields.filter((f) => f.locked);
   const draggableFields = fields.filter((f) => !f.locked);
 
@@ -457,6 +472,7 @@ export const FieldCanvas = ({ fields, updateProp, removeField, saveForm }) => {
                 index={i}
                 updateProp={updateProp}
                 removeField={removeField}
+                originalIds={originalIds}
               />
             ))}
             {draggableFields.map((f, i) => (
@@ -466,6 +482,7 @@ export const FieldCanvas = ({ fields, updateProp, removeField, saveForm }) => {
                 index={lockedFields.length + i}
                 updateProp={updateProp}
                 removeField={removeField}
+                originalIds={originalIds}
               />
             ))}
             {provided.placeholder}
@@ -492,6 +509,45 @@ export const FormBuilder = () => {
   const [localFields, setLocalFields] = useState([]);
   useEffect(() => {
     if (!loading && !error) {
+      // Labels for our default locked fields
+      const defaultLabels = { name: "Your Name", email: "Your Email" };
+      // Check if server already has any fields
+      const serverHasName = fields.some(
+        (f) => f.type === "text" && f.label === defaultLabels.name
+      );
+      const serverHasEmail = fields.some(
+        (f) => f.type === "email" && f.label === defaultLabels.email
+      );
+      // Only prepend defaults if neither exist on server
+      const needsDefaults = !serverHasName && !serverHasEmail;
+      // Build default locked fields when needed
+      const defaultLocked = needsDefaults
+        ? [
+            {
+              id: cuid(),
+              type: "text",
+              props: {
+                ...DEFAULT_FIELD_PROPS,
+                label: defaultLabels.name,
+                placeholder: "John Doe",
+                required: true,
+              },
+              locked: true,
+            },
+            {
+              id: cuid(),
+              type: "email",
+              props: {
+                ...DEFAULT_FIELD_PROPS,
+                label: defaultLabels.email,
+                placeholder: "john.doe@example.com",
+                required: true,
+              },
+              locked: true,
+            },
+          ]
+        : [];
+      // Map server fields and lock any that match our defaults
       const mapped = fields.map((f) => ({
         id: f.id,
         type: f.type,
@@ -504,26 +560,11 @@ export const FormBuilder = () => {
           prompt: f.prompt,
           options: (f.options || []).map((o) => ({ id: o.id, label: o.label })),
         },
+        locked:
+          (f.type === "text" && f.label === defaultLabels.name) ||
+          (f.type === "email" && f.label === defaultLabels.email),
       }));
-      setLocalFields([
-        {
-          id: cuid(),
-          type: "text",
-          props: { ...DEFAULT_FIELD_PROPS, label: "Your Name", required: true },
-          locked: true,
-        },
-        {
-          id: cuid(),
-          type: "email",
-          props: {
-            ...DEFAULT_FIELD_PROPS,
-            label: "Your Email",
-            required: true,
-          },
-          locked: true,
-        },
-        ...mapped,
-      ]);
+      setLocalFields([...defaultLocked, ...mapped]);
     }
   }, [fields, loading, error]);
 
@@ -591,7 +632,12 @@ export const FormBuilder = () => {
   };
 
   const saveForm = () => {
-    const syncFields = localFields.filter((f) => !f.locked);
+    // Always sync locked fields first (they carry server IDs once loaded)
+    const lockedFieldsLocal = localFields.filter((f) => f.locked);
+    // Then sync any new or reordered fields
+    const newFields = localFields.filter((f) => !f.locked);
+    const syncFields = [...lockedFieldsLocal, ...newFields];
+
     const apiFields = syncFields.map((f, idx) => {
       const isExisting = originalIds.has(f.id);
       return {
@@ -632,7 +678,10 @@ export const FormBuilder = () => {
           fields={localFields}
           updateProp={updateProp}
           removeField={removeField}
-          saveForm={saveForm}
+          saveForm={(v) =>
+            toast.promise(saveForm(v), { loading: "Saving", success: "Saved!" })
+          }
+          originalIds={originalIds}
         />
       </div>
     </DragDropContext>
