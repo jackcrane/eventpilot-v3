@@ -25,7 +25,8 @@
     "react-use": "^17.6.0",
     "styled-components": "^6.1.14",
     "swr": "^2.3.0",
-    "tabler-react-2": "0.1.100"
+    "tabler-react-2": "0.1.100",
+    "ua-parser-js": "^2.0.3"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

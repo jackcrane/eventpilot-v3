@@ -6,10 +6,12 @@ import { Typography } from "tabler-react-2";
 import { Row } from "../../../../util/Flex";
 import { useFormBuilder } from "../../../../hooks/useFormBuilder";
 import { FormConsumer } from "../../../../components/formConsumer/FormConsumer";
+import { usePII } from "../../../../hooks/usePII";
 
 export const Campaign = () => {
   const { campaignSlug } = useParams();
   const eventSlug = useReducedSubdomain();
+  const pii = usePII();
 
   const { event, loading, error } = useEvent({ eventId: eventSlug });
   const {

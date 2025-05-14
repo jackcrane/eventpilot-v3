@@ -33,7 +33,6 @@ export const FormConsumer = ({ fields, onSubmit, initialValues = {} }) => {
     <div>
       {fields.map((field) => {
         const value = values[field.id] || "";
-        console.log(value);
         const isError = !!errors[field.id];
         const commonProps = {
           key: field.id,

@@ -6,6 +6,7 @@ import { formatFormResponse } from "./[submissionId]";
 
 const bodySchema = z.object({
   values: z.record(z.string(), z.string()),
+  pii: z.record(z.string(), z.any()).optional(),
 });
 
 export const post = async (req, res) => {
@@ -13,7 +14,7 @@ export const post = async (req, res) => {
   if (!parseResult.success) {
     return res.status(400).json({ message: serializeError(parseResult) });
   }
-  const { values } = parseResult.data;
+  const { values, pii } = parseResult.data;
   const { campaignId } = req.params;
 
   try {
@@ -25,6 +26,9 @@ export const post = async (req, res) => {
             field: { connect: { id: fieldId } },
             value,
           })),
+        },
+        pii: {
+          create: pii,
         },
       },
     });

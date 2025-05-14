@@ -38,6 +38,7 @@ export const get = [
           fieldResponses: {
             select: { fieldId: true, value: true, field: true },
           },
+          pii: true,
         },
       });
       if (!resp || resp.campaignId !== campaignId) {
@@ -60,7 +61,11 @@ export const get = [
         currentlyInForm: !f.deleted,
       }));
 
-      return res.json({ response: formattedResponse, fields: fieldsMeta });
+      return res.json({
+        response: formattedResponse,
+        fields: fieldsMeta,
+        pii: resp.pii,
+      });
     } catch (error) {
       return res.status(500).json({ message: error.message });
     }
@@ -73,7 +78,7 @@ export const get = [
 export const put = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const { campaignId, submissionId } = req.params;
+    const { submissionId } = req.params;
     const parse = bodySchema.safeParse(req.body);
     if (!parse.success) {
       return res.status(400).json({ message: serializeError(parse) });

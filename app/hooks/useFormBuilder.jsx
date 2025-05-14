@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import useSWR, { mutate } from "swr";
 import { authFetch } from "../util/url";
+import { getPII, usePII } from "./usePII";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
@@ -27,13 +28,14 @@ export const useFormBuilder = (eventId, campaignId) => {
   const [mutationLoading, setMutationLoading] = useState(false);
 
   const submitForm = async (values) => {
+    const pii = await getPII();
     setMutationLoading(true);
     try {
       const url = `/api/events/${eventId}/campaigns/${campaignId}/submission`;
       const res = await authFetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ values }),
+        body: JSON.stringify({ values, pii }),
       });
       const data = await res.json();
       setMutationLoading(false);
