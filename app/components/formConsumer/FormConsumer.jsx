@@ -33,6 +33,7 @@ export const FormConsumer = ({ fields, onSubmit, initialValues = {} }) => {
     <div>
       {fields.map((field) => {
         const value = values[field.id] || "";
+        console.log(value);
         const isError = !!errors[field.id];
         const commonProps = {
           key: field.id,
@@ -87,6 +88,10 @@ export const FormConsumer = ({ fields, onSubmit, initialValues = {} }) => {
                 values={field.options}
                 color={isError ? "danger" : undefined}
                 outline={isError}
+                aprops={{
+                  style: { width: "100%", justifyContent: "space-between" },
+                }}
+                className={"mb-3"}
               />
             );
           default:

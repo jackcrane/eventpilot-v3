@@ -27,6 +27,7 @@ export const get = [
           options: { select: { id: true, label: true, deleted: true } },
           deleted: true,
           order: true,
+          required: true,
         },
       });
 

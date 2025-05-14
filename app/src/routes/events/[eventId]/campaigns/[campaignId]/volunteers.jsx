@@ -2,7 +2,7 @@ import React from "react";
 import { CampaignPage } from "../../../../../../components/campaignPage/CampaignPage";
 import { useFormResponses } from "../../../../../../hooks/useFormResponses";
 import { useParams } from "react-router-dom";
-import { Table, Button, useOffcanvas } from "tabler-react-2";
+import { Table, Button, useOffcanvas, useConfirm } from "tabler-react-2";
 import { FIELD_TYPES } from "../../../../../../components/formBuilder/FormBuilder";
 import { Icon } from "../../../../../../util/Icon";
 import { Row } from "../../../../../../util/Flex";
@@ -34,10 +34,17 @@ export const CampaignVolunteers = () => {
   const { offcanvas, OffcanvasElement } = useOffcanvas({
     offcanvasProps: { position: "end", size: 500 },
   });
+  const { confirm, ConfirmModal } = useConfirm({
+    title: "Confirm Title",
+    text: "Text",
+    commitText: "Commit",
+    cancelText: "Cancel",
+  });
 
   return (
     <CampaignPage title="Volunteers">
       {OffcanvasElement}
+      {ConfirmModal}
       <Table
         columns={[
           {
@@ -48,7 +55,7 @@ export const CampaignVolunteers = () => {
                 size="sm"
                 onClick={() =>
                   offcanvas({
-                    content: <FormResponseRUD id={v} />,
+                    content: <FormResponseRUD id={v} confirm={confirm} />,
                   })
                 }
               >
