@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Input, DropdownInput, Button } from "tabler-react-2";
 
-export const FormConsumer = ({ fields, onSubmit }) => {
-  const [values, setValues] = useState({});
+export const FormConsumer = ({ fields, onSubmit, initialValues = {} }) => {
+  const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const handleInput = (id) => (value) => {
     setValues((prev) => ({ ...prev, [id]: value }));

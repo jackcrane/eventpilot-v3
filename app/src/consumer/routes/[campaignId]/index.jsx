@@ -21,6 +21,9 @@ export const Campaign = () => {
     fields,
     loading: loadingForm,
     error: errorForm,
+    updateFields,
+    submitForm,
+    mutationLoading,
   } = useFormBuilder(eventSlug, campaignSlug);
 
   if (loading || loadingCampaign) {
@@ -67,7 +70,8 @@ export const Campaign = () => {
           <Typography.H5 className={"mb-0 text-secondary"}>
             Registration Form
           </Typography.H5>
-          <FormConsumer fields={fields} onSubmit={console.log} />
+          {mutationLoading && <div>Submitting...</div>}
+          <FormConsumer fields={fields} onSubmit={submitForm} />
         </div>
       )}
     </div>

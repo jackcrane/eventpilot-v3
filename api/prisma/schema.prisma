@@ -234,6 +234,7 @@ model FormFieldOption {
   field     FormField  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
   label     String
   order     Int
+  deleted      Boolean   @default(false)
 
   @@index([fieldId])
 }

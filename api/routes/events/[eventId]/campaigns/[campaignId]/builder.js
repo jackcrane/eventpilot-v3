@@ -51,7 +51,9 @@ export const get = [
         ],
       },
       orderBy: { order: "asc" },
-      include: { options: { orderBy: { order: "asc" } } },
+      include: {
+        options: { where: { deleted: false }, orderBy: { order: "asc" } },
+      },
     });
     res.json({ fields });
   },
@@ -119,8 +121,9 @@ export const post = [
         const incomingOptIds = (f.options || [])
           .map((o) => o.id)
           .filter(Boolean);
-        await tx.formFieldOption.deleteMany({
-          where: { fieldId, id: { notIn: incomingOptIds } },
+        await tx.formFieldOption.updateMany({
+          where: { fieldId, id: { notIn: incomingOptIds }, deleted: false },
+          data: { deleted: true },
         });
         for (const o of f.options || []) {
           if (o.id) {
@@ -145,7 +148,9 @@ export const post = [
     const updated = await prisma.formField.findMany({
       where: { campaignId: req.params.campaignId },
       orderBy: { order: "asc" },
-      include: { options: { orderBy: { order: "asc" } } },
+      include: {
+        options: { where: { deleted: false }, orderBy: { order: "asc" } },
+      },
     });
     res.json({ fields: updated });
   },
