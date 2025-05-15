@@ -28,7 +28,12 @@ export const post = async (req, res) => {
           })),
         },
         pii: {
-          create: pii,
+          create: {
+            ...pii,
+            userAgent: req.headers["user-agent"],
+            ipAddress:
+              req.headers["x-forwarded-for"] || req.connection.remoteAddress,
+          },
         },
       },
     });

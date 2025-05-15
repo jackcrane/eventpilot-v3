@@ -97,6 +97,7 @@ export const put = [
               value,
             })),
           },
+          updatedAt: new Date(),
         },
       });
       return res.json({ id: updated.id });

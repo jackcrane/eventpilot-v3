@@ -18,7 +18,6 @@ const renderCell = (f, v) => {
 };
 
 const renderTitle = (f) => {
-  console.log(f);
   return (
     <>
       <Icon size={12} i={FIELD_TYPES.find((t) => t.type === f.type).icon} />{" "}

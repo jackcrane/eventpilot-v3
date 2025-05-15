@@ -57,6 +57,7 @@ export const useFormResponse = (eventId, campaignId, submissionId) => {
   return {
     response: data?.response ?? null,
     fields: data?.fields ?? [],
+    pii: data?.pii ?? null,
     loading: isLoading,
     error,
     updateResponse,
