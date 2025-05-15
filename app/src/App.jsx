@@ -19,6 +19,7 @@ import { CampaignBuilder } from "./routes/events/[eventId]/campaigns/[campaignId
 import { Consumer } from "./consumer/Consumer";
 import { useReducedSubdomain } from "../hooks/useReducedSubdomain";
 import { EventJobs } from "./routes/events/[eventId]/jobs";
+import { EventCampaigns } from "./routes/events/[eventId]/campaigns";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -63,7 +64,10 @@ export default () => {
           <Route path="/verify" element={<Verify />} />
           <Route path="/events/:eventId" element={<Event />} />
           <Route path="/events" element={<Home />} />
-          <Route path="/events/:eventId/campaigns" element={<p>almost</p>} />
+          <Route
+            path="/events/:eventId/campaigns"
+            element={<EventCampaigns />}
+          />
           <Route
             path="/events/:eventId/campaigns/:campaignId"
             element={<Campaign />}

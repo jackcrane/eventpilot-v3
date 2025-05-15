@@ -44,17 +44,6 @@ export const CampaignPage = ({ children, title }) => {
           </Row>
         </Button>
         <Button
-          variant={url.builder ? "primary" : "secondary"}
-          ghost={!url.builder}
-          size="sm"
-          href={`/events/${eventId}/campaigns/${campaignId}/jobs`}
-        >
-          <Row gap={1}>
-            <Icon i={"wall"} size="inherit" />
-            Jobs & Shift Builder
-          </Row>
-        </Button>
-        <Button
           variant={url.volunteers ? "primary" : "secondary"}
           ghost={!url.volunteers}
           size="sm"
