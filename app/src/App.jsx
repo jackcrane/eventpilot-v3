@@ -18,6 +18,7 @@ import { CampaignVolunteers } from "./routes/events/[eventId]/campaigns/[campaig
 import { CampaignBuilder } from "./routes/events/[eventId]/campaigns/[campaignId]/builder";
 import { Consumer } from "./consumer/Consumer";
 import { useReducedSubdomain } from "../hooks/useReducedSubdomain";
+import { EventJobs } from "./routes/events/[eventId]/jobs";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -75,6 +76,7 @@ export default () => {
             path="/events/:eventId/campaigns/:campaignId/builder"
             element={<CampaignBuilder />}
           />
+          <Route path="/events/:eventId/jobs" element={<EventJobs />} />
           {/* 404 error */}
           <Route
             path="*"

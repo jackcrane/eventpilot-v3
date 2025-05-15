@@ -282,3 +282,27 @@ model FieldResponse {
   @@index([responseId])
   @@index([fieldId])
 }
+
+model Job {
+  id String @id @default(cuid())
+
+  title String
+  description String
+  restrictions JobRestrictions[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  eventId String
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  shifts Shift[]
+}
+
+enum JobRestrictions {
+  OVER_18
+  OVER_21
+  SPECIAL_CERT_REQUIRED
+  PHYSICAL_ABILITY
+  OTHER
+}
