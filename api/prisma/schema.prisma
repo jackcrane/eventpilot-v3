@@ -176,6 +176,11 @@ model Event {
   description String
   userId String
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locations Location[]
+  jobs Job[]
+  shifts Shift[]
+
+  defaultTz String?
 
   slug String @unique
 
@@ -283,18 +288,45 @@ model FieldResponse {
   @@index([fieldId])
 }
 
+model Location {
+  id String @id @default(cuid())
+
+  name String
+  description String
+  eventId String
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  address String?
+  city String?
+  state String?
+
+  startTime DateTime
+  endTime DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs Job[]
+  shifts Shift[]
+}
+
 model Job {
   id String @id @default(cuid())
 
-  title String
+  name String
   description String
   restrictions JobRestrictions[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  capacity Int
+
   eventId String
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  locationId String
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   shifts Shift[]
 }
@@ -305,4 +337,26 @@ enum JobRestrictions {
   SPECIAL_CERT_REQUIRED
   PHYSICAL_ABILITY
   OTHER
+}
+
+model Shift {
+  id String @id @default(cuid())
+
+  name String
+  description String
+  eventId String
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  locationId String
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  jobId String
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  capacity Int
+  open Boolean @default(true)
+  active Boolean @default(true)
 }

@@ -1,30 +1,32 @@
 import useSWR, { mutate } from "swr";
 import { authFetch } from "../util/url";
+import toast from "react-hot-toast";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
-export const useEmailPreferences = () => {
+export const useLocation = ({ eventId, locationId }) => {
   const {
     data,
     error,
     isLoading,
     mutate: refetch,
-  } = useSWR(`/api/auth/me/email`, fetcher);
+  } = useSWR(`/api/events/${eventId}/locations/${locationId}`, fetcher);
 
-  const createEmailPreferences = async (data) => {
+  const deleteLocation = async () => {
     try {
-      const promise = authFetch(`/api/auth/me/email`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      }).then(async (r) => {
+      const promise = authFetch(
+        `/api/events/${eventId}/locations/${locationId}`,
+        {
+          method: "DELETE",
+        }
+      ).then(async (r) => {
         if (!r.ok) throw new Error("Request failed");
         return r.json();
       });
 
       await toast.promise(promise, {
-        loading: "Creating...",
-        success: "Created successfully",
-        error: "Error",
+        loading: "Deleting location...",
+        success: "Deleted location",
       });
 
       refetch();
@@ -35,8 +37,8 @@ export const useEmailPreferences = () => {
   };
 
   return {
-    emailPreferences: data?.emailPreferences,
-    createEmailPreferences,
+    location: data?.location,
+    deleteLocation,
     loading: isLoading,
     error,
     refetch,

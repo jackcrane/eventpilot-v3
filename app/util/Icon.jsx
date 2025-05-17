@@ -19,14 +19,16 @@ export const Icon = ({
     ></i>
     {secondaryIcon && (
       <i
+        className={`ti ti-${secondaryIcon}`}
+        {...props}
         style={{
           position: "absolute",
           bottom: -3,
           right: -3,
           fontSize: secondarySize || size / 1.5,
           color: secondaryColor,
+          ...props.style,
         }}
-        className={`ti ti-${secondaryIcon}`}
       ></i>
     )}
   </div>

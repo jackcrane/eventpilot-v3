@@ -5,6 +5,7 @@ import { Input, Typography, Button, useModal, Badge } from "tabler-react-2";
 import { useState } from "react";
 import { Dropzone } from "../components/dropzone/Dropzone";
 import { useSlugChecker } from "./useSlugChecker";
+import { TzPicker } from "../components/tzDateTime/tzDateTime";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
@@ -67,6 +68,7 @@ export const CreateEvent = ({ createEvent }) => {
   const [logo, setLogo] = useState(null);
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
+  const [defaultTz, setDefaultTz] = useState("");
 
   const generateSlug = (val) =>
     val
@@ -96,7 +98,6 @@ export const CreateEvent = ({ createEvent }) => {
       <Typography.I className="text-muted">
         <b>Event Name</b> is required and must be at least 2 characters long.
       </Typography.I>
-
       <Input
         label="Event Description"
         placeholder="Event Description"
@@ -110,7 +111,6 @@ export const CreateEvent = ({ createEvent }) => {
       <Typography.I className="text-muted">
         <b>Description</b> is required and must be at least 10 characters long.
       </Typography.I>
-
       <label className="form-label mt-3">
         Slug{"  "}
         <Badge
@@ -138,11 +138,19 @@ export const CreateEvent = ({ createEvent }) => {
         events, so be sure to choose something that is memorable, easy to spell,
         and reflects your event well.
       </Typography.I>
-
       <div className="mt-3" />
       <label className="form-label">Logo or Image</label>
       <Dropzone onSuccessfulUpload={(d) => setLogo(d.fileId)} />
+      <TzPicker
+        required
+        aprops={{ style: { width: "100%", justifyContent: "space-between" } }}
+        prompt={"Select a default timezone"}
+        onChange={(d) => setDefaultTz(d)}
+        value={defaultTz}
+      />
+      TZ: {defaultTz}
       <Button
+        className={"mt-3"}
         onClick={() =>
           createEvent({
             name,
