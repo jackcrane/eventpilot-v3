@@ -21,12 +21,14 @@ export const useLocation = ({ eventId, locationId }) => {
         }
       ).then(async (r) => {
         if (!r.ok) throw new Error("Request failed");
-        return r.json();
+        console.log(r);
+        return true;
       });
 
       await toast.promise(promise, {
         loading: "Deleting location...",
         success: "Deleted location",
+        error: "Error deleting location",
       });
 
       refetch();

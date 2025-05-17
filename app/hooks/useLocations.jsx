@@ -35,8 +35,35 @@ export const useLocations = ({ eventId }) => {
     }
   };
 
+  const editLocation = async (locationId, data) => {
+    try {
+      const promise = authFetch(
+        `/api/events/${eventId}/locations/${locationId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(data),
+        }
+      ).then(async (r) => {
+        if (!r.ok) throw new Error("Request failed");
+        return r.json();
+      });
+
+      await toast.promise(promise, {
+        loading: "Updating location...",
+        success: "Updated location",
+        error: "Error updating location",
+      });
+
+      refetch();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   return {
     locations: data?.locations,
+    editLocation,
     createLocation,
     loading: isLoading,
     error,

@@ -3,14 +3,15 @@ import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
 
 const schema = z.object({
-  name: z.string().min(2),
-  description: z.string().min(10),
+  name: z.string().min(2).max(50),
+  description: z.string().min(10).max(200),
   startTime: z.date(),
   endTime: z.date(),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
 });
+export { schema as locationSchema };
 
 export const post = [
   verifyAuth(["manager"]),
@@ -57,9 +58,8 @@ export const get = [
       where: {
         eventId,
       },
-      include: {
-        jobs: true,
-        shifts: true,
+      orderBy: {
+        startTime: "asc",
       },
     });
     res.json({ locations });

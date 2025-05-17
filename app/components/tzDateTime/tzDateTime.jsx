@@ -69,6 +69,7 @@ export const TzDateTime = ({
   label,
   requireNewTime = false,
   defaultTz, // the timezone.value you want as default
+  required = false,
 }) => {
   const didMountRef = useRef(false);
 
@@ -120,7 +121,11 @@ export const TzDateTime = ({
 
   return (
     <div className="mb-3">
-      {label && <label className="form-label">{label}</label>}
+      {label && (
+        <label className={`form-label ${required && "required"}`}>
+          {label}
+        </label>
+      )}
       <Row gap={1}>
         <Input
           type="date"

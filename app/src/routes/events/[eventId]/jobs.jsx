@@ -28,7 +28,9 @@ export const EventJobs = () => {
       >
         Create a Job
       </Button>
-      <Button onClick={() => offcanvas({ content: <LocationCRUD /> })}>
+      <Button
+        onClick={() => offcanvas({ content: <LocationCRUD close={close} /> })}
+      >
         Create a Location
       </Button>
       <Util.Hr />
