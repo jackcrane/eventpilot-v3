@@ -11,8 +11,9 @@ import {
 import { useLocations } from "../../hooks/useLocations";
 import { useParams } from "react-router-dom";
 import { useJobs } from "../../hooks/useJobs";
-import { TzDateTime } from "../tzDateTime/tzDateTime";
+import { parseIso, TzDateTime } from "../tzDateTime/tzDateTime";
 import { useLocation } from "../../hooks/useLocation";
+import moment from "moment";
 
 export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
   const [formState, setFormState] = useState({
@@ -113,49 +114,83 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
         direction="column"
       />
       <Util.Hr text="Shifts" />
-      {formState.shifts?.map((s, idx) => (
-        <div
-          key={idx}
-          className={"card p-2 mb-3"}
-          style={{
-            backgroundColor: `var(--tblr-light)`,
-          }}
-        >
-          <Input
-            type="number"
-            value={s.capacity === null ? formState.capacity : s.capacity}
-            onInput={(val) =>
-              handleChange("shifts")([
-                ...formState.shifts.slice(0, idx),
-                { ...s, capacity: parseInt(val) },
-                ...formState.shifts.slice(idx + 1),
-              ])
-            }
-            prependedText="Capacity"
-            className="mb-0"
-            label="Capacity"
-            appendedText={
-              s.capacity === null
-                ? "(inherited)"
-                : s.capacity === 0
-                ? "Unlimited"
-                : ""
-            }
-            required
-          />
-          <TzDateTime value={s.startTime} label="Start Time" required />
-          <TzDateTime value={s.endTime} label="End Time" required />
-          <Button
-            onClick={() =>
-              handleChange("shifts")(
-                formState.shifts.filter((_, i) => i !== idx)
-              )
-            }
+      {formState.shifts?.map((s, idx) => {
+        const parsedStart = parseIso(s.startTime);
+        const startTzValue = parsedStart.tzValue;
+        const startDate = parsedStart.date;
+
+        return (
+          <div
+            key={idx}
+            className={"card p-2 mb-3"}
+            style={{
+              backgroundColor: `var(--tblr-light)`,
+            }}
           >
-            Delete
-          </Button>
-        </div>
-      ))}
+            <Input
+              type="number"
+              value={s.capacity === null ? formState.capacity : s.capacity}
+              onInput={(val) =>
+                handleChange("shifts")([
+                  ...formState.shifts.slice(0, idx),
+                  { ...s, capacity: parseInt(val) },
+                  ...formState.shifts.slice(idx + 1),
+                ])
+              }
+              prependedText="Capacity"
+              className="mb-0"
+              label="Capacity"
+              appendedText={
+                s.capacity === null
+                  ? "(inherited)"
+                  : s.capacity === 0
+                  ? "Unlimited"
+                  : ""
+              }
+              required
+            />
+            <TzDateTime
+              value={s.startTime}
+              label="Start Time"
+              required
+              onChange={(v) =>
+                handleChange("shifts")([
+                  ...formState.shifts.slice(0, idx),
+                  { ...s, startTime: v },
+                  ...formState.shifts.slice(idx + 1),
+                ])
+              }
+            />
+            <TzDateTime
+              value={s.endTime}
+              label="End Time"
+              required
+              defaultTz={startTzValue}
+              onChange={(v) =>
+                handleChange("shifts")([
+                  ...formState.shifts.slice(0, idx),
+                  { ...s, endTime: v },
+                  ...formState.shifts.slice(idx + 1),
+                ])
+              }
+              minDate={startDate}
+            />
+            <Typography.Text>
+              This shift is {moment(s.startTime).from(moment(s.endTime), true)}{" "}
+              long
+            </Typography.Text>
+            <Button
+              onClick={() =>
+                handleChange("shifts")(
+                  formState.shifts.filter((_, i) => i !== idx)
+                )
+              }
+            >
+              Delete
+            </Button>
+          </div>
+        );
+      })}
       <Button
         onClick={() => {
           let defaultStartTime = null;

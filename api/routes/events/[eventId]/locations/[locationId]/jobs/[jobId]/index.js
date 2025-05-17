@@ -16,6 +16,13 @@ const schema = z.object({
       "OTHER",
     ])
   ),
+  shifts: z.array(
+    z.object({
+      capacity: z.number().min(0),
+      startTime: z.string(),
+      endTime: z.string(),
+    })
+  ),
 });
 
 export const get = [
@@ -71,7 +78,7 @@ export const put = [
     if (!result.success) {
       return res.status(400).json({ message: serializeError(result) });
     }
-    const { name, description, capacity, restrictions } = result.data;
+    const { name, description, capacity, restrictions, shifts } = result.data;
 
     try {
       const job = await prisma.job.update({

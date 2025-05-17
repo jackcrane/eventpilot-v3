@@ -44,11 +44,53 @@ const getOffsetHoursFromIso = (iso) => {
   return h >= 0 ? h + min / 60 : h - min / 60;
 };
 
+export const convertToCursedIso = (iso) => {
+  // parse numeric offset from ISO (“Z” → 0)
+  const parseOffset = (s) => {
+    if (s.endsWith("Z")) return 0;
+    const m = s.match(/([+-]\d{2}):(\d{2})$/);
+    if (!m) return 0;
+    const h = parseInt(m[1], 10);
+    const mi = parseInt(m[2], 10);
+    return h + (h >= 0 ? mi / 60 : -mi / 60);
+  };
+
+  const offH = parseOffset(iso);
+  // pick the first timezone with that offset
+  const zone = timezones.find((t) => t.offset === offH) || timezones[0];
+  const idx = timezones.indexOf(zone);
+
+  // compute local Y/M/D/h/m in that zone
+  const dt = new Date(iso);
+  const localEpoch = dt.getTime() + offH * 3_600_000;
+  const local = new Date(localEpoch);
+  const Y = local.getUTCFullYear();
+  const M = local.getUTCMonth() + 1;
+  const D = local.getUTCDate();
+  const h = local.getUTCHours();
+  const m = local.getUTCMinutes();
+
+  // seconds = index+1
+  const sec = idx + 1;
+  const pad = (n) => String(n).padStart(2, "0");
+  const sign = offH >= 0 ? "+" : "-";
+  const absOff = Math.abs(offH);
+  const hrs = Math.floor(absOff);
+  const mins = Math.round((absOff - hrs) * 60);
+
+  return (
+    `${Y}-${pad(M)}-${pad(D)}T${pad(h)}:${pad(m)}:${pad(sec)}${sign}` +
+    `${pad(hrs)}:${pad(mins)}`
+  );
+};
+
+window.convertToCursedIso = convertToCursedIso;
+
 const truncate = (str, max = 50) =>
   str.length <= max ? str : str.slice(0, max) + "...";
 
-const parseIso = (iso) => {
-  if (!iso) return { date: "", time: "", tzAbbr: "" };
+export const parseIso = (iso) => {
+  if (!iso) return { date: "", time: "", tzAbbr: "", tzValue: "" };
   const date = iso.slice(0, 10);
   const time = iso.slice(11, 16);
   const secMatch = iso.match(/T\d{2}:\d{2}:(\d{2})/);
@@ -60,7 +102,7 @@ const parseIso = (iso) => {
     const offH = getOffsetHoursFromIso(iso);
     zone = timezones.find((t) => t.offset === offH);
   }
-  return { date, time, tzAbbr: zone?.abbr || "" };
+  return { date, time, tzAbbr: zone?.abbr || "", tzValue: zone?.value };
 };
 
 export const TzDateTime = ({
@@ -70,6 +112,7 @@ export const TzDateTime = ({
   requireNewTime = false,
   defaultTz, // the timezone.value you want as default
   required = false,
+  minDate,
 }) => {
   const didMountRef = useRef(false);
 
@@ -130,6 +173,7 @@ export const TzDateTime = ({
         <Input
           type="date"
           value={date}
+          inputProps={{ min: minDate }}
           onChange={(d) => setDate(d || "")}
           prependedText="Date"
           noMargin

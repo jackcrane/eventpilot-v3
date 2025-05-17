@@ -40,13 +40,6 @@ export const put = [
   verifyAuth(["manager"]),
   async (req, res) => {
     const { eventId, locationId } = req.params;
-    try {
-      req.body.startTime = new Date(req.body.startTime);
-      req.body.endTime = new Date(req.body.endTime);
-    } catch (error) {
-      console.log(error);
-      return res.status(400).json({ message: "Invalid date" });
-    }
 
     const result = schema.safeParse(req.body);
     if (!result.success) {
@@ -67,6 +60,7 @@ export const put = [
         location,
       });
     } catch (error) {
+      console.log(error);
       return res.status(500).json({ message: error.message });
     }
   },

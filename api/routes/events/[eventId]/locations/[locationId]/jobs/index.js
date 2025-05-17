@@ -15,6 +15,14 @@ const schema = z.object({
       "OTHER",
     ])
   ),
+  location: z.string().cuid(),
+  shifts: z.array(
+    z.object({
+      capacity: z.number().min(0),
+      startTime: z.string(),
+      endTime: z.string(),
+    })
+  ),
 });
 
 export const post = [
@@ -26,7 +34,9 @@ export const post = [
       console.log(result.error.issues);
       return res.status(400).json({ message: result.error.issues });
     }
-    const { name, description, capacity, restrictions } = result.data;
+
+    const { name, description, capacity, restrictions, location, shifts } =
+      result.data;
 
     try {
       const job = await prisma.job.create({
@@ -35,9 +45,19 @@ export const post = [
           description,
           capacity,
           restrictions,
-          eventId,
-          locationId,
+          event: { connect: { id: eventId } },
+          location: { connect: { id: locationId } },
+          shifts: {
+            create: shifts.map(({ capacity, startTime, endTime }) => ({
+              capacity,
+              startTime: startTime,
+              endTime: endTime,
+              event: { connect: { id: eventId } },
+              location: { connect: { id: locationId } },
+            })),
+          },
         },
+        include: { shifts: true },
       });
 
       return res.status(201).json({ message: "Job created", job });

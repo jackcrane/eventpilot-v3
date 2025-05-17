@@ -300,8 +300,8 @@ model Location {
   city String?
   state String?
 
-  startTime DateTime
-  endTime DateTime
+  startTime String
+  endTime String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -342,8 +342,6 @@ enum JobRestrictions {
 model Shift {
   id String @id @default(cuid())
 
-  name String
-  description String
   eventId String
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
@@ -355,6 +353,9 @@ model Shift {
 
   jobId String
   job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  startTime String
+  endTime String
 
   capacity Int
   open Boolean @default(true)
