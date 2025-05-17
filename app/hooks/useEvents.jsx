@@ -157,6 +157,7 @@ export const CreateEvent = ({ createEvent }) => {
             description,
             logoFileId: logo,
             slug: currentSlug,
+            defaultTz, // Pbf03
           })
         }
       >

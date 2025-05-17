@@ -1,0 +1,36 @@
+import { z } from "zod";
+
+const eventSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  userId: z.string().uuid(),
+  defaultTz: z.string().optional(),
+  slug: z.string().min(1),
+  logoFileId: z.string().uuid().optional(),
+  timezone: z.string().optional(),
+});
+
+const locationSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  eventId: z.string().uuid(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  startTime: z.date(),
+  endTime: z.date(),
+});
+
+const shiftSchema = z.object({
+  eventId: z.string().uuid(),
+  locationId: z.string().uuid(),
+  jobId: z.string().uuid(),
+  startTime: z.date(),
+  endTime: z.date(),
+  capacity: z.number().int(),
+  open: z.boolean().optional(),
+  active: z.boolean().optional(),
+  timezone: z.string().optional(),
+});
+
+export { eventSchema, locationSchema, shiftSchema };
