@@ -190,6 +190,8 @@ model Event {
   logoFileId    String?   @unique
   logo          File?     @relation(name: "EventLogo", fields: [logoFileId], references: [id], onDelete: Cascade)
   campaigns     Campaign[]
+
+  timezone String?
 }
 
 model Campaign {
@@ -300,8 +302,8 @@ model Location {
   city String?
   state String?
 
-  startTime String
-  endTime String
+  startTime DateTime
+  endTime DateTime
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -354,10 +356,12 @@ model Shift {
   jobId String
   job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
-  startTime String
-  endTime String
+  startTime DateTime
+  endTime DateTime
 
   capacity Int
   open Boolean @default(true)
   active Boolean @default(true)
+
+  timezone String?
 }

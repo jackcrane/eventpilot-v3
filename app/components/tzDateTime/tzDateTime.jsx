@@ -1,14 +1,3 @@
-/**
- *
- * Under the hood, when you pick a date, time and “tz” in the UI, we call buildIso to spit out a standard ISO-8601
- * string—but we stuff a little hack into the seconds field: instead of always “00”, we set SS to the (index + 1)
- * of your chosen abbreviation in our tz list. That way, even when two zones share the same offset (like EST and
- * CDT both at –05:00 in winter/summer), parseIso can look at SS first, recover the exact abbr you picked, and only
- * if that fails fall back to matching by numeric offset. Every time you change date, time or tzAbbr, a useEffect
- * fires to rebuild and push the new ISO string (with its embedded zone index), ensuring your original zone choice
- * survives ambiguous offsets.
- */
-
 import React, { useState, useEffect, useRef } from "react";
 import { Input, DropdownInput } from "tabler-react-2";
 import { Row } from "../../util/Flex";
@@ -21,18 +10,16 @@ export const inferTzFromIso = (iso) => {
   return timezones.find((t) => t.offset === offH)?.abbr;
 };
 
-// build ISO-8601 with hack: seconds = index+1
+// build ISO-8601 with time zone abbreviation as a separate field
 export const buildIso = (Y, M, D, h, m, offH, tzAbbr) => {
   const pad = (n) => String(n).padStart(2, "0");
   const sign = offH >= 0 ? "+" : "-";
   const absOff = Math.abs(offH);
   const hrs = Math.floor(absOff);
   const mins = Math.round((absOff - hrs) * 60);
-  const idx = timezones.findIndex((t) => t.abbr === tzAbbr);
-  const sec = idx >= 0 ? idx + 1 : 0;
-  return `${Y}-${pad(M)}-${pad(D)}T${pad(h)}:${pad(m)}:${pad(sec)}${sign}${pad(
+  return `${Y}-${pad(M)}-${pad(D)}T${pad(h)}:${pad(m)}:00${sign}${pad(
     hrs
-  )}:${pad(mins)}`;
+  )}:${pad(mins)}[${tzAbbr}]`;
 };
 
 const getOffsetHoursFromIso = (iso) => {
@@ -44,64 +31,18 @@ const getOffsetHoursFromIso = (iso) => {
   return h >= 0 ? h + min / 60 : h - min / 60;
 };
 
-export const convertToCursedIso = (iso) => {
-  // parse numeric offset from ISO (“Z” → 0)
-  const parseOffset = (s) => {
-    if (s.endsWith("Z")) return 0;
-    const m = s.match(/([+-]\d{2}):(\d{2})$/);
-    if (!m) return 0;
-    const h = parseInt(m[1], 10);
-    const mi = parseInt(m[2], 10);
-    return h + (h >= 0 ? mi / 60 : -mi / 60);
-  };
-
-  const offH = parseOffset(iso);
-  // pick the first timezone with that offset
-  const zone = timezones.find((t) => t.offset === offH) || timezones[0];
-  const idx = timezones.indexOf(zone);
-
-  // compute local Y/M/D/h/m in that zone
-  const dt = new Date(iso);
-  const localEpoch = dt.getTime() + offH * 3_600_000;
-  const local = new Date(localEpoch);
-  const Y = local.getUTCFullYear();
-  const M = local.getUTCMonth() + 1;
-  const D = local.getUTCDate();
-  const h = local.getUTCHours();
-  const m = local.getUTCMinutes();
-
-  // seconds = index+1
-  const sec = idx + 1;
-  const pad = (n) => String(n).padStart(2, "0");
-  const sign = offH >= 0 ? "+" : "-";
-  const absOff = Math.abs(offH);
-  const hrs = Math.floor(absOff);
-  const mins = Math.round((absOff - hrs) * 60);
-
-  return (
-    `${Y}-${pad(M)}-${pad(D)}T${pad(h)}:${pad(m)}:${pad(sec)}${sign}` +
-    `${pad(hrs)}:${pad(mins)}`
-  );
-};
-
-window.convertToCursedIso = convertToCursedIso;
-
 const truncate = (str, max = 50) =>
   str.length <= max ? str : str.slice(0, max) + "...";
 
+// parse ISO-8601 with time zone abbreviation as a separate field
 export const parseIso = (iso) => {
   if (!iso) return { date: "", time: "", tzAbbr: "", tzValue: "" };
   const date = iso.slice(0, 10);
   const time = iso.slice(11, 16);
-  const secMatch = iso.match(/T\d{2}:\d{2}:(\d{2})/);
-  const sec = secMatch ? parseInt(secMatch[1], 10) : 0;
-  let zone;
-  if (sec > 0 && sec - 1 < timezones.length) {
-    zone = timezones[sec - 1];
-  } else {
-    const offH = getOffsetHoursFromIso(iso);
-    zone = timezones.find((t) => t.offset === offH);
-  }
+  const tzAbbrMatch = iso.match(/\[(.*?)\]$/);
+  const tzAbbr = tzAbbrMatch ? tzAbbrMatch[1] : "";
+  const offH = getOffsetHoursFromIso(iso);
+  const zone = timezones.find((t) => t.abbr === tzAbbr) || timezones.find((t) => t.offset === offH);
   return { date, time, tzAbbr: zone?.abbr || "", tzValue: zone?.value };
 };
 
