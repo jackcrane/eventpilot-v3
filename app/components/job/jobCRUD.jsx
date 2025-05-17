@@ -6,10 +6,13 @@ import {
   EnclosedSelectGroup,
   DropdownInput,
   Button,
+  Card,
 } from "tabler-react-2";
 import { useLocations } from "../../hooks/useLocations";
 import { useParams } from "react-router-dom";
 import { useJobs } from "../../hooks/useJobs";
+import { TzDateTime } from "../tzDateTime/tzDateTime";
+import { useLocation } from "../../hooks/useLocation";
 
 export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
   const [formState, setFormState] = useState({
@@ -18,6 +21,7 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
     capacity: value?.capacity || 0,
     restrictions: value?.restrictions?.map((i) => ({ value: i })) || [],
     location: value?.location || defaultLocation || null,
+    shifts: value?.shifts || [],
   });
 
   const handleChange = (key) => (value) => {
@@ -30,6 +34,8 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
     eventId,
     locationId: formState.location,
   });
+
+  const { location } = useLocation({ eventId, locationId: formState.location });
 
   return (
     <div style={{ marginBottom: 100 }}>
@@ -107,6 +113,70 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
         direction="column"
       />
       <Util.Hr text="Shifts" />
+      {formState.shifts?.map((s, idx) => (
+        <div
+          key={idx}
+          className={"card p-2 mb-3"}
+          style={{
+            backgroundColor: `var(--tblr-light)`,
+          }}
+        >
+          <Input
+            type="number"
+            value={s.capacity === null ? formState.capacity : s.capacity}
+            onInput={(val) =>
+              handleChange("shifts")([
+                ...formState.shifts.slice(0, idx),
+                { ...s, capacity: parseInt(val) },
+                ...formState.shifts.slice(idx + 1),
+              ])
+            }
+            prependedText="Capacity"
+            className="mb-0"
+            label="Capacity"
+            appendedText={
+              s.capacity === null
+                ? "(inherited)"
+                : s.capacity === 0
+                ? "Unlimited"
+                : ""
+            }
+            required
+          />
+          <TzDateTime value={s.startTime} label="Start Time" required />
+          <TzDateTime value={s.endTime} label="End Time" required />
+          <Button
+            onClick={() =>
+              handleChange("shifts")(
+                formState.shifts.filter((_, i) => i !== idx)
+              )
+            }
+          >
+            Delete
+          </Button>
+        </div>
+      ))}
+      <Button
+        onClick={() => {
+          let defaultStartTime = null;
+
+          if (formState.shifts.length === 0) {
+            // First shift: default to location.startTime
+            defaultStartTime = location?.startTime ?? null;
+          } else {
+            // Not first shift: default to previous shift's endTime
+            const lastShift = formState.shifts[formState.shifts.length - 1];
+            defaultStartTime = lastShift?.endTime ?? null;
+          }
+
+          handleChange("shifts")([
+            ...formState.shifts,
+            { capacity: null, startTime: defaultStartTime, endTime: null },
+          ]);
+        }}
+      >
+        Create {formState.shifts?.length === 0 ? "a" : "another"} shift
+      </Button>
       <Util.Hr text="Finish" />
       <Button
         loading={loading}
