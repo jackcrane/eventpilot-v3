@@ -45,6 +45,7 @@ export const CampaignVolunteers = () => {
       {OffcanvasElement}
       {ConfirmModal}
       <Table
+        className="card"
         columns={[
           {
             label: "Details",

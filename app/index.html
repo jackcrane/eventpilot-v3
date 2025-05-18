@@ -2,19 +2,25 @@
 <html>
   <head>
     <title>EventPilot</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta17/dist/js/tabler.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@thumbmarkjs/thumbmarkjs/dist/thumbmark.umd.js"></script>
 
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta17/dist/css/tabler.min.css"
+      href="https://cdn.jsdelivr.net/npm/@tabler/core@1.2.0/dist/css/tabler.min.css"
     />
+    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.2.0/dist/js/tabler.min.js"></script>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css"
     />
     <script>
       window.USE_FALLBACK_ANCHOR = true;
+
+      document.addEventListener("wheel", function (event) {
+        if (document.activeElement.type === "number") {
+          document.activeElement.blur();
+        }
+      });
     </script>
   </head>
   <body>

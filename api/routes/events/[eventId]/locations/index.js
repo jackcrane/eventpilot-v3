@@ -5,8 +5,10 @@ import { z } from "zod";
 const schema = z.object({
   name: z.string().min(2).max(50),
   description: z.string().min(10).max(200),
-  startTime: z.string(),
-  endTime: z.string(),
+  startTime: z.date(),
+  startTimeTz: z.string(),
+  endTime: z.date(),
+  endTimeTz: z.string(),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -17,6 +19,13 @@ export const post = [
   verifyAuth(["manager"]),
   async (req, res) => {
     const { eventId } = req.params;
+
+    try {
+      req.body.startTime = new Date(req.body.startTime);
+      req.body.endTime = new Date(req.body.endTime);
+    } catch {
+      return res.status(400).json({ message: "Invalid date" });
+    }
 
     const result = schema.safeParse(req.body);
     if (!result.success) {
@@ -52,16 +61,10 @@ export const get = [
         eventId,
       },
       orderBy: {
-        startTime: "desc",
+        startTime: "asc",
       },
     });
 
-    const sorted = locations.sort((a, b) => {
-      const aDate = new Date(a.startTime);
-      const bDate = new Date(b.startTime);
-      return aDate - bDate;
-    });
-
-    res.json({ locations: sorted });
+    res.json({ locations });
   },
 ];

@@ -35,7 +35,7 @@ export const get = [
           id: jobId,
         },
         include: {
-          shifts: true,
+          shifts: { orderBy: { startTime: "asc" } },
         },
       });
 

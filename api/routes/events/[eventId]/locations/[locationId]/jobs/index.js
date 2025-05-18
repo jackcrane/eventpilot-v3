@@ -19,8 +19,10 @@ const schema = z.object({
   shifts: z.array(
     z.object({
       capacity: z.number().min(0),
-      startTime: z.string(),
-      endTime: z.string(),
+      startTime: z.date(),
+      startTimeTz: z.string(),
+      endTime: z.date(),
+      endTimeTz: z.string(),
     })
   ),
 });
@@ -29,6 +31,17 @@ export const post = [
   verifyAuth(["manager"]),
   async (req, res) => {
     const { eventId, locationId } = req.params;
+
+    try {
+      req.body.shifts = req.body.shifts.map((s) => {
+        s.startTime = new Date(s.startTime);
+        s.endTime = new Date(s.endTime);
+        return s;
+      });
+    } catch {
+      return res.status(400).json({ message: "Invalid date" });
+    }
+
     const result = schema.safeParse(req.body);
     if (!result.success) {
       console.log(result.error.issues);
@@ -48,16 +61,20 @@ export const post = [
           event: { connect: { id: eventId } },
           location: { connect: { id: locationId } },
           shifts: {
-            create: shifts.map(({ capacity, startTime, endTime }) => ({
-              capacity,
-              startTime: startTime,
-              endTime: endTime,
-              event: { connect: { id: eventId } },
-              location: { connect: { id: locationId } },
-            })),
+            create: shifts.map(
+              ({ capacity, startTime, endTime, startTimeTz, endTimeTz }) => ({
+                capacity,
+                startTime: startTime,
+                endTime: endTime,
+                startTimeTz: startTimeTz,
+                endTimeTz: endTimeTz,
+                event: { connect: { id: eventId } },
+                location: { connect: { id: locationId } },
+              })
+            ),
           },
         },
-        include: { shifts: true },
+        include: { shifts: { orderBy: { startTime: "asc" } } },
       });
 
       return res.status(201).json({ message: "Job created", job });
@@ -78,7 +95,7 @@ export const get = [
           locationId,
         },
         include: {
-          shifts: true,
+          shifts: { orderBy: { startTime: "asc" } },
         },
       });
 

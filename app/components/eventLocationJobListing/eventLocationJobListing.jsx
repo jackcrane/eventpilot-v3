@@ -116,6 +116,7 @@ export const EventLocationJobListing = ({ locationId }) => {
       ) : (
         // JSON.stringify(jobs)
         <Table
+          className="card"
           columns={[
             {
               label: "Name",

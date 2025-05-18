@@ -19,7 +19,7 @@ export const get = [
               updatedAt: "asc",
             },
           },
-          shifts: true,
+          shifts: { orderBy: { startTime: "asc" } },
         },
       });
 
@@ -40,6 +40,13 @@ export const put = [
   verifyAuth(["manager"]),
   async (req, res) => {
     const { eventId, locationId } = req.params;
+
+    try {
+      req.body.startTime = new Date(req.body.startTime);
+      req.body.endTime = new Date(req.body.endTime);
+    } catch {
+      return res.status(400).json({ message: "Invalid date" });
+    }
 
     const result = schema.safeParse(req.body);
     if (!result.success) {

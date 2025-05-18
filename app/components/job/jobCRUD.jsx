@@ -6,47 +6,98 @@ import {
   EnclosedSelectGroup,
   DropdownInput,
   Button,
-  Card,
+  Alert,
 } from "tabler-react-2";
-import { useLocations } from "../../hooks/useLocations";
 import { useParams } from "react-router-dom";
-import { useJobs } from "../../hooks/useJobs";
-import { parseIso, TzDateTime } from "../tzDateTime/tzDateTime";
-import { useLocation } from "../../hooks/useLocation";
 import moment from "moment";
+import { useLocations } from "../../hooks/useLocations";
+import { useJobs } from "../../hooks/useJobs";
+import { useLocation } from "../../hooks/useLocation";
+import { TzDateTime } from "../tzDateTime/tzDateTime";
+import { Icon } from "../../util/Icon";
 
 export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
-  const [formState, setFormState] = useState({
-    name: value?.name || "",
-    description: value?.description || "",
-    capacity: value?.capacity || 0,
-    restrictions: value?.restrictions?.map((i) => ({ value: i })) || [],
-    location: value?.location || defaultLocation || null,
-    shifts: value?.shifts || [],
-  });
-
-  const handleChange = (key) => (value) => {
-    setFormState((prev) => ({ ...prev, [key]: value }));
-  };
-
   const { eventId } = useParams();
   const { locations, loading } = useLocations({ eventId });
   const { createJob, updateJob } = useJobs({
     eventId,
-    locationId: formState.location,
+    locationId: value?.location || defaultLocation,
+  });
+  const { location } = useLocation({
+    eventId,
+    locationId: value?.location || defaultLocation,
   });
 
-  const { location } = useLocation({ eventId, locationId: formState.location });
+  const initShifts = (value?.shifts || []).map((s) => ({ ...s }));
+
+  const [formState, setFormState] = useState({
+    name: value?.name || "",
+    description: value?.description || "",
+    capacity: value?.capacity || 0,
+    restrictions: value?.restrictions?.map((r) => ({ value: r })) || [],
+    location: value?.location || defaultLocation || null,
+    shifts: initShifts,
+  });
+
+  const handleChange = (key) => (val) =>
+    setFormState((prev) => ({ ...prev, [key]: val }));
+
+  const updateShift = (idx, newShift) =>
+    setFormState((prev) => ({
+      ...prev,
+      shifts: [
+        ...prev.shifts.slice(0, idx),
+        newShift,
+        ...prev.shifts.slice(idx + 1),
+      ],
+    }));
+
+  const addShift = () => {
+    const last = formState.shifts.slice(-1)[0];
+    const defaultStart = last?.endTime || location?.startTime || null;
+    const defaultStartTz = last?.endTimeTz || location?.startTimeTz || "";
+
+    setFormState((prev) => ({
+      ...prev,
+      shifts: [
+        ...prev.shifts,
+        {
+          capacity: null,
+          startTime: defaultStart,
+          startTimeTz: defaultStartTz,
+          endTime: null,
+          endTimeTz: "",
+        },
+      ],
+    }));
+  };
+
+  const submit = async () => {
+    const payload = {
+      ...formState,
+      restrictions: formState.restrictions.map((r) => r.value),
+      shifts: formState.shifts.map(
+        ({ capacity, startTime, startTimeTz, endTime, endTimeTz }) => ({
+          capacity: capacity === null ? formState.capacity : capacity,
+          startTime,
+          startTimeTz,
+          endTime,
+          endTimeTz,
+        })
+      ),
+    };
+    const ok = value
+      ? await updateJob(value.id, payload)
+      : await createJob(payload);
+    if (ok) onFinish?.();
+  };
 
   return (
     <div style={{ marginBottom: 100 }}>
       <Typography.H5 className="mb-0 text-secondary">JOBS</Typography.H5>
       <Typography.H1>{value ? "Edit Job" : "Create a new Job"}</Typography.H1>
-      EventPilot uses jobs and shifts to help you manage your volunteers. A job
-      should be a high-level task (think "registration table") that will need to
-      be staffed. You then create shifts for each period of time that a
-      volunteer can sign up to work.
       <Util.Hr text="Basic Info" />
+
       <DropdownInput
         label="Location"
         prompt="Select a location"
@@ -55,7 +106,7 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
           id: l.id,
           label: l.name,
           dropdownText: l.name,
-          searchIndex: `${l.name}`,
+          searchIndex: l.name,
         }))}
         value={formState.location}
         onChange={(item) => handleChange("location")(item.id)}
@@ -63,36 +114,34 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
         aprops={{ style: { width: "100%", justifyContent: "space-between" } }}
         className="mb-3"
       />
+
       <Input
         label="Job Name"
         placeholder="Job Name"
         name="name"
         value={formState.name}
-        onInput={(val) => handleChange("name")(val)}
-        hint="Pick a descriptive but short name for your job. Commonly this is the name of the location that volunteers will be working or activity that the volunteers will be doing."
+        onInput={(v) => handleChange("name")(v)}
         required
       />
+
       <label className="form-label">Job Description</label>
       <textarea
-        placeholder="A more lengthy description of the job and what it entails"
-        name="description"
         className="form-control"
+        placeholder="A more lengthy description"
         value={formState.description}
         onChange={(e) => handleChange("description")(e.target.value)}
       />
+
       <Util.Hr text="Restrictions" />
+
       <Input
         label="Maximum Volunteers"
-        placeholder="Maximum Volunteers"
-        name="capacity"
         type="number"
-        labelDescription={
-          parseInt(formState.capacity) === 0 ? "(unlimited)" : null
-        }
         value={formState.capacity}
-        onInput={(val) => handleChange("capacity")(parseInt(val))}
-        hint="The maximum number of volunteers that can sign up to work on this job at one time. You can set this to 0 to allow unlimited volunteers. You can also control this per-shift. If not otherwise set, shifts will inherit the maximum volunteers from the job."
+        onInput={(v) => handleChange("capacity")(parseInt(v, 10))}
+        labelDescription={formState.capacity === 0 ? "(unlimited)" : null}
       />
+
       <label className="form-label">Restrictions</label>
       <EnclosedSelectGroup
         items={[
@@ -102,133 +151,167 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
             value: "SPECIAL_CERT_REQUIRED",
             label: "Special certification required",
           },
-          {
-            value: "PHYSICAL_ABILITY",
-            label: "Must be physically able-bodied",
-          },
+          { value: "PHYSICAL_ABILITY", label: "Physically able-bodied" },
           { value: "OTHER", label: "Other" },
         ]}
         value={formState.restrictions}
-        onChange={(val) => handleChange("restrictions")(val)}
+        onChange={(v) => handleChange("restrictions")(v)}
         multiple
         direction="column"
       />
+
       <Util.Hr text="Shifts" />
-      {formState.shifts?.map((s, idx) => {
-        const parsedStart = parseIso(s.startTime);
-        const startTzValue = parsedStart.tzValue;
-        const startDate = parsedStart.date;
 
-        return (
-          <div
-            key={idx}
-            className={"card p-2 mb-3"}
-            style={{
-              backgroundColor: `var(--tblr-light)`,
-            }}
+      {formState.shifts.map((s, idx) => (
+        <div key={idx} className="card p-2 mb-3">
+          <Input
+            type="number"
+            value={s.capacity === null ? formState.capacity : s.capacity}
+            onInput={(v) =>
+              updateShift(idx, {
+                ...s,
+                capacity: parseInt(v, 10),
+              })
+            }
+            prependedText="Capacity"
+            appendedText={
+              s.capacity === null
+                ? "(inherited)"
+                : s.capacity === 0
+                ? "Unlimited"
+                : ""
+            }
+            required
+          />
+
+          <TzDateTime
+            value={s.startTime}
+            label="Start Time"
+            required
+            tz={s.startTimeTz}
+            onChange={([dt, tz]) =>
+              updateShift(idx, {
+                ...s,
+                startTime: dt,
+                startTimeTz: tz,
+              })
+            }
+          />
+
+          <TzDateTime
+            value={s.endTime}
+            label="End Time"
+            afterLabel={
+              <Button
+                size="sm"
+                outline
+                onClick={() =>
+                  updateShift(idx, {
+                    ...s,
+                    endTime: s.startTime,
+                    endTimeTz: s.startTimeTz,
+                  })
+                }
+              >
+                Copy from Start Time
+              </Button>
+            }
+            required
+            tz={s.startTimeTz}
+            minDate={
+              s.startTime
+                ? new Date(s.startTime).toISOString().slice(0, 10)
+                : ""
+            }
+            minTime={
+              s.startTime
+                ? new Date(s.startTime).toISOString().slice(11, 16)
+                : ""
+            }
+            onChange={([dt, tz]) =>
+              updateShift(idx, {
+                ...s,
+                endTime: dt,
+                endTimeTz: tz,
+              })
+            }
+          />
+
+          {s.startTime && s.endTime && (
+            <>
+              {moment(s.startTime).isAfter(moment(s.endTime)) ? (
+                <Alert
+                  variant="danger"
+                  title={"Error"}
+                  icon={<Icon size="24px" i="clock-exclamation" />}
+                >
+                  End time must be after start time
+                </Alert>
+              ) : (
+                <Typography.Text>
+                  This shift is{" "}
+                  {moment(s.startTime).from(moment(s.endTime), true)} long
+                </Typography.Text>
+              )}
+              {moment(s.startTime).isBefore(location.startTime) && (
+                <Alert
+                  variant="warning"
+                  title={
+                    "Time out of bounds (Shift starts before location starts)"
+                  }
+                  icon={<Icon size="24px" i="clock-exclamation" />}
+                >
+                  Shift start time is before the location start time. This is
+                  allowed, but may not be what you want. Your shift starts on{" "}
+                  {moment(s.startTime).format("MMM DD, h:mm a")} but your
+                  location starts on{" "}
+                  {moment(location.startTime).format("MMM DD, h:mm a")},{" "}
+                  <u>
+                    which is{" "}
+                    {moment(s.startTime).from(moment(location.startTime), true)}{" "}
+                    before the location starts.
+                  </u>
+                </Alert>
+              )}
+              {moment(s.endTime).isAfter(location.endTime) && (
+                <Alert
+                  variant="warning"
+                  title={"Time out of bounds (Shift ends after location ends)"}
+                  icon={<Icon size="24px" i="clock-exclamation" />}
+                >
+                  Shift end time is after the location end time. This is
+                  allowed, but may not be what you want. Your shift ends on{" "}
+                  {moment(s.endTime).format("MMM DD, h:mm a")} but your location
+                  ends on {moment(location.endTime).format("MMM DD, h:mm a")},{" "}
+                  <u>
+                    which is{" "}
+                    {moment(s.endTime).from(moment(location.endTime), true)}{" "}
+                    after the location ends.
+                  </u>
+                </Alert>
+              )}
+            </>
+          )}
+
+          <Button
+            onClick={() =>
+              setFormState((prev) => ({
+                ...prev,
+                shifts: prev.shifts.filter((_, i) => i !== idx),
+              }))
+            }
           >
-            <Input
-              type="number"
-              value={s.capacity === null ? formState.capacity : s.capacity}
-              onInput={(val) =>
-                handleChange("shifts")([
-                  ...formState.shifts.slice(0, idx),
-                  { ...s, capacity: parseInt(val) },
-                  ...formState.shifts.slice(idx + 1),
-                ])
-              }
-              prependedText="Capacity"
-              className="mb-0"
-              label="Capacity"
-              appendedText={
-                s.capacity === null
-                  ? "(inherited)"
-                  : s.capacity === 0
-                  ? "Unlimited"
-                  : ""
-              }
-              required
-            />
-            <TzDateTime
-              value={s.startTime}
-              label="Start Time"
-              required
-              onChange={(v) =>
-                handleChange("shifts")([
-                  ...formState.shifts.slice(0, idx),
-                  { ...s, startTime: v },
-                  ...formState.shifts.slice(idx + 1),
-                ])
-              }
-            />
-            <TzDateTime
-              value={s.endTime}
-              label="End Time"
-              required
-              defaultTz={startTzValue}
-              onChange={(v) =>
-                handleChange("shifts")([
-                  ...formState.shifts.slice(0, idx),
-                  { ...s, endTime: v },
-                  ...formState.shifts.slice(idx + 1),
-                ])
-              }
-              minDate={startDate}
-            />
-            <Typography.Text>
-              This shift is {moment(s.startTime).from(moment(s.endTime), true)}{" "}
-              long
-            </Typography.Text>
-            <Button
-              onClick={() =>
-                handleChange("shifts")(
-                  formState.shifts.filter((_, i) => i !== idx)
-                )
-              }
-            >
-              Delete
-            </Button>
-          </div>
-        );
-      })}
-      <Button
-        onClick={() => {
-          let defaultStartTime = null;
+            Delete
+          </Button>
+        </div>
+      ))}
 
-          if (formState.shifts.length === 0) {
-            // First shift: default to location.startTime
-            defaultStartTime = location?.startTime ?? null;
-          } else {
-            // Not first shift: default to previous shift's endTime
-            const lastShift = formState.shifts[formState.shifts.length - 1];
-            defaultStartTime = lastShift?.endTime ?? null;
-          }
-
-          handleChange("shifts")([
-            ...formState.shifts,
-            { capacity: null, startTime: defaultStartTime, endTime: null },
-          ]);
-        }}
-      >
-        Create {formState.shifts?.length === 0 ? "a" : "another"} shift
+      <Button onClick={addShift}>
+        Create {formState.shifts.length === 0 ? "a" : "another"} shift
       </Button>
-      <Util.Hr text="Finish" />
-      <Button
-        loading={loading}
-        onClick={async () => {
-          const lFormState = {
-            ...formState,
-            restrictions: formState.restrictions?.map((i) => i.value),
-          };
 
-          if (value) {
-            if (await updateJob(value.id, lFormState)) onFinish?.();
-          } else {
-            if (await createJob(lFormState)) onFinish?.();
-          }
-        }}
-        className="mt-3"
-      >
+      <Util.Hr text="Finish" />
+      <Button loading={loading} onClick={submit} className="mt-3">
         {value ? "Update" : "Create"} Job
       </Button>
     </div>

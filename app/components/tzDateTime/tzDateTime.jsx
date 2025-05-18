@@ -1,208 +1,121 @@
-/**
- *
- * Under the hood, when you pick a date, time and “tz” in the UI, we call buildIso to spit out a standard ISO-8601
- * string—but we stuff a little hack into the seconds field: instead of always “00”, we set SS to the (index + 1)
- * of your chosen abbreviation in our tz list. That way, even when two zones share the same offset (like EST and
- * CDT both at –05:00 in winter/summer), parseIso can look at SS first, recover the exact abbr you picked, and only
- * if that fails fall back to matching by numeric offset. Every time you change date, time or tzAbbr, a useEffect
- * fires to rebuild and push the new ISO string (with its embedded zone index), ensuring your original zone choice
- * survives ambiguous offsets.
- */
-
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import moment from "moment-timezone";
+import originalMoment from "moment";
 import { Input, DropdownInput } from "tabler-react-2";
 import { Row } from "../../util/Flex";
 import timezones from "./tzs.json";
 
-export const inferTzFromIso = (iso) => {
-  const [Y, M, D] = iso.split("-").map(Number);
-  const [h, m] = iso.split("T")[1].split(":").map(Number);
-  const offH = timezones.find((t) => t.offset === h * 3_600 + m * 60)?.offset;
-  return timezones.find((t) => t.offset === offH)?.abbr;
+window.originalMoment = originalMoment;
+
+export const parseIso = (iso, tzValue) => {
+  if (!iso || !tzValue) return ["", ""];
+
+  const zone = timezones.find((t) => t.value === tzValue)?.utc[0];
+  if (!zone) return ["", ""];
+
+  const m = moment.tz(iso, zone);
+  return [m.format("YYYY-MM-DD"), m.format("HH:mm")];
 };
 
-// build ISO-8601 with hack: seconds = index+1
-export const buildIso = (Y, M, D, h, m, offH, tzAbbr) => {
-  const pad = (n) => String(n).padStart(2, "0");
-  const sign = offH >= 0 ? "+" : "-";
-  const absOff = Math.abs(offH);
-  const hrs = Math.floor(absOff);
-  const mins = Math.round((absOff - hrs) * 60);
-  const idx = timezones.findIndex((t) => t.abbr === tzAbbr);
-  const sec = idx >= 0 ? idx + 1 : 0;
-  return `${Y}-${pad(M)}-${pad(D)}T${pad(h)}:${pad(m)}:${pad(sec)}${sign}${pad(
-    hrs
-  )}:${pad(mins)}`;
+export const buildIsoFromParts = (date, time, tzValue) => {
+  const zone = timezones.find((t) => t.value === tzValue)?.utc[0];
+  let m = moment.tz(date + " " + time, "YYYY-MM-DD HH:mm", zone);
+  return m.toISOString();
 };
 
-const getOffsetHoursFromIso = (iso) => {
-  const m = iso.match(/([+\-]\d{2}):(\d{2})$/);
-  if (!m) return null;
-  const [, hStr, minStr] = m;
-  const h = parseInt(hStr, 10);
-  const min = parseInt(minStr, 10);
-  return h >= 0 ? h + min / 60 : h - min / 60;
-};
-
-export const convertToCursedIso = (iso) => {
-  // parse numeric offset from ISO (“Z” → 0)
-  const parseOffset = (s) => {
-    if (s.endsWith("Z")) return 0;
-    const m = s.match(/([+-]\d{2}):(\d{2})$/);
-    if (!m) return 0;
-    const h = parseInt(m[1], 10);
-    const mi = parseInt(m[2], 10);
-    return h + (h >= 0 ? mi / 60 : -mi / 60);
-  };
-
-  const offH = parseOffset(iso);
-  // pick the first timezone with that offset
-  const zone = timezones.find((t) => t.offset === offH) || timezones[0];
-  const idx = timezones.indexOf(zone);
-
-  // compute local Y/M/D/h/m in that zone
-  const dt = new Date(iso);
-  const localEpoch = dt.getTime() + offH * 3_600_000;
-  const local = new Date(localEpoch);
-  const Y = local.getUTCFullYear();
-  const M = local.getUTCMonth() + 1;
-  const D = local.getUTCDate();
-  const h = local.getUTCHours();
-  const m = local.getUTCMinutes();
-
-  // seconds = index+1
-  const sec = idx + 1;
-  const pad = (n) => String(n).padStart(2, "0");
-  const sign = offH >= 0 ? "+" : "-";
-  const absOff = Math.abs(offH);
-  const hrs = Math.floor(absOff);
-  const mins = Math.round((absOff - hrs) * 60);
-
-  return (
-    `${Y}-${pad(M)}-${pad(D)}T${pad(h)}:${pad(m)}:${pad(sec)}${sign}` +
-    `${pad(hrs)}:${pad(mins)}`
-  );
-};
-
-window.convertToCursedIso = convertToCursedIso;
-
-const truncate = (str, max = 50) =>
-  str.length <= max ? str : str.slice(0, max) + "...";
-
-export const parseIso = (iso) => {
-  if (!iso) return { date: "", time: "", tzAbbr: "", tzValue: "" };
-  const date = iso.slice(0, 10);
-  const time = iso.slice(11, 16);
-  const secMatch = iso.match(/T\d{2}:\d{2}:(\d{2})/);
-  const sec = secMatch ? parseInt(secMatch[1], 10) : 0;
-  let zone;
-  if (sec > 0 && sec - 1 < timezones.length) {
-    zone = timezones[sec - 1];
-  } else {
-    const offH = getOffsetHoursFromIso(iso);
-    zone = timezones.find((t) => t.offset === offH);
-  }
-  return { date, time, tzAbbr: zone?.abbr || "", tzValue: zone?.value };
-};
+window.buildIsoFromParts = buildIsoFromParts;
+window.parseIso = parseIso;
 
 export const TzDateTime = ({
-  value,
-  onChange,
+  value, // ISO string in
+  tz, // initial tz.value
+  onChange, // ([isoString, tzValue]) => void
   label,
-  requireNewTime = false,
-  defaultTz, // the timezone.value you want as default
+  afterLabel,
   required = false,
   minDate,
+  minTime,
 }) => {
-  const didMountRef = useRef(false);
+  const [dateState, setDateState] = useState("");
+  const [timeState, setTimeState] = useState("");
+  const [tzState, setTzState] = useState(tz);
 
-  const [date, setDate] = useState(() => (value ? parseIso(value).date : ""));
-  const [time, setTime] = useState(() => (value ? parseIso(value).time : ""));
-  const [tzAbbr, setTzAbbr] = useState(() => {
+  useEffect(() => {
+    if (dateState && timeState && tzState) {
+      const iso = buildIsoFromParts(dateState, timeState, tzState);
+      onChange([iso, tzState]);
+    }
+  }, [dateState, timeState, tzState]);
+
+  useEffect(() => {
     if (value) {
-      return parseIso(value).tzAbbr;
-    }
-    if (defaultTz) {
-      const def = timezones.find((t) => t.value === defaultTz);
-      return def?.abbr || "";
-    }
-    return "";
-  });
-
-  // sync incoming value → local state, or apply defaultTz when no value
-  useEffect(() => {
-    if (!value) {
-      setDate("");
-      setTime("");
-      if (defaultTz) {
-        const def = timezones.find((t) => t.value === defaultTz);
-        setTzAbbr(def?.abbr || "");
-      } else {
-        setTzAbbr("");
+      const current = buildIsoFromParts(dateState, timeState, tzState);
+      if (current !== value) {
+        const [d, t] = parseIso(value, tz);
+        setDateState(d);
+        setTimeState(t);
       }
-      return;
     }
-    const { date: d, time: t, tzAbbr: z } = parseIso(value);
-    if (d !== date) setDate(d);
-    if (!requireNewTime && t !== time) setTime(t);
-    if (z !== tzAbbr) setTzAbbr(z);
-  }, [value, requireNewTime, defaultTz]);
-
-  // emit ISO when all parts present (skip initial mount)
-  useEffect(() => {
-    if (!didMountRef.current) {
-      didMountRef.current = true;
-      return;
+    if (tz) {
+      setTzState(tz);
     }
-    if (!date || !time || !tzAbbr) return;
-    const [Y, M, D] = date.split("-").map(Number);
-    const [h, m] = time.split(":").map(Number);
-    const offH = timezones.find((t) => t.abbr === tzAbbr)?.offset ?? 0;
-    const iso = buildIso(Y, M, D, h, m, offH, tzAbbr);
-    if (iso !== value) onChange(iso);
-  }, [date, time, tzAbbr]);
+  }, [value, tz]);
 
   return (
     <div className="mb-3">
       {label && (
-        <label className={`form-label ${required && "required"}`}>
-          {label}
-        </label>
+        <Row gap={1} align="flex-start">
+          <label className={`form-label ${required ? "required" : ""}`}>
+            {label}
+          </label>
+          {afterLabel}
+        </Row>
       )}
       <Row gap={1}>
         <Input
           type="date"
-          value={date}
+          value={dateState}
           inputProps={{ min: minDate }}
-          onChange={(d) => setDate(d || "")}
+          onChange={(e) => setDateState(e)}
           prependedText="Date"
           noMargin
           style={{ flex: 1 }}
         />
         <Input
           type="time"
-          value={time}
-          onChange={(t) => setTime(t || "")}
+          value={timeState}
+          inputProps={{ min: minTime }}
+          onChange={(e) => setTimeState(e)}
           prependedText="Time"
           noMargin
         />
         <DropdownInput
           prompt="Select a tz"
           items={timezones.map((t) => ({
-            ...t,
-            id: t.abbr,
+            id: t.value,
+            value: t.value,
             label: t.abbr,
             dropdownText: truncate(`(${t.abbr}) ${t.text}`),
             searchIndex: `${t.utc.join(" ")} ${t.abbr}`,
           }))}
-          value={tzAbbr}
-          onChange={(item) =>
-            setTzAbbr(typeof item === "string" ? item : item.id)
-          }
+          value={tzState}
+          onChange={(item) => {
+            const newTz =
+              typeof item === "string" ? item : item.value ?? item.id;
+            setTzState(newTz);
+          }}
+          noMargin
         />
       </Row>
     </div>
   );
+};
+
+const truncate = (str, max = 50) => {
+  if (str.length > max) {
+    return str.slice(0, max - 1) + "…";
+  }
+  return str;
 };
 
 export const TzPicker = ({ value, onChange, ...props }) => {
