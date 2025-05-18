@@ -18,8 +18,12 @@ export const get = [
             orderBy: {
               updatedAt: "asc",
             },
+            include: {
+              _count: {
+                select: { shifts: true },
+              },
+            },
           },
-          shifts: { orderBy: { startTime: "asc" } },
         },
       });
 

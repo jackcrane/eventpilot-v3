@@ -26,7 +26,7 @@
     "react-use": "^17.6.0",
     "styled-components": "^6.1.14",
     "swr": "^2.3.0",
-    "tabler-react-2": "0.1.111",
+    "tabler-react-2": "0.1.113",
     "ua-parser-js": "^2.0.3"
   },
   "devDependencies": {

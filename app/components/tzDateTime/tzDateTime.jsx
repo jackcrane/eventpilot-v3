@@ -7,6 +7,16 @@ import timezones from "./tzs.json";
 
 window.originalMoment = originalMoment;
 
+export const formatDate = (date, tzValue, format = "MMM DD, h:mm a") => {
+  if (!date || !tzValue) return "";
+
+  const zone = timezones.find((t) => t.value === tzValue)?.utc[0];
+  if (!zone) return "";
+
+  const m = moment.tz(date, zone);
+  return m.format(format);
+};
+
 export const parseIso = (iso, tzValue) => {
   if (!iso || !tzValue) return ["", ""];
 
