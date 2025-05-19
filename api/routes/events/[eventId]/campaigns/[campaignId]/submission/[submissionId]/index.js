@@ -138,14 +138,14 @@ export const del = [
     const { submissionId, campaignId } = req.params;
     try {
       // Ensure it belongs to this campaign
-      const resp = await prisma.formResponse.findUnique({
+      let resp = await prisma.formResponse.findUnique({
         where: { id: submissionId },
       });
       if (!resp || resp.campaignId !== campaignId) {
         return res.status(404).json({ message: "Submission not found" });
       }
 
-      const resp = await prisma.formResponse.update({
+      resp = await prisma.formResponse.update({
         where: { id: submissionId },
         data: { deleted: true },
       });

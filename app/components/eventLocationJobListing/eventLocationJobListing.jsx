@@ -88,7 +88,16 @@ export const EventLocationJobListing = ({ locationId }) => {
               .filter((v) => v.length > 0)
               .join(", ")}
             {location.startTime && (
-              <span style={{ marginLeft: "1rem" }}>
+              <span
+                style={{
+                  marginLeft:
+                    [location.address, location.city, location.state]
+                      .filter((v) => v.length > 0)
+                      .join(", ").length > 0
+                      ? "1rem"
+                      : "0",
+                }}
+              >
                 <Icon i="clock" />
                 <span className="text-muted">
                   {formatDate(

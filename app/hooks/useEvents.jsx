@@ -88,6 +88,7 @@ export const CreateEvent = ({ createEvent }) => {
   return (
     <>
       <Input
+        required
         label="Event Name"
         placeholder="Event Name"
         onInput={(val) => setName(val)}
@@ -107,6 +108,7 @@ export const CreateEvent = ({ createEvent }) => {
         variant={
           description.length > 0 && description.length < 10 ? "danger" : null
         }
+        required
       />
       <Typography.I className="text-muted">
         <b>Description</b> is required and must be at least 10 characters long.
@@ -130,6 +132,7 @@ export const CreateEvent = ({ createEvent }) => {
         value={currentSlug}
         className=" mb-0"
         variant={slugPresent ? "danger" : null}
+        required
       />
       <Typography.I className="text-muted">
         <b>Slug</b> is required and must be at least 3 characters long. It
@@ -139,7 +142,7 @@ export const CreateEvent = ({ createEvent }) => {
         and reflects your event well.
       </Typography.I>
       <div className="mt-3" />
-      <label className="form-label">Logo or Image</label>
+      <label className="form-label required">Logo or Image</label>
       <Dropzone onSuccessfulUpload={(d) => setLogo(d.fileId)} />
       <TzPicker
         required
@@ -148,7 +151,6 @@ export const CreateEvent = ({ createEvent }) => {
         onChange={(d) => setDefaultTz(d)}
         value={defaultTz}
       />
-      TZ: {defaultTz}
       <Button
         className={"mt-3"}
         onClick={() =>

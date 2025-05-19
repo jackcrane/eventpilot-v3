@@ -102,6 +102,7 @@ export const CreateCampaign = ({ createCampaign }) => {
         value={name}
         className="mb-0"
         variant={name.length > 0 && name.length < 2 ? "danger" : null}
+        required
       />
       <Typography.I className="text-muted">
         <b>Campaign Name</b> is required and must be at least 2 characters long.
@@ -116,6 +117,7 @@ export const CreateCampaign = ({ createCampaign }) => {
         variant={
           description.length > 0 && description.length < 10 ? "danger" : null
         }
+        required
       />
       <Typography.I className="text-muted">
         <b>Description</b> is required and must be at least 10 characters long.
