@@ -28,6 +28,8 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
     locationId: value?.location || defaultLocation,
   });
 
+  console.log(value);
+
   const initShifts = (value?.shifts || []).map((s) => ({ ...s }));
 
   const [formState, setFormState] = useState({
@@ -67,6 +69,7 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
           startTimeTz: defaultStartTz,
           endTime: null,
           endTimeTz: "",
+          id: null,
         },
       ],
     }));
@@ -77,12 +80,13 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
       ...formState,
       restrictions: formState.restrictions.map((r) => r.value),
       shifts: formState.shifts.map(
-        ({ capacity, startTime, startTimeTz, endTime, endTimeTz }) => ({
+        ({ capacity, startTime, startTimeTz, endTime, endTimeTz, id }) => ({
           capacity: capacity === null ? formState.capacity : capacity,
           startTime,
           startTimeTz,
           endTime,
           endTimeTz,
+          id,
         })
       ),
     };
@@ -182,6 +186,7 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
                 : ""
             }
             required
+            className="mb-0"
           />
 
           <TzDateTime

@@ -109,7 +109,7 @@ export const get = [
           deleted: false,
         },
         include: {
-          shifts: { orderBy: { startTime: "asc" } },
+          shifts: { orderBy: { startTime: "asc" }, where: { deleted: false } },
         },
       });
 

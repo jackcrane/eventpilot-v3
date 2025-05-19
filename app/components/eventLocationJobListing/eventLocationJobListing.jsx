@@ -266,7 +266,7 @@ export const EventLocationJobListing = ({ locationId }) => {
                 label: "Restrictions",
                 accessor: "restrictions",
                 render: (r) =>
-                  r.length > 1 ? (
+                  r.length > 0 ? (
                     r.map((i) => RESTRICTIONS_MAP[i]).join(", ")
                   ) : (
                     <i>None</i>
@@ -355,6 +355,7 @@ const RearrangeModalComponent = ({
           { value: "address", label: "Address" },
           { value: "city", label: "City" },
           { value: "state", label: "State" },
+          { value: "capacity", label: "Capacity" },
           {
             value: "startTime",
             label: "Start Time (the time the first shift starts)",

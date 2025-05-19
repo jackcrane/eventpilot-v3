@@ -25,6 +25,7 @@ const schema = z.object({
       endTime: z.string(),
       startTimeTz: z.string(),
       endTimeTz: z.string(),
+      id: z.string().nullable().optional(),
     })
   ),
 });
@@ -39,7 +40,7 @@ export const get = [
           id: jobId,
         },
         include: {
-          shifts: { orderBy: { startTime: "asc" } },
+          shifts: { orderBy: { startTime: "asc" }, where: { deleted: false } },
         },
       });
 
@@ -113,6 +114,10 @@ export const put = [
       },
     });
 
+    const deletedShifts = before.shifts.filter(
+      (s) => !submittedIds.includes(s.id)
+    );
+
     try {
       const job = await prisma.job.update({
         where: { id: jobId },
@@ -125,8 +130,13 @@ export const put = [
           locationId,
           shifts: {
             // delete any shift not re-submitted
-            deleteMany: {
-              id: { notIn: submittedIds },
+            updateMany: {
+              where: {
+                id: { notIn: submittedIds },
+              },
+              data: {
+                deleted: true,
+              },
             },
             // update existing ones
             update: submittedIds.map((id) => {
@@ -152,6 +162,19 @@ export const put = [
               endTimeTz: s.endTimeTz,
               locationId,
             })),
+          },
+          logs: {
+            createMany: {
+              data: deletedShifts.map((s) => ({
+                type: LogType.SHIFT_DELETED,
+                userId: req.user.id,
+                ip: req.ip,
+                eventId: req.params.eventId,
+                locationId: req.params.locationId,
+                shiftId: s.id,
+                data: s,
+              })),
+            },
           },
         },
         include: { shifts: true },

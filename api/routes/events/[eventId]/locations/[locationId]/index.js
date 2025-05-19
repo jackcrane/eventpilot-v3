@@ -26,7 +26,11 @@ export const get = [
             },
             include: {
               _count: {
-                select: { shifts: true },
+                select: {
+                  shifts: {
+                    where: { deleted: false },
+                  },
+                },
               },
             },
           },

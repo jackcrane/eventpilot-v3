@@ -359,6 +359,7 @@ model Shift {
   active Boolean @default(true)
 
   logs Logs[]
+  deleted Boolean @default(false)
 }
 
 
