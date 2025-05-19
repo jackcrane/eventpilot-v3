@@ -3,7 +3,12 @@ import { useTitle } from "react-use";
 import styled from "styled-components";
 import { Sidenav } from "../sidenav/Sidenav";
 
-export const Page = ({ children, title, sidenavItems }) => {
+export const Page = ({
+  children,
+  title,
+  sidenavItems,
+  allowOverflow = false,
+}) => {
   useTitle(title ? `${title} | EventPilot` : "EventPilot");
 
   return (
@@ -26,7 +31,7 @@ export const Page = ({ children, title, sidenavItems }) => {
         <div
           style={{
             width: "100%",
-            overflowX: "hidden",
+            overflowX: allowOverflow ? "visible" : "hidden",
             padding: 4,
             paddingBottom: 100,
           }}

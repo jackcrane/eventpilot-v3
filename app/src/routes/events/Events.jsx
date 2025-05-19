@@ -1,9 +1,9 @@
 import { Typography, Button, Input } from "tabler-react-2";
-import { Page } from "../../components/page/Page";
-import { useEvents } from "../../hooks/useEvents";
-import { EventCard } from "../../components/eventCard/EventCard";
+import { Page } from "../../../components/page/Page";
+import { useEvents } from "../../../hooks/useEvents";
+import { EventCard } from "../../../components/eventCard/EventCard";
 
-export const Home = () => {
+export const Events = () => {
   const { events, loading, createEventModal, CreateEventModalElement } =
     useEvents();
   return (

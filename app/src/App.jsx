@@ -12,7 +12,7 @@ import { UserProfile } from "./routes/auth/me";
 import { ForgotPassword } from "./routes/auth/forgot-password";
 import { useFavicon, useLocation } from "react-use";
 import favicon from "../assets/ico.png";
-import { Home } from "./routes/Home";
+import { Events } from "./routes/events/Events";
 import { Campaign } from "./routes/events/[eventId]/campaigns/[campaignId]";
 import { CampaignVolunteers } from "./routes/events/[eventId]/campaigns/[campaignId]/volunteers";
 import { CampaignBuilder } from "./routes/events/[eventId]/campaigns/[campaignId]/builder";
@@ -20,6 +20,7 @@ import { Consumer } from "./consumer/Consumer";
 import { useReducedSubdomain } from "../hooks/useReducedSubdomain";
 import { EventJobs } from "./routes/events/[eventId]/jobs";
 import { EventCampaigns } from "./routes/events/[eventId]/campaigns";
+import { Home } from "./home";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -50,6 +51,7 @@ export default () => {
       <Toaster />
       <Router>
         <Routes>
+          <Route path="/" element={<Home />} />
           {loggedIn ? (
             <>
               <Route path="/me" element={<UserProfile />} />
@@ -63,7 +65,7 @@ export default () => {
           )}
           <Route path="/verify" element={<Verify />} />
           <Route path="/events/:eventId" element={<Event />} />
-          <Route path="/events" element={<Home />} />
+          <Route path="/events" element={<Events />} />
           <Route
             path="/events/:eventId/campaigns"
             element={<EventCampaigns />}
