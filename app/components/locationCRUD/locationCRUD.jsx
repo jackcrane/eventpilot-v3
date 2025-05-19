@@ -136,6 +136,21 @@ export const LocationCRUD = ({ value, close }) => {
 
       <TzDateTime
         label="End Time and Date"
+        afterLabel={
+          <Button
+            size="sm"
+            outline
+            onClick={() =>
+              setFormState((prev) => ({
+                ...prev,
+                endTime: prev.startTime,
+                endTimeTz: prev.startTimeTz,
+              }))
+            }
+          >
+            Copy from Start Time
+          </Button>
+        }
         value={formState.endTime}
         tz={formState.endTimeTz}
         required

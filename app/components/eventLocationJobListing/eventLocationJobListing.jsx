@@ -87,6 +87,30 @@ export const EventLocationJobListing = ({ locationId }) => {
             {[location.address, location.city, location.state]
               .filter((v) => v.length > 0)
               .join(", ")}
+            {location.startTime && (
+              <span style={{ marginLeft: "1rem" }}>
+                <Icon i="clock" />
+                <span className="text-muted">
+                  {formatDate(
+                    location.startTime,
+                    location.startTimeTz,
+                    "MMM DD, h:mm a"
+                  )}
+                </span>
+              </span>
+            )}
+            {location.endTime && (
+              <>
+                <span className="text-muted">
+                  {location.startTime ? " - " : ""}
+                  {formatDate(
+                    location.endTime,
+                    location.endTimeTz,
+                    "MMM DD, h:mm a"
+                  )}
+                </span>
+              </>
+            )}
           </Typography.H5>
         </Col>
         <Row gap={1}>

@@ -21,6 +21,8 @@ const schema = z.object({
       capacity: z.number().min(0),
       startTime: z.string(),
       endTime: z.string(),
+      startTimeTz: z.string(),
+      endTimeTz: z.string(),
     })
   ),
 });
@@ -78,13 +80,21 @@ export const put = [
     if (!result.success) {
       return res.status(400).json({ message: serializeError(result) });
     }
-    const { name, description, capacity, restrictions, shifts } = result.data;
+    const {
+      name,
+      description,
+      capacity,
+      restrictions,
+      shifts = [],
+    } = result.data;
+
+    // pull out any submitted shift IDs
+    const submittedIds = shifts.filter((s) => s.id).map((s) => s.id);
+    const newShifts = shifts.filter((s) => !s.id);
 
     try {
       const job = await prisma.job.update({
-        where: {
-          id: jobId,
-        },
+        where: { id: jobId },
         data: {
           name,
           description,
@@ -92,13 +102,43 @@ export const put = [
           restrictions,
           eventId,
           locationId,
+          shifts: {
+            // delete any shift not re-submitted
+            deleteMany: {
+              id: { notIn: submittedIds },
+            },
+            // update existing ones
+            update: submittedIds.map((id) => {
+              const s = shifts.find((sh) => sh.id === id);
+              return {
+                where: { id },
+                data: {
+                  capacity: s.capacity,
+                  startTime: new Date(s.startTime),
+                  endTime: new Date(s.endTime),
+                  startTimeTz: s.startTimeTz,
+                  endTimeTz: s.endTimeTz,
+                },
+              };
+            }),
+            // create brand-new ones
+            create: newShifts.map((s) => ({
+              capacity: s.capacity,
+              startTime: new Date(s.startTime),
+              endTime: new Date(s.endTime),
+              eventId,
+              startTimeTz: s.startTimeTz,
+              endTimeTz: s.endTimeTz,
+              locationId,
+            })),
+          },
         },
+        include: { shifts: true },
       });
 
-      return res.json({
-        job,
-      });
+      return res.json({ job });
     } catch (error) {
+      console.log(error);
       return res.status(500).json({ message: error.message });
     }
   },
