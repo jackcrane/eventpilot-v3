@@ -14,9 +14,13 @@ export const get = [
       const location = await prisma.location.findUnique({
         where: {
           id: locationId,
+          deleted: false,
         },
         include: {
           jobs: {
+            where: {
+              deleted: false,
+            },
             orderBy: {
               updatedAt: "asc",
             },

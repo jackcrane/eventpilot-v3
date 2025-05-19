@@ -71,6 +71,7 @@ export const get = [
     const locations = await prisma.location.findMany({
       where: {
         eventId,
+        deleted: false,
       },
       orderBy: {
         startTime: "asc",

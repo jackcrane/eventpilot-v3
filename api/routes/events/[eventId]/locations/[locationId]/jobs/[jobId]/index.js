@@ -107,7 +107,7 @@ export const put = [
     const newShifts = shifts.filter((s) => !s.id);
 
     const before = await prisma.job.findUnique({
-      where: { id: jobId },
+      where: { id: jobId, deleted: false },
       include: {
         shifts: true,
       },

@@ -106,6 +106,7 @@ export const get = [
       const jobs = await prisma.job.findMany({
         where: {
           locationId,
+          deleted: false,
         },
         include: {
           shifts: { orderBy: { startTime: "asc" } },

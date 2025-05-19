@@ -156,7 +156,7 @@ export const post = [
 
     // return updated
     const updated = await prisma.formField.findMany({
-      where: { campaignId: req.params.campaignId },
+      where: { campaignId: req.params.campaignId, deleted: false },
       orderBy: { order: "asc" },
       include: {
         options: { where: { deleted: false }, orderBy: { order: "asc" } },
