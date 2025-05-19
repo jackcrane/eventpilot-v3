@@ -3,6 +3,7 @@ import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { verifyAuth } from "#verifyAuth";
 import { formatFormResponse } from "./[submissionId]";
+import { LogType } from "@prisma/client";
 
 const bodySchema = z.object({
   values: z.record(z.string(), z.string()),
@@ -16,6 +17,10 @@ export const post = async (req, res) => {
   }
   const { values, pii } = parseResult.data;
   const { campaignId } = req.params;
+
+  const campaign = await prisma.campaign.findFirst({
+    where: { slug: campaignId },
+  });
 
   try {
     const formResponse = await prisma.formResponse.create({
@@ -37,6 +42,19 @@ export const post = async (req, res) => {
         },
       },
     });
+
+    await prisma.logs.create({
+      data: {
+        type: LogType.FORM_RESPONSE_CREATED,
+        userId: req.user.id,
+        ip: req.ip,
+        eventId: campaign.eventId,
+        campaignId: campaign.id,
+        formResponseId: formResponse.id,
+        data: formResponse,
+      },
+    });
+
     res.json({ id: formResponse.id });
   } catch (error) {
     res.status(500).json({ message: error.message });

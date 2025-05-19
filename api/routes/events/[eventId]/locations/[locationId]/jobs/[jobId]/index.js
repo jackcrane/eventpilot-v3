@@ -2,6 +2,8 @@ import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
 import { serializeError } from "#serializeError";
+import { LogType } from "@prisma/client";
+import { getChangedKeys } from "#getChangedKeys";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -59,9 +61,21 @@ export const del = [
   async (req, res) => {
     const { eventId, locationId, jobId } = req.params;
     try {
-      await prisma.job.delete({
+      await prisma.job.update({
         where: {
           id: jobId,
+        },
+        data: { deleted: true },
+      });
+
+      await prisma.logs.create({
+        data: {
+          type: LogType.JOB_DELETED,
+          userId: req.user.id,
+          ip: req.ip,
+          eventId: req.params.eventId,
+          locationId: req.params.locationId,
+          jobId: jobId,
         },
       });
 
@@ -91,6 +105,13 @@ export const put = [
     // pull out any submitted shift IDs
     const submittedIds = shifts.filter((s) => s.id).map((s) => s.id);
     const newShifts = shifts.filter((s) => !s.id);
+
+    const before = await prisma.job.findUnique({
+      where: { id: jobId },
+      include: {
+        shifts: true,
+      },
+    });
 
     try {
       const job = await prisma.job.update({
@@ -134,6 +155,19 @@ export const put = [
           },
         },
         include: { shifts: true },
+      });
+
+      const changedKeys = getChangedKeys(before, job);
+      await prisma.logs.create({
+        data: {
+          type: LogType.JOB_MODIFIED,
+          userId: req.user.id,
+          ip: req.ip,
+          eventId: req.params.eventId,
+          locationId: req.params.locationId,
+          jobId: jobId,
+          data: changedKeys,
+        },
       });
 
       return res.json({ job });

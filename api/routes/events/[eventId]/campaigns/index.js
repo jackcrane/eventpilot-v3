@@ -2,6 +2,7 @@ import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
+import { LogType } from "@prisma/client";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -48,6 +49,17 @@ export const post = [
         slug: result.data.slug,
         userId: req.user.id,
         eventId: req.params.eventId,
+      },
+    });
+
+    await prisma.logs.create({
+      data: {
+        type: LogType.CAMPAIGN_CREATED,
+        userId: req.user.id,
+        ip: req.ip,
+        eventId: req.params.eventId,
+        campaignId: event.id,
+        data: event,
       },
     });
 

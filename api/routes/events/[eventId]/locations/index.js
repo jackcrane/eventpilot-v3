@@ -1,5 +1,6 @@
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
+import { LogType } from "@prisma/client";
 import { z } from "zod";
 
 const schema = z.object({
@@ -41,6 +42,17 @@ export const post = [
           description,
           eventId,
           ...result.data,
+        },
+      });
+
+      await prisma.logs.create({
+        data: {
+          type: LogType.LOCATION_CREATED,
+          userId: req.user.id,
+          ip: req.ip,
+          eventId: req.params.eventId,
+          locationId: location.id,
+          data: location,
         },
       });
 

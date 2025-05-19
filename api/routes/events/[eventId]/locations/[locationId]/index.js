@@ -3,6 +3,8 @@ import { prisma } from "#prisma";
 import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { locationSchema as schema } from "..";
+import { getChangedKeys } from "#getChangedKeys";
+import { LogType } from "@prisma/client";
 
 export const get = [
   verifyAuth(["manager"], true),
@@ -57,6 +59,10 @@ export const put = [
       return res.status(400).json({ message: serializeError(result) });
     }
 
+    const before = await prisma.location.findUnique({
+      where: { id: locationId },
+    });
+
     try {
       const location = await prisma.location.update({
         where: {
@@ -64,6 +70,18 @@ export const put = [
         },
         data: {
           ...result.data,
+        },
+      });
+
+      const changedKeys = getChangedKeys(before, location);
+      await prisma.logs.create({
+        data: {
+          type: LogType.LOCATION_MODIFIED,
+          userId: req.user.id,
+          ip: req.ip,
+          eventId: req.params.eventId,
+          locationId: locationId,
+          data: changedKeys,
         },
       });
 
@@ -82,9 +100,20 @@ export const del = [
   async (req, res) => {
     const { eventId, locationId } = req.params;
     try {
-      await prisma.location.delete({
+      await prisma.location.update({
         where: {
           id: locationId,
+        },
+        data: { deleted: true },
+      });
+
+      await prisma.logs.create({
+        data: {
+          type: LogType.LOCATION_DELETED,
+          userId: req.user.id,
+          ip: req.ip,
+          eventId: req.params.eventId,
+          locationId: locationId,
         },
       });
 

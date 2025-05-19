@@ -2,6 +2,8 @@ import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { z } from "zod";
 import { serializeError } from "#serializeError";
+import { getChangedKeys } from "#getChangedKeys";
+import { LogType } from "@prisma/client";
 
 // Schema for validating updates
 const bodySchema = z.object({
@@ -18,7 +20,7 @@ export const get = [
     try {
       // Fetch all fields (including deleted ones) with type + options
       const fields = await prisma.formField.findMany({
-        where: { campaignId },
+        where: { campaignId, deleted: false },
         orderBy: { order: "asc" },
         select: {
           id: true,
@@ -86,6 +88,11 @@ export const put = [
     const { values } = parse.data;
 
     try {
+      const from = await prisma.formResponse.findUnique({
+        where: { id: submissionId },
+        include: { fieldResponses: true },
+      });
+
       // Overwrite all existing fieldResponses for this submission
       const updated = await prisma.formResponse.update({
         where: { id: submissionId },
@@ -100,8 +107,23 @@ export const put = [
           updatedAt: new Date(),
         },
       });
+
+      const changedKeys = getChangedKeys(from, updated);
+      await prisma.logs.create({
+        data: {
+          type: LogType.FORM_RESPONSE_MODIFIED,
+          userId: req.user.id,
+          ip: req.ip,
+          data: changedKeys,
+          eventId: req.params.eventId,
+          campaignId: req.params.campaignId,
+          formResponseId: updated.id,
+        },
+      });
+
       return res.json({ id: updated.id });
     } catch (error) {
+      console.error(error);
       return res.status(500).json({ message: error.message });
     }
   },
@@ -122,7 +144,23 @@ export const del = [
       if (!resp || resp.campaignId !== campaignId) {
         return res.status(404).json({ message: "Submission not found" });
       }
-      await prisma.formResponse.delete({ where: { id: submissionId } });
+
+      const resp = await prisma.formResponse.update({
+        where: { id: submissionId },
+        data: { deleted: true },
+      });
+
+      await prisma.logs.create({
+        data: {
+          type: LogType.FORM_RESPONSE_DELETED,
+          userId: req.user.id,
+          ip: req.ip,
+          eventId: req.params.eventId,
+          campaignId: req.params.campaignId,
+          formResponseId: submissionId,
+        },
+      });
+
       return res.status(204).end();
     } catch (error) {
       return res.status(500).json({ message: error.message });

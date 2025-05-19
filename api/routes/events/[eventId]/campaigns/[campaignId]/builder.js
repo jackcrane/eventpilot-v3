@@ -2,6 +2,8 @@ import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
+import { LogType } from "@prisma/client";
+import { getChangedKeys } from "#getChangedKeys";
 
 const fieldSchema = z.object({
   id: z.string().optional(),
@@ -69,6 +71,14 @@ export const post = [
       return res.status(400).json({ message: serializeError(result) });
     }
     const { fields } = result.data;
+
+    const before = await prisma.formField.findMany({
+      where: { campaignId, deleted: false },
+      orderBy: { order: "asc" },
+      include: {
+        options: { where: { deleted: false }, orderBy: { order: "asc" } },
+      },
+    });
 
     await prisma.$transaction(async (tx) => {
       // soft-delete fields that were removed
@@ -152,6 +162,19 @@ export const post = [
         options: { where: { deleted: false }, orderBy: { order: "asc" } },
       },
     });
+
+    const changedKeys = getChangedKeys(before, updated);
+    await prisma.logs.create({
+      data: {
+        type: LogType.FORM_FIELD_MODIFIED,
+        userId: req.user.id,
+        ip: req.ip,
+        eventId: req.params.eventId,
+        campaignId: req.params.campaignId,
+        data: changedKeys,
+      },
+    });
+
     res.json({ fields: updated });
   },
 ];

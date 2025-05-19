@@ -46,23 +46,7 @@ model EmailPreferences {
 
   login Boolean @default(true)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Logs {
-  id String @id @default(cuid())
-
-  userId String?
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  emailId String?
-  email Email? @relation(fields: [emailId], references: [id], onDelete: Cascade)
-
-  type LogType
-  ip String?
-
-  data Json?
+  logs Logs[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -92,6 +76,8 @@ model EmailVerification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   active Boolean @default(true)
 
+  logs Logs[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -106,6 +92,8 @@ model EmailWebhooks {
   data String
   type EmailWebhookType
 
+  logs Logs[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -117,6 +105,8 @@ model ForgotPasswordToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   active Boolean @default(true)
+
+  logs Logs[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -130,25 +120,14 @@ enum EmailWebhookType {
   LINK_CLICK
 }
 
-// LogTypes are in form NOUN_VERB
-enum LogType {
-  USER_CREATED
-  USER_LOGIN
-  USER_PASSWORD_RESET_REQUEST
-  USER_PASSWORD_RESET
-  USER_EMAIL_VERIFICATION_RESENT
-  USER_ACCOUNT_UPDATED
-  USER_EMAIL_PREFERENCES_UPDATED
-  EMAIL_SENT
-  EMAIL_VERIFIED
-}
-
 model Geolocation {
   id String @id @default(cuid())
   ip String @unique
   city String
   regionName String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  logs Logs[]
 }
 
 model File {
@@ -168,6 +147,7 @@ model File {
   updatedAt DateTime @updatedAt
 
   event        Event?   @relation(name: "EventLogo")
+  logs Logs[]
 }
 
 model Event {
@@ -190,6 +170,7 @@ model Event {
   logoFileId    String?   @unique
   logo          File?     @relation(name: "EventLogo", fields: [logoFileId], references: [id], onDelete: Cascade)
   campaigns     Campaign[]
+  logs Logs[]
 }
 
 model Campaign {
@@ -209,6 +190,7 @@ model Campaign {
 
   formFields FormField[]
   formResponses FormResponse[]
+  logs Logs[]
 }
 
 model FormField {
@@ -231,6 +213,8 @@ model FormField {
 
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
+
+  logs Logs[]
 }
 
 model FormFieldOption {
@@ -250,9 +234,12 @@ model FormResponse {
   campaign       Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   fieldResponses FieldResponse[]
   pii            PII?
+  deleted Boolean @default(false)
 
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
+
+  logs Logs[]
 }
 
 model PII {
@@ -308,8 +295,11 @@ model Location {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  deleted Boolean @default(false)
+
   jobs Job[]
   shifts Shift[]
+  logs Logs[]
 }
 
 model Job {
@@ -322,6 +312,8 @@ model Job {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  deleted Boolean @default(false)
+
   capacity Int
 
   eventId String
@@ -331,6 +323,7 @@ model Job {
   location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   shifts Shift[]
+  logs Logs[]
 }
 
 enum JobRestrictions {
@@ -364,4 +357,101 @@ model Shift {
   capacity Int
   open Boolean @default(true)
   active Boolean @default(true)
+
+  logs Logs[]
+}
+
+
+model Logs {
+  id String @id @default(cuid())
+
+  userId String?
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emailPreferencesId String?
+  emailPreferences EmailPreferences? @relation(fields: [emailPreferencesId], references: [id], onDelete: Cascade)
+
+  emailId String?
+  email Email? @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  emailVerificationId String?
+  emailVerification EmailVerification? @relation(fields: [emailVerificationId], references: [id], onDelete: Cascade)
+
+  emailWebookId String?
+  emailWebook EmailWebhooks? @relation(fields: [emailWebookId], references: [id], onDelete: Cascade)
+
+  forgotPasswordTokenId String?
+  forgotPasswordToken ForgotPasswordToken? @relation(fields: [forgotPasswordTokenId], references: [id], onDelete: Cascade)
+
+  geolocationId String?
+  geolocation Geolocation? @relation(fields: [geolocationId], references: [id], onDelete: Cascade)
+
+  fileId String?
+  file File? @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  eventId String?
+  event Event? @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  campaignId String?
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  formFieldId String?
+  formField FormField? @relation(fields: [formFieldId], references: [id], onDelete: Cascade)
+
+  formResponseId String?
+  formResponse FormResponse? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
+
+  locationId String?
+  location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  jobId String?
+  job Job? @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  shiftId String?
+  shift Shift? @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  type LogType
+
+  ip String?
+  data Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+// LogTypes are in form NOUN_VERB
+enum LogType {
+  USER_CREATED
+  USER_LOGIN
+  USER_PASSWORD_RESET_REQUEST
+  USER_PASSWORD_RESET
+  USER_EMAIL_VERIFICATION_RESENT
+  USER_ACCOUNT_UPDATED
+  USER_EMAIL_PREFERENCES_UPDATED
+  EMAIL_SENT
+  EMAIL_VERIFIED
+  EMAIL_WEBHOOK_RECEIVED
+  FILE_UPLOADED
+  EVENT_CREATED
+  EVENT_MODIFIED
+  EVENT_DELETED
+  CAMPAIGN_CREATED
+  CAMPAIGN_MODIFIED
+  CAMPAIGN_DELETED
+  FORM_FIELD_CREATED
+  FORM_FIELD_MODIFIED
+  FORM_FIELD_DELETED
+  FORM_RESPONSE_CREATED
+  FORM_RESPONSE_MODIFIED
+  FORM_RESPONSE_DELETED
+  LOCATION_CREATED
+  LOCATION_MODIFIED
+  LOCATION_DELETED
+  JOB_CREATED
+  JOB_MODIFIED
+  JOB_DELETED
+  SHIFT_CREATED
+  SHIFT_MODIFIED
+  SHIFT_DELETED
 }

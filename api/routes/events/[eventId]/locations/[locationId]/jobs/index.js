@@ -1,5 +1,6 @@
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
+import { LogType } from "@prisma/client";
 import { z } from "zod";
 
 const schema = z.object({
@@ -77,6 +78,18 @@ export const post = [
         include: { shifts: { orderBy: { startTime: "asc" } } },
       });
 
+      await prisma.logs.create({
+        data: {
+          type: LogType.JOB_CREATED,
+          userId: req.user.id,
+          ip: req.ip,
+          eventId: req.params.eventId,
+          locationId: req.params.locationId,
+          jobId: job.id,
+          data: job,
+        },
+      });
+
       return res.status(201).json({ message: "Job created", job });
     } catch (error) {
       console.log(error);
@@ -113,9 +126,21 @@ export const del = [
   async (req, res) => {
     const { eventId, locationId, jobId } = req.params;
     try {
-      await prisma.job.delete({
+      await prisma.job.update({
         where: {
           id: jobId,
+        },
+        data: { deleted: true },
+      });
+
+      await prisma.logs.create({
+        data: {
+          type: LogType.JOB_DELETED,
+          userId: req.user.id,
+          ip: req.ip,
+          eventId: req.params.eventId,
+          locationId: req.params.locationId,
+          jobId: jobId,
         },
       });
 

@@ -2,6 +2,7 @@ import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
+import { LogType } from "@prisma/client";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -55,6 +56,14 @@ export const post = [
         userId: req.user.id,
         logoFileId: result.data.logoFileId,
         slug: result.data.slug,
+        logs: {
+          create: {
+            type: LogType.EVENT_CREATED,
+            userId: req.user.id,
+            ip: req.ip || req.headers["x-forwarded-for"],
+            data: result.data,
+          },
+        },
       },
     });
 
