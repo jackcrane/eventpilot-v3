@@ -9,6 +9,8 @@ import { useEffect, useState } from "react";
 import paddlefest from "../assets/paddlefest.png";
 import swim from "../assets/swim.png";
 import orsanco from "../assets/orsanco.png";
+import firstcmp from "../assets/firstcmp.png";
+import ispaceDay from "../assets/ispace-day.webp";
 
 const Container = styled.div`
   /* background-color: var(--tblr-body-bg);
@@ -204,6 +206,8 @@ export const Home = () => {
               <TestamonialImage src={paddlefest} alt="PaddleFest" />
               <TestamonialImage src={swim} alt="Swim" />
               <TestamonialImage src={orsanco} alt="Orsanco" />
+              <TestamonialImage src={firstcmp} alt="FirstCMP" />
+              <TestamonialImage src={ispaceDay} alt="iSPACE Day" />
             </Row>
           </Section>
           <Section>
