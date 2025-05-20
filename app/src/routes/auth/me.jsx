@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useAuth, useEmailPreferences, useLogs } from "../../../hooks";
-import { Spinner, Typography, Input, Switch, Button } from "tabler-react-2";
+import {
+  Spinner,
+  Typography,
+  Input,
+  Switch,
+  Button,
+  Util,
+  Alert,
+} from "tabler-react-2";
 import { Page } from "../../../components/page/Page";
 import { Breadcrumbs } from "../../../components/breadcrumbs/Breadcrumbs";
 import { LogTimeline } from "../../../components/logTimeline/LogTimeline";
@@ -8,6 +16,8 @@ import { Icon } from "../../../util/Icon";
 import { Row } from "../../../util/Flex";
 import { sidenavItems } from "../../../components/sidenav/Sidenav";
 import { Dropzone } from "../../../components/dropzone/Dropzone";
+import { Stripe, StripeTrigger } from "../../../components/stripe/Stripe";
+import { useOffcanvas } from "tabler-react-2/dist/offcanvas";
 const { H1, H2, H3, Text } = Typography;
 
 export const UserProfile = () => {
@@ -66,6 +76,17 @@ export const UserProfile = () => {
           </Button>
         </Row>
       )}
+      <Util.Hr />
+      <H2>Payments</H2>
+      {!user.goodStanding && (
+        <Alert variant="danger" title={"Payment Issue"}>
+          Your account is not in good payment standing. Please click{" "}
+          <StripeTrigger type="link">here</StripeTrigger> to set up a payment
+          method.
+        </Alert>
+      )}
+      <StripeTrigger />
+      <Util.Hr />
       <H2>Email Preferences</H2>
       <Text>
         We value your inbox, and we may send you important, time-sensitive

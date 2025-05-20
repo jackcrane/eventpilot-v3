@@ -38,3 +38,9 @@
   color: var(--tblr-text-color);
   margin: 0;
 }
+
+.dangerBanner {
+  background-color: var(--tblr-danger-bg);
+  color: var(--tblr-danger-color);
+  padding: 10px;
+}

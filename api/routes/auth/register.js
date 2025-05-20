@@ -6,6 +6,7 @@ import { sendEmail } from "#postmark";
 import { forceTestError } from "#forceError";
 import WelcomeEmail from "#emails/welcome.jsx";
 import { render } from "@react-email/render";
+import { stripe } from "#stripe";
 
 export const post = async (req, res) => {
   try {
@@ -55,6 +56,45 @@ export const post = async (req, res) => {
         emailPreferences: {
           create: {},
         },
+      },
+    });
+
+    const customer = await stripe.customers.create({
+      email: email,
+      name: name,
+    });
+
+    await prisma.logs.create({
+      data: {
+        type: LogType.STRIPE_CUSTOMER_CREATED,
+        userId: user.id,
+        ip: req.ip,
+        data: customer,
+      },
+    });
+
+    const setup_intent = stripe.setupIntents.create({
+      customer: customer.id,
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    });
+
+    await prisma.logs.create({
+      data: {
+        type: LogType.STRIPE_SETUP_INTENT_CREATED,
+        userId: user.id,
+        ip: req.ip,
+        data: setup_intent,
+      },
+    });
+
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        stripe_customerId: customer.id,
       },
     });
 

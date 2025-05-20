@@ -1166,6 +1166,18 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.29.1.tgz#c82f04a09ba481e13857d6f2516e072aaa51b7f4"
   integrity sha512-+10CMg9vt1MoHj6x1pxyjPSMjHTIlqs8/tBztXvPAx24SKs9jwVnKqHJumlH/IzhaPUaj3T6T6wfZr8okdXaIg==
 
+"@stripe/react-stripe-js@^3.7.0":
+  version "3.7.0"
+  resolved "https://registry.yarnpkg.com/@stripe/react-stripe-js/-/react-stripe-js-3.7.0.tgz#ebebf87718875be08c68b3412cab785d0e9064d6"
+  integrity sha512-PYls/2S9l0FF+2n0wHaEJsEU8x7CmBagiH7zYOsxbBlLIHEsqUIQ4MlIAbV9Zg6xwT8jlYdlRIyBTHmO3yM7kQ==
+  dependencies:
+    prop-types "^15.7.2"
+
+"@stripe/stripe-js@^7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@stripe/stripe-js/-/stripe-js-7.3.0.tgz#7b295ff9ca5bccfd56c1291b78079ae2f14836cc"
+  integrity sha512-xnCyFIEI5SQnQrKkCxVj7nS5fWTZap+zuIGzmmxLMdlmgahFJaihK4zogqE8YyKKTLtrp/EldkEijSgtXsRVDg==
+
 "@types/babel__core@^7.20.5":
   version "7.20.5"
   resolved "https://registry.npmjs.org/@types/babel__core/-/babel__core-7.20.5.tgz"
@@ -2406,10 +2418,10 @@ swr@^2.3.0:
     dequal "^2.0.3"
     use-sync-external-store "^1.4.0"
 
-tabler-react-2@0.1.113:
-  version "0.1.113"
-  resolved "https://registry.yarnpkg.com/tabler-react-2/-/tabler-react-2-0.1.113.tgz#de6c9ce70ae0d0db5993b84fc0187e6bcc40f904"
-  integrity sha512-Wv8K8aweNR/CcwYURr/6YC5K2zcWOwp3ZKDZ7CYFSTdRsYMYuSHL99dmJC8MzKxMm8jrC4C6099MuCDkmY6+zw==
+tabler-react-2@0.1.114:
+  version "0.1.114"
+  resolved "https://registry.yarnpkg.com/tabler-react-2/-/tabler-react-2-0.1.114.tgz#f0ea074d82be74a02f788a54e22c25732294da41"
+  integrity sha512-zTHVSpsFyLnEX/Vnc3lf7P5QCoPDqexn6DQIO0/aXDUgWjNAaVqs/ax4MMZ3p7cDSXaaOinsN0VdXtRz4JC40g==
   dependencies:
     "@babel/cli" "^7.24.8"
     "@babel/core" "^7.24.8"

@@ -1,12 +1,17 @@
 import { getChangedKeys } from "#getChangedKeys";
 import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
+import { isCustomerInGoodStanding } from "#stripe";
 import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
 
 export const get = [
   verifyAuth(["manager"]),
-  (req, res) => {
+  async (req, res) => {
+    const goodStanding = await isCustomerInGoodStanding(
+      req.user.stripe_customerId
+    );
+
     res.json({
       user: {
         id: req.user.id,
@@ -16,6 +21,7 @@ export const get = [
         accountType: req.user.accountType,
         emailVerified: req.user.emailVerified,
         phoneNumber: req.user.phoneNumber,
+        goodStanding,
       },
     });
   },

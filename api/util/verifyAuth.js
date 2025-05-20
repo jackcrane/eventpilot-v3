@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { prisma } from "#prisma";
+import { isCustomerInGoodStanding } from "#stripe";
 
 // Define role hierarchy
 const ROLE_HIERARCHY = {
@@ -31,6 +32,15 @@ export const verifyAuth =
         // Check if the user is suspended
         if (user.suspended && req.originalUrl !== "/api/auth/me") {
           return res.sendStatus(401); // Unauthorized
+        }
+
+        if (req.method === "POST") {
+          user.goodStanding = await isCustomerInGoodStanding(
+            user.stripe_customerId
+          );
+          if (!user.goodStanding) {
+            return res.sendStatus(402); // Unauthorized
+          }
         }
 
         // Attach the user to the request object

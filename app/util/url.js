@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import { emitter } from "./mitt";
 
 export const u = (path) =>
@@ -21,6 +22,13 @@ export const authFetch = async (url, options) => {
     window.logout && window.logout();
     emitter.emit("logout");
   }
+  if (res.status === 402) {
+    toast.error("Your account is not in good payment standing.");
+  }
+  if (res.status === 500) {
+    toast.error("Internal server error.");
+  }
+  console.log(res.status);
   return res;
 };
 

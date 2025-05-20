@@ -16,6 +16,11 @@ const uploadFiles = async (url, { arg }) => {
   });
 
   if (!response.ok) {
+    if (response.status === 402) {
+      toast.error("Your account is not in good payment standing.");
+      return;
+    }
+
     let errorMessage = "File upload failed";
     try {
       const errorData = await response.json();
@@ -60,6 +65,7 @@ export const useFileUploader = (endpoint, options) => {
 
     // now `result` is your JSON; SWR state may not be set yet,
     // but you can call your callback immediately:
+    if (!result) return;
     toast.success("File uploaded successfully");
     onSuccessfulUpload?.(result);
 

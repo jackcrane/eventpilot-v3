@@ -23,6 +23,9 @@ model User {
 
   emailPreferences EmailPreferences?
 
+  stripe_customerId String?
+  stripe_setupIntentId String?
+
   accountType AccountType @default(MANAGER)
 
   createdAt DateTime @default(now())
@@ -455,4 +458,7 @@ enum LogType {
   SHIFT_CREATED
   SHIFT_MODIFIED
   SHIFT_DELETED
+  STRIPE_CUSTOMER_CREATED
+  STRIPE_CUSTOMER_UPDATED
+  STRIPE_SETUP_INTENT_CREATED
 }

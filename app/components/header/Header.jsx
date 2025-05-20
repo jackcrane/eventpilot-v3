@@ -13,6 +13,7 @@ import { Link, useLocation, useMatches, useNavigate } from "react-router-dom";
 import { EventPicker } from "../eventPicker/EventPicker";
 import { useParsedUrl } from "../../hooks/useParsedUrl";
 import { CampaignPicker } from "../campaignPicker/CampaignPicker";
+import { StripeTrigger } from "../stripe/Stripe";
 
 export const Header = () => {
   const { user, loggedIn, login, logout, resendVerificationEmail } = useAuth();
@@ -33,6 +34,23 @@ export const Header = () => {
             resend the verification email
           </Typography.Link>
           . You will not be able to log in until you verify your email.
+        </div>
+      )}
+      {loggedIn && !user?.goodStanding && (
+        <div className={"bg-red text-white"} style={{ padding: "5px 10px" }}>
+          Your account is not in good payment standing. Please{" "}
+          <StripeTrigger type="link" divProps={{ className: "text-body" }}>
+            <span
+              style={{
+                textDecoration: "underline",
+                color: "white",
+                display: "inline",
+              }}
+            >
+              set up a payment
+            </span>
+          </StripeTrigger>{" "}
+          method before using EventPilot.
         </div>
       )}
       <header className={styles.header}>

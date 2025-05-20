@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@paralleldrive/cuid2": "^2.2.2",
+    "@stripe/react-stripe-js": "^3.7.0",
+    "@stripe/stripe-js": "^7.3.0",
     "@uidotdev/usehooks": "^2.4.1",
     "cuid": "^3.0.0",
     "mitt": "^3.0.1",
@@ -26,7 +28,7 @@
     "react-use": "^17.6.0",
     "styled-components": "^6.1.14",
     "swr": "^2.3.0",
-    "tabler-react-2": "0.1.113",
+    "tabler-react-2": "0.1.114",
     "ua-parser-js": "^2.0.3"
   },
   "devDependencies": {
