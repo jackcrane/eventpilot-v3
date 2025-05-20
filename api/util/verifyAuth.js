@@ -38,9 +38,9 @@ export const verifyAuth =
           user.goodStanding = await isCustomerInGoodStanding(
             user.stripe_customerId
           );
-          if (!user.goodStanding) {
-            return res.sendStatus(402); // Unauthorized
-          }
+          // if (!user.goodStanding) {
+          //   return res.sendStatus(402); // Unauthorized
+          // }
         }
 
         // Attach the user to the request object

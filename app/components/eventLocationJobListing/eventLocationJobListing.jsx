@@ -20,6 +20,8 @@ import { Col, Row } from "../../util/Flex";
 import { LocationCRUD } from "../locationCRUD/locationCRUD";
 import moment from "moment-timezone";
 import { formatDate } from "../tzDateTime/tzDateTime";
+import { EventLocationJobCalendar } from "../eventLocationJobCalendar/eventLocationJobListingCalendar";
+import { useFieldsToShow } from "../../hooks/useFieldsToShow";
 
 const RESTRICTIONS_MAP = {
   OVER_18: "Must be over 18",
@@ -53,17 +55,7 @@ export const EventLocationJobListing = ({ locationId }) => {
 
   const [rearrangeModal, setRearrangeModal] = useState(false);
 
-  const [fieldsToShow, setFieldsToShow] = useState([
-    "name",
-    // "description",
-    // "address",
-    // "city",
-    // "state",
-    "startTime",
-    "endTime",
-    // "restrictions",
-    "shifts.length",
-  ]);
+  const { fieldsToShow, setFieldsToShow, table, setTable } = useFieldsToShow();
 
   if (loading) return <Loading />;
 
@@ -83,21 +75,13 @@ export const EventLocationJobListing = ({ locationId }) => {
         <Col align="flex-start">
           <Typography.H6 className="text-muted mb-0">LOCATION</Typography.H6>
           <Typography.H2 className="mt-0 mb-0">{location.name}</Typography.H2>
-          <Typography.H5 className="text-muted">
+          <Typography.H5 className="text-muted" style={{ textAlign: "left" }}>
             {[location.address, location.city, location.state]
               .filter((v) => v.length > 0)
               .join(", ")}
+            <br />
             {location.startTime && (
-              <span
-                style={{
-                  marginLeft:
-                    [location.address, location.city, location.state]
-                      .filter((v) => v.length > 0)
-                      .join(", ").length > 0
-                      ? "1rem"
-                      : "0",
-                }}
-              >
+              <span>
                 <Icon i="clock" />
                 <span className="text-muted">
                   {formatDate(
@@ -126,9 +110,13 @@ export const EventLocationJobListing = ({ locationId }) => {
           <Dropdown
             prompt="Actions"
             items={[
-              {
+              table && {
                 text: "Pick Columns to render",
                 onclick: () => setRearrangeModal(true),
+              },
+              {
+                text: `View as ${table ? "Calendar" : "Table"}`,
+                onclick: () => setTable(!table),
               },
               {
                 type: "divider",
@@ -146,7 +134,7 @@ export const EventLocationJobListing = ({ locationId }) => {
                   if (await confirm()) deleteLocation();
                 },
               },
-            ]}
+            ].filter(Boolean)}
           />
           <Button
             onClick={() =>
@@ -179,153 +167,162 @@ export const EventLocationJobListing = ({ locationId }) => {
         />
       ) : (
         <>
-          <Table
-            className="card"
-            columns={[
-              {
-                label: "Name",
-                accessor: "name",
-                sortable: true,
-                _showTracker: "name",
-              },
-              {
-                label: "Description",
-                accessor: "description",
-                _showTracker: "description",
-                render: (v) => v || <i>None</i>,
-                sortable: true,
-              },
-              {
-                label: "Address",
-                accessor: "address",
-                _showTracker: "address",
-                render: (v) => v || <i>None</i>,
-                sortable: true,
-              },
-              {
-                label: "City",
-                accessor: "city",
-                _showTracker: "city",
-                render: (v) => v || <i>None</i>,
-                sortable: true,
-              },
-              {
-                label: "State",
-                accessor: "state",
-                _showTracker: "state",
-                render: (v) => v || <i>None</i>,
-                sortable: true,
-              },
-              {
-                label: "Start Time (first shift)",
-                accessor: "startTime",
-                render: (v, r) =>
-                  formatDate(r.shifts[0]?.startTime, r.shifts[0]?.startTimeTz),
-                _showTracker: "startTime",
-                sortable: true,
-                sortFn: (a, b) => {
-                  let c = a?.shifts[a?.shifts?.length - 1]?.endTime;
-                  let d = b?.shifts[b?.shifts?.length - 1]?.endTime;
-                  if (!c) return 1;
-                  if (!d) return -1;
-                  return moment(c).isAfter(d) ? 1 : -1;
+          {table ? (
+            <Table
+              className="card"
+              columns={[
+                {
+                  label: "Name",
+                  accessor: "name",
+                  sortable: true,
+                  _showTracker: "name",
                 },
-              },
-              {
-                label: "End Time (last shift)",
-                accessor: "endTime",
-                render: (v, r) =>
-                  formatDate(
-                    r.shifts[r.shifts.length - 1]?.endTime,
-                    r.shifts[r.shifts.length - 1]?.endTimeTz
-                  ),
-                _showTracker: "endTime",
-                sortable: true,
-                sortFn: (a, b) => {
-                  let c = a?.shifts[a?.shifts?.length - 1]?.endTime;
-                  let d = b?.shifts[b?.shifts?.length - 1]?.endTime;
-                  if (!c) return 1;
-                  if (!d) return -1;
-                  return moment(c).isAfter(d) ? 1 : -1;
+                {
+                  label: "Description",
+                  accessor: "description",
+                  _showTracker: "description",
+                  render: (v) => v || <i>None</i>,
+                  sortable: true,
                 },
-              },
-              {
-                label: "Capacity",
-                accessor: "capacity",
-                render: (c) => (c === 0 ? "Unlimited" : c),
-                sortable: true,
-                _showTracker: "capacity",
-              },
-              {
-                label: "Shift Count",
-                accessor: "shifts.length",
-                _showTracker: "shifts.length",
-                sortable: true,
-              },
-              {
-                label: "Restrictions",
-                accessor: "restrictions",
-                render: (r) =>
-                  r.length > 0 ? (
-                    r.map((i) => RESTRICTIONS_MAP[i]).join(", ")
-                  ) : (
-                    <i>None</i>
-                  ),
-                _showTracker: "restrictions",
-                sortable: true,
-                sortFn: (a, b) => {
-                  let c = a?.restrictions?.length;
-                  let d = b?.restrictions?.length;
-                  if (!c) return 1;
-                  if (!d) return -1;
-                  return c - d;
+                {
+                  label: "Address",
+                  accessor: "address",
+                  _showTracker: "address",
+                  render: (v) => v || <i>None</i>,
+                  sortable: true,
                 },
-              },
-              {
-                label: "Actions",
-                accessor: "id",
-                _showTracker: "REQD",
-                render: (id, row) => (
-                  <Row gap={1}>
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        if (
-                          await confirm({
-                            text: "You are about to delete this job. This will also delete all associated shifts. Any volunteers registered for these shifts will be unassigned.",
+                {
+                  label: "City",
+                  accessor: "city",
+                  _showTracker: "city",
+                  render: (v) => v || <i>None</i>,
+                  sortable: true,
+                },
+                {
+                  label: "State",
+                  accessor: "state",
+                  _showTracker: "state",
+                  render: (v) => v || <i>None</i>,
+                  sortable: true,
+                },
+                {
+                  label: "Start Time (first shift)",
+                  accessor: "startTime",
+                  render: (v, r) =>
+                    formatDate(
+                      r.shifts[0]?.startTime,
+                      r.shifts[0]?.startTimeTz
+                    ),
+                  _showTracker: "startTime",
+                  sortable: true,
+                  sortFn: (a, b) => {
+                    let c = a?.shifts[a?.shifts?.length - 1]?.endTime;
+                    let d = b?.shifts[b?.shifts?.length - 1]?.endTime;
+                    if (!c) return 1;
+                    if (!d) return -1;
+                    return moment(c).isAfter(d) ? 1 : -1;
+                  },
+                },
+                {
+                  label: "End Time (last shift)",
+                  accessor: "endTime",
+                  render: (v, r) =>
+                    formatDate(
+                      r.shifts[r.shifts.length - 1]?.endTime,
+                      r.shifts[r.shifts.length - 1]?.endTimeTz
+                    ),
+                  _showTracker: "endTime",
+                  sortable: true,
+                  sortFn: (a, b) => {
+                    let c = a?.shifts[a?.shifts?.length - 1]?.endTime;
+                    let d = b?.shifts[b?.shifts?.length - 1]?.endTime;
+                    if (!c) return 1;
+                    if (!d) return -1;
+                    return moment(c).isAfter(d) ? 1 : -1;
+                  },
+                },
+                {
+                  label: "Capacity",
+                  accessor: "capacity",
+                  render: (c) => (c === 0 ? "Unlimited" : c),
+                  sortable: true,
+                  _showTracker: "capacity",
+                },
+                {
+                  label: "Shift Count",
+                  accessor: "shifts.length",
+                  _showTracker: "shifts.length",
+                  sortable: true,
+                },
+                {
+                  label: "Restrictions",
+                  accessor: "restrictions",
+                  render: (r) =>
+                    r.length > 0 ? (
+                      r.map((i) => RESTRICTIONS_MAP[i]).join(", ")
+                    ) : (
+                      <i>None</i>
+                    ),
+                  _showTracker: "restrictions",
+                  sortable: true,
+                  sortFn: (a, b) => {
+                    let c = a?.restrictions?.length;
+                    let d = b?.restrictions?.length;
+                    if (!c) return 1;
+                    if (!d) return -1;
+                    return c - d;
+                  },
+                },
+                {
+                  label: "Actions",
+                  accessor: "id",
+                  _showTracker: "REQD",
+                  render: (id, row) => (
+                    <Row gap={1}>
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          if (
+                            await confirm({
+                              text: "You are about to delete this job. This will also delete all associated shifts. Any volunteers registered for these shifts will be unassigned.",
+                            })
+                          )
+                            deleteJob(id);
+                        }}
+                        variant="danger"
+                        outline
+                      >
+                        <Icon i="trash" />
+                        Delete
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          offcanvas({
+                            content: (
+                              <JobCRUD
+                                value={row}
+                                defaultLocation={location.id}
+                                onFinish={close}
+                              />
+                            ),
                           })
-                        )
-                          deleteJob(id);
-                      }}
-                      variant="danger"
-                      outline
-                    >
-                      <Icon i="trash" />
-                      Delete
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        offcanvas({
-                          content: (
-                            <JobCRUD
-                              value={row}
-                              defaultLocation={location.id}
-                              onFinish={close}
-                            />
-                          ),
-                        })
-                      }
-                    >
-                      <Icon i="info-circle" />
-                      Details
-                    </Button>
-                  </Row>
-                ),
-              },
-            ].filter((f) => [...fieldsToShow, "REQD"].includes(f._showTracker))}
-            data={jobs}
-          />
+                        }
+                      >
+                        <Icon i="info-circle" />
+                        Details
+                      </Button>
+                    </Row>
+                  ),
+                },
+              ].filter((f) =>
+                [...fieldsToShow, "REQD"].includes(f._showTracker)
+              )}
+              data={jobs}
+            />
+          ) : (
+            <EventLocationJobCalendar locationId={location.id} />
+          )}
         </>
       )}
     </div>

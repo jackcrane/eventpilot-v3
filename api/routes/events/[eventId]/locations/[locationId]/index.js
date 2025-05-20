@@ -10,6 +10,7 @@ export const get = [
   verifyAuth(["manager"], true),
   async (req, res) => {
     const { eventId, locationId } = req.params;
+    const shouldIncludeShifts = req.query.includeShifts === "true";
     try {
       const location = await prisma.location.findUnique({
         where: {
@@ -25,6 +26,12 @@ export const get = [
               updatedAt: "asc",
             },
             include: {
+              shifts: shouldIncludeShifts
+                ? {
+                    where: { deleted: false },
+                    orderBy: { startTime: "asc" },
+                  }
+                : undefined,
               _count: {
                 select: {
                   shifts: {
@@ -45,6 +52,7 @@ export const get = [
         location,
       });
     } catch (error) {
+      console.log(error);
       return res.status(500).json({ message: error.message });
     }
   },

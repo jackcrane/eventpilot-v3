@@ -1,23 +1,28 @@
 import useSWR, { mutate } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "./useLocation";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useJobs = ({ eventId, locationId }) => {
+  const { refetch: refetchLocation } = useLocation({
+    eventId,
+    locationId,
+    includeShifts: true,
+  });
+
   const {
     data,
     error,
     isLoading,
     mutate: refetch,
   } = useSWR(`/api/events/${eventId}/locations/${locationId}/jobs`, fetcher);
-
-  useEffect(() => {
-    console.log("Data Changed", data);
-  }, [data]);
+  const [mutationLoading, setMutationLoading] = useState(false);
 
   const createJob = async (data) => {
+    setMutationLoading(true);
     try {
       const promise = authFetch(
         `/api/events/${eventId}/locations/${locationId}/jobs`,
@@ -36,15 +41,20 @@ export const useJobs = ({ eventId, locationId }) => {
         error: "Error creating job",
       });
 
+      setMutationLoading(false);
+
       refetch();
+      refetchLocation();
       return true;
     } catch (e) {
+      setMutationLoading(false);
       console.log("Error creating job", e);
       return false;
     }
   };
 
   const deleteJob = async (jobId) => {
+    setMutationLoading(true);
     try {
       const promise = authFetch(
         `/api/events/${eventId}/locations/${locationId}/jobs/${jobId}`,
@@ -61,15 +71,20 @@ export const useJobs = ({ eventId, locationId }) => {
         success: "Deleted job",
       });
 
+      setMutationLoading(false);
+
       refetch();
+      refetchLocation();
       return true;
     } catch (e) {
+      setMutationLoading(false);
       console.log("Error deleting job", e);
       return false;
     }
   };
 
   const updateJob = async (jobId, data) => {
+    setMutationLoading(true);
     try {
       const promise = authFetch(
         `/api/events/${eventId}/locations/${locationId}/jobs/${jobId}`,
@@ -88,9 +103,12 @@ export const useJobs = ({ eventId, locationId }) => {
         error: "Error updating job",
       });
 
+      setMutationLoading(false);
       refetch();
+      refetchLocation();
       return true;
     } catch (e) {
+      setMutationLoading(false);
       console.log("Error updating job", e);
       return false;
     }
@@ -101,7 +119,7 @@ export const useJobs = ({ eventId, locationId }) => {
     createJob,
     deleteJob,
     updateJob,
-    loading: isLoading,
+    loading: isLoading || mutationLoading,
     error,
     refetch,
   };

@@ -19,7 +19,11 @@ import { Icon } from "../../util/Icon";
 export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
   const { eventId } = useParams();
   const { locations, loading } = useLocations({ eventId });
-  const { createJob, updateJob } = useJobs({
+  const {
+    createJob,
+    updateJob,
+    loading: jobsLoading,
+  } = useJobs({
     eventId,
     locationId: value?.location || defaultLocation,
   });
@@ -316,7 +320,11 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
       </Button>
 
       <Util.Hr text="Finish" />
-      <Button loading={loading} onClick={submit} className="mt-3">
+      <Button
+        loading={jobsLoading || loading}
+        onClick={submit}
+        className="mt-3"
+      >
         {value ? "Update" : "Create"} Job
       </Button>
     </div>

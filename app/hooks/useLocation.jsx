@@ -4,13 +4,18 @@ import toast from "react-hot-toast";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
-export const useLocation = ({ eventId, locationId }) => {
+export const useLocation = ({ eventId, locationId, includeShifts = false }) => {
   const {
     data,
     error,
     isLoading,
     mutate: refetch,
-  } = useSWR(`/api/events/${eventId}/locations/${locationId}`, fetcher);
+  } = useSWR(
+    `/api/events/${eventId}/locations/${locationId}${
+      includeShifts ? "?includeShifts=true" : ""
+    }`,
+    fetcher
+  );
 
   const deleteLocation = async () => {
     try {

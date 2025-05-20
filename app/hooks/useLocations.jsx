@@ -1,6 +1,7 @@
 import useSWR, { mutate } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
+import { useState } from "react";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
@@ -11,8 +12,10 @@ export const useLocations = ({ eventId }) => {
     isLoading,
     mutate: refetch,
   } = useSWR(`/api/events/${eventId}/locations`, fetcher);
+  const [mutationLoading, setMutationLoading] = useState(false);
 
   const createLocation = async (data) => {
+    setMutationLoading(true);
     try {
       const promise = authFetch(`/api/events/${eventId}/locations`, {
         method: "POST",
@@ -28,14 +31,17 @@ export const useLocations = ({ eventId }) => {
         error: "Error creating location",
       });
 
+      setMutationLoading(false);
       refetch();
       return true;
     } catch {
+      setMutationLoading(false);
       return false;
     }
   };
 
   const editLocation = async (locationId, data) => {
+    setMutationLoading(true);
     try {
       const promise = authFetch(
         `/api/events/${eventId}/locations/${locationId}`,
@@ -55,8 +61,10 @@ export const useLocations = ({ eventId }) => {
       });
 
       refetch();
+      setMutationLoading(false);
       return true;
     } catch {
+      setMutationLoading(false);
       return false;
     }
   };
@@ -65,7 +73,7 @@ export const useLocations = ({ eventId }) => {
     locations: data?.locations,
     editLocation,
     createLocation,
-    loading: isLoading,
+    loading: isLoading || mutationLoading,
     error,
     refetch,
   };

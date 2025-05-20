@@ -6,6 +6,7 @@ import { LocationCRUD } from "../../../../components/locationCRUD/locationCRUD";
 import { useLocations } from "../../../../hooks/useLocations";
 import { useParams } from "react-router-dom";
 import { EventLocationJobListing } from "../../../../components/eventLocationJobListing/eventLocationJobListing";
+import { FieldsToShowProvider } from "../../../../hooks/useFieldsToShow";
 
 export const EventJobs = () => {
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
@@ -38,9 +39,11 @@ export const EventJobs = () => {
         Create a Location
       </Button>
       <Util.Hr />
-      {locations?.map((location) => (
-        <EventLocationJobListing key={location.id} locationId={location.id} />
-      ))}
+      <FieldsToShowProvider>
+        {locations?.map((location) => (
+          <EventLocationJobListing key={location.id} locationId={location.id} />
+        ))}
+      </FieldsToShowProvider>
       {locations?.length > 0 && (
         <>
           <Util.Hr />
