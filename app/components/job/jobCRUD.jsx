@@ -59,24 +59,54 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
     }));
 
   const addShift = () => {
-    const last = formState.shifts.slice(-1)[0];
-    const defaultStart = last?.endTime || location?.startTime || null;
-    const defaultStartTz = last?.endTimeTz || location?.startTimeTz || "";
+    setFormState((prev) => {
+      const shifts = prev.shifts;
+      // Base defaults: next shift starts at last end or at location start
+      let defaultStart = location?.startTime || null;
+      let defaultStartTz = location?.startTimeTz || "";
+      // By default, no end time
+      let defaultEnd = null;
+      let defaultEndTz = "";
 
-    setFormState((prev) => ({
-      ...prev,
-      shifts: [
-        ...prev.shifts,
-        {
-          capacity: null,
-          startTime: defaultStart,
-          startTimeTz: defaultStartTz,
-          endTime: null,
-          endTimeTz: "",
-          id: null,
-        },
-      ],
-    }));
+      if (shifts.length > 0) {
+        const last = shifts[shifts.length - 1];
+        defaultStart = last.endTime || defaultStart;
+        defaultStartTz = last.endTimeTz || defaultStartTz;
+
+        // Compute each shift’s length (ms)
+        const durations = shifts.map((s) =>
+          s.startTime && s.endTime
+            ? moment(s.endTime).diff(moment(s.startTime))
+            : null
+        );
+        const allHaveDuration = durations.every((d) => d != null);
+        const allSameDuration =
+          allHaveDuration && durations.every((d) => d === durations[0]);
+
+        if (allSameDuration) {
+          // Carry over that same duration
+          defaultEnd = moment(defaultStart)
+            .add(moment.duration(durations[0]))
+            .toISOString();
+          defaultEndTz = defaultStartTz;
+        }
+      }
+
+      return {
+        ...prev,
+        shifts: [
+          ...shifts,
+          {
+            capacity: null,
+            startTime: defaultStart,
+            startTimeTz: defaultStartTz,
+            endTime: defaultEnd,
+            endTimeTz: defaultEndTz,
+            id: null,
+          },
+        ],
+      };
+    });
   };
 
   const submit = async () => {

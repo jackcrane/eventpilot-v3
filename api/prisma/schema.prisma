@@ -26,6 +26,8 @@ model User {
   stripe_customerId String?
   stripe_setupIntentId String?
 
+  goodPaymentStanding Boolean @default(false)
+
   accountType AccountType @default(MANAGER)
 
   createdAt DateTime @default(now())
@@ -461,4 +463,6 @@ enum LogType {
   STRIPE_CUSTOMER_CREATED
   STRIPE_CUSTOMER_UPDATED
   STRIPE_SETUP_INTENT_CREATED
+  STRIPE_SETUP_INTENT_SUCCEEDED
+  STRIPE_PAYMENT_METHOD_ATTACHED
 }

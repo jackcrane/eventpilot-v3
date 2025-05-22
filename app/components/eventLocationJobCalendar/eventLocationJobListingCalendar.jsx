@@ -10,7 +10,7 @@ export const seed = (seed) => {
     hash = (hash << 5) - hash + seed.charCodeAt(i);
     hash |= 0; // Convert to 32bit int
   }
-  return (Math.abs(hash) % 6) + 1;
+  return (Math.abs(hash) % 14) + 1;
 };
 
 export const EventLocationJobCalendar = ({ locationId }) => {

@@ -68,34 +68,74 @@
 }
 
 .calendarItem[data-color="1"] {
-  background: var(--tblr-success-bg-subtle);
+  background-color: rgba(var(--tblr-success-rgb), 0.1);
   border-color: var(--tblr-success);
   color: var(--tblr-success);
 }
 .calendarItem[data-color="2"] {
-  background: var(--tblr-warning-bg-subtle);
+  background-color: rgba(var(--tblr-warning-rgb), 0.1);
   border-color: var(--tblr-warning);
   color: var(--tblr-warning);
 }
 .calendarItem[data-color="3"] {
-  background: var(--tblr-danger-bg-subtle);
+  background-color: rgba(var(--tblr-danger-rgb), 0.1);
   border-color: var(--tblr-danger);
   color: var(--tblr-danger);
 }
 .calendarItem[data-color="4"] {
-  background: var(--tblr-primary-bg-subtle);
+  background-color: rgba(var(--tblr-primary-rgb), 0.1);
   border-color: var(--tblr-primary);
   color: var(--tblr-primary);
 }
 .calendarItem[data-color="5"] {
-  background: var(--tblr-info-bg-subtle);
+  background-color: rgba(var(--tblr-info-rgb), 0.1);
   border-color: var(--tblr-info);
   color: var(--tblr-info);
 }
 .calendarItem[data-color="6"] {
-  background: var(--tblr-dark-bg-subtle);
+  background-color: rgba(var(--tblr-dark-rgb), 0.1);
   border-color: var(--tblr-dark);
   color: var(--tblr-dark);
+}
+.calendarItem[data-color="7"] {
+  background-color: rgba(var(--tblr-azure-rgb), 0.1);
+  border-color: var(--tblr-azure);
+  color: var(--tblr-azure);
+}
+.calendarItem[data-color="8"] {
+  background-color: rgba(var(--tblr-indigo-rgb), 0.1);
+  border-color: var(--tblr-indigo);
+  color: var(--tblr-indigo);
+}
+.calendarItem[data-color="9"] {
+  background-color: rgba(var(--tblr-purple-rgb), 0.1);
+  border-color: var(--tblr-purple);
+  color: var(--tblr-purple);
+}
+.calendarItem[data-color="10"] {
+  background-color: rgba(var(--tblr-pink-rgb), 0.1);
+  border-color: var(--tblr-pink);
+  color: var(--tblr-pink);
+}
+.calendarItem[data-color="11"] {
+  background-color: rgba(var(--tblr-yellow-rgb), 0.1);
+  border-color: var(--tblr-yellow);
+  color: var(--tblr-yellow);
+}
+.calendarItem[data-color="12"] {
+  background-color: rgba(var(--tblr-lime-rgb), 0.1);
+  border-color: var(--tblr-lime);
+  color: var(--tblr-lime);
+}
+.calendarItem[data-color="13"] {
+  background-color: rgba(var(--tblr-teal-rgb), 0.1);
+  border-color: var(--tblr-teal);
+  color: var(--tblr-teal);
+}
+.calendarItem[data-color="14"] {
+  background-color: rgba(var(--tblr-cyan-rgb), 0.1);
+  border-color: var(--tblr-cyan);
+  color: var(--tblr-cyan);
 }
 
 .calendarItemText {
