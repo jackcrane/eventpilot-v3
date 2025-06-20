@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { LogType } from "@prisma/client";
+import { stripe } from "#stripe";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -66,6 +67,37 @@ export const post = [
         },
       },
     });
+
+    const subscription = await stripe.subscriptions.create({
+      customer: req.user.stripe_customerId,
+      items: [
+        {
+          price: "price_1RRbcBIZm3Kzv7N0hZUMowir",
+          quantity: 0,
+        },
+        {
+          price: "price_1RRbcBIZm3Kzv7N0SFA9BEG5",
+        },
+      ],
+      metadata: {
+        eventId: event.id,
+      },
+    });
+
+    await prisma.logs.createMany([
+      {
+        type: LogType.EVENT_CREATED,
+        userId: req.user.id,
+        ip: req.ip || req.headers["x-forwarded-for"],
+        data: event,
+      },
+      {
+        type: LogType.STRIPE_SUBSCRIPTION_CREATED,
+        userId: req.user.id,
+        ip: req.ip || req.headers["x-forwarded-for"],
+        data: subscription,
+      },
+    ]);
 
     res.json({
       event,
