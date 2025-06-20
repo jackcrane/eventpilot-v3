@@ -1,6 +1,7 @@
 import React from "react";
-import { CampaignPage } from "../../../../../../components/campaignPage/CampaignPage";
+
+// This file is obsolete. Campaigns have been removed from the application.
 
 export const Campaign = () => {
-  return <CampaignPage title="Campaign Home"></CampaignPage>;
+  return null;
 };

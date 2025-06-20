@@ -13,13 +13,9 @@ import { ForgotPassword } from "./routes/auth/forgot-password";
 import { useFavicon, useLocation } from "react-use";
 import favicon from "../assets/ico.png";
 import { Events } from "./routes/events/Events";
-import { Campaign } from "./routes/events/[eventId]/campaigns/[campaignId]";
-import { CampaignVolunteers } from "./routes/events/[eventId]/campaigns/[campaignId]/volunteers";
-import { CampaignBuilder } from "./routes/events/[eventId]/campaigns/[campaignId]/builder";
 import { Consumer } from "./consumer/Consumer";
 import { useReducedSubdomain } from "../hooks/useReducedSubdomain";
 import { EventJobs } from "./routes/events/[eventId]/jobs";
-import { EventCampaigns } from "./routes/events/[eventId]/campaigns";
 import { Home } from "./home";
 
 export default () => {
@@ -66,22 +62,6 @@ export default () => {
           <Route path="/verify" element={<Verify />} />
           <Route path="/events/:eventId" element={<Event />} />
           <Route path="/events" element={<Events />} />
-          <Route
-            path="/events/:eventId/campaigns"
-            element={<EventCampaigns />}
-          />
-          <Route
-            path="/events/:eventId/campaigns/:campaignId"
-            element={<Campaign />}
-          />
-          <Route
-            path="/events/:eventId/campaigns/:campaignId/volunteers"
-            element={<CampaignVolunteers />}
-          />
-          <Route
-            path="/events/:eventId/campaigns/:campaignId/builder"
-            element={<CampaignBuilder />}
-          />
           <Route path="/events/:eventId/jobs" element={<EventJobs />} />
           {/* 404 error */}
           <Route
@@ -98,7 +78,7 @@ export default () => {
                   }}
                 >
                   <h1>Error 404</h1>
-                  <p>Page not found</p>
+                  <p>Page not found.</p>
                 </div>
               </Page>
             }
