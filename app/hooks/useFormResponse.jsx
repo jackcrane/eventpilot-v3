@@ -9,10 +9,10 @@ const fetcher = (url) =>
     return res.json();
   });
 
-export const useFormResponse = (eventId, campaignId, submissionId) => {
+export const useFormResponse = (eventId, submissionId) => {
   const key =
-    eventId && campaignId && submissionId
-      ? `/api/events/${eventId}/campaigns/${campaignId}/submission/${submissionId}`
+    eventId && submissionId
+      ? `/api/events/${eventId}/submission/${submissionId}`
       : null;
 
   const { data, error, isLoading, mutate } = useSWR(key, fetcher);
@@ -38,31 +38,24 @@ export const useFormResponse = (eventId, campaignId, submissionId) => {
   const _deleteResponse = async () => {
     setDeleteLoading(true);
     try {
-      const res = await authFetch(key, { method: "DELETE" });
+      const res = await authFetch(key, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Delete failed");
-      // remove from cache permanently
-      mutate(null, false);
+      await mutate();
+      return await res.json();
     } finally {
       setDeleteLoading(false);
     }
   };
 
-  const deleteResponse = async () => {
-    toast.promise(_deleteResponse(), {
-      loading: "Deleting…",
-      success: "Deleted",
-    });
-  };
-
   return {
-    response: data?.response ?? null,
-    fields: data?.fields ?? [],
-    pii: data?.pii ?? null,
-    loading: isLoading,
+    data,
     error,
+    isLoading,
     updateResponse,
-    deleteResponse,
     mutationLoading,
+    _deleteResponse,
     deleteLoading,
   };
 };

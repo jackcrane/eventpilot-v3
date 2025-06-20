@@ -1,24 +1,17 @@
 import { useParams } from "react-router-dom";
 import { useReducedSubdomain } from "../../../../hooks/useReducedSubdomain";
 import { useEvent } from "../../../../hooks/useEvent";
-import { useCampaign } from "../../../../hooks/useCampaign";
 import { Typography } from "tabler-react-2";
 import { Row } from "../../../../util/Flex";
 import { useFormBuilder } from "../../../../hooks/useFormBuilder";
 import { FormConsumer } from "../../../../components/formConsumer/FormConsumer";
 import { usePII } from "../../../../hooks/usePII";
 
-export const Campaign = () => {
-  const { campaignSlug } = useParams();
-  const eventSlug = useReducedSubdomain();
+export const EventRegistration = () => {
+  const eventSlug = useReducedSubdomain(); // now used as eventId
   const pii = usePII();
 
   const { event, loading, error } = useEvent({ eventId: eventSlug });
-  const {
-    campaign,
-    loading: loadingCampaign,
-    error: errorCampaign,
-  } = useCampaign({ eventId: eventSlug, campaignId: campaignSlug });
   const {
     fields,
     loading: loadingForm,
@@ -26,14 +19,14 @@ export const Campaign = () => {
     updateFields,
     submitForm,
     mutationLoading,
-  } = useFormBuilder(eventSlug, campaignSlug);
+  } = useFormBuilder(eventSlug);
 
-  if (loading || loadingCampaign) {
+  if (loading || loadingForm) {
     return <div>Loading...</div>;
   }
 
-  if (error || errorCampaign) {
-    return <div>Error: {error || errorCampaign}</div>;
+  if (error || errorForm) {
+    return <div>Error: {error || errorForm}</div>;
   }
 
   return (
@@ -57,10 +50,6 @@ export const Campaign = () => {
           <Typography.H3 className={"mb-0 text-secondary"}>
             {event.name}
           </Typography.H3>
-          <Typography.H1>{campaign.name}</Typography.H1>
-          <Typography.Text className={"mb-0"}>
-            {campaign.description}
-          </Typography.Text>
         </div>
       </Row>
       {loadingForm ? (

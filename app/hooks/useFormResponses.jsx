@@ -10,16 +10,12 @@ const fetcher = (url) =>
   });
 
 /**
- * Fetches the flattened form responses for a given event + campaign.
+ * Fetches the flattened form responses for a given event.
  * @param {string} eventId    – slug or ID of the event
- * @param {string} campaignId – slug or ID of the campaign
  * @returns {{ responses: Array<Object>, loading: boolean, error: any }}
  */
-export const useFormResponses = (eventId, campaignId) => {
-  const key =
-    eventId && campaignId
-      ? `/api/events/${eventId}/campaigns/${campaignId}/submission`
-      : null;
+export const useFormResponses = (eventId) => {
+  const key = eventId ? `/api/events/${eventId}/submission` : null;
 
   const { data, error, isLoading } = useSWR(key, fetcher);
 
