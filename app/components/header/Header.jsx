@@ -12,7 +12,6 @@ import icon from "../../assets/ico.png";
 import { Link, useLocation, useMatches, useNavigate } from "react-router-dom";
 import { EventPicker } from "../eventPicker/EventPicker";
 import { useParsedUrl } from "../../hooks/useParsedUrl";
-import { CampaignPicker } from "../campaignPicker/CampaignPicker";
 import { StripeTrigger } from "../stripe/Stripe";
 
 export const Header = () => {
@@ -105,12 +104,6 @@ const Breadcrumbs = () => {
   const builder = [];
   if (url.events) {
     builder.push(<EventPicker go value={url.events} />);
-    if (!url.campaigns) {
-      builder.push(<CampaignPicker go />);
-    }
-  }
-  if (url.campaigns) {
-    builder.push(<CampaignPicker go value={url.campaigns} />);
   }
 
   return (

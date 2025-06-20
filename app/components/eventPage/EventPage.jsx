@@ -1,5 +1,4 @@
 import { Typography, Util, Button } from "tabler-react-2";
-import { useCampaign } from "../../hooks/useCampaign";
 import { useParsedUrl } from "../../hooks/useParsedUrl";
 import { Row } from "../../util/Flex";
 import { useParams } from "react-router-dom";
