@@ -7,6 +7,11 @@ import { useLocation } from "./useLocation";
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useJobs = ({ eventId, locationId }) => {
+  const invalidateLocationCache = () => {
+    mutate(`/api/events/${eventId}/locations/${locationId}?includeShifts=true`);
+    mutate(`/api/events/${eventId}/locations/${locationId}`);
+  };
+
   const { refetch: refetchLocation } = useLocation({
     eventId,
     locationId,
@@ -44,7 +49,7 @@ export const useJobs = ({ eventId, locationId }) => {
       setMutationLoading(false);
 
       refetch();
-      refetchLocation();
+      invalidateLocationCache();
       return true;
     } catch (e) {
       setMutationLoading(false);
@@ -74,7 +79,7 @@ export const useJobs = ({ eventId, locationId }) => {
       setMutationLoading(false);
 
       refetch();
-      refetchLocation();
+      invalidateLocationCache();
       return true;
     } catch (e) {
       setMutationLoading(false);
@@ -105,7 +110,7 @@ export const useJobs = ({ eventId, locationId }) => {
 
       setMutationLoading(false);
       refetch();
-      refetchLocation();
+      invalidateLocationCache();
       return true;
     } catch (e) {
       setMutationLoading(false);

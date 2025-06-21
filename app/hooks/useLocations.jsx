@@ -67,6 +67,9 @@ export const useLocations = ({ eventId }) => {
       // revalidate both list and detail
       refetchList();
       mutate(`/api/events/${eventId}/locations/${locationId}`);
+      mutate(
+        `/api/events/${eventId}/locations/${locationId}?includeShifts=true`
+      );
 
       return true;
     } catch {

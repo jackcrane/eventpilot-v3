@@ -329,6 +329,19 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
                   </u>
                 </Alert>
               )}
+              {/* Warning for long (6+ hours) shifts */}
+              {moment(s.endTime).diff(moment(s.startTime), "hours") > 6 && (
+                <Alert
+                  variant="warning"
+                  title={"Long Shift Warning"}
+                  icon={<Icon size="24px" i="clock-exclamation" />}
+                >
+                  This shift is very long. Please be sure you entered the
+                  correct start and end times. If so, you may want to consider
+                  breaking this into multiple shifts to improve your volunteer
+                  experience.
+                </Alert>
+              )}
             </>
           )}
 
