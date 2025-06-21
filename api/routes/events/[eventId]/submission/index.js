@@ -75,9 +75,11 @@ export const get = [
       });
 
       const rawResponses = await prisma.formResponse.findMany({
-        where: { eventId },
+        where: { eventId, deleted: false },
         include: {
-          fieldResponses: { select: { fieldId: true, value: true } },
+          fieldResponses: {
+            select: { fieldId: true, value: true },
+          },
         },
       });
 
@@ -95,6 +97,7 @@ export const get = [
         responses,
       });
     } catch (error) {
+      console.log(error);
       return res.status(500).json({ message: error.message });
     }
   },

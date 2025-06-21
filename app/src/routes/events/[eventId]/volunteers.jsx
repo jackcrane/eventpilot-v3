@@ -31,7 +31,7 @@ export const EventVolunteers = () => {
   const { campaignId, eventId } = useParams();
   const { responses, fields } = useFormResponses(eventId, campaignId);
   const { offcanvas, OffcanvasElement } = useOffcanvas({
-    offcanvasProps: { position: "end", size: 500 },
+    offcanvasProps: { position: "end", size: 500, zIndex: 1050 },
   });
   const { confirm, ConfirmModal } = useConfirm({
     title: "Confirm Title",
@@ -42,8 +42,8 @@ export const EventVolunteers = () => {
 
   return (
     <EventPage title="Volunteers">
-      {OffcanvasElement}
       {ConfirmModal}
+      {OffcanvasElement}
       <Table
         className="card"
         columns={[
