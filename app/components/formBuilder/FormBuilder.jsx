@@ -648,7 +648,7 @@ export const FormBuilder = () => {
         prompt: f.props.prompt || null,
         order: idx,
         options: (f.props.options || []).map((opt, optIdx) => ({
-          ...(originalIds.has(opt.id) ? { id: opt.id } : {}),
+          ...(opt.id ? { id: opt.id } : {}),
           label: opt.label,
           order: optIdx,
         })),

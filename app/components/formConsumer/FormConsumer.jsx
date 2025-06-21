@@ -1,7 +1,12 @@
 import React, { useState } from "react";
 import { Input, DropdownInput, Button } from "tabler-react-2";
 
-export const FormConsumer = ({ fields, onSubmit, initialValues = {} }) => {
+export const FormConsumer = ({
+  fields,
+  onSubmit,
+  initialValues = {},
+  loading,
+}) => {
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const handleInput = (id) => (value) => {
@@ -97,7 +102,9 @@ export const FormConsumer = ({ fields, onSubmit, initialValues = {} }) => {
             return null;
         }
       })}
-      <Button onClick={handleSubmit}>Submit</Button>
+      <Button onClick={handleSubmit} loading={loading}>
+        Submit
+      </Button>
     </div>
   );
 };

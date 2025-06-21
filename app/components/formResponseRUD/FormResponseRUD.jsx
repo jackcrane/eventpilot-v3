@@ -201,6 +201,7 @@ export const FormResponseRUD = ({ id, confirm }) => {
         initialValues={initialValues}
         onSubmit={_updateResponse}
         disabled={mutationLoading}
+        loading={mutationLoading}
       />
       <div className="mt-3">
         <Button
