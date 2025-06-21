@@ -1,6 +1,6 @@
 import { Toaster } from "react-hot-toast";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import { Campaign } from "./routes/[campaignId]";
+import { ConsumerIndex } from "./routes";
 
 export const Consumer = ({ subdomain }) => {
   return (
@@ -8,9 +8,9 @@ export const Consumer = ({ subdomain }) => {
       <Toaster />
       <Router>
         <Routes>
-          <Route path="/" element={<p>Subdomain: {subdomain}</p>} />
+          {/* <Route path="/" element={<p>Subdomain: {subdomain}</p>} /> */}
 
-          <Route path="/c/:campaignSlug" element={<Campaign />} />
+          <Route path="/" element={<ConsumerIndex />} />
         </Routes>
       </Router>
     </div>

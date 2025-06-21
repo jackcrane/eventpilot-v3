@@ -42,9 +42,9 @@ export const post = async (req, res) => {
     await prisma.logs.create({
       data: {
         type: LogType.FORM_RESPONSE_CREATED,
-        userId: req.user.id,
+        userId: req.user?.id,
         ip: req.ip,
-        eventId,
+        eventId: formResponse.eventId,
         formResponseId: formResponse.id,
         data: formResponse,
       },
@@ -52,6 +52,7 @@ export const post = async (req, res) => {
 
     res.json({ id: formResponse.id });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: error.message });
   }
 };
