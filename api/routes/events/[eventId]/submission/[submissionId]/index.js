@@ -16,11 +16,11 @@ const bodySchema = z.object({
 export const get = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const { campaignId, submissionId } = req.params;
+    const { eventId, submissionId } = req.params;
     try {
       // Fetch all fields (including deleted ones) with type + options
       const fields = await prisma.formField.findMany({
-        where: { campaignId, deleted: false },
+        where: { eventId, deleted: false },
         orderBy: { order: "asc" },
         select: {
           id: true,
@@ -43,7 +43,7 @@ export const get = [
           pii: true,
         },
       });
-      if (!resp || resp.campaignId !== campaignId) {
+      if (!resp || resp.eventId !== eventId) {
         return res.status(404).json({ message: "Submission not found" });
       }
 
@@ -116,7 +116,6 @@ export const put = [
           ip: req.ip,
           data: changedKeys,
           eventId: req.params.eventId,
-          campaignId: req.params.campaignId,
           formResponseId: updated.id,
         },
       });
@@ -135,13 +134,13 @@ export const put = [
 export const del = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const { submissionId, campaignId } = req.params;
+    const { submissionId, eventId } = req.params;
     try {
-      // Ensure it belongs to this campaign
+      // Ensure it belongs to this event
       let resp = await prisma.formResponse.findUnique({
         where: { id: submissionId },
       });
-      if (!resp || resp.campaignId !== campaignId) {
+      if (!resp || resp.eventId !== eventId) {
         return res.status(404).json({ message: "Submission not found" });
       }
 
@@ -156,7 +155,6 @@ export const del = [
           userId: req.user.id,
           ip: req.ip,
           eventId: req.params.eventId,
-          campaignId: req.params.campaignId,
           formResponseId: submissionId,
         },
       });

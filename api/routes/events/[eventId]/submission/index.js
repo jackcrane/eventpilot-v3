@@ -16,16 +16,12 @@ export const post = async (req, res) => {
     return res.status(400).json({ message: serializeError(parseResult) });
   }
   const { values, pii } = parseResult.data;
-  const { campaignId } = req.params;
-
-  const campaign = await prisma.campaign.findFirst({
-    where: { slug: campaignId },
-  });
+  const { eventId } = req.params;
 
   try {
     const formResponse = await prisma.formResponse.create({
       data: {
-        campaign: { connect: { slug: campaignId } },
+        event: { connect: { slug: eventId } },
         fieldResponses: {
           create: Object.entries(values).map(([fieldId, value]) => ({
             field: { connect: { id: fieldId } },
@@ -48,8 +44,7 @@ export const post = async (req, res) => {
         type: LogType.FORM_RESPONSE_CREATED,
         userId: req.user.id,
         ip: req.ip,
-        eventId: campaign.eventId,
-        campaignId: campaign.id,
+        eventId,
         formResponseId: formResponse.id,
         data: formResponse,
       },
@@ -64,10 +59,10 @@ export const post = async (req, res) => {
 export const get = [
   verifyAuth(["manager"], true),
   async (req, res) => {
-    const { campaignId } = req.params;
+    const { eventId } = req.params;
     try {
       const fields = await prisma.formField.findMany({
-        where: { campaignId },
+        where: { eventId },
         orderBy: { order: "asc" },
         select: {
           id: true,
@@ -79,7 +74,7 @@ export const get = [
       });
 
       const rawResponses = await prisma.formResponse.findMany({
-        where: { campaignId },
+        where: { eventId },
         include: {
           fieldResponses: { select: { fieldId: true, value: true } },
         },

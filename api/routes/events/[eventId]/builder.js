@@ -34,21 +34,11 @@ const bodySchema = z.object({
 export const get = [
   verifyAuth(["manager"], true),
   async (req, res) => {
-    const { campaignId } = req.params;
+    const { eventId } = req.params;
     const fields = await prisma.formField.findMany({
       where: {
         AND: [
-          { OR: [{ campaignId }, { campaign: { slug: campaignId } }] },
-          {
-            OR: [
-              {
-                campaign: {
-                  eventId: req.params.eventId,
-                },
-              },
-              { campaign: { event: { slug: req.params.eventId } } },
-            ],
-          },
+          { OR: [{ eventId }, { event: { slug: eventId } }] },
           { deleted: false },
         ],
       },
@@ -65,7 +55,7 @@ export const get = [
 export const post = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const { campaignId } = req.params;
+    const { eventId } = req.params;
     const result = bodySchema.safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({ message: serializeError(result) });
@@ -73,7 +63,7 @@ export const post = [
     const { fields } = result.data;
 
     const before = await prisma.formField.findMany({
-      where: { campaignId, deleted: false },
+      where: { eventId, deleted: false },
       orderBy: { order: "asc" },
       include: {
         options: { where: { deleted: false }, orderBy: { order: "asc" } },
@@ -85,7 +75,7 @@ export const post = [
       const incomingIds = fields.map((f) => f.id).filter(Boolean);
       await tx.formField.updateMany({
         where: {
-          campaignId,
+          eventId,
           id: { notIn: incomingIds },
           deleted: false,
         },
@@ -113,7 +103,7 @@ export const post = [
           // create new
           const created = await tx.formField.create({
             data: {
-              campaign: { connect: { id: campaignId } },
+              event: { connect: { id: eventId } },
               type: f.type,
               label: f.label,
               placeholder: f.placeholder,
@@ -156,7 +146,7 @@ export const post = [
 
     // return updated
     const updated = await prisma.formField.findMany({
-      where: { campaignId: req.params.campaignId, deleted: false },
+      where: { eventId: req.params.eventId, deleted: false },
       orderBy: { order: "asc" },
       include: {
         options: { where: { deleted: false }, orderBy: { order: "asc" } },
@@ -170,7 +160,6 @@ export const post = [
         userId: req.user.id,
         ip: req.ip,
         eventId: req.params.eventId,
-        campaignId: req.params.campaignId,
         data: changedKeys,
       },
     });

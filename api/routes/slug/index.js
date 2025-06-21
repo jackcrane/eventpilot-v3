@@ -8,7 +8,7 @@ export const get = [
     try {
       const schema = z.object({
         slug: z.string(),
-        slugType: z.enum(["event", "campaign"]),
+        slugType: z.enum(["event"]),
       });
 
       const [type, slug] = req.query.s?.split(":") || [];
