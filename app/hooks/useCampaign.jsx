@@ -4,6 +4,9 @@ import { authFetch } from "../util/url";
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useCampaign = ({ eventId, campaignId }) => {
+  console.trace("useCampaign was used. This is deprecated.");
+  return null;
+
   const {
     data,
     error,

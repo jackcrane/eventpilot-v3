@@ -1,5 +1,6 @@
+// /app/hooks/useFormResponse.jsx
 import React, { useState } from "react";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 
@@ -9,13 +10,16 @@ const fetcher = (url) =>
     return res.json();
   });
 
-export const useFormResponse = (eventId, campaignId, submissionId) => {
+export const useFormResponse = (eventId, submissionId) => {
   const key =
-    eventId && campaignId && submissionId
-      ? `/api/events/${eventId}/campaigns/${campaignId}/submission/${submissionId}`
+    eventId && submissionId
+      ? `/api/events/${eventId}/submission/${submissionId}`
       : null;
+  const listKey = eventId ? `/api/events/${eventId}/submission` : null;
 
   const { data, error, isLoading, mutate } = useSWR(key, fetcher);
+  const { mutate: refreshList } = useSWRConfig();
+
   const [mutationLoading, setMutationLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -28,7 +32,8 @@ export const useFormResponse = (eventId, campaignId, submissionId) => {
         body: JSON.stringify({ values }),
       });
       if (!res.ok) throw new Error("Update failed");
-      await mutate(); // ← re‑fetch the GET
+      await mutate(); // re-fetch single
+      if (listKey) await refreshList(listKey); // re-fetch list
       return await res.json();
     } finally {
       setMutationLoading(false);
@@ -40,19 +45,19 @@ export const useFormResponse = (eventId, campaignId, submissionId) => {
     try {
       const res = await authFetch(key, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
-      // remove from cache permanently
-      mutate(null, false);
+      await mutate(null, false); // remove single from cache
+      if (listKey) await refreshList(listKey); // re-fetch list
     } finally {
       setDeleteLoading(false);
     }
   };
 
-  const deleteResponse = async () => {
+  const deleteResponse = () =>
     toast.promise(_deleteResponse(), {
       loading: "Deleting…",
       success: "Deleted",
+      error: "Delete failed",
     });
-  };
 
   return {
     response: data?.response ?? null,

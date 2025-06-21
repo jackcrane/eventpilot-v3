@@ -1,5 +1,4 @@
 import { Typography, Util, Button } from "tabler-react-2";
-import { useCampaign } from "../../hooks/useCampaign";
 import { useParsedUrl } from "../../hooks/useParsedUrl";
 import { Row } from "../../util/Flex";
 import { useParams } from "react-router-dom";
@@ -44,14 +43,25 @@ export const EventPage = ({ children, title }) => {
           </Row>
         </Button>
         <Button
-          variant={url.campaigns ? "primary" : "secondary"}
-          ghost={!url.campaigns}
+          variant={url.volunteers ? "primary" : "secondary"}
+          ghost={!url.volunteers}
           size="sm"
-          href={`/events/${eventId}/campaigns`}
+          href={`/events/${eventId}/volunteers`}
         >
           <Row gap={1}>
-            <Icon i={"target-arrow"} size="inherit" />
-            Campaigns
+            <Icon i={"heart"} size="inherit" />
+            Volunteers
+          </Row>
+        </Button>
+        <Button
+          variant={url.builder ? "primary" : "secondary"}
+          ghost={!url.builder}
+          size="sm"
+          href={`/events/${eventId}/builder`}
+        >
+          <Row gap={1}>
+            <Icon i={"lego"} size="inherit" />
+            Registration Builder
           </Row>
         </Button>
         <Button

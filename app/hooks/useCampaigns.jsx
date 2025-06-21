@@ -10,6 +10,9 @@ import { useParams } from "react-router-dom";
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useCampaigns = () => {
+  console.trace("useCampaigns was used. This is deprecated.");
+  return null;
+
   const { eventId } = useParams();
   const {
     data,
@@ -70,6 +73,9 @@ export const useCampaigns = () => {
 };
 
 export const CreateCampaign = ({ createCampaign }) => {
+  console.trace("createCampaign was used. This is deprecated.");
+  return null;
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [slug, setSlug] = useState("");

@@ -16,6 +16,7 @@ export const get = [
             location: true,
           },
         },
+        formFields: req.query.includeFields,
       },
     });
 

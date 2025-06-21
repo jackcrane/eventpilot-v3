@@ -36,7 +36,6 @@ model User {
   suspended Boolean @default(false)
 
   events Event[]
-  campaigns Campaign[]
 }
 
 enum AccountType {
@@ -174,24 +173,6 @@ model Event {
 
   logoFileId    String?   @unique
   logo          File?     @relation(name: "EventLogo", fields: [logoFileId], references: [id], onDelete: Cascade)
-  campaigns     Campaign[]
-  logs Logs[]
-}
-
-model Campaign {
-  id String @id @default(cuid())
-  name String
-  description String
-  userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  eventId String
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  slug String @unique
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   formFields FormField[]
   formResponses FormResponse[]
@@ -200,8 +181,6 @@ model Campaign {
 
 model FormField {
   id            String               @id @default(cuid())
-  campaignId    String
-  campaign      Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   type          String
   label         String
   placeholder   String?
@@ -219,6 +198,9 @@ model FormField {
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
+  eventId String
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
   logs Logs[]
 }
 
@@ -235,14 +217,15 @@ model FormFieldOption {
 
 model FormResponse {
   id             String           @id @default(cuid())
-  campaignId     String
-  campaign       Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   fieldResponses FieldResponse[]
   pii            PII?
   deleted Boolean @default(false)
 
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
+
+  eventId String
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   logs Logs[]
 }
@@ -398,9 +381,6 @@ model Logs {
   eventId String?
   event Event? @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  campaignId String?
-  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-
   formFieldId String?
   formField FormField? @relation(fields: [formFieldId], references: [id], onDelete: Cascade)
 
@@ -442,9 +422,6 @@ enum LogType {
   EVENT_CREATED
   EVENT_MODIFIED
   EVENT_DELETED
-  CAMPAIGN_CREATED
-  CAMPAIGN_MODIFIED
-  CAMPAIGN_DELETED
   FORM_FIELD_CREATED
   FORM_FIELD_MODIFIED
   FORM_FIELD_DELETED

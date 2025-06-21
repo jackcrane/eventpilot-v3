@@ -499,11 +499,8 @@ export const FieldCanvas = ({
 
 // Main builder component
 export const FormBuilder = () => {
-  const { eventId, campaignId } = useParams();
-  const { fields, loading, error, updateFields } = useFormBuilder(
-    eventId,
-    campaignId
-  );
+  const { eventId } = useParams();
+  const { fields, loading, error, updateFields } = useFormBuilder(eventId);
 
   // Local state for fields being edited
   const [localFields, setLocalFields] = useState([]);
@@ -651,7 +648,7 @@ export const FormBuilder = () => {
         prompt: f.props.prompt || null,
         order: idx,
         options: (f.props.options || []).map((opt, optIdx) => ({
-          ...(originalIds.has(opt.id) ? { id: opt.id } : {}),
+          ...(opt.id ? { id: opt.id } : {}),
           label: opt.label,
           order: optIdx,
         })),
