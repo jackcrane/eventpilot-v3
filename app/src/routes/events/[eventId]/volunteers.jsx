@@ -28,8 +28,8 @@ const renderTitle = (f) => {
 };
 
 export const EventVolunteers = () => {
-  const { campaignId, eventId } = useParams();
-  const { responses, fields } = useFormResponses(eventId, campaignId);
+  const { eventId } = useParams();
+  const { responses, fields } = useFormResponses(eventId);
   const { offcanvas, OffcanvasElement } = useOffcanvas({
     offcanvasProps: { position: "end", size: 500, zIndex: 1050 },
   });
