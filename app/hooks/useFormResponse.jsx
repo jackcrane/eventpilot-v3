@@ -9,10 +9,10 @@ const fetcher = (url) =>
     return res.json();
   });
 
-export const useFormResponse = (eventId, campaignId, submissionId) => {
+export const useFormResponse = (eventId, submissionId) => {
   const key =
-    eventId && campaignId && submissionId
-      ? `/api/events/${eventId}/campaigns/${campaignId}/submission/${submissionId}`
+    eventId && submissionId
+      ? `/api/events/${eventId}/submission/${submissionId}`
       : null;
 
   const { data, error, isLoading, mutate } = useSWR(key, fetcher);

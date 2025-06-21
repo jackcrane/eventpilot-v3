@@ -1,12 +1,12 @@
 import React from "react";
-import { CampaignPage } from "../../../../../../components/campaignPage/CampaignPage";
-import { useFormResponses } from "../../../../../../hooks/useFormResponses";
+import { useFormResponses } from "../../../../hooks/useFormResponses";
 import { useParams } from "react-router-dom";
 import { Table, Button, useOffcanvas, useConfirm } from "tabler-react-2";
-import { FIELD_TYPES } from "../../../../../../components/formBuilder/FormBuilder";
-import { Icon } from "../../../../../../util/Icon";
-import { Row } from "../../../../../../util/Flex";
-import { FormResponseRUD } from "../../../../../../components/formResponseRUD/FormResponseRUD";
+import { FIELD_TYPES } from "../../../../components/formBuilder/FormBuilder";
+import { Icon } from "../../../../util/Icon";
+import { Row } from "../../../../util/Flex";
+import { FormResponseRUD } from "../../../../components/formResponseRUD/FormResponseRUD";
+import { EventPage } from "../../../../components/eventPage/EventPage";
 
 const renderCell = (f, v) => {
   switch (f.type) {
@@ -27,7 +27,7 @@ const renderTitle = (f) => {
   );
 };
 
-export const CampaignVolunteers = () => {
+export const EventVolunteers = () => {
   const { campaignId, eventId } = useParams();
   const { responses, fields } = useFormResponses(eventId, campaignId);
   const { offcanvas, OffcanvasElement } = useOffcanvas({
@@ -41,7 +41,7 @@ export const CampaignVolunteers = () => {
   });
 
   return (
-    <CampaignPage title="Volunteers">
+    <EventPage title="Volunteers">
       {OffcanvasElement}
       {ConfirmModal}
       <Table
@@ -73,6 +73,6 @@ export const CampaignVolunteers = () => {
         ]}
         data={responses}
       />
-    </CampaignPage>
+    </EventPage>
   );
 };

@@ -30,77 +30,94 @@ export const get = [
 export const post = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const schema = z.object({
-      name: z.string().min(2),
-      description: z.string().min(10),
-      logoFileId: z.string().optional(),
-      slug: z
-        .string()
-        .min(3)
-        .max(30)
-        .regex(/^[a-z0-9-]+$/, {
-          message:
-            "Slug can only contain lowercase letters, numbers, and hyphens",
-        }),
-    });
+    let event;
+    let subscription;
+    try {
+      const schema = z.object({
+        name: z.string().min(2),
+        description: z.string().min(10),
+        logoFileId: z.string().optional(),
+        slug: z
+          .string()
+          .min(3)
+          .max(30)
+          .regex(/^[a-z0-9-]+$/, {
+            message:
+              "Slug can only contain lowercase letters, numbers, and hyphens",
+          }),
+      });
 
-    const result = schema.safeParse(req.body);
+      const result = schema.safeParse(req.body);
 
-    if (!result.success) {
-      return res.status(400).json({ message: serializeError(result) });
-    }
+      if (!result.success) {
+        return res.status(400).json({ message: serializeError(result) });
+      }
 
-    const event = await prisma.event.create({
-      data: {
-        name: result.data.name,
-        description: result.data.description,
-        userId: req.user.id,
-        logoFileId: result.data.logoFileId,
-        slug: result.data.slug,
-        logs: {
-          create: {
+      event = await prisma.event.create({
+        data: {
+          name: result.data.name,
+          description: result.data.description,
+          userId: req.user.id,
+          logoFileId: result.data.logoFileId,
+          slug: result.data.slug,
+          logs: {
+            create: {
+              type: LogType.EVENT_CREATED,
+              userId: req.user.id,
+              ip: req.ip || req.headers["x-forwarded-for"],
+              data: result.data,
+            },
+          },
+        },
+      });
+
+      subscription = await stripe.subscriptions.create({
+        customer: req.user.stripe_customerId,
+        items: [
+          {
+            price: "price_1RRbcBIZm3Kzv7N0hZUMowir", // Volunteers
+          },
+          {
+            price: "price_1RRbcBIZm3Kzv7N0SFA9BEG5", // Events
+          },
+        ],
+        metadata: {
+          eventId: event.id,
+        },
+      });
+
+      await prisma.logs.createMany({
+        data: [
+          {
             type: LogType.EVENT_CREATED,
             userId: req.user.id,
             ip: req.ip || req.headers["x-forwarded-for"],
-            data: result.data,
+            data: event,
           },
-        },
-      },
-    });
+          {
+            type: LogType.STRIPE_SUBSCRIPTION_CREATED,
+            userId: req.user.id,
+            ip: req.ip || req.headers["x-forwarded-for"],
+            data: subscription,
+          },
+        ],
+      });
 
-    const subscription = await stripe.subscriptions.create({
-      customer: req.user.stripe_customerId,
-      items: [
-        {
-          price: "price_1RRbcBIZm3Kzv7N0hZUMowir",
-          quantity: 0,
-        },
-        {
-          price: "price_1RRbcBIZm3Kzv7N0SFA9BEG5",
-        },
-      ],
-      metadata: {
-        eventId: event.id,
-      },
-    });
+      res.json({
+        event,
+      });
+    } catch (e) {
+      console.log(e);
 
-    await prisma.logs.createMany([
-      {
-        type: LogType.EVENT_CREATED,
-        userId: req.user.id,
-        ip: req.ip || req.headers["x-forwarded-for"],
-        data: event,
-      },
-      {
-        type: LogType.STRIPE_SUBSCRIPTION_CREATED,
-        userId: req.user.id,
-        ip: req.ip || req.headers["x-forwarded-for"],
-        data: subscription,
-      },
-    ]);
+      await prisma.event.delete({
+        where: {
+          id: event.id,
+        },
+      });
 
-    res.json({
-      event,
-    });
+      await stripe.subscriptions.del(subscription.id);
+
+      res.status(500).json({ message: "Error" });
+    }
   },
 ];

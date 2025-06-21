@@ -5,11 +5,8 @@ import { getPII, usePII } from "./usePII";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
-export const useFormBuilder = (eventId, campaignId) => {
-  const key =
-    eventId && campaignId
-      ? `/api/events/${eventId}/campaigns/${campaignId}/builder`
-      : null;
+export const useFormBuilder = (eventId) => {
+  const key = eventId ? `/api/events/${eventId}/builder` : null;
 
   const { data, error, isLoading } = useSWR(key, fetcher);
 
@@ -31,7 +28,7 @@ export const useFormBuilder = (eventId, campaignId) => {
     const pii = await getPII();
     setMutationLoading(true);
     try {
-      const url = `/api/events/${eventId}/campaigns/${campaignId}/submission`;
+      const url = `/api/events/${eventId}/submission`;
       const res = await authFetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

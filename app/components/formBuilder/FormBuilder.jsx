@@ -499,11 +499,8 @@ export const FieldCanvas = ({
 
 // Main builder component
 export const FormBuilder = () => {
-  const { eventId, campaignId } = useParams();
-  const { fields, loading, error, updateFields } = useFormBuilder(
-    eventId,
-    campaignId
-  );
+  const { eventId } = useParams();
+  const { fields, loading, error, updateFields } = useFormBuilder(eventId);
 
   // Local state for fields being edited
   const [localFields, setLocalFields] = useState([]);

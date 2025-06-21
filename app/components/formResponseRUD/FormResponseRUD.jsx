@@ -122,7 +122,7 @@ const Dg = ({ title, content, description }) => (
 );
 
 export const FormResponseRUD = ({ id, confirm }) => {
-  const { eventId, campaignId } = useParams();
+  const { eventId } = useParams();
   const {
     response,
     fields,
@@ -133,7 +133,7 @@ export const FormResponseRUD = ({ id, confirm }) => {
     deleteResponse,
     mutationLoading,
     deleteLoading,
-  } = useFormResponse(eventId, campaignId, id);
+  } = useFormResponse(eventId, id);
 
   if (loading) return <div>Loading…</div>;
   if (error) return <div>Error: {error.message}</div>;
