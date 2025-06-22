@@ -234,6 +234,17 @@ export const FormResponseRUD = ({ id, confirm }) => {
           description="Unique identifier for the browser and device that submitted the form. This can be used to identify multiple users who signed up from the same device, and is useful for tracking spam and fraudulent activity, or for identifying users who have existing relationships between eachother."
           content={<code>{pii?.fingerprint || "-"}</code>}
         />
+        {pii?.otherResponsesWithSameFingerprint?.length > 0 && (
+          <Dg
+            title="Other Responses with Same Fingerprint"
+            description="Other responses with the same fingerprint as this response."
+            content={pii?.otherResponsesWithSameFingerprint?.map((r) => (
+              <>
+                <code>{r.name}</code>{" "}
+              </>
+            ))}
+          />
+        )}
         <Dg
           title="IP Address"
           content={<code>{pii?.ipAddress || "-"}</code>}

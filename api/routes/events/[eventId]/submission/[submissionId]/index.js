@@ -63,12 +63,45 @@ export const get = [
         currentlyInForm: !f.deleted,
       }));
 
+      const otherResponsesWithSameFingerprint =
+        await prisma.formResponse.findMany({
+          where: {
+            eventId,
+            deleted: false,
+            pii: {
+              fingerprint: resp.pii?.fingerprint,
+            },
+            id: {
+              not: resp.id,
+            },
+          },
+          orderBy: { createdAt: "asc" },
+          include: {
+            fieldResponses: {
+              select: { fieldId: true, value: true },
+            },
+          },
+        });
+
+      const otherReponsesWithSameFingerprintFormatted =
+        otherResponsesWithSameFingerprint.map((r) => {
+          const formatted = formatFormResponse(r, fields);
+          const nameFieldId = fields.find((f) => f.label === "Your Name")?.id;
+          return {
+            ...formatted,
+            name: formatted[nameFieldId],
+          };
+        });
+      resp.pii.otherResponsesWithSameFingerprint =
+        otherReponsesWithSameFingerprintFormatted;
+
       return res.json({
         response: formattedResponse,
         fields: fieldsMeta,
         pii: resp.pii,
       });
     } catch (error) {
+      console.error(error);
       return res.status(500).json({ message: error.message });
     }
   },

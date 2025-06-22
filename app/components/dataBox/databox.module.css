@@ -1,0 +1,11 @@
+.dataBox {
+  background-color: var(--tblr-body-bg);
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  flex: 1;
+}
+
+.value {
+  font-size: 2rem;
+}
