@@ -8,8 +8,6 @@ export const Consumer = ({ subdomain }) => {
       <Toaster />
       <Router>
         <Routes>
-          {/* <Route path="/" element={<p>Subdomain: {subdomain}</p>} /> */}
-
           <Route path="/" element={<ConsumerIndex />} />
         </Routes>
       </Router>

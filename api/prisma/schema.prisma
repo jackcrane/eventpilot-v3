@@ -190,6 +190,9 @@ model FormField {
   prompt        String?
   order         Int
 
+  eventpilotFieldType String?
+  autocompleteType String?
+
   options       FormFieldOption[]
   fieldResponses FieldResponse[]
 

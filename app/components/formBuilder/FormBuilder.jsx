@@ -40,28 +40,30 @@ export const FIELD_TYPES = [
     label: "Email",
     icon: "mail",
     description: "Email address input",
-    supports: ["placeholder"],
+    supports: ["placeholder", "autocompleteType"],
+    defaultAutocompleteType: "email",
   },
   {
     type: "phone",
     label: "Phone",
     icon: "phone",
     description: "Phone number input",
-    supports: ["placeholder"],
+    supports: ["placeholder", "autocompleteType"],
+    defaultAutocompleteType: "tel",
   },
   {
     type: "shortAnswer",
     label: "Short Answer",
     icon: "align-left",
     description: "Multi-line text input",
-    supports: ["placeholder"],
+    supports: ["placeholder", "autocompleteType"],
   },
   {
     type: "boolean",
     label: "Boolean",
     icon: "toggle-left",
     description: "On/off toggle switch",
-    supports: ["defaultValue"],
+    supports: ["defaultValue", "autocompleteType"],
   },
   {
     type: "dropdown",
@@ -242,13 +244,13 @@ export const FieldPreview = ({ field }) => {
     case "shortAnswer":
       return (
         <>
-          <label className={styles.previewLabel}>{label || "Label"}</label>
-          <textarea
-            className="form-control"
+          <Input
+            label={label || "Label"}
             placeholder={placeholder || ""}
             rows={3}
             required={required}
             disabled
+            useTextarea={true}
           />
         </>
       );
@@ -309,6 +311,105 @@ export const FieldSettings = ({ field, updateProp }) => {
           checked={field.props.defaultValue}
           onChange={(checked) => updateProp(field.id, "defaultValue", checked)}
         />
+      )}
+      {typeDef.supports.includes("autocompleteType") && (
+        <>
+          <DropdownInput
+            label="Autocomplete Type"
+            prompt="Select an autocomplete type"
+            items={[
+              { id: "off", label: "None (no autocomplete)" },
+              {
+                id: "address-line1",
+                label: "First line of the street address",
+              },
+              {
+                id: "address-line2",
+                label: "Second line of the street address",
+              },
+              {
+                id: "address-level1",
+                label: "First level of the address, e.g. the county",
+              },
+              {
+                id: "address-level2",
+                label: "Second level of the address, e.g. the city",
+              },
+              { id: "address-level3", label: "Third level of the address" },
+              { id: "address-level4", label: "Fourth level of the address" },
+              { id: "street-address", label: "Full street address" },
+              { id: "country", label: "Country Code" },
+              { id: "country-name", label: "Country Name" },
+              { id: "postal-code", label: "Postal Code" },
+              { id: "name", label: "Full name" },
+              { id: "given-name", label: "First name" },
+              { id: "additional-name", label: "Middle name" },
+              { id: "family-name", label: "Last name" },
+              {
+                id: "honorific-prefix",
+                label: "Honorific prefix (Mr., Ms., Dr., etc.)",
+              },
+              {
+                id: "honorific-suffix",
+                label: "Honorific suffix (Esq., Jr, III, etc.)",
+              },
+              { id: "nickname", label: "Nickname" },
+              { id: "organization-title", label: "Job title" },
+              { id: "bday", label: "Birthday (full date)" },
+              { id: "bday-day", label: "Birthday (day)" },
+              { id: "bday-month", label: "Birthday (month)" },
+              { id: "bday-year", label: "Birthday (year)" },
+              { id: "sex", label: "Gender Identity" },
+              { id: "organization", label: "Company name" },
+              { id: "language", label: "Language" },
+              { id: "url", label: "URL" },
+              { id: "email", label: "Email" },
+              { id: "tel", label: "Phone number" },
+              {
+                id: "tel-country-code",
+                label: "Country code for phone number",
+              },
+              { id: "tel-national", label: "National phone number" },
+              { id: "tel-area-code", label: "Area code for phone number" },
+              { id: "tel-local", label: "Local phone number" },
+              { id: "tel-local-prefix", label: "Local phone number prefix" },
+              { id: "tel-local-suffix", label: "Local phone number suffix" },
+              { id: "tel-extension", label: "Phone number extension" },
+              { id: "impp", label: "IM address" },
+            ]}
+            value={
+              field.props.autocompleteType
+                ? typeof field.props.autocompleteType === "string"
+                  ? { id: field.props.autocompleteType }
+                  : field.props.autocompleteType
+                : typeDef.defaultAutocompleteType
+                ? typeof typeDef.defaultAutocompleteType === "string"
+                  ? { id: typeDef.defaultAutocompleteType }
+                  : typeDef.defaultAutocompleteType
+                : null
+            }
+            onChange={(v) => updateProp(field.id, "autocompleteType", v)}
+          />
+          {/* {JSON.stringify(
+            field.props.autocompleteType
+              ? typeof field.props.autocompleteType === "string"
+                ? { id: field.props.autocompleteType }
+                : field.props.autocompleteType
+              : typeDef.defaultAutocompleteType
+              ? typeof typeDef.defaultAutocompleteType === "string"
+                ? { id: typeDef.defaultAutocompleteType }
+                : typeDef.defaultAutocompleteType
+              : null
+          )} */}
+          <label className="text-secondary mt-1">
+            Setting an autocomplete type allows user's browsers to suggest
+            addresses, phone numbers, and other fields. This will make it easier
+            for your users to fill out the form, and will allow EventPilot to
+            better understand your data to give you better insights. Setting a
+            type will not force your users to accept an autocomplete, it will
+            just allow their browser to suggest more helpful data.
+          </label>
+        </>
       )}
       {typeDef.supports.includes("options") && (
         <div className={styles.optionsEditor}>
@@ -528,6 +629,8 @@ export const FormBuilder = () => {
                 label: defaultLabels.name,
                 placeholder: "John Doe",
                 required: true,
+                eventpilotFieldType: "text",
+                autocompleteType: "name",
               },
               locked: true,
             },
@@ -539,6 +642,8 @@ export const FormBuilder = () => {
                 label: defaultLabels.email,
                 placeholder: "john.doe@example.com",
                 required: true,
+                eventpilotFieldType: "email",
+                autocompleteType: "email",
               },
               locked: true,
             },
@@ -556,6 +661,8 @@ export const FormBuilder = () => {
           defaultValue: f.defaultValue,
           prompt: f.prompt,
           options: (f.options || []).map((o) => ({ id: o.id, label: o.label })),
+          autocompleteType: f.autocompleteType,
+          eventpilotFieldType: f.eventpilotFieldType,
         },
         locked:
           (f.type === "text" && f.label === defaultLabels.name) ||
@@ -652,6 +759,8 @@ export const FormBuilder = () => {
           label: opt.label,
           order: optIdx,
         })),
+        autocompleteType: f.props.autocompleteType?.id || null,
+        eventpilotFieldType: f.props.eventpilotFieldType || null,
       };
     });
     return updateFields(apiFields);

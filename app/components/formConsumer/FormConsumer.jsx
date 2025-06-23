@@ -36,6 +36,7 @@ export const FormConsumer = ({
 
   return (
     <div>
+      {/* {JSON.stringify(fields)} */}
       {fields.map((field) => {
         const value = values[field.id] || "";
         const isError = !!errors[field.id];
@@ -47,6 +48,7 @@ export const FormConsumer = ({
           onInput: handleInput(field.id),
           variant: isError ? "danger" : undefined,
           value,
+          autocomplete: field.autocompleteType,
         };
         switch (field.type) {
           case "text":
@@ -79,6 +81,7 @@ export const FormConsumer = ({
                 {...commonProps}
                 placeholder={field.placeholder}
                 type="text"
+                useTextarea={true}
               />
             );
           case "boolean":

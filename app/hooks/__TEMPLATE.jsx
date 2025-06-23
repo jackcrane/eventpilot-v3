@@ -1,19 +1,17 @@
 import useSWR, { mutate } from "swr";
 import { authFetch } from "../util/url";
+import toast from "react-hot-toast";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useEmailPreferences = () => {
-  const {
-    data,
-    error,
-    isLoading,
-    mutate: refetch,
-  } = useSWR(`/api/auth/me/email`, fetcher);
+  const key = `/api/auth/me/email`;
+
+  const { data, error, isLoading } = useSWR(key, fetcher);
 
   const createEmailPreferences = async (data) => {
     try {
-      const promise = authFetch(`/api/auth/me/email`, {
+      const promise = authFetch(key, {
         method: "POST",
         body: JSON.stringify(data),
       }).then(async (r) => {
@@ -27,7 +25,7 @@ export const useEmailPreferences = () => {
         error: "Error",
       });
 
-      refetch();
+      await mutate(key); // Invalidate and refetch
       return true;
     } catch {
       return false;
@@ -39,6 +37,6 @@ export const useEmailPreferences = () => {
     createEmailPreferences,
     loading: isLoading,
     error,
-    refetch,
+    refetch: () => mutate(key),
   };
 };

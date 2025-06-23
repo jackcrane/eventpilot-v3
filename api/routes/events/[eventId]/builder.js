@@ -24,6 +24,48 @@ const fieldSchema = z.object({
       })
     )
     .optional(),
+  eventpilotFieldType: z.string().nullable(),
+  autocompleteType: z
+    .enum([
+      "off",
+      "address-line1",
+      "address-line2",
+      "address-level1",
+      "address-level2",
+      "address-level3",
+      "address-level4",
+      "street-address",
+      "country",
+      "country-name",
+      "postal-code",
+      "name",
+      "additional-name",
+      "family-name",
+      "given-name",
+      "honorific-prefix",
+      "honorific-suffix",
+      "nickname",
+      "organization-title",
+      "bday",
+      "bday-day",
+      "bday-month",
+      "bday-year",
+      "sex",
+      "organization",
+      "language",
+      "url",
+      "email",
+      "tel",
+      "tel-country-code",
+      "tel-national",
+      "tel-area-code",
+      "tel-local",
+      "tel-local-prefix",
+      "tel-local-suffix",
+      "tel-extension",
+      "impp",
+    ])
+    .nullable(),
 });
 
 const bodySchema = z.object({
@@ -165,6 +207,8 @@ export const post = [
         "defaultValue",
         "prompt",
         "order",
+        "eventpilotFieldType",
+        "autocompleteType",
       ]) {
         if (incoming[key] !== original[key]) {
           fieldDiff[key] = incoming[key];
