@@ -10,6 +10,38 @@ const bodySchema = z.object({
   values: z.record(z.string(), z.string()),
 });
 
+export const groupByLocationAndJob = (responses) => {
+  const result = [];
+  const locationMap = new Map();
+
+  responses.forEach(({ shift }) => {
+    const { job, ...shiftData } = shift;
+    const { location } = job;
+
+    // Get or create the location entry
+    let locEntry = locationMap.get(location.id);
+    if (!locEntry) {
+      locEntry = { ...location, jobs: [] };
+      locationMap.set(location.id, locEntry);
+      result.push(locEntry);
+    }
+
+    // Get or create the job entry within this location
+    let jobEntry = locEntry.jobs.find((j) => j.id === job.id);
+    if (!jobEntry) {
+      // omit nested location on the job object
+      const { location: _, ...jobWithoutLocation } = job;
+      jobEntry = { ...jobWithoutLocation, shifts: [] };
+      locEntry.jobs.push(jobEntry);
+    }
+
+    // Add the shift to this job
+    jobEntry.shifts.push(shiftData);
+  });
+
+  return result;
+};
+
 /**
  * GET → fetch a single submission with flattened values
  */
@@ -26,7 +58,10 @@ export const get = [
           id: true,
           label: true,
           type: true,
-          options: { select: { id: true, label: true, deleted: true } },
+          options: {
+            select: { id: true, label: true, deleted: true },
+            where: { deleted: false },
+          },
           deleted: true,
           order: true,
           required: true,
@@ -40,12 +75,27 @@ export const get = [
           fieldResponses: {
             select: { fieldId: true, value: true, field: true },
           },
+          shifts: {
+            include: {
+              shift: {
+                include: {
+                  job: {
+                    include: {
+                      location: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           pii: true,
         },
       });
       if (!resp || resp.eventId !== eventId) {
         return res.status(404).json({ message: "Submission not found" });
       }
+
+      const shifts = [...resp.shifts];
 
       const formattedResponse = formatFormResponse(resp, fields);
 
@@ -99,6 +149,7 @@ export const get = [
         response: formattedResponse,
         fields: fieldsMeta,
         pii: resp.pii,
+        shifts: groupByLocationAndJob(shifts),
       });
     } catch (error) {
       console.error(error);

@@ -11,6 +11,7 @@ export const FormConsumer = ({
   eventId,
 }) => {
   const [values, setValues] = useState(initialValues);
+  const [shifts, setShifts] = useState([]);
   const [errors, setErrors] = useState({});
   const handleInput = (id) => (value) => {
     setValues((prev) => ({ ...prev, [id]: value }));
@@ -34,7 +35,7 @@ export const FormConsumer = ({
       setErrors(newErrors);
       return;
     }
-    onSubmit(values);
+    onSubmit(values, shifts);
   };
 
   return (
@@ -111,7 +112,10 @@ export const FormConsumer = ({
       {showShifts && (
         <div className={"mb-3"}>
           <Util.Hr text="Pick some shifts" />
-          <ShiftFinder eventId={eventId} />
+          <ShiftFinder
+            eventId={eventId}
+            onSelectedShiftChange={(shifts) => setShifts(shifts)}
+          />
         </div>
       )}
       <Button onClick={handleSubmit} loading={loading}>

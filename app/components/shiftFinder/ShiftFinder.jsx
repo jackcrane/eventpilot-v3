@@ -9,9 +9,18 @@ import { useLocation } from "../../hooks/useLocation";
 import classNames from "classnames";
 import { utc } from "../tzDateTime/valueToUtc";
 
-export const ShiftFinder = ({ eventId }) => {
+const flatShifts = (jobs) =>
+  Object.values(jobs)
+    .flatMap((jobMap) => Object.values(jobMap).flat())
+    .map((item) => item.s);
+
+export const ShiftFinder = ({ eventId, onSelectedShiftChange }) => {
   const [locations, setLocations] = useState([]);
-  const [jobs, setJobs] = useState([]);
+  const [shifts, setShifts] = useState([]);
+
+  useEffect(() => {
+    onSelectedShiftChange(flatShifts(shifts));
+  }, [shifts]);
 
   return (
     <div>
@@ -22,8 +31,8 @@ export const ShiftFinder = ({ eventId }) => {
       />
       <JobPicker
         locations={locations}
-        jobs={jobs}
-        setJobs={setJobs}
+        jobs={shifts}
+        setJobs={setShifts}
         eventId={eventId}
       />
     </div>

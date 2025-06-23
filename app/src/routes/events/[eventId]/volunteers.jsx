@@ -33,6 +33,10 @@ export const EventVolunteers = () => {
   const { offcanvas, OffcanvasElement } = useOffcanvas({
     offcanvasProps: { position: "end", size: 500, zIndex: 1050 },
   });
+  const { offcanvas: subOffcanvas, OffcanvasElement: SubOffcanvasElement } =
+    useOffcanvas({
+      offcanvasProps: { position: "end", size: 470, zIndex: 1051 },
+    });
   const { confirm, ConfirmModal } = useConfirm({
     title: "Confirm Title",
     text: "Text",
@@ -44,6 +48,7 @@ export const EventVolunteers = () => {
     <EventPage title="Volunteers">
       {ConfirmModal}
       {OffcanvasElement}
+      {SubOffcanvasElement}
       <Table
         className="card"
         columns={[
@@ -55,7 +60,13 @@ export const EventVolunteers = () => {
                 size="sm"
                 onClick={() =>
                   offcanvas({
-                    content: <FormResponseRUD id={v} confirm={confirm} />,
+                    content: (
+                      <FormResponseRUD
+                        id={v}
+                        confirm={confirm}
+                        subOffcanvas={subOffcanvas}
+                      />
+                    ),
                   })
                 }
               >

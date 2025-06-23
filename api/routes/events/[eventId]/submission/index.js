@@ -8,6 +8,7 @@ import { LogType } from "@prisma/client";
 const bodySchema = z.object({
   values: z.record(z.string(), z.string()),
   pii: z.record(z.string(), z.any()).optional(),
+  shifts: z.array(z.object({ id: z.string() })).optional(),
 });
 
 export const post = async (req, res) => {
@@ -15,7 +16,7 @@ export const post = async (req, res) => {
   if (!parseResult.success) {
     return res.status(400).json({ message: serializeError(parseResult) });
   }
-  const { values, pii } = parseResult.data;
+  const { values, pii, shifts } = parseResult.data;
   const { eventId } = req.params;
 
   try {
@@ -38,6 +39,15 @@ export const post = async (req, res) => {
         },
       },
     });
+
+    const createdShifts = await prisma.formResponseShift.createMany({
+      data: shifts.map((s) => ({
+        formResponseId: formResponse.id,
+        shiftId: s.id,
+      })),
+    });
+
+    console.log(createdShifts);
 
     await prisma.logs.create({
       data: {

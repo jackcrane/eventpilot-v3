@@ -63,6 +63,7 @@ export const useFormResponse = (eventId, submissionId) => {
     response: data?.response ?? null,
     fields: data?.fields ?? [],
     pii: data?.pii ?? null,
+    shifts: data?.shifts ?? [],
     loading: isLoading,
     error,
     updateResponse,

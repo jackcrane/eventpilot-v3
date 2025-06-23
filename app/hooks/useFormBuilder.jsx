@@ -24,7 +24,7 @@ export const useFormBuilder = (eventId) => {
 
   const [mutationLoading, setMutationLoading] = useState(false);
 
-  const submitForm = async (values) => {
+  const submitForm = async (values, shifts) => {
     const pii = await getPII();
     setMutationLoading(true);
     try {
@@ -32,7 +32,7 @@ export const useFormBuilder = (eventId) => {
       const res = await authFetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ values, pii }),
+        body: JSON.stringify({ values, shifts, pii }),
       });
       const data = await res.json();
       setMutationLoading(false);

@@ -1,11 +1,14 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 import { useFormResponse } from "../../hooks/useFormResponse";
-import { Typography, Util, Button, useConfirm } from "tabler-react-2";
+import { Typography, Util, Button, Badge, useOffcanvas } from "tabler-react-2";
 import { FormConsumer } from "../formConsumer/FormConsumer";
 import { Row } from "../../util/Flex";
 import { FromNow } from "../fromNow";
 import { Icon } from "../../util/Icon";
+import { utc } from "../tzDateTime/valueToUtc";
+import moment from "moment-timezone";
+import { ShiftFinder } from "../shiftFinder/ShiftFinder";
 
 const STATE_TO_CODE = {
   alaska: "AK",
@@ -121,12 +124,13 @@ const Dg = ({ title, content, description }) => (
   </div>
 );
 
-export const FormResponseRUD = ({ id, confirm }) => {
+export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
   const { eventId } = useParams();
   const {
     response,
     fields,
     pii,
+    shifts,
     loading,
     error,
     updateResponse,
@@ -222,6 +226,39 @@ export const FormResponseRUD = ({ id, confirm }) => {
           {deleteLoading ? "Deleting…" : "Delete Submission"}
         </Button>
       </div>
+      <Util.Hr text="Shifts" />
+      <div>
+        {shifts.map((location) => (
+          <div key={location.id}>
+            <Typography.H3>{location.name}</Typography.H3>
+            {location.jobs.map((job) => (
+              <div key={job.id} className="mb-2">
+                <Typography.H4 className={"mb-0"}>{job.name}</Typography.H4>
+                {job.shifts.map((shift) => (
+                  <Badge key={shift.id} style={{ marginRight: 8 }} outline>
+                    {moment(shift.startTime)
+                      .tz(utc(shift.startTimeTz))
+                      .format("h:mm a")}
+                    {" - "}
+                    {moment(shift.endTime)
+                      .tz(utc(shift.endTimeTz))
+                      .format("h:mm a")}
+                  </Badge>
+                ))}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <Button
+        onClick={() =>
+          subOffcanvas({
+            content: <Shifts eventId={eventId} />,
+          })
+        }
+      >
+        View Shifts
+      </Button>
       <Util.Hr text="PII & Analytics" />
       <Typography.Text>
         The following information is collected automatically from the device
@@ -312,6 +349,15 @@ export const FormResponseRUD = ({ id, confirm }) => {
           description="Screen dimensions of the device that submitted the form. This can be useful to identify users who are using a mobile device, helping guide marketing efforts."
         />
       </div>
+    </div>
+  );
+};
+
+const Shifts = ({ eventId }) => {
+  return (
+    <div>
+      <Typography.H5 className={"mb-0 text-secondary"}>VOLUNTEER</Typography.H5>
+      <ShiftFinder eventId={eventId} onSelectedShiftChange={() => {}} />
     </div>
   );
 };
