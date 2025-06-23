@@ -2732,10 +2732,10 @@ swr@^2.3.0:
     dequal "^2.0.3"
     use-sync-external-store "^1.4.0"
 
-tabler-react-2@0.1.119:
-  version "0.1.119"
-  resolved "https://registry.yarnpkg.com/tabler-react-2/-/tabler-react-2-0.1.119.tgz#4c3cdcb19afcc1896f9236bb88251a09da174ab2"
-  integrity sha512-t4ANCuWgfL/6caK+qON3Omf0jpzmSK96WL/WmsTSiVt3a+4AkC78ACb+SOBTde9KdR5p8SDTWHKnNj/vy9iAXg==
+tabler-react-2@0.1.120:
+  version "0.1.120"
+  resolved "https://registry.yarnpkg.com/tabler-react-2/-/tabler-react-2-0.1.120.tgz#a2d00d3cdf824bdfe7350a739d83db65bbb6126f"
+  integrity sha512-zO3DtcsU3si74rGITLspMAocIVOBKLZRMGa4k4CbcypaQ4mFcgPA8pQktG6vZWJbQUSqvHMZPG2ZcnbUUIwNug==
   dependencies:
     "@babel/cli" "^7.24.8"
     "@babel/core" "^7.24.8"

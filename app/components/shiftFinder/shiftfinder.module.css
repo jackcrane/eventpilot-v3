@@ -1,0 +1,25 @@
+.steps ul {
+  border-left: none;
+  margin-left: 0px;
+  padding-left: 0px;
+}
+
+.locationHeader {
+  position: sticky;
+  top: 0px;
+  background: white;
+  z-index: 10;
+}
+
+.locationJobs {
+  border-left: 2px solid var(--tblr-border-color);
+  padding-left: 0.5rem;
+}
+
+.location:hover {
+  background: var(--tblr-body-bg);
+  outline: 12px solid var(--tblr-body-bg);
+  .locationHeader {
+    background: var(--tblr-body-bg);
+  }
+}

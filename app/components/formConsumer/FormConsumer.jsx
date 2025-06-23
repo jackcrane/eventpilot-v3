@@ -1,11 +1,14 @@
 import React, { useState } from "react";
-import { Input, DropdownInput, Button } from "tabler-react-2";
+import { Input, DropdownInput, Button, Util } from "tabler-react-2";
+import { ShiftFinder } from "../shiftFinder/ShiftFinder";
 
 export const FormConsumer = ({
   fields,
   onSubmit,
   initialValues = {},
   loading,
+  showShifts = false,
+  eventId,
 }) => {
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
@@ -105,6 +108,12 @@ export const FormConsumer = ({
             return null;
         }
       })}
+      {showShifts && (
+        <div className={"mb-3"}>
+          <Util.Hr text="Pick some shifts" />
+          <ShiftFinder eventId={eventId} />
+        </div>
+      )}
       <Button onClick={handleSubmit} loading={loading}>
         Submit
       </Button>

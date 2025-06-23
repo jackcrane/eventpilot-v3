@@ -75,7 +75,12 @@ export const ConsumerIndex = () => {
           ) : (
             <div>
               {mutationLoading && <div>Submitting...</div>}
-              <FormConsumer fields={fields} onSubmit={submitForm} />
+              <FormConsumer
+                fields={fields}
+                onSubmit={submitForm}
+                showShifts={true}
+                eventId={event.id}
+              />
             </div>
           )}
         </div>
