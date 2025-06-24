@@ -48,7 +48,7 @@ export const ConsumerIndex = () => {
   }
 
   if (!event) {
-    return <div>Event not found</div>;
+    return <div>Event not found!</div>;
   }
 
   return (
