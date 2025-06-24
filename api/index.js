@@ -41,6 +41,12 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 await registerRoutes(app, path.join(process.cwd(), "routes"));
 
+app.use(express.static("../app/dist"));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../app/dist", "index.html"));
+});
+
 const PORT = process.env.PORT || 3000;
 let server;
 
