@@ -1,7 +1,5 @@
 import { useLocation } from "react-use";
 
-import { useLocation } from "react-router-dom";
-
 export const useReducedSubdomain = () => {
   const location = useLocation();
   const hostname = location.hostname;
