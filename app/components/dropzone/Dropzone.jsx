@@ -8,9 +8,13 @@ import classNames from "classnames";
 
 export const Dropzone = ({ onSuccessfulUpload = () => {} }) => {
   const [files, setFiles] = useState([]);
+  const [uploaded, setUploaded] = useState(false);
 
   const { data, error, loading, upload } = useFileUploader("/api/file", {
-    onSuccessfulUpload,
+    onSuccessfulUpload: (data) => {
+      setUploaded(true);
+      onSuccessfulUpload(data);
+    },
   });
 
   return (
@@ -30,10 +34,11 @@ export const Dropzone = ({ onSuccessfulUpload = () => {} }) => {
           }}
           onRawChange={(e) => {
             setFiles(e.target.files);
+            setUploaded(false);
           }}
           className={classNames(
             "mb-3",
-            files.length > 0 && styles.dropzoneFocusRight
+            files.length > 0 && !uploaded && styles.dropzoneFocusRight
           )}
         />
         {files.length > 0 && (

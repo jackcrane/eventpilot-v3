@@ -9,6 +9,8 @@ import { FormConsumer } from "../../../components/formConsumer/FormConsumer";
 import { usePII } from "../../../hooks/usePII";
 import styles from "./index.module.css";
 import classNames from "classnames";
+import { ThankYou } from "../../../components/formConsumer/ThankYou";
+import { useState } from "react";
 
 export const ConsumerIndex = () => {
   const { campaignSlug } = useParams();
@@ -22,9 +24,20 @@ export const ConsumerIndex = () => {
     loading: loadingForm,
     error: errorForm,
     updateFields,
-    submitForm,
+    submitForm: _submitForm,
     mutationLoading,
   } = useFormBuilder(eventSlug);
+  const [thankYou, setThankYou] = useState(false);
+
+  const submitForm = async (values, shifts) => {
+    if ((await _submitForm(values, shifts)).id) {
+      // Scroll to top of page
+      window.scrollTo(0, 0);
+      setThankYou(true);
+    } else {
+      alert("Error submitting form");
+    }
+  };
 
   if (loading) {
     return <div>Loading...</div>;
@@ -72,6 +85,8 @@ export const ConsumerIndex = () => {
             <div>Loading...</div>
           ) : errorForm ? (
             <div>Error: {errorForm}</div>
+          ) : thankYou ? (
+            <ThankYou event={event} />
           ) : (
             <div>
               {mutationLoading && <div>Submitting...</div>}
@@ -80,6 +95,7 @@ export const ConsumerIndex = () => {
                 onSubmit={submitForm}
                 showShifts={true}
                 eventId={event.id}
+                loading={mutationLoading}
               />
             </div>
           )}

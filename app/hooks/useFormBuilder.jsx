@@ -25,8 +25,8 @@ export const useFormBuilder = (eventId) => {
   const [mutationLoading, setMutationLoading] = useState(false);
 
   const submitForm = async (values, shifts) => {
-    const pii = await getPII();
     setMutationLoading(true);
+    const pii = await getPII();
     try {
       const url = `/api/events/${eventId}/submission`;
       const res = await authFetch(url, {
@@ -40,6 +40,8 @@ export const useFormBuilder = (eventId) => {
     } catch (err) {
       setMutationLoading(false);
       throw err;
+    } finally {
+      setMutationLoading(false);
     }
   };
 

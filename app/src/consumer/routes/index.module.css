@@ -29,4 +29,5 @@
   border-radius: 4px;
   border: 2px solid var(--tblr-border-color);
   margin-bottom: 20px;
+  min-height: 400px;
 }

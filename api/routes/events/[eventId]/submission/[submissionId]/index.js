@@ -10,6 +10,22 @@ const bodySchema = z.object({
   values: z.record(z.string(), z.string()),
 });
 
+const passedShiftSchema = z.array(
+  z.object({
+    id: z.string(),
+    eventId: z.string(),
+    locationId: z.string(),
+    startTime: z.string(),
+    endTime: z.string(),
+    startTimeTz: z.string(),
+    endTimeTz: z.string(),
+    capacity: z.number(),
+    open: z.boolean(),
+    active: z.boolean(),
+    deleted: z.boolean(),
+  })
+);
+
 export const groupByLocationAndJob = (responses) => {
   const result = [];
   const locationMap = new Map();
@@ -60,7 +76,6 @@ export const get = [
           type: true,
           options: {
             select: { id: true, label: true, deleted: true },
-            where: { deleted: false },
           },
           deleted: true,
           order: true,
@@ -149,7 +164,8 @@ export const get = [
         response: formattedResponse,
         fields: fieldsMeta,
         pii: resp.pii,
-        shifts: groupByLocationAndJob(shifts),
+        groupedShifts: groupByLocationAndJob(shifts),
+        shifts: shifts.map((shift) => shift.shift),
       });
     } catch (error) {
       console.error(error);
@@ -205,6 +221,67 @@ export const put = [
       });
 
       return res.json({ id: updated.id });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: error.message });
+    }
+  },
+];
+
+/**
+ * PATCH → update the shifts for a submission
+ */
+export const patch = [
+  verifyAuth(["manager"]),
+  async (req, res) => {
+    try {
+      const { submissionId } = req.params;
+      const parseResult = passedShiftSchema.safeParse(req.body.shifts);
+      if (!parseResult.success) {
+        return res.status(400).json({ message: parseResult.error });
+      }
+
+      const incomingShifts = parseResult.data; // array of { id, … }
+      const registeredShifts = await prisma.formResponseShift.findMany({
+        where: { formResponseId: submissionId },
+        select: { id: true, shiftId: true },
+      });
+
+      const registeredIds = registeredShifts.map((r) => r.shiftId);
+      const incomingIds = incomingShifts.map((i) => i.id);
+
+      // shifts to unregister (delete)
+      const toDelete = registeredShifts
+        .filter((r) => !incomingIds.includes(r.shiftId))
+        .map((r) => r.id);
+
+      // shifts to register (create)
+      const toCreate = incomingShifts
+        .filter((i) => !registeredIds.includes(i.id))
+        .map((i) => ({
+          formResponseId: submissionId,
+          shiftId: i.id,
+        }));
+
+      // apply removals
+      if (toDelete.length) {
+        await prisma.formResponseShift.deleteMany({
+          where: { id: { in: toDelete } },
+        });
+      }
+
+      // apply additions (skipDuplicates guards against any unique-constraint conflicts)
+      if (toCreate.length) {
+        await prisma.formResponseShift.createMany({
+          data: toCreate,
+          skipDuplicates: true,
+        });
+      }
+
+      return res.json({
+        removedCount: toDelete.length,
+        addedCount: toCreate.length,
+      });
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: error.message });

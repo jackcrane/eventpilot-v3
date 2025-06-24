@@ -28,7 +28,6 @@ export const authFetch = async (url, options) => {
   if (res.status === 500) {
     toast.error("Internal server error.");
   }
-  console.log(res.status);
   return res;
 };
 

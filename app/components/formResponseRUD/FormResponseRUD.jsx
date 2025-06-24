@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useFormResponse } from "../../hooks/useFormResponse";
 import { Typography, Util, Button, Badge, useOffcanvas } from "tabler-react-2";
@@ -133,6 +133,7 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
     shifts,
     loading,
     error,
+    groupedShifts,
     updateResponse,
     deleteResponse,
     mutationLoading,
@@ -228,7 +229,7 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
       </div>
       <Util.Hr text="Shifts" />
       <div>
-        {shifts.map((location) => (
+        {groupedShifts.map((location) => (
           <div key={location.id}>
             <Typography.H3>{location.name}</Typography.H3>
             {location.jobs.map((job) => (
@@ -253,7 +254,14 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
       <Button
         onClick={() =>
           subOffcanvas({
-            content: <Shifts eventId={eventId} />,
+            content: (
+              <Shifts
+                eventId={eventId}
+                shifts={shifts}
+                flat={response.flat}
+                submissionId={id}
+              />
+            ),
           })
         }
       >
@@ -277,7 +285,7 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
             description="Other responses with the same fingerprint as this response."
             content={pii?.otherResponsesWithSameFingerprint?.map((r) => (
               <>
-                <code>{r.name}</code>{" "}
+                <code key={r.id}>{r.name}</code>{" "}
               </>
             ))}
           />
@@ -353,11 +361,34 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
   );
 };
 
-const Shifts = ({ eventId }) => {
+const Shifts = ({ eventId, shifts: passedShifts, flat, submissionId }) => {
+  const [shifts, setShifts] = useState(passedShifts);
+  const { mutationLoading, updateShiftRegistrations } = useFormResponse(
+    eventId,
+    submissionId
+  );
+
+  const handleSubmit = () => {
+    updateShiftRegistrations(shifts);
+  };
+
+  useEffect(() => {
+    setShifts(passedShifts);
+  }, [passedShifts]);
+
   return (
-    <div>
+    <div style={{ position: "relative" }}>
       <Typography.H5 className={"mb-0 text-secondary"}>VOLUNTEER</Typography.H5>
-      <ShiftFinder eventId={eventId} onSelectedShiftChange={() => {}} />
+      <Typography.H1>{flat?.name}</Typography.H1>
+      <ShiftFinder
+        fromRUD={true}
+        eventId={eventId}
+        onSelectedShiftChange={setShifts}
+        shifts={shifts}
+      />
+      <Button onClick={handleSubmit} loading={mutationLoading}>
+        Submit
+      </Button>
     </div>
   );
 };

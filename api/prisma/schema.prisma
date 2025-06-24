@@ -337,6 +337,9 @@ model FormResponseShift {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Unique by shiftId and formResponseId
+  @@unique([shiftId, formResponseId])
 }
 
 model Shift {

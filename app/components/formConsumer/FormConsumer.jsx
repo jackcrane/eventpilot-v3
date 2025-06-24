@@ -19,6 +19,7 @@ export const FormConsumer = ({
   };
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phoneRegex = /^\+?[0-9\s\-()]{7,}$/;
+
   const handleSubmit = () => {
     const newErrors = {};
     fields.forEach((field) => {
@@ -40,7 +41,6 @@ export const FormConsumer = ({
 
   return (
     <div>
-      {/* {JSON.stringify(fields)} */}
       {fields.map((field) => {
         const value = values[field.id] || "";
         const isError = !!errors[field.id];
@@ -115,6 +115,7 @@ export const FormConsumer = ({
           <ShiftFinder
             eventId={eventId}
             onSelectedShiftChange={(shifts) => setShifts(shifts)}
+            shifts={[]}
           />
         </div>
       )}

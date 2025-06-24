@@ -2361,6 +2361,13 @@ react-beautiful-dnd@^13.1.1:
     redux "^4.0.4"
     use-memo-one "^1.1.1"
 
+react-confetti@^6.4.0:
+  version "6.4.0"
+  resolved "https://registry.yarnpkg.com/react-confetti/-/react-confetti-6.4.0.tgz#e9416b5b3c8baf6f0bb1c5a8e1e3c89babd2c837"
+  integrity sha512-5MdGUcqxrTU26I2EU7ltkWPwxvucQTuqMm8dUz72z2YMqTD6s9vMcDUysk7n9jnC+lXuCPeJJ7Knf98VEYE9Rg==
+  dependencies:
+    tween-functions "^1.2.0"
+
 react-dom@^18.2.0, react-dom@^18.3.1:
   version "18.3.1"
   resolved "https://registry.npmjs.org/react-dom/-/react-dom-18.3.1.tgz"
@@ -2732,10 +2739,10 @@ swr@^2.3.0:
     dequal "^2.0.3"
     use-sync-external-store "^1.4.0"
 
-tabler-react-2@0.1.120:
-  version "0.1.120"
-  resolved "https://registry.yarnpkg.com/tabler-react-2/-/tabler-react-2-0.1.120.tgz#a2d00d3cdf824bdfe7350a739d83db65bbb6126f"
-  integrity sha512-zO3DtcsU3si74rGITLspMAocIVOBKLZRMGa4k4CbcypaQ4mFcgPA8pQktG6vZWJbQUSqvHMZPG2ZcnbUUIwNug==
+tabler-react-2@0.1.121:
+  version "0.1.121"
+  resolved "https://registry.yarnpkg.com/tabler-react-2/-/tabler-react-2-0.1.121.tgz#6be4cafe23fe6be8b29879b560a2501a146b88e9"
+  integrity sha512-Yi9BgUIO31EoY8KN8bQqIfuBvxRsdhMOfZOeJJZqYh7BbDfJ/sUWG2xeI5azomIR6yGL7hYMQ5K+59JJabccSA==
   dependencies:
     "@babel/cli" "^7.24.8"
     "@babel/core" "^7.24.8"
@@ -2798,6 +2805,11 @@ turbo-stream@2.4.0:
   version "2.4.0"
   resolved "https://registry.npmjs.org/turbo-stream/-/turbo-stream-2.4.0.tgz"
   integrity sha512-FHncC10WpBd2eOmGwpmQsWLDoK4cqsA/UT/GqNoaKOQnT8uzhtCbg3EoUDMvqpOSAI0S26mr0rkjzbOO6S3v1g==
+
+tween-functions@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/tween-functions/-/tween-functions-1.2.0.tgz#1ae3a50e7c60bb3def774eac707acbca73bbc3ff"
+  integrity sha512-PZBtLYcCLtEcjL14Fzb1gSxPBeL7nWvGhO5ZFPGqziCcr8uvHp0NDmdjBchp6KHL+tExcg0m3NISmKxhU394dA==
 
 ua-is-frozen@^0.1.2:
   version "0.1.2"
