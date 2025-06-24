@@ -28,8 +28,7 @@ export default () => {
 
   if (loading) return null;
 
-  if (subdomain !== "geteventpilot" && subdomain !== "localhost") {
-    return JSON.stringify(subdomain);
+  if (subdomain && subdomain !== "geteventpilot" && subdomain !== "localhost") {
     return <Consumer subdomain={subdomain} />;
   }
 
