@@ -26,12 +26,9 @@ export default () => {
   useFavicon(favicon);
   const subdomain = useReducedSubdomain();
 
-  console.log("subdomain", subdomain);
-
   if (loading) return null;
 
-  if (subdomain !== "geteventpilot.com" && subdomain !== "localhost") {
-    console.log("Using consumer");
+  if (subdomain !== "geteventpilot" && subdomain !== "localhost") {
     return <Consumer subdomain={subdomain} />;
   }
 
