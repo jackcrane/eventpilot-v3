@@ -1,6 +1,5 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
-import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { locationSchema as schema } from "..";
 import { getChangedKeys } from "#getChangedKeys";
@@ -61,7 +60,7 @@ export const get = [
 export const put = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const { eventId, locationId } = req.params;
+    const { locationId } = req.params;
 
     try {
       req.body.startTime = new Date(req.body.startTime);
@@ -114,7 +113,7 @@ export const put = [
 export const del = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const { eventId, locationId } = req.params;
+    const { locationId } = req.params;
     try {
       await prisma.location.update({
         where: {

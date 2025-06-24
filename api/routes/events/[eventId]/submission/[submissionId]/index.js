@@ -46,6 +46,7 @@ export const groupByLocationAndJob = (responses) => {
     let jobEntry = locEntry.jobs.find((j) => j.id === job.id);
     if (!jobEntry) {
       // omit nested location on the job object
+      // eslint-disable-next-line
       const { location: _, ...jobWithoutLocation } = job;
       jobEntry = { ...jobWithoutLocation, shifts: [] };
       locEntry.jobs.push(jobEntry);

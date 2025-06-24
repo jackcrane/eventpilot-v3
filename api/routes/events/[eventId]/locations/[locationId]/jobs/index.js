@@ -49,8 +49,7 @@ export const post = [
       return res.status(400).json({ message: result.error.issues });
     }
 
-    const { name, description, capacity, restrictions, location, shifts } =
-      result.data;
+    const { name, description, capacity, restrictions, shifts } = result.data;
 
     try {
       const job = await prisma.job.create({
@@ -101,7 +100,7 @@ export const post = [
 export const get = [
   verifyAuth(["manager"], true),
   async (req, res) => {
-    const { eventId, locationId } = req.params;
+    const { locationId } = req.params;
     try {
       const jobs = await prisma.job.findMany({
         where: {
@@ -125,7 +124,7 @@ export const get = [
 export const del = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const { eventId, locationId, jobId } = req.params;
+    const { jobId } = req.params;
     try {
       await prisma.job.update({
         where: {

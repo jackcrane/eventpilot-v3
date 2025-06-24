@@ -2,8 +2,6 @@ import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
-import { LogType } from "@prisma/client";
-import { getChangedKeys } from "#getChangedKeys";
 
 const fieldSchema = z.object({
   id: z.string().optional(),
@@ -180,6 +178,7 @@ export const post = [
     // 3: Create new fields
     if (newFields.length > 0) {
       await prisma.formField.createMany({
+        // eslint-disable-next-line
         data: newFields.map(({ options, ...rest }) => ({ ...rest, eventId })),
       });
     }

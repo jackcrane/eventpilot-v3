@@ -33,7 +33,7 @@ const schema = z.object({
 export const get = [
   verifyAuth(["manager"], true),
   async (req, res) => {
-    const { eventId, locationId, jobId } = req.params;
+    const { locationId, jobId } = req.params;
     try {
       const job = await prisma.job.findUnique({
         where: {
@@ -60,7 +60,7 @@ export const get = [
 export const del = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const { eventId, locationId, jobId } = req.params;
+    const { jobId } = req.params;
     try {
       await prisma.job.update({
         where: {

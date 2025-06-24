@@ -1,4 +1,3 @@
-import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { z } from "zod";

@@ -1,4 +1,3 @@
-import { sendEmail } from "#postmark";
 import WelcomeEmail from "#emails/forgot-password.jsx";
 import { render } from "@react-email/render";
 
