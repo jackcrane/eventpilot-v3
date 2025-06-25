@@ -19,6 +19,7 @@ import { Consumer } from "./consumer/Consumer";
 import { useReducedSubdomain } from "../hooks/useReducedSubdomain";
 import { EventJobs } from "./routes/events/[eventId]/jobs";
 import { Home } from "./home";
+import { EventSettings } from "./routes/events/[eventId]/settings";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -73,6 +74,7 @@ export default () => {
             element={<EventVolRegBuilder />}
           />
           <Route path="/events/:eventId/jobs" element={<EventJobs />} />
+          <Route path="/events/:eventId/settings" element={<EventSettings />} />
           {/* 404 error */}
           <Route
             path="*"

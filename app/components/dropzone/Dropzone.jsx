@@ -6,7 +6,7 @@ import { useFileUploader } from "../../hooks/useFileUploader";
 import styles from "./dropzone.module.css";
 import classNames from "classnames";
 
-export const Dropzone = ({ onSuccessfulUpload = () => {} }) => {
+export const Dropzone = ({ onSuccessfulUpload = () => {}, style }) => {
   const [files, setFiles] = useState([]);
   const [uploaded, setUploaded] = useState(false);
 
@@ -18,7 +18,7 @@ export const Dropzone = ({ onSuccessfulUpload = () => {} }) => {
   });
 
   return (
-    <>
+    <div style={style}>
       {error && (
         <Alert variant="danger" className="mb-3" title="Error">
           {error}
@@ -54,6 +54,6 @@ export const Dropzone = ({ onSuccessfulUpload = () => {} }) => {
           </Button>
         )}
       </Row>
-    </>
+    </div>
   );
 };

@@ -151,6 +151,7 @@ model File {
   updatedAt DateTime @updatedAt
 
   event        Event?   @relation(name: "EventLogo")
+  event_banner        Event?   @relation(name: "EventBanner")
   logs Logs[]
 }
 
@@ -173,6 +174,28 @@ model Event {
 
   logoFileId    String?   @unique
   logo          File?     @relation(name: "EventLogo", fields: [logoFileId], references: [id], onDelete: Cascade)
+
+  bannerFileId String? @unique
+  banner       File?   @relation(name: "EventBanner", fields: [bannerFileId], references: [id], onDelete: Cascade)
+
+  contactEmail String?
+  primaryAddress String?
+
+  contactPhone String?
+  website String?
+
+  organization String?
+
+  // Socials
+  facebook String?
+  instagram String?
+  twitter String?
+  youtube String?
+  linkedin String?
+  tiktok String?
+  snapchat String?
+  reddit String?
+  threads String?
 
   formFields FormField[]
   formResponses FormResponse[]

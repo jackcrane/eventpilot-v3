@@ -1,9 +1,9 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
-import { z } from "zod";
 import { LogType } from "@prisma/client";
 import { stripe } from "#stripe";
+import { eventSchema } from "./[eventId]";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -33,21 +33,7 @@ export const post = [
     let event;
     let subscription;
     try {
-      const schema = z.object({
-        name: z.string().min(2),
-        description: z.string().min(10),
-        logoFileId: z.string().optional(),
-        slug: z
-          .string()
-          .min(3)
-          .max(30)
-          .regex(/^[a-z0-9-]+$/, {
-            message:
-              "Slug can only contain lowercase letters, numbers, and hyphens",
-          }),
-      });
-
-      const result = schema.safeParse(req.body);
+      const result = eventSchema.safeParse(req.body);
 
       if (!result.success) {
         return res.status(400).json({ message: serializeError(result) });
@@ -55,11 +41,7 @@ export const post = [
 
       event = await prisma.event.create({
         data: {
-          name: result.data.name,
-          description: result.data.description,
-          userId: req.user.id,
-          logoFileId: result.data.logoFileId,
-          slug: result.data.slug,
+          ...result.data,
           logs: {
             create: {
               type: LogType.EVENT_CREATED,
@@ -74,9 +56,6 @@ export const post = [
       subscription = await stripe.subscriptions.create({
         customer: req.user.stripe_customerId,
         items: [
-          {
-            price: "price_1RRbcBIZm3Kzv7N0hZUMowir", // Volunteers
-          },
           {
             price: "price_1RRbcBIZm3Kzv7N0SFA9BEG5", // Events
           },

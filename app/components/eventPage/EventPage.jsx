@@ -85,6 +85,18 @@ export const EventPage = ({ children, title, tour }) => {
             Jobs & Shift Builder
           </Row>
         </Button>
+        <Button
+          variant={url.settings ? "primary" : "secondary"}
+          ghost={!url.settings}
+          size="sm"
+          href={`/events/${eventId}/settings`}
+          className="tour__navbar-settings"
+        >
+          <Row gap={1}>
+            <Icon i={"settings"} size="inherit" />
+            Settings
+          </Row>
+        </Button>
       </Row>
       <hr style={{ margin: "1rem 0" }} />
       {children}
