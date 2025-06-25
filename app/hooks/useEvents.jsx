@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Dropzone } from "../components/dropzone/Dropzone";
 import { useSlugChecker } from "./useSlugChecker";
 import { TzPicker } from "../components/tzDateTime/tzDateTime";
+import { useNavigate } from "react-router-dom";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
@@ -16,8 +17,10 @@ export const useEvents = () => {
     isLoading,
     mutate: refetch,
   } = useSWR(`/api/events`, fetcher);
+  const navigate = useNavigate();
 
-  const createEvent = async (data) => {
+  const createEvent = async (data, redirect = true) => {
+    console.log("Creating event");
     try {
       const promise = authFetch(`/api/events`, {
         method: "POST",
@@ -27,14 +30,18 @@ export const useEvents = () => {
         return r.json();
       });
 
-      await toast.promise(promise, {
+      const response = await toast.promise(promise, {
         loading: "Creating event...",
         success: "Event created successfully",
         error: "Error creating event",
       });
 
+      if (redirect) {
+        navigate(`/events/${response.event.id}`);
+      }
+
       return true;
-    } catch {
+    } catch (e) {
       return false;
     }
   };
@@ -45,7 +52,7 @@ export const useEvents = () => {
       text: (
         <CreateEvent
           createEvent={async (data) => {
-            if (await createEvent(data)) document.location.reload();
+            if (await createEvent(data)) refetch();
           }}
         />
       ),
