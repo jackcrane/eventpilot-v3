@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
       fetchUser();
       emitter.emit("login");
       setMutationLoading(false);
-      document.location.href = "/";
+      document.location.href = "/events";
     } else {
       const { message } = await r.json();
       setError(message);

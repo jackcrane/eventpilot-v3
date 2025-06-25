@@ -127,8 +127,8 @@ enum EmailWebhookType {
 model Geolocation {
   id String @id @default(cuid())
   ip String @unique
-  city String
-  regionName String
+  city String?
+  regionName String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   logs Logs[]
