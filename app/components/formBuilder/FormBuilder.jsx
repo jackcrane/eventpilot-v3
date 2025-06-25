@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useFormBuilder } from "../../hooks/useFormBuilder";
 import { useParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
@@ -124,14 +124,14 @@ export const TEMPLATE_FIELDS = [
 
 // Palette of draggable field types
 export const FieldPalette = ({ types }) => (
-  <div className={styles.sidebar}>
+  <div className={classNames(styles.sidebar)}>
     <h4>Fields</h4>
     <Droppable droppableId="FIELD_LIST" isDropDisabled>
       {(provided) => (
         <div
           ref={provided.innerRef}
           {...provided.droppableProps}
-          className={styles.fieldList}
+          className={classNames(styles.fieldList, "tour__form-field-palette")}
         >
           {types.map((t, idx) => (
             <Draggable key={t.type} draggableId={t.type} index={idx}>
@@ -171,14 +171,17 @@ export const FieldPalette = ({ types }) => (
 );
 
 export const TemplatePalette = ({ templates }) => (
-  <div className={styles.sidebar}>
+  <div className={classNames(styles.sidebar)}>
     <h4>Templates</h4>
     <Droppable droppableId="TEMPLATE_LIST" isDropDisabled>
       {(provided) => (
         <div
           ref={provided.innerRef}
           {...provided.droppableProps}
-          className={styles.fieldList}
+          className={classNames(
+            styles.fieldList,
+            "tour__form-template-palette"
+          )}
         >
           {templates.map((t, idx) => (
             <Draggable key={t.id} draggableId={t.id} index={idx}>
@@ -280,12 +283,14 @@ export const FieldSettings = ({ field, updateProp }) => {
         label="Label"
         value={field.props.label}
         onChange={(e) => updateProp(field.id, "label", e)}
+        className="tour__form-field-label"
       />
       {typeDef.supports.includes("placeholder") && (
         <Input
           label="Placeholder"
           value={field.props.placeholder}
           onChange={(e) => updateProp(field.id, "placeholder", e)}
+          className="tour__form-field-placeholder"
         />
       )}
       {typeDef.supports.includes("prompt") && (
@@ -299,12 +304,15 @@ export const FieldSettings = ({ field, updateProp }) => {
         label="Description"
         value={field.props.description}
         onChange={(e) => updateProp(field.id, "description", e)}
+        className="tour__form-field-description"
       />
-      <Switch
-        label="Required"
-        checked={field.props.required}
-        onChange={(checked) => updateProp(field.id, "required", checked)}
-      />
+      <div className={classNames("mt-3", "tour__form-field-required")}>
+        <Switch
+          label="Required"
+          checked={field.props.required}
+          onChange={(checked) => updateProp(field.id, "required", checked)}
+        />
+      </div>
       {typeDef.supports.includes("defaultValue") && (
         <Switch
           label="Default Value"
@@ -313,7 +321,7 @@ export const FieldSettings = ({ field, updateProp }) => {
         />
       )}
       {typeDef.supports.includes("autocompleteType") && (
-        <>
+        <div className="tour__form-field-autocomplete">
           <DropdownInput
             label="Autocomplete Type"
             prompt="Select an autocomplete type"
@@ -390,17 +398,6 @@ export const FieldSettings = ({ field, updateProp }) => {
             }
             onChange={(v) => updateProp(field.id, "autocompleteType", v)}
           />
-          {/* {JSON.stringify(
-            field.props.autocompleteType
-              ? typeof field.props.autocompleteType === "string"
-                ? { id: field.props.autocompleteType }
-                : field.props.autocompleteType
-              : typeDef.defaultAutocompleteType
-              ? typeof typeDef.defaultAutocompleteType === "string"
-                ? { id: typeDef.defaultAutocompleteType }
-                : typeDef.defaultAutocompleteType
-              : null
-          )} */}
           <label className="text-secondary mt-1">
             Setting an autocomplete type allows user's browsers to suggest
             addresses, phone numbers, and other fields. This will make it easier
@@ -409,7 +406,7 @@ export const FieldSettings = ({ field, updateProp }) => {
             type will not force your users to accept an autocomplete, it will
             just allow their browser to suggest more helpful data.
           </label>
-        </>
+        </div>
       )}
       {typeDef.supports.includes("options") && (
         <div className={styles.optionsEditor}>
@@ -489,7 +486,7 @@ export const FieldItem = ({
       {/* Expanded Content */}
       {!collapsed && (
         <div className={styles.fieldContent}>
-          <div className={styles.previewBox}>
+          <div className={classNames(styles.previewBox, "tour__form-preview")}>
             <div className={styles.previewNoticeContainer}>
               <span className={styles.previewNotice}>
                 PREVIEW PREVIEW PREVEIW PREVIEW PREVIEW PREVEIW PREVIEW PREVIEW
@@ -518,6 +515,7 @@ export const FieldItem = ({
                 icon="trash"
                 outline
                 onClick={() => removeField(field.id)}
+                className="tour__form-field-delete"
               >
                 Delete
               </Button>
@@ -537,6 +535,7 @@ export const FieldItem = ({
           ref={prov.innerRef}
           {...prov.draggableProps}
           {...prov.dragHandleProps}
+          className={classNames(field.className)}
         >
           {content}
         </div>
@@ -557,25 +556,27 @@ export const FieldCanvas = ({
   const draggableFields = fields.filter((f) => !f.locked);
 
   return (
-    <div className={styles.canvas}>
+    <div className={classNames(styles.canvas)}>
       <h4>Form</h4>
       <Droppable droppableId="FORM">
         {(provided) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={styles.dropzone}
+            className={classNames(styles.dropzone, "tour__form-canvas")}
           >
-            {lockedFields.map((f, i) => (
-              <FieldItem
-                key={f.id}
-                field={f}
-                index={i}
-                updateProp={updateProp}
-                removeField={removeField}
-                originalIds={originalIds}
-              />
-            ))}
+            <div className="tour__form-required-fields">
+              {lockedFields.map((f, i) => (
+                <FieldItem
+                  key={f.id}
+                  field={f}
+                  index={i}
+                  updateProp={updateProp}
+                  removeField={removeField}
+                  originalIds={originalIds}
+                />
+              ))}
+            </div>
             {draggableFields.map((f, i) => (
               <FieldItem
                 key={f.id}
@@ -591,7 +592,10 @@ export const FieldCanvas = ({
         )}
       </Droppable>
 
-      <Button className={styles.saveButton} onClick={saveForm}>
+      <Button
+        className={classNames(styles.saveButton, "tour__form-save")}
+        onClick={saveForm}
+      >
         Save Form
       </Button>
     </div>
@@ -605,6 +609,54 @@ export const FormBuilder = () => {
 
   // Local state for fields being edited
   const [localFields, setLocalFields] = useState([]);
+
+  // Refs to manage injection
+  const beforeInjectionRef = useRef(null);
+  const fieldsRef = useRef(localFields);
+
+  // Keep fieldsRef up to date
+  useEffect(() => {
+    fieldsRef.current = localFields;
+  }, [localFields]);
+
+  // Expose global functions to add/remove the phone field (USED FOR TOUR)
+  useEffect(() => {
+    window.EVENTPILOT__INTERNAL_ADD_FIELD = () => {
+      if (beforeInjectionRef.current === null) {
+        beforeInjectionRef.current = fieldsRef.current;
+      }
+      const phoneField = {
+        id: cuid(),
+        type: "phone",
+        props: {
+          ...DEFAULT_FIELD_PROPS,
+          label: "Phone Number",
+          placeholder: "",
+          description: "",
+          required: false,
+          defaultValue: false,
+          options: [],
+          autocompleteType: "tel",
+          eventpilotFieldType: "phone",
+        },
+        className: "tour__form-field-focus",
+      };
+      setLocalFields((prev) => [...prev, phoneField]);
+    };
+
+    window.EVENTPILOT__INTERNAL_REMOVE_FIELD = () => {
+      if (beforeInjectionRef.current !== null) {
+        setLocalFields(beforeInjectionRef.current);
+        beforeInjectionRef.current = null;
+      }
+    };
+
+    return () => {
+      delete window.EVENTPILOT__INTERNAL_ADD_FIELD;
+      delete window.EVENTPILOT__INTERNAL_REMOVE_FIELD;
+    };
+  }, []);
+
   useEffect(() => {
     if (!loading && !error) {
       // Labels for our default locked fields

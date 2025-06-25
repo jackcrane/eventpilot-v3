@@ -18,6 +18,7 @@ import { DataBox } from "../../../../components/dataBox/DataBox";
 import { useLocations } from "../../../../hooks/useLocations";
 import { TodoList } from "../../../../components/todoList/TodoList";
 import { WhatNext } from "../../../../components/whatNext/WhatNext";
+import { useTourManager } from "../../../../components/tourManager/TourManager";
 
 const Divider = styled.div`
   background-color: var(--tblr-card-border-color);
@@ -29,6 +30,7 @@ const Divider = styled.div`
 export const Event = () => {
   const { eventId } = useParams();
   const { event, loading, error, refetch } = useEvent({ eventId });
+  const { startTour } = useTourManager();
 
   const {
     eventStart,
@@ -51,7 +53,7 @@ export const Event = () => {
     );
 
   return (
-    <EventPage title="Event">
+    <EventPage title="Event" tour={() => startTour("event_home")}>
       <div
         style={{
           display: "grid",
@@ -167,6 +169,7 @@ export const Event = () => {
           title="What to do next"
           style={{ gridRow: "1/3" }}
           variant="primary"
+          className="tour__todo-list"
         >
           <WhatNext />
         </Card>

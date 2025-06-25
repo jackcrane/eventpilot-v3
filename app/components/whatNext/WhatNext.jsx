@@ -53,7 +53,11 @@ const WhatNext_Event = () => {
       ) : (
         <Timeline
           dense
-          events={[...Object.entries(progress.steps), ...Object.entries(steps)]
+          events={[
+            ...Object.entries(progress.steps),
+            ...Object.entries(steps),
+            ["tour", false],
+          ]
             ?.map((item) => whatNextMap(item[0], item[1]))
             .sort((a, b) => a.done - b.done)}
         />

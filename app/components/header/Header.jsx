@@ -103,7 +103,9 @@ const Breadcrumbs = () => {
 
   const builder = [];
   if (url.events) {
-    builder.push(<EventPicker go value={url.events} />);
+    builder.push(
+      <EventPicker go value={url.events} className="tour__event-picker" />
+    );
   }
 
   return (

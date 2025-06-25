@@ -6,6 +6,7 @@ import { StripeTrigger } from "../components/stripe/Stripe";
 import { useEvents } from "./useEvents";
 import { useParams } from "react-router-dom";
 import { useLocations } from "./useLocations";
+import { useTourManager } from "../components/tourManager/TourManager";
 
 const title = (positive, negative, done) => (
   <span
@@ -27,10 +28,21 @@ const description = ({
   done,
   loading = false,
   negativeComponent,
+  positiveOnClick,
+  positiveCta,
+  positiveComponent,
   extra,
 }) =>
   done ? (
-    <Typography.Text className={"mb-0"}>{positive}</Typography.Text>
+    <div>
+      <Typography.Text className={"mb-0"}>{positive}</Typography.Text>
+      {positiveOnClick && (
+        <Button onClick={positiveOnClick} loading={loading}>
+          {positiveCta}
+        </Button>
+      )}
+      {positiveComponent}
+    </div>
   ) : (
     <div>
       <Typography.Text
@@ -41,16 +53,11 @@ const description = ({
         {negative}
       </Typography.Text>
       {extra}
-      {negativeOnClick ||
-        (negativeHref && (
-          <Button
-            onClick={negativeOnClick}
-            loading={loading}
-            href={negativeHref}
-          >
-            {negativeCta}
-          </Button>
-        ))}
+      {(negativeOnClick || negativeHref) && (
+        <Button onClick={negativeOnClick} loading={loading} href={negativeHref}>
+          {negativeCta}
+        </Button>
+      )}
       {negativeComponent}
     </div>
   );
@@ -60,6 +67,7 @@ export const useWhatNextMap = () => {
   const { createEventModal, CreateEventModalElement } = useEvents();
   const { eventId } = useParams();
   const { locations, loading: locationsLoading } = useLocations({ eventId });
+  const { startTour } = useTourManager();
 
   const whatNextMap = (item, done) => {
     const standard = {
@@ -195,6 +203,22 @@ export const useWhatNextMap = () => {
                     at least one location and a job before creating a shift.
                   </Typography.Text>
                 ),
+          }),
+          ...standard,
+        };
+
+      case "tour":
+        return {
+          icon: <Icon i="message" />,
+          title: title("Tour", "Tour", done),
+          description: description({
+            positive: `You have taken the tour.`,
+            negative: `You have not taken the tour yet.`,
+            done,
+            negativeOnClick: () => startTour("event_home"),
+            negativeCta: "Take the tour",
+            positiveOnClick: () => startTour("event_home"),
+            positiveCta: "Take it again",
           }),
           ...standard,
         };

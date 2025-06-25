@@ -7,6 +7,7 @@ export const EventPicker = ({
   onChange,
   value,
   go = false,
+  ...props
 }) => {
   const { events, loading, createEventModal, CreateEventModalElement } =
     useEvents();
@@ -68,6 +69,7 @@ export const EventPicker = ({
         prompt="Pick an event"
         value={value}
         onChange={onInternalChange}
+        {...props}
       />
     </>
   );
