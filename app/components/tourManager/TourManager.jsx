@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { TourProvider, useTour } from "@reactour/tour";
 import { Typography } from "tabler-react-2";
+import toast from "react-hot-toast";
 
 // define all your tours here
 const tours = {
@@ -363,6 +364,387 @@ const tours = {
       ),
     },
   ],
+  jobs: [
+    {
+      selector: ".tour__create-location",
+      content: (
+        <>
+          <Typography.H2>Create a Location</Typography.H2>
+          <Typography.Text>
+            This button launches the Location builder. You can use this to
+            create a location for your volunteers to work at. EventPilot allows
+            your volunteers to register for shifts, which reside inside of jobs,
+            and jobs live inside of locations. This means you should set up a
+            location for each geographical location and seperate time period
+            where volunteers will be located.
+          </Typography.Text>
+          <Typography.Text>
+            For example, if you are hosting a race, and are having a packet
+            pick-up at a local park on wednesday and thursday night, you might
+            create 2 locations, one for each night. Then, if you have an expo
+            the night before, and the race in the morning, those might be
+            seperate locations.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      action: () => document.querySelector(".tour__create-location").click(),
+      selector: ".tour__create-location",
+      content: (
+        <>
+          <Typography.H2>Create a Location (Continued)</Typography.H2>
+          <Typography.Text>
+            Clicking this button will open the Location Builder on the right of
+            the page.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__location-crud",
+      content: (
+        <>
+          <Typography.H2>Location Builder</Typography.H2>
+          <Typography.Text>
+            This is the Location Builder. It allows you to create a new location
+            (the interface for editing an existing location is extremely
+            similar).
+          </Typography.Text>
+          <Typography.Text>
+            Only the location Name, Description and start and end times are
+            required.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__tz-datetime-start",
+      content: (
+        <>
+          <Typography.H2>Start Time and Date</Typography.H2>
+          <Typography.Text>
+            This is the start time and date for your location. You can set the
+            start time and date for your location. This will be visible, but you
+            can have shifts that are outside of this time period (think set-up
+            and clean-up shifts).
+          </Typography.Text>
+          <Typography.Text>
+            You can manually type in a date and time, or click on the calendar
+            icon in the input field to select a date and time.
+          </Typography.Text>
+          <Typography.Text>
+            Be sure to set a date, time, and timezone for you start and end
+            time! Your timezones will auto-populate based on the event's
+            default, but you can change it.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__tz-datetime-copy",
+      content: (
+        <>
+          <Typography.H2>Copy from Start Time</Typography.H2>
+          <Typography.Text>
+            Most locations only last a few hours, so it is common to have to
+            copy the date and timezone from the start time. This button will
+            copy the start date, time, and timezone to the end time fields,
+            saving you some time!
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      action: () => {
+        window.EVENTPILOT__INTERNAL_CREATE_LOCATION();
+      },
+      actionAfter: () => window.EVENTPILOT__INTERNAL_CLOSE_LOCATION_CRUD(),
+      selector: ".tour__location-crud",
+      content: (
+        <>
+          <Typography.H2>Making a Location</Typography.H2>
+          <Typography.Text>
+            We have created a location for you. Don't worry, we will delete it
+            later, but for now we will use it for the tour.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__location-listing",
+      content: (
+        <>
+          <Typography.H2>Location Listing</Typography.H2>
+          <Typography.Text>
+            This is what an event location listing looks like. You will have one
+            of these for each location you create. You will be able to view and
+            edit jobs and shifts for each location from it's respective listing.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__location-listing .tour__launch-job-crud",
+      content: (
+        <>
+          <Typography.H2>Create a Job & Shifts</Typography.H2>
+          <Typography.Text>
+            This button launches the Job Builder. You can use this to create a
+            job and shifts for your location.
+          </Typography.Text>
+        </>
+      ),
+      actionAfter: () =>
+        document
+          .querySelector(".tour__location-listing .tour__launch-job-crud")
+          .click(),
+    },
+    {
+      selector: ".tour__location-listing",
+      content: (
+        <>
+          <Typography.H2>Job & Shift builder</Typography.H2>
+          <Typography.Text>
+            We have launched the Job & Shift builder. Now, lets take a look at
+            it.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__location-listing .tour__job-crud",
+      content: (
+        <>
+          <Typography.H2>Job Builder</Typography.H2>
+          <Typography.Text>
+            This is the Job Builder. It allows you to create a new job (the
+            interface for editing an existing job is very similar) and shifts
+            within the job.
+          </Typography.Text>
+          <Typography.Text>
+            Only the job Name, Description and Location are required.
+          </Typography.Text>
+        </>
+      ),
+      position: [100, 100],
+    },
+    {
+      selector: ".tour__job-basics",
+      content: (
+        <>
+          <Typography.H2>Basics</Typography.H2>
+          <Typography.Text>
+            This is the most basic information for the job.
+          </Typography.Text>
+          <Typography.Text>
+            It starts with the location which will autofill with the location
+            that hosted the "create job" button that you clicked, but you can
+            change it in this dropdown if you wish. This is most helpful when
+            you are <i>editing</i> an existing job and want to move it to a
+            different location.
+          </Typography.Text>
+          <Typography.Text>
+            Job name is required and must be at least 2 characters long. It is
+            what your users will see in communications and should be short and
+            descriptive.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__job-restrictions",
+      content: (
+        <>
+          <Typography.H2>Restrictions</Typography.H2>
+          <Typography.Text>
+            This section is for restricting the registrations for this job.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__job-capacity",
+      content: (
+        <>
+          <Typography.H2>Capacity</Typography.H2>
+          <Typography.Text>
+            This is the maximum number of volunteers that can be registered for
+            this job. If you set this to 0, it will be unlimited (which is the
+            default). When you create shifts, you can individually set the
+            capacity for each, but they will default to this value.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__job-restrictions",
+      content: (
+        <>
+          <Typography.H2>Other Restrictions</Typography.H2>
+          <Typography.Text>
+            You can pick other common restrictions that you want to apply to
+            this job. For example, if this job involves handling alcohol, you
+            can pick "21+" as the minimum age to register for this job, and it
+            will show as an annotation in the registration form.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__job-shifts",
+      content: (
+        <>
+          <Typography.H2>Shifts</Typography.H2>
+          <Typography.Text>
+            This is the button you can use to create a shift for your job.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      action: () => document.querySelector(".tour__job-shifts button").click(),
+      selector: ".tour__job-shifts",
+      content: (
+        <>
+          <Typography.H2>Shifts (continued)</Typography.H2>
+          <Typography.Text>
+            We have created a shift for you. Don't worry, we will delete it
+            later.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__job-shift",
+      content: (
+        <>
+          <Typography.H2>Shifts</Typography.H2>
+          <Typography.Text>
+            This is where you can create shifts for this job. You can create as
+            many shifts as you want. Each shift requires a start and end time as
+            well as a capacity. Just like when you created the location, be sure
+            you fill in the date, time, and timezone for your shifts, and you
+            can use the "Copy from Start Time" button to copy the start time to
+            the end time.
+          </Typography.Text>
+          <Typography.Text>
+            By default, the first shift you create will start at the start time
+            of your location, but you can change that if you want. Subsequent
+            shifts will default to having the same length as the previous
+            shifts, making it easy to create multiple shifts of the same length.
+          </Typography.Text>
+          <Typography.Text>
+            If you set the start time to before the location's start time, the
+            end time to after the location's end time, or if the shift is longer
+            than 6 hours, you will get a warning. All of these are allowed, but
+            may be an indicator of a mistake. Once you have entered the start
+            and end times, you will get a calculation of how long the shift is.
+            Be sure to sanity check this to prevent mistakes!
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__job-add-shift",
+      content: (
+        <>
+          <Typography.H2>Create more shifts</Typography.H2>
+          <Typography.Text>
+            You can add as many shifts as you want. Each shift requires a start
+            and end time as well as a capacity. When you create a new shift, it
+            will inherit the capacity of the job and the length of the previous
+            shift.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__job-submit",
+      content: (
+        <>
+          <Typography.H2>Submit</Typography.H2>
+          <Typography.Text>
+            When you are done, click the submit button to create your job! In
+            the background, we are creating some jobs and shifts for the tour.
+            Don't worry, we will delete them later.
+          </Typography.Text>
+        </>
+      ),
+      action: () => window.EVENTPILOT__INTERNAL_CREATE_JOBS(),
+    },
+    {
+      action: () => {
+        window.EVENTPILOT__INTERNAL_CLOSE_JOB_CRUD();
+        window.EVENTPILOT__INTERNAL_SET_LOCATION_LISTING_FORMAT("calendar");
+      },
+      selector: ".tour__location-listing",
+      content: (
+        <>
+          <Typography.H2>Location Listing</Typography.H2>
+          <Typography.Text>
+            This is what an event location listing looks like once it is
+            populated. Each row is a different job, and each cell group is a
+            shift.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__calendar-row",
+      content: (
+        <>
+          <Typography.H2>Calendar Row</Typography.H2>
+          <Typography.Text>
+            Here is a calendar row. It represents a single job, and clicking
+            anywhere on the row will re-open the job builder to allow you to
+            edit the job.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      selector: ".tour__calendar-cell",
+      content: (
+        <>
+          <Typography.H2>Calendar Cell</Typography.H2>
+          <Typography.Text>
+            Here is a shift. It shows the start and end time of the shift, and
+            the shift's capacity (if the capacity is 0, we show an infinity
+            icon).
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      action: () => document.querySelector(".tour__location-actions a").click(),
+      selector: ".tour__location-actions",
+      content: (
+        <>
+          <Typography.H2>Location Actions</Typography.H2>
+          <Typography.Text>
+            This is the actions dropdown for a location. You can use it to view
+            your jobs as a table rather than a calendar, edit your location, or
+            fully delete your location.
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      action: () => window.EVENTPILOT__INTERNAL_DELETE_LOCATION(),
+      selector: ".tour__location-listing",
+      content: (
+        <>
+          <Typography.H2>Clean up</Typography.H2>
+          <Typography.Text>
+            We have deleted the location and jobs we created during the tour. If
+            you have any more questions, you can take the tour again or contact
+            us for support.
+          </Typography.Text>
+        </>
+      ),
+    },
+  ],
 };
 
 // 2) context for startTour()
@@ -370,7 +752,7 @@ export const TourContext = createContext();
 
 // 3) this controller now takes `current` and fires open in an effect
 export const TourController = ({ current, setCurrent, children }) => {
-  const { setIsOpen } = useTour();
+  const { setIsOpen, isOpen } = useTour();
 
   // whenever we switch `current`, open the tour
   useEffect(() => {
@@ -402,11 +784,14 @@ export const TourManager = ({ children }) => {
     <TourProvider
       key={current}
       steps={tours[current]}
+      onClickMask={() => {}}
+      disableInteraction={true}
       styles={{
         popover: (base) => ({
           ...base,
           margin: 16,
           marginTop: 0,
+          marginBottom: 16,
           textAlign: "left",
           padding: 8,
           paddingTop: 24,

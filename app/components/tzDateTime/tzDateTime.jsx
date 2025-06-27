@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import moment from "moment-timezone";
-import originalMoment from "moment";
 import { Input, DropdownInput } from "tabler-react-2";
 import { Row } from "../../util/Flex";
 import timezones from "./tzs.json";
-
-window.originalMoment = originalMoment;
+import classNames from "classnames";
 
 export const formatDate = (date, tzValue, format = "MMM DD, h:mm a") => {
   if (!date || !tzValue) return "";
@@ -45,6 +43,7 @@ export const TzDateTime = ({
   required = false,
   minDate,
   minTime,
+  className,
 }) => {
   const [dateState, setDateState] = useState("");
   const [timeState, setTimeState] = useState("");
@@ -72,7 +71,7 @@ export const TzDateTime = ({
   }, [value, tz]);
 
   return (
-    <div className="mb-3">
+    <div className={classNames("mb-3", className)}>
       {label && (
         <Row gap={1} align="flex-start">
           <label className={`form-label ${required ? "required" : ""}`}>

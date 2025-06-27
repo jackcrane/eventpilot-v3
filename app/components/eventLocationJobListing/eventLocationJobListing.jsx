@@ -22,6 +22,7 @@ import moment from "moment-timezone";
 import { formatDate } from "../tzDateTime/tzDateTime";
 import { EventLocationJobCalendar } from "../eventLocationJobCalendar/eventLocationJobListingCalendar";
 import { useFieldsToShow } from "../../hooks/useFieldsToShow";
+import classNames from "classnames";
 
 const RESTRICTIONS_MAP = {
   OVER_18: "Must be over 18",
@@ -57,12 +58,34 @@ export const EventLocationJobListing = ({ locationId }) => {
 
   const { fieldsToShow, setFieldsToShow, table, setTable } = useFieldsToShow();
 
+  useEffect(() => {
+    window.EVENTPILOT__INTERNAL_SET_LOCATION_LISTING_FORMAT = (format) => {
+      setTable(format === "table");
+    };
+    window.EVENTPILOT__INTERNAL_DELETE_LOCATION = () => {
+      if (!location) return;
+      if (location.name !== "Tour Location") return;
+      if (location.address !== "1234 Main St") return;
+      deleteLocation();
+    };
+
+    return () => {
+      delete window.EVENTPILOT__INTERNAL_DELETE_LOCATION;
+    };
+  }, [location]);
+
   if (loading) return <Loading />;
 
   if (!location) return null;
 
   return (
-    <div className="mb-4" key={location.id}>
+    <div
+      className={classNames(
+        "mb-4",
+        location?.name === "Tour Location" && "tour__location-listing"
+      )}
+      key={location.id}
+    >
       {ConfirmModal}
       {OffcanvasElement}
       <RearrangeModalComponent
@@ -107,36 +130,39 @@ export const EventLocationJobListing = ({ locationId }) => {
           </Typography.H5>
         </Col>
         <Row gap={1}>
-          <Dropdown
-            prompt="Actions"
-            items={[
-              table && {
-                text: "Pick Columns to render",
-                onclick: () => setRearrangeModal(true),
-              },
-              {
-                text: `View as ${table ? "Calendar" : "Table"}`,
-                onclick: () => setTable(!table),
-              },
-              {
-                type: "divider",
-              },
-              {
-                text: "Edit Location",
-                onclick: () =>
-                  offcanvas({
-                    content: <LocationCRUD value={location} close={close} />,
-                  }),
-              },
-              {
-                text: <span className="text-danger">Delete Location</span>,
-                onclick: async () => {
-                  if (await confirm()) deleteLocation();
+          <div className="tour__location-actions">
+            <Dropdown
+              prompt="Actions"
+              items={[
+                table && {
+                  text: "Pick Columns to render",
+                  onclick: () => setRearrangeModal(true),
                 },
-              },
-            ].filter(Boolean)}
-          />
+                {
+                  text: `View as ${table ? "Calendar" : "Table"}`,
+                  onclick: () => setTable(!table),
+                },
+                {
+                  type: "divider",
+                },
+                {
+                  text: "Edit Location",
+                  onclick: () =>
+                    offcanvas({
+                      content: <LocationCRUD value={location} close={close} />,
+                    }),
+                },
+                {
+                  text: <span className="text-danger">Delete Location</span>,
+                  onclick: async () => {
+                    if (await confirm()) deleteLocation();
+                  },
+                },
+              ].filter(Boolean)}
+            />
+          </div>
           <Button
+            className="tour__launch-job-crud"
             onClick={() =>
               offcanvas({
                 content: (

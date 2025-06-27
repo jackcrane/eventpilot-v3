@@ -123,14 +123,14 @@ export const Calendar = ({ start, end, rows, className }) => {
         {rows.map((row, rowIdx) => (
           <div
             key={rowIdx}
-            className={styles.calendarRow}
+            className={classNames(styles.calendarRow, "tour__calendar-row")}
             onClick={() => row?.onClick?.(row)}
           >
             <div className={styles.calendarLabel}>
               <span className={styles.scrollingText}>{row.label}</span>
             </div>
             {timeSlots.map((_, i) => (
-              <div key={i} className={styles.calendarCell} />
+              <div key={i} className={classNames(styles.calendarCell)} />
             ))}
             {Array.isArray(row.items) &&
               row.items.map((item, idx) => {
@@ -155,7 +155,10 @@ export const Calendar = ({ start, end, rows, className }) => {
                 return (
                   <div
                     key={idx}
-                    className={styles.calendarItem}
+                    className={classNames(
+                      styles.calendarItem,
+                      "tour__calendar-cell"
+                    )}
                     data-color={item.color}
                     style={{ left: `${leftPx}px`, width: `${widthPx}px` }}
                   >

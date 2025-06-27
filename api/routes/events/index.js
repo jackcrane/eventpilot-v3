@@ -42,6 +42,7 @@ export const post = [
       event = await prisma.event.create({
         data: {
           ...result.data,
+          userId: req.user.id,
           logs: {
             create: {
               type: LogType.EVENT_CREATED,

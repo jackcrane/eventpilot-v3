@@ -5,8 +5,8 @@ import { Page } from "../../../components/page/Page";
 import styled from "styled-components";
 import { Grow, Row } from "../../../util/Flex";
 import { Spacer } from "../../../util/Spacer";
-import { useSearchParams } from "react-router-dom";
 import { useSearchParam } from "react-use";
+
 const { H1, Text } = Typography;
 
 export const Login = () => {
@@ -16,6 +16,11 @@ export const Login = () => {
   const [password, setPassword] = useState("");
 
   const from = useSearchParam("from");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    login({ email, password });
+  };
 
   return (
     <Page title="Log in">
@@ -49,33 +54,32 @@ export const Login = () => {
             Your password has been reset. Please log in with your new password.
           </Alert>
         )}
-        <Input
-          label="Email"
-          placeholder="Email"
-          name="email"
-          onInput={setEmail}
-          value={email}
-        />
-        <Input
-          label="Password"
-          placeholder="Password"
-          type="password"
-          name="password"
-          onInput={setPassword}
-          value={password}
-        />
-        <Row justify="none" gap={2}>
-          <Grow />
-          <Typography.Link href="/forgot-password">
-            Forgot password?
-          </Typography.Link>
-          <Button
-            loading={mutationLoading}
-            onClick={() => login({ email, password })}
-          >
-            Log in
-          </Button>
-        </Row>
+        <form onSubmit={handleSubmit}>
+          <Input
+            label="Email"
+            placeholder="Email"
+            name="email"
+            onInput={setEmail}
+            value={email}
+          />
+          <Input
+            label="Password"
+            placeholder="Password"
+            type="password"
+            name="password"
+            onInput={setPassword}
+            value={password}
+          />
+          <Row justify="none" gap={2}>
+            <Grow />
+            <Typography.Link href="/forgot-password">
+              Forgot password?
+            </Typography.Link>
+            <Button type="submit" loading={mutationLoading}>
+              Log in
+            </Button>
+          </Row>
+        </form>
       </LoginCard>
     </Page>
   );

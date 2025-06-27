@@ -7,6 +7,7 @@ import { useLocations } from "../../../../hooks/useLocations";
 import { useParams } from "react-router-dom";
 import { EventLocationJobListing } from "../../../../components/eventLocationJobListing/eventLocationJobListing";
 import { FieldsToShowProvider } from "../../../../hooks/useFieldsToShow";
+import { useTourManager } from "../../../../components/tourManager/TourManager";
 
 export const EventJobs = () => {
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
@@ -14,9 +15,10 @@ export const EventJobs = () => {
   });
   const { eventId } = useParams();
   const { locations, loading } = useLocations({ eventId });
+  const { startTour } = useTourManager();
 
   return (
-    <EventPage title="Jobs">
+    <EventPage title="Jobs" tour={() => startTour("jobs")}>
       {OffcanvasElement}
       <Typography.Text>
         EventPilot uses locations to help you manage your volunteers. Events are
@@ -35,6 +37,7 @@ export const EventJobs = () => {
       </Typography.Text>
       <Button
         onClick={() => offcanvas({ content: <LocationCRUD close={close} /> })}
+        className={"tour__create-location"}
       >
         Create a Location
       </Button>

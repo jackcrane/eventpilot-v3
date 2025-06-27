@@ -5,6 +5,7 @@ import { TzDateTime } from "../tzDateTime/tzDateTime";
 import { useParams } from "react-router-dom";
 import { useEvent } from "../../hooks/useEvent";
 import { useLocations } from "../../hooks/useLocations";
+import moment from "moment";
 
 export const LocationCRUD = ({ value, close }) => {
   const { eventId } = useParams();
@@ -54,8 +55,34 @@ export const LocationCRUD = ({ value, close }) => {
     }
   };
 
+  useEffect(() => {
+    // Register a location creator for the tour
+    window.EVENTPILOT__INTERNAL_CREATE_LOCATION = async () => {
+      const location = {
+        name: "Tour Location",
+        description: "A demo location created for the tour.",
+        address: "1234 Main St",
+        city: "Cincinnati",
+        state: "Ohio",
+        startTime: moment()
+          .add(30, "days")
+          .set("minutes", 0)
+          .format("YYYY-MM-DD HH:mm"),
+        startTimeTz: "Eastern Standard Time",
+        endTime: moment()
+          .add(30, "days")
+          .add(6, "hours")
+          .set("minutes", 0)
+          .format("YYYY-MM-DD HH:mm"),
+        endTimeTz: "Eastern Standard Time",
+      };
+      await createLocation(location);
+    };
+    window.EVENTPILOT__INTERNAL_CLOSE_LOCATION_CRUD = close;
+  }, []);
+
   return (
-    <div style={{ marginBottom: 100 }}>
+    <div style={{ marginBottom: 100 }} className="tour__location-crud">
       <Typography.H5 className="mb-0 text-secondary">LOCATION</Typography.H5>
       <Typography.H1>
         {isEdit ? "Edit Location" : "Create a new Location"}
@@ -132,6 +159,7 @@ export const LocationCRUD = ({ value, close }) => {
             startTimeTz: tz,
           }))
         }
+        className="tour__tz-datetime-start"
       />
 
       <TzDateTime
@@ -139,6 +167,7 @@ export const LocationCRUD = ({ value, close }) => {
         afterLabel={
           <Button
             size="sm"
+            className="tour__tz-datetime-copy"
             outline
             onClick={() =>
               setFormState((prev) => ({

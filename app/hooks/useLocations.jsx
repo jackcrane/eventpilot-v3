@@ -94,7 +94,8 @@ export const useLocations = ({ eventId }) => {
 
       refetchList();
       // flush the detail cache
-      mutate(`/api/events/${eventId}/locations/${locationId}`, null, false);
+      mutate(`/api/events/${eventId}/locations/${locationId}`);
+      mutate(`/api/events/${eventId}/locations`);
 
       return true;
     } catch {
