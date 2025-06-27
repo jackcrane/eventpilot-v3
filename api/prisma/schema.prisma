@@ -36,6 +36,7 @@ model User {
   suspended Boolean @default(false)
 
   events Event[]
+  emails Email[]
 }
 
 enum AccountType {
@@ -64,6 +65,10 @@ model Email {
   subject String
 
   userId String?
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  crmPersonEmailId String?
+  crmPersonEmail CrmPersonEmail? @relation(fields: [crmPersonEmailId], references: [id], onDelete: Cascade)
 
   responses EmailWebhooks[]
 
@@ -200,6 +205,8 @@ model Event {
   formFields FormField[]
   formResponses FormResponse[]
   logs Logs[]
+  crmPersons CrmPerson[]
+  crmFields CrmField[]
 }
 
 model FormField {
@@ -395,6 +402,103 @@ model Shift {
   deleted Boolean @default(false)
 }
 
+model CrmPerson {
+  id String @id @default(cuid())
+  name String
+  emails CrmPersonEmail[]
+  phones CrmPersonPhone[]
+
+  logs Logs[]
+  deleted Boolean @default(false)
+
+  fieldValues CrmPersonField[]
+
+  eventId String
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CrmPersonEmail {
+  id String @id @default(cuid())
+
+  crmPersonId String
+  crmPerson CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+
+  email String
+  label String?
+  notes String?
+
+  emails Email[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted Boolean @default(false)
+}
+
+model CrmPersonPhone {
+  id String @id @default(cuid())
+
+  crmPersonId String
+  crmPerson CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+
+  phone String
+  label String?
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted Boolean @default(false)
+}
+
+model CrmField {
+  id String @id @default(cuid())
+
+  label String
+  description String?
+  type  CrmFieldType
+
+  persons CrmPersonField[]
+
+  showInGeneralTable Boolean @default(true)
+  generalTableOrder Int @default(0)
+
+  showInPersonTable Boolean @default(true)
+  personTableOrder Int @default(0)
+
+  eventId String
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted Boolean @default(false)
+  logs Logs[]
+}
+
+model CrmPersonField {
+  id String @id @default(cuid())
+
+  crmFieldId String
+  crmField CrmField @relation(fields: [crmFieldId], references: [id], onDelete: Cascade)
+
+  crmPersonId String
+  crmPerson CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+
+  value String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum CrmFieldType {
+  TEXT
+  EMAIL
+  PHONE
+  BOOLEAN
+  DATE
+}
+
 
 model Logs {
   id String @id @default(cuid())
@@ -441,6 +545,12 @@ model Logs {
   shiftId String?
   shift Shift? @relation(fields: [shiftId], references: [id], onDelete: Cascade)
 
+  crmPersonId String?
+  crmPerson CrmPerson? @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+
+  crmFieldId String?
+  crmField CrmField? @relation(fields: [crmFieldId], references: [id], onDelete: Cascade)
+
   type LogType
 
   ip String?
@@ -449,7 +559,6 @@ model Logs {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
 
 // LogTypes are in form NOUN_VERB
 enum LogType {
@@ -488,4 +597,10 @@ enum LogType {
   STRIPE_SETUP_INTENT_SUCCEEDED
   STRIPE_PAYMENT_METHOD_ATTACHED
   STRIPE_SUBSCRIPTION_CREATED
+  CRM_FIELD_CREATED
+  CRM_FIELD_MODIFIED
+  CRM_FIELD_DELETED
+  CRM_PERSON_CREATED
+  CRM_PERSON_MODIFIED
+  CRM_PERSON_DELETED
 }
