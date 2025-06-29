@@ -1,7 +1,9 @@
-const isObject = (val) => val && typeof val === "object" && !Array.isArray(val);
-const isArray = Array.isArray;
+export const isObject = (val) =>
+  val != null && typeof val === "object" && !Array.isArray(val);
 
-const deepEqual = (a, b) => {
+export const isArray = Array.isArray;
+
+export const deepEqual = (a, b) => {
   if (a === b) return true;
   if (isArray(a) && isArray(b)) {
     if (a.length !== b.length) return false;
@@ -16,14 +18,33 @@ const deepEqual = (a, b) => {
   return false;
 };
 
-const IGNORED_KEYS = new Set(["updatedAt"]);
+// remove every updatedAt in any nested object/array
+export const stripUpdatedAt = (val) => {
+  if (isArray(val)) {
+    return val.map(stripUpdatedAt);
+  }
+  if (isObject(val)) {
+    return Object.entries(val).reduce((acc, [k, v]) => {
+      if (k === "updatedAt") return acc;
+      acc[k] = stripUpdatedAt(v);
+      return acc;
+    }, {});
+  }
+  return val;
+};
+
+// custom stringify handlers for known array-fields
+const arrayHandlers = {
+  emails: (arr) => arr.map((e) => e.email).join(", "),
+  phones: (arr) => arr.map((p) => p.phone).join(", "),
+};
 
 export const diffObjects = (log) => {
   const data = log.data;
-  if (!data) return log;
-  if (!data.before || !data.after) return log;
+  if (!data || !data.before || !data.after) return log;
 
-  const { before, after } = data;
+  const beforeSanitized = stripUpdatedAt(data.before);
+  const afterSanitized = stripUpdatedAt(data.after);
   const changes = [];
 
   const walk = (orig, upd, path = []) => {
@@ -33,28 +54,39 @@ export const diffObjects = (log) => {
     ]);
 
     for (const key of keys) {
-      if (IGNORED_KEYS.has(key)) continue;
-
       const currentPath = [...path, key];
       const pathStr = currentPath.join(".");
 
       const oVal = orig?.[key];
       const uVal = upd?.[key];
 
-      const bothAreObjects = isObject(oVal) && isObject(uVal);
+      // arrays first
+      if (isArray(oVal) || isArray(uVal)) {
+        if (arrayHandlers[key]) {
+          const from = oVal ? arrayHandlers[key](oVal) : "";
+          const to = uVal ? arrayHandlers[key](uVal) : "";
+          if (from !== to) changes.push({ path: pathStr, from, to });
+        } else if (!deepEqual(oVal, uVal)) {
+          changes.push({
+            path: pathStr,
+            from: JSON.stringify(oVal),
+            to: JSON.stringify(uVal),
+          });
+        }
+        continue;
+      }
 
-      if (bothAreObjects) {
+      // nested objects
+      if (isObject(oVal) && isObject(uVal)) {
         walk(oVal, uVal, currentPath);
-      } else if (!deepEqual(oVal, uVal)) {
-        changes.push({
-          path: pathStr,
-          from: oVal,
-          to: uVal,
-        });
+      }
+      // primitives or mismatches
+      else if (!deepEqual(oVal, uVal)) {
+        changes.push({ path: pathStr, from: oVal, to: uVal });
       }
     }
   };
 
-  walk(before, after);
+  walk(beforeSanitized, afterSanitized);
   return { ...log, changes };
 };

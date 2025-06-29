@@ -7,7 +7,7 @@ import { LogType } from "@prisma/client";
 export const fieldSchema = z.object({
   label: z.string().min(2).max(50),
   description: z.string().optional().nullable(),
-  type: z.enum(["TEXT", "EMAIL", "PHONE", "BOOLEAN", "DATE"]),
+  type: z.enum(["TEXT", "EMAIL", "PHONE", "BOOLEAN", "DATE", "NUMBER"]),
 });
 
 export const get = [

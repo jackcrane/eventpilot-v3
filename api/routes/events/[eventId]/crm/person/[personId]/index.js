@@ -19,6 +19,7 @@ export const personSchema = z.object({
   emails: z
     .array(
       z.object({
+        id: z.string().optional().nullable(),
         email: z.string().email(),
         label: z.string().default(""),
         notes: z.string().optional().nullable(),
@@ -28,6 +29,7 @@ export const personSchema = z.object({
   phones: z
     .array(
       z.object({
+        id: z.string().optional().nullable(),
         phone: z.string(),
         label: z.string().default(""),
         notes: z.string().optional().nullable(),
@@ -53,7 +55,9 @@ export const get = [
           },
           phones: true,
           fieldValues: true,
-          logs: true,
+          logs: {
+            orderBy: { createdAt: "desc" },
+          },
         },
       });
 
@@ -76,25 +80,28 @@ export const get = [
 ];
 
 export const put = [
-  verifyAuth(["manager"]),
+  verifyAuth([`manager`]),
   async (req, res) => {
-    const eventId = req.params.eventId;
-    const personId = req.params.personId;
+    const { eventId, personId } = req.params;
 
     try {
+      // 1) validate payload
       const result = personSchema.safeParse(req.body);
-
       if (!result.success) {
         return res.status(400).json({ message: serializeError(result) });
       }
 
-      let fields = result.data.fields;
-      delete result.data.fields;
+      // 2) pull out nested arrays and the rest of the person data
+      const {
+        fields: incomingFields = [],
+        emails: incomingEmails = [],
+        phones: incomingPhones = [],
+        ...personData
+      } = result.data;
 
+      // 3) load existing person + relations
       const before = await prisma.crmPerson.findUnique({
-        where: {
-          id: personId,
-        },
+        where: { id: personId },
         include: {
           emails: {
             where: { deleted: req.query.includeDeleted ? undefined : false },
@@ -103,28 +110,72 @@ export const put = [
           fieldValues: true,
         },
       });
-
       if (!before || before.deleted) {
-        return res.status(404).json({ message: "Person not found" });
+        return res.status(404).json({ message: `Person not found` });
       }
 
-      const crmPerson = await prisma.crmPerson.update({
+      // 4) diff emails
+      const emailCreates = incomingEmails
+        .filter((e) => !e.id)
+        .map(({ label, email }) => ({ label, email }));
+      const emailUpdates = incomingEmails
+        .filter((e) => e.id)
+        .map(({ id, label, email }) => ({
+          where: { id },
+          data: { label, email },
+        }));
+      const emailIdsToDelete = before.emails
+        .map((e) => e.id)
+        .filter((id) => !incomingEmails.some((e) => e.id === id));
+
+      // 5) diff phones
+      const phoneCreates = incomingPhones
+        .filter((p) => !p.id)
+        .map(({ label, phone }) => ({ label, phone }));
+      const phoneUpdates = incomingPhones
+        .filter((p) => p.id)
+        .map(({ id, label, phone }) => ({
+          where: { id },
+          data: { label, phone },
+        }));
+      const phoneIdsToDelete = before.phones
+        .map((p) => p.id)
+        .filter((id) => !incomingPhones.some((p) => p.id === id));
+
+      // 6) build upsert payload for fieldValues
+      const fieldUpserts = incomingFields.map((f) => ({
         where: {
-          id: personId,
+          // composite unique: person + field
+          crmPersonId_crmFieldId: {
+            crmPersonId: personId,
+            crmFieldId: f.id,
+          },
         },
+        update: { value: f.value },
+        create: { crmFieldId: f.id, value: f.value },
+      }));
+
+      // 7) apply update with nested create/update/delete/upsert
+      const crmPerson = await prisma.crmPerson.update({
+        where: { id: personId },
         data: {
-          ...result.data,
+          ...personData,
           emails: {
-            create: result.data.emails,
+            create: emailCreates,
+            update: emailUpdates,
+            deleteMany: emailIdsToDelete.length
+              ? { id: { in: emailIdsToDelete } }
+              : undefined,
           },
           phones: {
-            create: result.data.phones,
+            create: phoneCreates,
+            update: phoneUpdates,
+            deleteMany: phoneIdsToDelete.length
+              ? { id: { in: phoneIdsToDelete } }
+              : undefined,
           },
           fieldValues: {
-            create: fields.map((field) => ({
-              crmFieldId: field.id,
-              value: field.value,
-            })),
+            upsert: fieldUpserts,
           },
         },
         include: {
@@ -136,24 +187,21 @@ export const put = [
         },
       });
 
+      // 8) log the diff
       await prisma.logs.create({
         data: {
           type: LogType.CRM_PERSON_MODIFIED,
           crmPersonId: personId,
           userId: req.user.id,
           ip: req.ip || req.headers["x-forwarded-for"],
-          data: {
-            before: before,
-            after: crmPerson,
-          },
+          data: { before, after: crmPerson },
           eventId,
         },
       });
 
+      // 9) re-fetch full record and return
       const personToReturn = await prisma.crmPerson.findUnique({
-        where: {
-          id: personId,
-        },
+        where: { id: personId },
         include: {
           emails: {
             where: { deleted: req.query.includeDeleted ? undefined : false },
@@ -164,15 +212,15 @@ export const put = [
         },
       });
 
-      res.json({
+      return res.json({
         crmPerson: {
           ...personToReturn,
           fields: collapseCrmValues(personToReturn.fieldValues),
         },
       });
     } catch (error) {
-      console.error("Error in PUT /event/:eventId/crm/:personId:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error(`Error in PUT /event/${eventId}/crm/${personId}:`, error);
+      return res.status(500).json({ error: `Internal server error` });
     }
   },
 ];

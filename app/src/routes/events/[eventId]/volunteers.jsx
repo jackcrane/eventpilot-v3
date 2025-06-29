@@ -9,6 +9,7 @@ import { FormResponseRUD } from "../../../../components/formResponseRUD/FormResp
 import { EventPage } from "../../../../components/eventPage/EventPage";
 import { Empty } from "../../../../components/empty/Empty";
 import { useEvent } from "../../../../hooks/useEvent";
+import { Loading } from "../../../../components/loading/Loading";
 
 const renderCell = (f, v) => {
   switch (f.type) {
@@ -31,7 +32,7 @@ const renderTitle = (f) => {
 
 export const EventVolunteers = () => {
   const { eventId } = useParams();
-  const { responses, fields } = useFormResponses(eventId);
+  const { responses, fields, loading } = useFormResponses(eventId);
   const { event } = useEvent({ eventId });
   const { offcanvas, OffcanvasElement } = useOffcanvas({
     offcanvasProps: { position: "end", size: 500, zIndex: 1050 },
@@ -46,10 +47,9 @@ export const EventVolunteers = () => {
     commitText: "Commit",
     cancelText: "Cancel",
   });
-  const navigate = useNavigate();
 
   return (
-    <EventPage title="Volunteers">
+    <EventPage title="Volunteers" loading={loading}>
       {ConfirmModal}
       {OffcanvasElement}
       {SubOffcanvasElement}

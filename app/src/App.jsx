@@ -20,6 +20,7 @@ import { useReducedSubdomain } from "../hooks/useReducedSubdomain";
 import { EventJobs } from "./routes/events/[eventId]/jobs";
 import { Home } from "./home";
 import { EventSettings } from "./routes/events/[eventId]/settings";
+import { EventCrm } from "./routes/events/[eventId]/crm";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -75,6 +76,7 @@ export default () => {
           />
           <Route path="/events/:eventId/jobs" element={<EventJobs />} />
           <Route path="/events/:eventId/settings" element={<EventSettings />} />
+          <Route path="/events/:eventId/crm" element={<EventCrm />} />
           {/* 404 error */}
           <Route
             path="*"

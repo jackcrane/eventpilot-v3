@@ -1,7 +1,6 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
-import { z } from "zod";
 import { LogType } from "@prisma/client";
 import { fieldSchema } from "./index";
 import { diffObjects } from "../../../../../util/diffObjects";

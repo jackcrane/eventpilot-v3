@@ -5,18 +5,24 @@ import { useParams } from "react-router-dom";
 import { Page } from "../page/Page";
 import { Icon } from "../../util/Icon";
 import { useEvent } from "../../hooks/useEvent";
+import { Loading } from "../loading/Loading";
 
-export const EventPage = ({ children, title, tour }) => {
+export const EventPage = ({ children, title, tour, loading }) => {
   const { eventId } = useParams();
-  const { event, loading, error, refetch } = useEvent({
+  const {
+    event,
+    loading: eventLoading,
+    error,
+    refetch,
+  } = useEvent({
     eventId,
   });
   const url = useParsedUrl(window.location.pathname);
 
-  if (loading)
+  if (eventLoading)
     return (
       <Page title={title}>
-        <Typography.Text>Loading...</Typography.Text>
+        <Loading />
       </Page>
     );
 
@@ -97,9 +103,21 @@ export const EventPage = ({ children, title, tour }) => {
             Settings
           </Row>
         </Button>
+        <Button
+          variant={url.crm ? "primary" : "secondary"}
+          ghost={!url.crm}
+          size="sm"
+          href={`/events/${eventId}/crm`}
+          className="tour__navbar-crm"
+        >
+          <Row gap={1}>
+            <Icon i={"briefcase-2"} size="inherit" />
+            Contacts
+          </Row>
+        </Button>
       </Row>
       <hr style={{ margin: "1rem 0" }} />
-      {children}
+      {loading ? <Loading gradient={false} /> : children}
       {tour && (
         <Button
           className="tour__help"

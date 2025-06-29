@@ -254,6 +254,8 @@ model FormResponse {
   pii            PII?
   deleted Boolean @default(false)
 
+  crmPersonLink CrmPersonLink?
+
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
@@ -405,8 +407,10 @@ model Shift {
 model CrmPerson {
   id String @id @default(cuid())
   name String
+  source String @default("MANUAL")
   emails CrmPersonEmail[]
   phones CrmPersonPhone[]
+  links CrmPersonLink[]
 
   logs Logs[]
   deleted Boolean @default(false)
@@ -415,6 +419,19 @@ model CrmPerson {
 
   eventId String
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CrmPersonLink {
+  id String @id @default(cuid())
+
+  crmPersonId String
+  crmPerson CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+
+  formResponseId String? @unique
+  formResponse FormResponse? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -489,6 +506,9 @@ model CrmPersonField {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Unique by crmPersonId and crmFieldId
+  @@unique([crmPersonId, crmFieldId])
 }
 
 enum CrmFieldType {
@@ -497,6 +517,7 @@ enum CrmFieldType {
   PHONE
   BOOLEAN
   DATE
+  NUMBER
 }
 
 

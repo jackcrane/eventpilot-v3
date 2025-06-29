@@ -114,7 +114,7 @@ const BROWSER_TO_ICON = {
   ),
 };
 
-const Dg = ({ title, content, description }) => (
+export const Dg = ({ title, content, description }) => (
   <div className="datagrid-item">
     <div class="datagrid-title">{title}</div>
     <div class="datagrid-content mb-1">{content}</div>
