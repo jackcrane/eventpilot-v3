@@ -6,6 +6,8 @@ const switchSource = (source) => {
   switch (source) {
     case "MANUAL":
       return "Manually added from dashboard";
+    case "IMPORT":
+      return "Imported from CSV";
     default:
       return "Unknown";
   }

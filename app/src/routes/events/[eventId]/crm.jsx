@@ -2,10 +2,21 @@ import { useParams } from "react-router-dom";
 import { EventPage } from "../../../../components/eventPage/EventPage";
 import { useCrm } from "../../../../hooks/useCrm";
 import { Empty } from "../../../../components/empty/Empty";
-import { Table, Button, useOffcanvas } from "tabler-react-2";
+import {
+  Table,
+  Button,
+  useOffcanvas,
+  Alert,
+  Spinner,
+  Typography,
+  Badge,
+} from "tabler-react-2";
 import { Icon } from "../../../../util/Icon";
 import { CrmPersonCRUD } from "../../../../components/crmPersonCRUD/CrmPersonCRUD";
 import { useCrmPersons } from "../../../../hooks/useCrmPersons";
+import { Row } from "../../../../util/Flex";
+import { CrmPersonsImport } from "../../../../components/crmPersonsImport/CrmPersonsImport";
+import moment from "moment";
 
 const switchTypeForIcon = (type) => {
   switch (type) {
@@ -29,7 +40,11 @@ const switchTypeForIcon = (type) => {
 export const EventCrm = () => {
   const { eventId } = useParams();
   const { crmFields, loading } = useCrm({ eventId });
-  const { crmPersons, loading: crmPersonsLoading } = useCrmPersons({ eventId });
+  const {
+    crmPersons,
+    loading: crmPersonsLoading,
+    imports,
+  } = useCrmPersons({ eventId });
   const { offcanvas, OffcanvasElement } = useOffcanvas({
     offcanvasProps: { position: "end", size: 500 },
   });
@@ -37,16 +52,42 @@ export const EventCrm = () => {
   return (
     <EventPage title="CRM" loading={loading || crmPersonsLoading}>
       {OffcanvasElement}
+      <Row gap={1} justify="flex-end" className="mb-3">
+        <Button onClick={() => offcanvas({ content: <CrmPersonsImport /> })}>
+          Import Contacts from CSV
+        </Button>
+        <Button onClick={() => offcanvas({ content: <CrmPersonCRUD /> })}>
+          Create a Contact
+        </Button>
+      </Row>
+
       {crmPersons?.length === 0 && (
         <>
           <Empty text="You don't have any CRM responses yet." />
         </>
       )}
-      <Button onClick={() => offcanvas({ content: <CrmPersonCRUD /> })}>
-        Create a Contact
-      </Button>
+
+      {imports.map((i) => (
+        <Alert
+          variant="info"
+          title={
+            <Row gap={1} align="center">
+              <Spinner size="sm" />
+              <Typography.H3 className={"ml-2 mb-0"}>Importing</Typography.H3>
+            </Row>
+          }
+          key={i.createdAt}
+        >
+          An import is currently running. It may take a while to finish. It
+          started {moment(i.createdAt).fromNow()} and is currently{" "}
+          {Math.round((i.completed / i.total) * 100)}% complete. You will
+          receive an email when all {i.total} contacts have been imported.
+        </Alert>
+      ))}
+
       <Table
-        className="card"
+        className="card pb-3"
+        showPagination={true}
         columns={[
           {
             label: "Name",
@@ -110,6 +151,12 @@ export const EventCrm = () => {
             render: (v) => new Date(v).toLocaleDateString(),
             sortable: true,
             icon: <Icon i="calendar" />,
+          },
+          {
+            label: "Source",
+            accessor: "source",
+            render: (v) => <Badge outline>{v}</Badge>,
+            sortable: true,
           },
           {
             label: "Actions",
