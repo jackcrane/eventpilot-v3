@@ -1,0 +1,40 @@
+baseURL = 'http://example.org/'
+languageCode = 'en-us'
+title = 'My New Hugo Site'
+
+[module]
+    [[module.imports]]
+        path = "github.com/colinwilson/lotusdocs"
+        disable = false
+    [[module.imports]]
+        path = "github.com/gohugoio/hugo-mod-bootstrap-scss/v5"
+        disable = false
+
+[markup]
+  defaultMarkdownHandler = "goldmark"
+  [markup.tableOfContents]
+      endLevel = 3
+      startLevel = 1
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+[params]
+  [params.footer]
+    copyright = "Copyright :YEAR: EventPilot"
+    version = true
+
+  [params.docs]
+    darkMode = true
+    title = "EventPilot User Guide"
+    prism = true
+    sidebarIcons = true
+    titleIcon = true
+    scrollSpy = true
+
+[menu]
+[[menu.primary]]
+    name = "User Guide"
+    url = "docs/"
+    identifier = "docs"
+    weight = 1

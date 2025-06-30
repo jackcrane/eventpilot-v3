@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>My New Hugo Site</title>
+    <link>http://localhost:1313/</link>
+    <description>Recent content on My New Hugo Site</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 29 Jun 2025 22:08:03 -0400</lastBuildDate>
+    <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Features &amp; Goals</title>
+      <link>http://localhost:1313/docs/what-is/core/</link>
+      <pubDate>Sun, 29 Jun 2025 22:08:03 -0400</pubDate>
+      <guid>http://localhost:1313/docs/what-is/core/</guid>
+      <description>&lt;p&gt;At it&amp;rsquo;s core, EventPilot is a powerful tool for event organizers to manage their events. But that is just our tagline, what actually is it?&lt;/p&gt;&#xA;&lt;div class=&#34;row flex-xl-wrap pb-4&#34;&gt;&#xA;&lt;div id=&#34;list-item&#34; class=&#34;col-md-4 col-12 py-2&#34;&gt;&#xA;  &lt;a class=&#34;text-decoration-none text-reset&#34; href=&#34;../volunteer/&#34;&gt;&#xA;  &lt;div class=&#34;card h-100 features feature-full-bg rounded p-4 position-relative overflow-hidden border-1&#34;&gt;&#xA;      &lt;span class=&#34;h1 icon-color&#34;&gt;&#xA;        &lt;i class=&#34;material-icons align-middle&#34;&gt;favorite&lt;/i&gt;&#xA;      &lt;/span&gt;&#xA;      &lt;div class=&#34;card-body p-0 content&#34;&gt;&#xA;        &lt;p class=&#34;fs-5 fw-semibold card-title mb-1&#34;&gt;Volunteer Management&lt;/p&gt;&#xA;        &lt;p class=&#34;para card-text mb-0&#34;&gt;Understand the volunteer lifecycle and how EventPilot can simplify your overhead.&lt;/p&gt;&#xA;      &lt;/div&gt;&#xA;    &lt;/div&gt;&#xA;  &lt;/a&gt;&#xA;&lt;/div&gt;&#xA;&lt;div id=&#34;list-item&#34; class=&#34;col-md-4 col-12 py-2&#34;&gt;&#xA;  &lt;a class=&#34;text-decoration-none text-reset&#34; href=&#34;../crm/&#34;&gt;&#xA;    &lt;div class=&#34;card h-100 features feature-full-bg rounded p-4 position-relative overflow-hidden border-1&#34;&gt;&#xA;      &lt;span class=&#34;h1 icon-color&#34;&gt;&#xA;        &lt;i class=&#34;material-icons align-middle&#34;&gt;work&lt;/i&gt;&#xA;      &lt;/span&gt;&#xA;      &lt;div class=&#34;card-body p-0 content&#34;&gt;&#xA;        &lt;p class=&#34;fs-5 fw-semibold card-title mb-1&#34;&gt;CRM&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Welcome to EventPilot</title>
+      <link>http://localhost:1313/docs/welcome/</link>
+      <pubDate>Sun, 29 Jun 2025 22:08:03 -0400</pubDate>
+      <guid>http://localhost:1313/docs/welcome/</guid>
+      <description>&lt;p&gt;Welcome to EventPilot! We are excited to have you here and are ready to help you get the most out of EventPilot. We are continuously improving EventPilot and want to make it the most powerful and intuitive tool for event organizers.&lt;/p&gt;&#xA;&lt;h2 id=&#34;about-eventpilot&#34;&gt;About EventPilot &lt;a href=&#34;#about-eventpilot&#34; class=&#34;anchor&#34; aria-hidden=&#34;true&#34;&gt;&lt;i class=&#34;material-icons align-middle&#34;&gt;link&lt;/i&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;EventPilot was born out of an event called &lt;a href=&#34;https://ohioriverpaddlefest.org&#34; rel=&#34;external&#34; target=&#34;_blank&#34;&gt;Ohio River Paddlefest&lt;svg width=&#34;16&#34; height=&#34;16&#34; viewBox=&#34;0 0 24 24&#34; xmlns=&#34;http://www.w3.org/2000/svg&#34;&gt;&lt;path fill=&#34;currentColor&#34; d=&#34;M14 5c-.552 0-1-.448-1-1s.448-1 1-1h6c.552 0 1 .448 1 1v6c0 .552-.448 1-1 1s-1-.448-1-1v-3.586l-7.293 7.293c-.391.39-1.024.39-1.414 0-.391-.391-.391-1.024 0-1.414l7.293-7.293h-3.586zm-9 2c-.552 0-1 .448-1 1v11c0 .552.448 1 1 1h11c.552 0 1-.448 1-1v-4.563c0-.552.448-1 1-1s1 .448 1 1v4.563c0 1.657-1.343 3-3 3h-11c-1.657 0-3-1.343-3-3v-11c0-1.657 1.343-3 3-3h4.563c.552 0 1 .448 1 1s-.448 1-1 1h-4.563z&#34;/&gt;&lt;/svg&gt;&lt;/a&gt; and a desire to make it easier to manage volunteers for a medium-sized event. From there, it has grown into a powerful tool to allow event organizers to host their events, keep track of what needs to be done, recruit and manage volunteers, manage relationships, and more. If you have any questions, comments, or suggestions anytime, please reach out to us at &lt;a href=&#34;mailto:support@geteventpilot.com&#34; rel=&#34;external&#34; target=&#34;_blank&#34;&gt;support@geteventpilot.com&lt;svg width=&#34;16&#34; height=&#34;16&#34; viewBox=&#34;0 0 24 24&#34; xmlns=&#34;http://www.w3.org/2000/svg&#34;&gt;&lt;path fill=&#34;currentColor&#34; d=&#34;M14 5c-.552 0-1-.448-1-1s.448-1 1-1h6c.552 0 1 .448 1 1v6c0 .552-.448 1-1 1s-1-.448-1-1v-3.586l-7.293 7.293c-.391.39-1.024.39-1.414 0-.391-.391-.391-1.024 0-1.414l7.293-7.293h-3.586zm-9 2c-.552 0-1 .448-1 1v11c0 .552.448 1 1 1h11c.552 0 1-.448 1-1v-4.563c0-.552.448-1 1-1s1 .448 1 1v4.563c0 1.657-1.343 3-3 3h-11c-1.657 0-3-1.343-3-3v-11c0-1.657 1.343-3 3-3h4.563c.552 0 1 .448 1 1s-.448 1-1 1h-4.563z&#34;/&gt;&lt;/svg&gt;&lt;/a&gt;.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Volunteer Management</title>
+      <link>http://localhost:1313/docs/what-is/volunteer/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/docs/what-is/volunteer/</guid>
+      <description>&lt;p&gt;Recruit, manage, track, check-in, follow-up, and re-engage with your volunteers. In our eyes, the volunteer experience is one of the most important parts of any event.&lt;/p&gt;&#xA;&lt;h2 id=&#34;the-volunteer-lifecycle&#34;&gt;The Volunteer Lifecycle &lt;a href=&#34;#the-volunteer-lifecycle&#34; class=&#34;anchor&#34; aria-hidden=&#34;true&#34;&gt;&lt;i class=&#34;material-icons align-middle&#34;&gt;link&lt;/i&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;EventPilot believes that the volunteer experience is one of the most important parts of any event. With EventPilot, the volunteer lifecycle is as easy as:&lt;/p&gt;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;&#xA;&lt;h3 id=&#34;registration&#34;&gt;Registration &lt;a href=&#34;#registration&#34; class=&#34;anchor&#34; aria-hidden=&#34;true&#34;&gt;&lt;i class=&#34;material-icons align-middle&#34;&gt;link&lt;/i&gt;&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;Your volunteer uses an easy-to-use form made by EventPilot to register to volunteer for your event.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>
