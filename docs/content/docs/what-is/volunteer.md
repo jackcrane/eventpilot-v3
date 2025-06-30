@@ -1,5 +1,5 @@
 ---
-weight: 1
+weight: 2
 title: "Volunteer Management"
 description: "How EventPilot can help you manage your volunteers."
 icon: "favorite"

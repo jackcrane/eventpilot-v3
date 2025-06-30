@@ -14,10 +14,10 @@
 
 <html lang="en-us"><head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
     <meta charset="utf-8" />
-    <title>Features &amp; Goals | EventPilot User Guide</title>
+    <title>Locations, Jobs, and Shifts | EventPilot User Guide</title>
     <meta name="robots" content="noindex">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Understand what EventPilot is and how you can interact with it.">
+    <meta name="description" content="How EventPilot organizes workloads.">
     <meta name="keywords" content="Documentation, Hugo, Hugo Theme, Bootstrap" />
     <meta name="author" content="Colin Wilson - Lotus Labs" />
     <meta name="email" content="support@aigis.uk" />
@@ -30,15 +30,15 @@
 <link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
 <link rel="manifest" crossorigin="use-credentials" href="http://localhost:1313/site.webmanifest">
-<meta property="og:title" content="Features &amp; Goals" />
-<meta property="og:description" content="Understand what EventPilot is and how you can interact with it." />
+<meta property="og:title" content="Locations, Jobs, and Shifts" />
+<meta property="og:description" content="How EventPilot organizes workloads." />
 <meta property="og:type" content="article" />
-<meta property="og:url" content="http://localhost:1313/docs/what-is/core/" /><meta property="og:image" content="http://localhost:1313/opengraph/card-base-2_hu8941785010699887452.png"/><meta property="article:section" content="docs" />
-<meta property="article:published_time" content="2025-06-29T22:08:03-04:00" />
-<meta property="article:modified_time" content="2025-06-29T22:08:03-04:00" /><meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:image" content="http://localhost:1313/opengraph/card-base-2_hu8941785010699887452.png"/>
-<meta name="twitter:title" content="Features &amp; Goals"/>
-<meta name="twitter:description" content="Understand what EventPilot is and how you can interact with it."/>
+<meta property="og:url" content="http://localhost:1313/docs/what-is/locations&#43;jobs&#43;shifts/" /><meta property="og:image" content="http://localhost:1313/opengraph/card-base-2_hu5960627598050671326.png"/><meta property="article:section" content="docs" />
+
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="http://localhost:1313/opengraph/card-base-2_hu5960627598050671326.png"/>
+<meta name="twitter:title" content="Locations, Jobs, and Shifts"/>
+<meta name="twitter:description" content="How EventPilot organizes workloads."/>
 
     
         <link rel="alternate" type="application/atom+xml" title="Atom feed for EventPilot User Guide" href="/index.xml" />
@@ -96,7 +96,7 @@
                                     
                                         
                                         
-                                            <li class="current "><a class="sidebar-nested-link" href="http://localhost:1313/docs/what-is/core/">Features &amp; Goals</a></li>
+                                            <li class=" "><a class="sidebar-nested-link" href="http://localhost:1313/docs/what-is/core/">Features &amp; Goals</a></li>
                                         
                                     
                                         
@@ -111,7 +111,7 @@
                                     
                                         
                                         
-                                            <li class=" "><a class="sidebar-nested-link" href="http://localhost:1313/docs/what-is/locations&#43;jobs&#43;shifts/">Locations, Jobs, and Shifts</a></li>
+                                            <li class="current "><a class="sidebar-nested-link" href="http://localhost:1313/docs/what-is/locations&#43;jobs&#43;shifts/">Locations, Jobs, and Shifts</a></li>
                                         
                                     
                                 </ul>
@@ -262,7 +262,7 @@
             
         
             <li class="breadcrumb-item text-capitalize active" itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-                <span itemprop="name">Features &amp; Goals</span>
+                <span itemprop="name">Locations, Jobs, and Shifts</span>
                 <meta itemprop="position" content='3' />
             </li>
         
@@ -271,24 +271,54 @@
                                     
                                     <div class="row flex-xl-nowrap">
                                         
-                                        <div class="docs-toc col-xl-3  visually-hidden  d-xl-block"><toc>
+                                        <div class="docs-toc col-xl-3    d-xl-block"><toc>
     <div class="fw-bold text-uppercase mb-2">On this page</div>
-    <nav id="toc"></nav>
+    <nav id="toc">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#how-we-set-it-up">How we set it up</a>
+          <ul>
+            <li><a href="#locations">Locations</a></li>
+            <li><a href="#jobs">Jobs</a></li>
+            <li><a href="#shifts">Shifts</a></li>
+          </ul>
+        </li>
+        <li><a href="#the-philosophy-behind-eventpilots-organization">The philosophy behind EventPilot&rsquo;s organization</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
     </toc></div>
                                         
                                         
-                                        <div class="docs-toc-mobile  visually-hidden  d-print-none d-xl-none">
+                                        <div class="docs-toc-mobile    d-print-none d-xl-none">
                                             <button id="toc-dropdown-btn" class="btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-offset="0,0" aria-expanded="false">
                                                 Table of Contents
                                             </button>
-<nav id="toc-mobile"></nav></div>
-                                        <div class="docs-content col-12  mt-0">
+<nav id="toc-mobile">
+  <ul class="dropdown-menu">
+    <li>
+      <ul>
+        <li><a href="#how-we-set-it-up">How we set it up</a>
+          <ul>
+            <li><a href="#locations">Locations</a></li>
+            <li><a href="#jobs">Jobs</a></li>
+            <li><a href="#shifts">Shifts</a></li>
+          </ul>
+        </li>
+        <li><a href="#the-philosophy-behind-eventpilots-organization">The philosophy behind EventPilot&rsquo;s organization</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+                                        <div class="docs-content col-12 col-xl-9 mt-0">
                                             <div class="mb-0 d-flex">
                                                 
-                                                <i class="material-icons title-icon me-2">article</i>
+                                                <i class="material-icons title-icon me-2">calendar_view_month</i>
                                                 
                                                 <h1 class="content-title mb-0">
-                                                    Features &amp; Goals
+                                                    Locations, Jobs, and Shifts
                                                     
                                                 </h1>
                                             </div>
@@ -297,61 +327,17 @@
                                                 
     
     <div data-prismjs-copy="" data-prismjs-copy-success="" data-prismjs-copy-error="">
-        <p>At it&rsquo;s core, EventPilot is a powerful tool for event organizers to manage their events. But that is just our tagline, what actually is it?</p>
-<div class="row flex-xl-wrap pb-4">
-<div id="list-item" class="col-md-4 col-12 py-2">
-  <a class="text-decoration-none text-reset" href="../volunteer/">
-  <div class="card h-100 features feature-full-bg rounded p-4 position-relative overflow-hidden border-1">
-      <span class="h1 icon-color">
-        <i class="material-icons align-middle">favorite</i>
-      </span>
-      <div class="card-body p-0 content">
-        <p class="fs-5 fw-semibold card-title mb-1">Volunteer Management</p>
-        <p class="para card-text mb-0">Understand the volunteer lifecycle and how EventPilot can simplify your overhead.</p>
-      </div>
-    </div>
-  </a>
-</div>
-<div id="list-item" class="col-md-4 col-12 py-2">
-  <a class="text-decoration-none text-reset" href="../crm/">
-    <div class="card h-100 features feature-full-bg rounded p-4 position-relative overflow-hidden border-1">
-      <span class="h1 icon-color">
-        <i class="material-icons align-middle">work</i>
-      </span>
-      <div class="card-body p-0 content">
-        <p class="fs-5 fw-semibold card-title mb-1">CRM</p>
-        <p class="para card-text mb-0">Keep track of your contacts and manage relationships with volunteers, participants, sponsors, and any other contact.</p>
-      </div>
-    </div>
-  </a>
-</div>
-<div id="list-item" class="col-md-4 col-12 py-2">
-  <a class="text-decoration-none text-reset" href="../todo/">
-    <div class="card h-100 features feature-full-bg rounded p-4 position-relative overflow-hidden border-1">
-      <span class="h1 icon-color">
-        <i class="material-icons align-middle">check</i>
-      </span>
-      <div class="card-body p-0 content">
-        <p class="fs-5 fw-semibold card-title mb-1">Todo List Tracking</p>
-        <p class="para card-text mb-0">Keep track of everything that needs to be done before, during, and after your event.</p>
-      </div>
-    </div>
-  </a>
-</div>
-<div id="list-item" class="col-md-4 col-12 py-2">
-  <a class="text-decoration-none text-reset" href="../todo/">
-    <div class="card h-100 features feature-full-bg rounded p-4 position-relative overflow-hidden border-1">
-      <span class="h1 icon-color">
-        <i class="material-icons align-middle">map</i>
-      </span>
-      <div class="card-body p-0 content">
-        <p class="fs-5 fw-semibold card-title mb-1">Location, Job & Shift Management</p>
-        <p class="para card-text mb-0">Build out your event with locations, jobs, and shifts to help you manage your volunteers and direct efforts.</p>
-      </div>
-    </div>
-  </a>
-</div>
-</div>
+        <p>Understand how EventPilot organizes the work that needs to be done so your event can run smoothly.</p>
+<h2 id="how-we-set-it-up">How we set it up <a href="#how-we-set-it-up" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h2><p>EventPilot is built around the concept of <strong>locations</strong>, <strong>jobs</strong>, and <strong>shifts</strong>.</p>
+<p>Shifts live inside of jobs, and jobs live inside of locations.</p>
+<h3 id="locations">Locations <a href="#locations" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h3><p>Think of a location as an <strong>independent time and space</strong> where volunteers can work. You can have as many locations as you want, and they are a great way to communicate seperate units of work to your volunteers.</p>
+<p>It is not uncommon to have <strong>multiple locations that take place at the same physical location</strong>, but may take place at different times. For example, if you are hosting a race of some sort, you might have a few packet pick-up pop-ups in the days leading up to the event. If you event is on Saturday, you might have packet pick-ups on Wednesday, Thursday, and Friday at a local coffee shop. Those are all at the same location, but it would make sense to have them as separate locations.</p>
+<p>Locations can be as small and specific as you want. If you are hosting a marathon, you could have a single location for each individual water station if you wanted your volunteers to be able to pick what station they want to work, or you could have a single location and you manage the physical locations yourself.</p>
+<p>If you have any questions regarding how to set up your event, please contact us at <a href="mailto:support@geteventpilot.com" rel="external" target="_blank">support@geteventpilot.com<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M14 5c-.552 0-1-.448-1-1s.448-1 1-1h6c.552 0 1 .448 1 1v6c0 .552-.448 1-1 1s-1-.448-1-1v-3.586l-7.293 7.293c-.391.39-1.024.39-1.414 0-.391-.391-.391-1.024 0-1.414l7.293-7.293h-3.586zm-9 2c-.552 0-1 .448-1 1v11c0 .552.448 1 1 1h11c.552 0 1-.448 1-1v-4.563c0-.552.448-1 1-1s1 .448 1 1v4.563c0 1.657-1.343 3-3 3h-11c-1.657 0-3-1.343-3-3v-11c0-1.657 1.343-3 3-3h4.563c.552 0 1 .448 1 1s-.448 1-1 1h-4.563z"/></svg></a> and we can talk you through it!</p>
+<h3 id="jobs">Jobs <a href="#jobs" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h3><p>Think of a job as a <strong>distinct task</strong> that needs to be done. For example, if you are hosting a conference, you might have a job for ushers to help attendees find their seats, a job to help speakers get ready for their talk, and a job to help make sure the food table is stocked.</p>
+<h3 id="shifts">Shifts <a href="#shifts" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h3><p>Think of a shift as a <strong>time period</strong> during which a volunteer is working on a job. Most events last longer than a volunteer would like to work, so it is helpful to allow volunteers to sign up for shorter periods of time.</p>
+<h2 id="the-philosophy-behind-eventpilots-organization">The philosophy behind EventPilot&rsquo;s organization <a href="#the-philosophy-behind-eventpilots-organization" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h2><p>EventPilot is designed for medium- to large-scale events. These events commonly last several days, and span a large geographic area. We want to make it easy for you to manage volunteers across these dimensions, and we want to make it easy for your volunteers to do what they want to do, where they want to do it, and when they want to do it.</p>
+
     </div>
 
     
@@ -361,12 +347,22 @@
                                             <div><hr class="doc-hr">
 <div id="doc-nav" class="d-print-none">
 
-	<div class="row flex-xl-nowrap flex-row-reverse">
+	<div class="row flex-xl-nowrap ">
+	<div class="col-sm-6 pt-2 doc-next">
+		<a href="/docs/what-is/crm/">
+			<div class="card h-100 my-1">
+				<div class="card-body py-2">
+                    <p class="card-title fs-5 fw-semibold lh-base mb-0"><i class="material-icons align-middle">navigate_before</i> CRM / Relationship Management</p>
+					
+				</div>
+			</div>
+		</a>
+        </div>
 	<div class="col-sm-6 pt-2 doc-prev">
-		<a class="ms-auto" href="/docs/welcome/">
+		<a class="ms-auto" href="/docs/roadmap/">
 			<div class="card h-100 my-1 text-end">
 				<div class="card-body py-2">
-                    <p class="card-title fs-5 fw-semibold lh-base mb-0">Welcome to EventPilot <i class="material-icons align-middle">navigate_next</i></p>
+                    <p class="card-title fs-5 fw-semibold lh-base mb-0">Roadmap <i class="material-icons align-middle">navigate_next</i></p>
 					
 				</div>
 			</div>

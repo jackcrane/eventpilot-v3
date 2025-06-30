@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>What IS EventPilot? on EventPilot User Guide</title>
+    <title>The Basics on EventPilot User Guide</title>
     <link>http://localhost:1313/docs/what-is/</link>
-    <description>Recent content in What IS EventPilot? on EventPilot User Guide</description>
+    <description>Recent content in The Basics on EventPilot User Guide</description>
     <generator>Hugo</generator>
     <language>en-us</language>
     <lastBuildDate>Sun, 29 Jun 2025 22:08:03 -0400</lastBuildDate>
@@ -21,6 +21,20 @@
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>http://localhost:1313/docs/what-is/volunteer/</guid>
       <description>&lt;p&gt;Recruit, manage, track, check-in, follow-up, and re-engage with your volunteers. In our eyes, the volunteer experience is one of the most important parts of any event.&lt;/p&gt;&#xA;&lt;h2 id=&#34;how-to-set-up-for-volunteers-using-eventpilot&#34;&gt;How to set up for volunteers using EventPilot &lt;a href=&#34;#how-to-set-up-for-volunteers-using-eventpilot&#34; class=&#34;anchor&#34; aria-hidden=&#34;true&#34;&gt;&lt;i class=&#34;material-icons align-middle&#34;&gt;link&lt;/i&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Before you can start using EventPilot to recruit volunteers, you need to set up your event. This means setting up the locations, jobs, and shifts that your volunteers will work at, as well as building out the registration form so that you are gathering the information you need from your volunteers.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>CRM / Relationship Management</title>
+      <link>http://localhost:1313/docs/what-is/crm/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/docs/what-is/crm/</guid>
+      <description>&lt;p&gt;Keep track of your contacts and manage relationships with volunteers, participants, sponsors, and any other contact.&lt;/p&gt;&#xA;&lt;h2 id=&#34;why-the-eventpilot-crm-is-powerful&#34;&gt;Why the EventPilot CRM is powerful &lt;a href=&#34;#why-the-eventpilot-crm-is-powerful&#34; class=&#34;anchor&#34; aria-hidden=&#34;true&#34;&gt;&lt;i class=&#34;material-icons align-middle&#34;&gt;link&lt;/i&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;EventPilot&amp;rsquo;s CRM is a powerful tool that is &lt;strong&gt;built-in&lt;/strong&gt; to other EventPilot features. When a volunteer registers, they are automatically added to the CRM. When a participant registers, they are automatically added to the CRM. We don&amp;rsquo;t want to limit you to just using the CRM for people who have interacted with our platform, however, so we allow you to add any other contacts to the CRM. You can add a single contact at a time, or you can import unlimited contacts at once from a CSV file.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Locations, Jobs, and Shifts</title>
+      <link>http://localhost:1313/docs/what-is/locations&#43;jobs&#43;shifts/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/docs/what-is/locations&#43;jobs&#43;shifts/</guid>
+      <description>&lt;p&gt;Understand how EventPilot organizes the work that needs to be done so your event can run smoothly.&lt;/p&gt;&#xA;&lt;h2 id=&#34;how-we-set-it-up&#34;&gt;How we set it up &lt;a href=&#34;#how-we-set-it-up&#34; class=&#34;anchor&#34; aria-hidden=&#34;true&#34;&gt;&lt;i class=&#34;material-icons align-middle&#34;&gt;link&lt;/i&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;EventPilot is built around the concept of &lt;strong&gt;locations&lt;/strong&gt;, &lt;strong&gt;jobs&lt;/strong&gt;, and &lt;strong&gt;shifts&lt;/strong&gt;.&lt;/p&gt;&#xA;&lt;p&gt;Shifts live inside of jobs, and jobs live inside of locations.&lt;/p&gt;&#xA;&lt;h3 id=&#34;locations&#34;&gt;Locations &lt;a href=&#34;#locations&#34; class=&#34;anchor&#34; aria-hidden=&#34;true&#34;&gt;&lt;i class=&#34;material-icons align-middle&#34;&gt;link&lt;/i&gt;&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;Think of a location as an &lt;strong&gt;independent time and space&lt;/strong&gt; where volunteers can work. You can have as many locations as you want, and they are a great way to communicate seperate units of work to your volunteers.&lt;/p&gt;</description>
     </item>
   </channel>
 </rss>
