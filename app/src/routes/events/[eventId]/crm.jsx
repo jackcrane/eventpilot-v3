@@ -1,3 +1,5 @@
+// EventCrm.jsx
+import React, { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { EventPage } from "../../../../components/eventPage/EventPage";
 import { useCrm } from "../../../../hooks/useCrm";
@@ -21,7 +23,7 @@ import { CrmPersonsImport } from "../../../../components/crmPersonsImport/CrmPer
 import moment from "moment";
 import { useCrmFields } from "../../../../hooks/useCrmFields";
 import { Filters } from "../../../../components/filters/Filters";
-import { useState, useMemo } from "react";
+import { ColumnsPicker } from "../../../../components/columnsPicker/ColumnsPicker";
 
 const switchTypeForIcon = (type) => {
   switch (type) {
@@ -44,10 +46,10 @@ const switchTypeForIcon = (type) => {
 
 export const EventCrm = () => {
   const { eventId } = useParams();
-  const { crmFields, loading } = useCrm({ eventId });
+  const { crmFields, loading: fieldsLoading } = useCrm({ eventId });
   const {
     crmPersons,
-    loading: crmPersonsLoading,
+    loading: personsLoading,
     imports,
   } = useCrmPersons({ eventId });
   const { offcanvas, OffcanvasElement } = useOffcanvas({
@@ -56,19 +58,134 @@ export const EventCrm = () => {
   const { createCrmFieldModal, CreateCrmFieldModalElement, mutationLoading } =
     useCrmFields({ eventId });
 
-  // Filter state
   const [filters, setFilters] = useState([]);
 
-  // Applies all active filters to the CRM persons array
+  const [columnConfig, setColumnConfig] = useState([
+    {
+      id: "name",
+      label: "Name",
+      order: 1,
+      show: true,
+      accessor: "name",
+      sortable: true,
+      icon: <Icon i="id-badge-2" />,
+    },
+    {
+      id: "emails",
+      label: "Email",
+      order: 2,
+      show: true,
+      accessor: "emails",
+      render: (v) => v.map((e) => e.email).join(", "),
+      sortable: true,
+      icon: <Icon i="mail" />,
+    },
+    {
+      id: "phones",
+      label: "Phone",
+      order: 3,
+      show: true,
+      accessor: "phones",
+      render: (v) => v.map((p) => p.phone).join(", "),
+      sortable: true,
+      icon: <Icon i="phone" />,
+    },
+    {
+      id: "createdAt",
+      label: "Created At",
+      order: 4,
+      show: true,
+      accessor: "createdAt",
+      render: (v) => new Date(v).toLocaleDateString(),
+      sortable: true,
+      icon: <Icon i="calendar" />,
+    },
+    {
+      id: "source",
+      label: "Source",
+      order: 5,
+      show: true,
+      accessor: "source",
+      render: (v) => <Badge outline>{v}</Badge>,
+      sortable: true,
+    },
+    {
+      id: "actions",
+      label: "Actions",
+      order: 6,
+      show: true,
+      accessor: "id",
+      render: (id) => (
+        <Button
+          size="sm"
+          onClick={() =>
+            offcanvas({ content: <CrmPersonCRUD crmPersonId={id} /> })
+          }
+        >
+          <Icon i="info-circle" /> Details
+        </Button>
+      ),
+      sortable: false,
+    },
+  ]);
+
+  useEffect(() => {
+    if (
+      !fieldsLoading &&
+      crmFields.length > 0 &&
+      !columnConfig.some((c) => c.id.startsWith("field-"))
+    ) {
+      const dynamic = crmFields.map((f, i) => ({
+        id: `field-${f.id}`,
+        label: f.label,
+        order: 4 + i,
+        show: f.showInGeneralTable,
+        accessor: `fields.${f.id}`,
+        render: (v) =>
+          f.type === "DATE" ? new Date(v).toLocaleDateString() : v,
+        sortable: true,
+        sortFn:
+          f.type === "DATE"
+            ? (a, b) => {
+                const ta = new Date(a).getTime();
+                const tb = new Date(b).getTime();
+                if (!ta) return 1;
+                if (!tb) return -1;
+                return ta - tb;
+              }
+            : f.type === "NUMBER"
+            ? (a, b) => {
+                const na = parseFloat(a);
+                const nb = parseFloat(b);
+                if (!na) return 1;
+                if (!nb) return -1;
+                return na - nb;
+              }
+            : f.type === "BOOLEAN"
+            ? (a, b) => (a === "true" ? 1 : -1)
+            : undefined,
+        icon: <Icon i={switchTypeForIcon(f.type)} />,
+      }));
+
+      const idx = columnConfig.findIndex((c) => c.id === "phones");
+      const merged = [
+        ...columnConfig.slice(0, idx + 1),
+        ...dynamic,
+        ...columnConfig.slice(idx + 1),
+      ].map((c, i) => ({ ...c, order: i + 1 }));
+
+      setColumnConfig(merged);
+    }
+  }, [fieldsLoading, crmFields, columnConfig, offcanvas]);
+
   const filteredPersons = useMemo(() => {
     if (!filters.length) return crmPersons;
-    return crmPersons.filter((person) => {
-      return filters.every(({ field, operation, value }) => {
+    return crmPersons.filter((person) =>
+      filters.every(({ field, operation, value }) => {
         const raw = person[field.label];
         if (raw == null || value == null) return true;
         const val = String(raw).toLowerCase();
         const q = String(value).toLowerCase();
-
         switch (operation) {
           case "eq":
             return val === q;
@@ -97,12 +214,17 @@ export const EventCrm = () => {
           default:
             return true;
         }
-      });
-    });
+      })
+    );
   }, [crmPersons, filters]);
 
+  const visibleColumns = columnConfig
+    .filter((c) => c.show)
+    .sort((a, b) => a.order - b.order)
+    .map(({ id, label, show, order, ...rest }) => ({ label, ...rest }));
+
   return (
-    <EventPage title="CRM" loading={loading || crmPersonsLoading}>
+    <EventPage title="CRM" loading={fieldsLoading || personsLoading}>
       {OffcanvasElement}
       {CreateCrmFieldModalElement}
 
@@ -136,6 +258,10 @@ export const EventCrm = () => {
       <Util.Hr style={{ margin: "1rem 0" }} />
 
       <Row gap={1} className="mb-3">
+        <ColumnsPicker
+          columns={columnConfig}
+          onColumnsChange={setColumnConfig}
+        />
         <Filters onFilterChange={setFilters} />
       </Row>
 
@@ -163,97 +289,7 @@ export const EventCrm = () => {
       <Table
         className="card"
         showPagination={filteredPersons?.length > 10}
-        columns={[
-          {
-            label: "Name",
-            accessor: "name",
-            sortable: true,
-            icon: <Icon i="id-badge-2" />,
-          },
-          {
-            label: "Email",
-            accessor: "emails",
-            render: (v) => v.map((e) => e.email).join(", "),
-            sortable: true,
-            icon: <Icon i="mail" />,
-          },
-          {
-            label: "Phone",
-            accessor: "phones",
-            render: (v) => v.map((p) => p.phone).join(", "),
-            sortable: true,
-            icon: <Icon i="phone" />,
-          },
-          ...(Array.isArray(crmFields)
-            ? crmFields
-                .filter((f) => f.showInGeneralTable)
-                .sort((a, b) => a.generalTableOrder - b.generalTableOrder)
-                .map((f) => ({
-                  label: f.label,
-                  accessor: `fields.${f.id}`,
-                  render: (v) => {
-                    if (f.type === "DATE") {
-                      return new Date(v).toLocaleDateString();
-                    }
-                    return v;
-                  },
-                  sortable: true,
-                  sortFn: (a, b) => {
-                    if (f.type === "DATE") {
-                      let c = new Date(a).getTime();
-                      let d = new Date(b).getTime();
-                      if (!c) return 1;
-                      if (!d) return -1;
-                      return c - d;
-                    }
-
-                    if (f.type === "NUMBER") {
-                      let c = parseFloat(a);
-                      let d = parseFloat(b);
-                      if (!c) return 1;
-                      if (!d) return -1;
-                      return c - d;
-                    }
-
-                    if (f.type === "BOOLEAN") {
-                      return a === "true" ? 1 : -1;
-                    }
-
-                    return a - b;
-                  },
-                  icon: <Icon i={switchTypeForIcon(f.type)} />,
-                }))
-            : []),
-          {
-            label: "Created At",
-            accessor: "createdAt",
-            render: (v) => new Date(v).toLocaleDateString(),
-            sortable: true,
-            icon: <Icon i="calendar" />,
-          },
-          {
-            label: "Source",
-            accessor: "source",
-            render: (v) => <Badge outline>{v}</Badge>,
-            sortable: true,
-          },
-          {
-            label: "Actions",
-            accessor: "id",
-            render: (id, row) => (
-              <Button
-                size="sm"
-                onClick={() => {
-                  offcanvas({
-                    content: <CrmPersonCRUD crmPersonId={id} />,
-                  });
-                }}
-              >
-                <Icon i="info-circle" /> Details
-              </Button>
-            ),
-          },
-        ]}
+        columns={visibleColumns}
         data={filteredPersons}
       />
     </EventPage>

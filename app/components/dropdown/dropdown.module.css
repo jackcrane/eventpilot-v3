@@ -1,0 +1,7 @@
+.dropdownContent {
+  padding: 0.5rem 0.75rem;
+}
+
+.beingDragged {
+  opacity: 0.5;
+}

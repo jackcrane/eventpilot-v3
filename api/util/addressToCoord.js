@@ -1,55 +1,50 @@
 import fetch from "node-fetch";
 import { writeFileSync } from "fs";
+import { HttpProxyAgent } from "http-proxy-agent";
+import { proxies } from "./proxy-list.js";
 
-let lastRequestTime = 0;
+let proxyIndex = 0;
+
+const getNextAgent = () => {
+  const raw = proxies[proxyIndex % proxies.length];
+  proxyIndex += 1;
+  const proxyUrl = raw.startsWith("http") ? raw : `http://${raw}`;
+  return new HttpProxyAgent(proxyUrl);
+};
 
 export const addressToCoordinates = async (address) => {
-  const now = Date.now();
-  const timeSinceLastRequest = now - lastRequestTime;
-  const delay = 1100; // 1.1 seconds
+  const url =
+    `https://nominatim.openstreetmap.org/search?format=json&` +
+    `street=${encodeURIComponent(address)}&addressdetails=1`;
 
-  if (timeSinceLastRequest < delay) {
-    console.log("Delaying request", timeSinceLastRequest);
-    await new Promise((resolve) =>
-      setTimeout(resolve, delay - timeSinceLastRequest)
-    );
-  }
+  for (let attempt = 0; attempt < proxies.length; attempt++) {
+    const agent = getNextAgent();
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": "EventPilot" },
+        agent,
+      });
+      if (!res.ok) throw new Error(res.statusText);
 
-  lastRequestTime = Date.now();
-  const startTime = new Date();
-  const url = `https://nominatim.openstreetmap.org/search?format=json&street=${encodeURIComponent(
-    address
-  )}&addressdetails=1`;
+      const data = (await res.json())?.[0];
+      if (!data?.address) return null;
 
-  try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "EventPilot",
-      },
-    });
-
-    if (!response.ok) {
-      console.log("Response not ok", response.status, response.statusText);
-      return null;
+      return {
+        ...data.address,
+        lat: data.lat,
+        lon: data.lon,
+      };
+    } catch (err) {
+      const badProxy =
+        proxies[(proxyIndex - 1 + proxies.length) % proxies.length];
+      console.warn(
+        `Proxy ${badProxy} failed (attempt ${attempt + 1}): ${err.message}`
+      );
     }
-
-    const data = (await response.json())?.[0];
-
-    if (!data?.address) return null;
-
-    const endTime = new Date();
-    const timeTaken = endTime - startTime;
-    console.log("Time taken", timeTaken);
-
-    return {
-      ...data.address,
-      lat: data.lat,
-      lon: data.lon,
-      lookupTime: timeTaken,
-    };
-  } catch {
-    return null;
   }
+
+  console.error(`All proxies failed for address: ${address}`);
+  return null;
 };
 
 const addresses = [
@@ -85,10 +80,11 @@ const addresses = [
   "3500 Burnet Ave",
 ];
 
-const results = [];
-for (const address of addresses) {
-  const result = await addressToCoordinates(address);
-  results.push(result);
-}
-
-writeFileSync("./out.json", JSON.stringify(results, null, 2));
+(async () => {
+  const results = [];
+  for (const addr of addresses) {
+    results.push(await addressToCoordinates(addr));
+    console.log(addr);
+  }
+  writeFileSync("./out.json", JSON.stringify(results, null, 2));
+})();
