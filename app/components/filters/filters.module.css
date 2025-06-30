@@ -1,0 +1,17 @@
+.animatedContainer {
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+}
+
+.collapsed {
+  opacity: 0;
+  max-width: 0;
+  transform: translateX(-25%);
+  pointer-events: none;
+}
+
+.expanded {
+  opacity: 1;
+  max-width: 600px;
+}

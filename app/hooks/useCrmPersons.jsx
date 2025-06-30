@@ -17,10 +17,11 @@ export const useCrmPersons = ({ eventId }) => {
   // state for trimmed imports
   const [imports, setImports] = useState([]);
 
+  let fetchImports;
   useEffect(() => {
     let timerId;
 
-    const fetchImports = async () => {
+    fetchImports = async () => {
       try {
         const res = await authFetch(key, { method: "PATCH" });
         if (res.ok) {
@@ -91,6 +92,7 @@ export const useCrmPersons = ({ eventId }) => {
       );
 
       await mutate(key);
+      setTimeout(fetchImports, 1000);
       return true;
     } catch {
       return false;

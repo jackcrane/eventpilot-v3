@@ -8,6 +8,7 @@ import styles from "./crmPersonsImport.module.css";
 import { Icon } from "../../util/Icon";
 import toast from "react-hot-toast";
 import { useCrmPersons } from "../../hooks/useCrmPersons";
+import { useCrmFields } from "../../hooks/useCrmFields";
 
 export const mapCsvToPersons = (csvData, headerMap) =>
   csvData.map((row) => {
@@ -94,7 +95,10 @@ export const parseCsv = (file) =>
     reader.readAsText(file);
   });
 
-export const CrmPersonsImport = () => {
+export const CrmPersonsImport = ({
+  createCrmFieldModal,
+  CreateCrmFieldModalElement,
+}) => {
   const [csvData, setCsvData] = useState([]);
   const [csvHeaders, setCsvHeaders] = useState([]);
   const [headerMap, setHeaderMap] = useState({});
@@ -109,7 +113,17 @@ export const CrmPersonsImport = () => {
     setCsvHeaders(headers);
   };
 
-  const handleMappingChange = (header, id) => {
+  const [creatingNewField, setCreatingNewField] = useState(null);
+  const handleMappingChange = async (header, _id) => {
+    let id = _id;
+    if (id === "EVENTPILOT__INTERNAL_TRIGGER_CREATE_NEW_FIELD") {
+      setCreatingNewField(header);
+      const data = await createCrmFieldModal();
+      if (!data.crmField) toast.error("Error creating field");
+      id = data?.crmField?.id;
+      setCreatingNewField(null);
+    }
+
     setHeaderMap((prev) => {
       const newMap = { ...prev, [header]: id };
       const counts = Object.values(newMap).reduce((acc, val) => {
@@ -144,6 +158,7 @@ export const CrmPersonsImport = () => {
 
   return (
     <div style={{ marginBottom: 100 }}>
+      {CreateCrmFieldModalElement}
       <Typography.H5 className="mb-0 text-secondary">CONTACTS</Typography.H5>
       <Typography.H1>Import Contacts from CSV</Typography.H1>
       <Typography.Text>
@@ -177,6 +192,10 @@ export const CrmPersonsImport = () => {
               <div className={styles.headerName}>{header}</div>
               <Icon i="arrow-right" />
               <DropdownInput
+                loading={creatingNewField === header}
+                prompt={
+                  creatingNewField === header ? "Creating…" : "Select a field"
+                }
                 className={styles.headerMap}
                 aprops={{
                   style: { width: "100%", justifyContent: "space-between" },
@@ -184,7 +203,14 @@ export const CrmPersonsImport = () => {
                 value={headerMap[header] || "dont-import"}
                 onChange={({ id }) => handleMappingChange(header, id)}
                 items={[
-                  { id: "dont-import", label: "Don't import" },
+                  {
+                    id: "dont-import",
+                    label: "Don't import",
+                  },
+                  {
+                    label: "Create a new custom field",
+                    id: "EVENTPILOT__INTERNAL_TRIGGER_CREATE_NEW_FIELD",
+                  },
                   { type: "divider" },
                   { type: "header", text: "Default Fields" },
                   {

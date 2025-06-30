@@ -16,6 +16,7 @@ export const get = [
       const crmFields = await prisma.crmField.findMany({
         where: {
           eventId,
+          deleted: req.query.includeDeleted ? undefined : false,
         },
       });
 

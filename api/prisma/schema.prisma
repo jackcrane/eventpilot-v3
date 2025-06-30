@@ -525,6 +525,8 @@ model CrmPersonField {
 
   value String
 
+  metadata Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -539,6 +541,7 @@ enum CrmFieldType {
   BOOLEAN
   DATE
   NUMBER
+  ADDRESS
 }
 
 
