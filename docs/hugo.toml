@@ -31,6 +31,8 @@ title = 'EventPilot User Guide'
     sidebarIcons = true
     titleIcon = true
     scrollSpy = true
+    logoLinkUrl = "https://geteventpilot.com"
+    logo ="https://raw.githubusercontent.com/jackcrane/eventpilot-v3/refs/heads/main/app/assets/ico.png"
 
 [menu]
 [[menu.primary]]
