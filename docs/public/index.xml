@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>My New Hugo Site</title>
+    <title>EventPilot User Guide</title>
     <link>http://localhost:1313/</link>
-    <description>Recent content on My New Hugo Site</description>
+    <description>Recent content on EventPilot User Guide</description>
     <generator>Hugo</generator>
     <language>en-us</language>
     <lastBuildDate>Sun, 29 Jun 2025 22:08:03 -0400</lastBuildDate>
@@ -27,7 +27,7 @@
       <link>http://localhost:1313/docs/what-is/volunteer/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>http://localhost:1313/docs/what-is/volunteer/</guid>
-      <description>&lt;p&gt;Recruit, manage, track, check-in, follow-up, and re-engage with your volunteers. In our eyes, the volunteer experience is one of the most important parts of any event.&lt;/p&gt;&#xA;&lt;h2 id=&#34;the-volunteer-lifecycle&#34;&gt;The Volunteer Lifecycle &lt;a href=&#34;#the-volunteer-lifecycle&#34; class=&#34;anchor&#34; aria-hidden=&#34;true&#34;&gt;&lt;i class=&#34;material-icons align-middle&#34;&gt;link&lt;/i&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;EventPilot believes that the volunteer experience is one of the most important parts of any event. With EventPilot, the volunteer lifecycle is as easy as:&lt;/p&gt;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;&#xA;&lt;h3 id=&#34;registration&#34;&gt;Registration &lt;a href=&#34;#registration&#34; class=&#34;anchor&#34; aria-hidden=&#34;true&#34;&gt;&lt;i class=&#34;material-icons align-middle&#34;&gt;link&lt;/i&gt;&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;Your volunteer uses an easy-to-use form made by EventPilot to register to volunteer for your event.&lt;/p&gt;</description>
+      <description>&lt;p&gt;Recruit, manage, track, check-in, follow-up, and re-engage with your volunteers. In our eyes, the volunteer experience is one of the most important parts of any event.&lt;/p&gt;&#xA;&lt;h2 id=&#34;how-to-set-up-for-volunteers-using-eventpilot&#34;&gt;How to set up for volunteers using EventPilot &lt;a href=&#34;#how-to-set-up-for-volunteers-using-eventpilot&#34; class=&#34;anchor&#34; aria-hidden=&#34;true&#34;&gt;&lt;i class=&#34;material-icons align-middle&#34;&gt;link&lt;/i&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Before you can start using EventPilot to recruit volunteers, you need to set up your event. This means setting up the locations, jobs, and shifts that your volunteers will work at, as well as building out the registration form so that you are gathering the information you need from your volunteers.&lt;/p&gt;</description>
     </item>
   </channel>
 </rss>

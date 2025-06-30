@@ -1,6 +1,6 @@
-baseURL = 'http://example.org/'
+baseURL = 'http://docs.geteventpilot.com/'
 languageCode = 'en-us'
-title = 'My New Hugo Site'
+title = 'EventPilot User Guide'
 
 [module]
     [[module.imports]]
