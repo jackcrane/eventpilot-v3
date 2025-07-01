@@ -154,7 +154,7 @@ export const Event = () => {
                   </Typography.Text>
                   <Button
                     size="sm"
-                    href={`http://${event.slug}.localhost:5173`}
+                    href={`http://${event.slug}.geteventpilot.com`}
                     target="_blank"
                   >
                     Open Registration Page
