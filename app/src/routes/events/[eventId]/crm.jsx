@@ -16,7 +16,7 @@ import {
   Util,
 } from "tabler-react-2";
 import { Icon } from "../../../../util/Icon";
-import { CrmPersonCRUD } from "../../../../components/crmPersonCRUD/CrmPersonCRUD";
+import { CrmPersonCRUD } from "../../../../components/crmPersonCRUD/crmPersonCRUD";
 import { useCrmPersons } from "../../../../hooks/useCrmPersons";
 import { Row } from "../../../../util/Flex";
 import { CrmPersonsImport } from "../../../../components/crmPersonsImport/CrmPersonsImport";
