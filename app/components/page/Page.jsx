@@ -2,6 +2,7 @@ import { Header } from "../header/Header";
 import { useTitle } from "react-use";
 import styled from "styled-components";
 import { Sidenav } from "../sidenav/Sidenav";
+import { Footer } from "../footer/Footer";
 
 export const Page = ({
   children,
@@ -39,6 +40,7 @@ export const Page = ({
           {children}
         </div>
       </div>
+      <Footer />
     </>
   );
 };
