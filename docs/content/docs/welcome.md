@@ -2,7 +2,6 @@
 weight: 1
 title: "Welcome to EventPilot"
 description: "Welcome to the EventPilot User Guide, your go-to resource for everything EventPilot."
-icon: "article"
 date: "2025-06-29T22:08:03-04:00"
 lastmod: "2025-06-29T22:08:03-04:00"
 icon: "rocket_launch"

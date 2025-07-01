@@ -101,6 +101,17 @@
                     
                 
                     
+                        
+                        <li class="">
+                            <a class="sidebar-root-link" href="http://localhost:1313/docs/getting-started/">
+                                <i class="material-icons me-2">emoticon</i>
+                                
+                                Getting Started
+                            </a>
+                        </li>
+                    
+                
+                    
                     
                         <li class="sidebar-dropdown  ">
                             <button class="btn">
@@ -132,6 +143,17 @@
                                     
                                 </ul>
                             </div>
+                        </li>
+                    
+                
+                    
+                        
+                        <li class="">
+                            <a class="sidebar-root-link" href="http://localhost:1313/docs/vocab/">
+                                <i class="material-icons me-2">article</i>
+                                
+                                Glossary
+                            </a>
                         </li>
                     
                 
@@ -354,6 +376,23 @@
         </div>
         
         <div id="list-item" class="col-md-4 col-12 mt-4 pt-2">
+            <a class="text-decoration-none text-reset" href="http://localhost:1313/docs/getting-started/">
+                <div class="card h-100 features feature-full-bg rounded p-4 position-relative overflow-hidden border-1">
+                    <span class="icon-color d-flex my-3">
+                        <i class="material-icons align-middle">emoticon</i>
+                        
+                        
+                    </span>
+                    <div class="card-body p-0 content">
+                        <p class="fs-5 fw-semibold card-title mb-1">Getting Started</p>
+                        <p class="para card-text mb-0">Your first steps into EventPilot.</p>
+                    </div>
+                    
+                </div>
+            </a>
+        </div>
+        
+        <div id="list-item" class="col-md-4 col-12 mt-4 pt-2">
             <a class="text-decoration-none text-reset" href="http://localhost:1313/docs/what-is/">
                 <div class="card h-100 features feature-full-bg rounded p-4 position-relative overflow-hidden border-1">
                     <span class="icon-color d-flex my-3">
@@ -364,6 +403,23 @@
                     <div class="card-body p-0 content">
                         <p class="fs-5 fw-semibold card-title mb-1">The Basics</p>
                         <p class="para card-text mb-0">This section will cover what EventPilot is and how you can interact with it.</p>
+                    </div>
+                    
+                </div>
+            </a>
+        </div>
+        
+        <div id="list-item" class="col-md-4 col-12 mt-4 pt-2">
+            <a class="text-decoration-none text-reset" href="http://localhost:1313/docs/vocab/">
+                <div class="card h-100 features feature-full-bg rounded p-4 position-relative overflow-hidden border-1">
+                    <span class="icon-color d-flex my-3">
+                        <i class="material-icons align-middle">article</i>
+                        
+                        
+                    </span>
+                    <div class="card-body p-0 content">
+                        <p class="fs-5 fw-semibold card-title mb-1">Glossary</p>
+                        <p class="para card-text mb-0">A glossary of terms used in EventPilot.</p>
                     </div>
                     
                 </div>
@@ -607,6 +663,20 @@
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
 
     
@@ -634,10 +704,10 @@
     index.add(
             {
                 id:  2 ,
-                href: "\/docs\/what-is\/",
-                title: "The Basics",
-                description: "This section will cover what EventPilot is and how you can interact with it.",
-                content: ""
+                href: "\/docs\/getting-started\/",
+                title: "Getting Started",
+                description: "Your first steps into EventPilot.",
+                content: "EventPilot is a powerful tool, and we have strived to make it easy to use, but a little guidance is always helpful. This page will cover your first steps into EventPilot, getting you up and running with the basics.\n1. Create an EventPilot Account linkTo get started, you’ll need to create an account. You will do this by clicking any of the “register” buttons or by visiting geteventpilot.com/register. We will need your name, your email address, and a password to create your accout. Be sure to use an email address you have access to, as you will need to verify your email address to access your account.\n2. Create an Event linkCreating an event is the first step in using EventPilot. It will hold all of your data for a particular event.\nCreate an event by clicking the “Create Event” button on the page you are directed to after registering (geteventpilot.com/events). You will need to enter:\nField Description Restrictions Example Name The name of your event Must be at least 2 characters long “The Atlantis Marathon” Description A short description of your event Must be at least 10 characters long “Run 26.2 miles through the lost city of Atlantis” Slug A short, lowercase, hyphenated string of letters Must be 3-30 characters long and can only contain lowercase letters, numbers, and hyphens “atlantis-marathon” Logo Your event’s logo Should be a square image at least 200px by 200px n/a Default Timezone The timezone in which your event will be hosted n/a “Eastern Standard Time” All fields are required, but can be changed later.\nwarning We strongly recommend not changing the slug after you have created your event. URLs autogenerated by EventPilot will use the event’s slug, so changing the slug will break links to your event (including ones that EventPilot has generated and sent to your contacts). "
             }
         );
     index.add(
@@ -652,6 +722,15 @@
     index.add(
             {
                 id:  4 ,
+                href: "\/docs\/what-is\/",
+                title: "The Basics",
+                description: "This section will cover what EventPilot is and how you can interact with it.",
+                content: ""
+            }
+        );
+    index.add(
+            {
+                id:  5 ,
                 href: "\/docs\/what-is\/crm\/",
                 title: "CRM / Relationship Management",
                 description: "How EventPilot can help you manage your relationships.",
@@ -660,7 +739,7 @@
         );
     index.add(
             {
-                id:  5 ,
+                id:  6 ,
                 href: "\/docs\/what-is\/locations\u002bjobs\u002bshifts\/",
                 title: "Locations, Jobs, and Shifts",
                 description: "How EventPilot organizes workloads.",
@@ -669,7 +748,16 @@
         );
     index.add(
             {
-                id:  6 ,
+                id:  7 ,
+                href: "\/docs\/vocab\/",
+                title: "Glossary",
+                description: "A glossary of terms used in EventPilot.",
+                content: "EventPilot uses a number of terms where clarity is important. Here is a glossary of terms used in EventPilot.\nEvent linkAn event is a collection of locations, jobs, shifts, volunteers, statistics, and contacts. It is the “highest level” form of organization in EventPilot. We recommend creating a distinct EventPilot event for each event you are running. You can create as many events as you want.\n"
+            }
+        );
+    index.add(
+            {
+                id:  8 ,
                 href: "\/docs\/roadmap\/",
                 title: "Roadmap",
                 description: "What is coming next for EventPilot?",
@@ -678,7 +766,7 @@
         );
     index.add(
             {
-                id:  7 ,
+                id:  9 ,
                 href: "\/docs\/",
                 title: "Docs",
                 description: "",
