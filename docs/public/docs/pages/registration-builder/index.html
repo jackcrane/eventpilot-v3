@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+
+
+
+
+
+    
+
+    
+
+    
+
+    
+
+<html lang="en-us"><head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+    <meta charset="utf-8" />
+    <title>Volunteer Registration Builder | EventPilot User Guide</title>
+    <meta name="robots" content="noindex">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="How to build a registration form for volunteers.">
+    <meta name="keywords" content="Documentation, Hugo, Hugo Theme, Bootstrap" />
+    <meta name="author" content="Colin Wilson - Lotus Labs" />
+    <meta name="email" content="support@aigis.uk" />
+    <meta name="website" content="https://lotusdocs.dev" />
+    <meta name="Version" content="v0.1.0" />
+    
+    <link rel="icon" href="http://localhost:1313/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="http://localhost:1313/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="manifest" crossorigin="use-credentials" href="http://localhost:1313/site.webmanifest">
+<meta property="og:title" content="Volunteer Registration Builder" />
+<meta property="og:description" content="How to build a registration form for volunteers." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://localhost:1313/docs/pages/registration-builder/" /><meta property="og:image" content="http://localhost:1313/opengraph/card-base-2_hu4045121803397747138.png"/><meta property="article:section" content="docs" />
+
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="http://localhost:1313/opengraph/card-base-2_hu4045121803397747138.png"/>
+<meta name="twitter:title" content="Volunteer Registration Builder"/>
+<meta name="twitter:description" content="How to build a registration form for volunteers."/>
+
+    
+        <link rel="alternate" type="application/atom+xml" title="Atom feed for EventPilot User Guide" href="/index.xml" />
+    
+    <script>(()=>{var t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,e=localStorage.getItem("theme");t&&e===null&&(localStorage.setItem("theme","dark"),document.documentElement.setAttribute("data-dark-mode","")),t&&e==="dark"&&document.documentElement.setAttribute("data-dark-mode",""),e==="dark"&&document.documentElement.setAttribute("data-dark-mode","")})()</script>
+    
+    
+            
+                <script type="text/javascript" src="http://localhost:1313/docs/js/flexsearch.bundle.js"></script>
+            
+        
+    
+    
+
+    <link rel="stylesheet" href="/docs/scss/style.css" crossorigin="anonymous">
+    
+    
+    </head>
+<body>
+        <div class="content">
+            <div class="page-wrapper toggled">
+<nav id="sidebar" class="sidebar-wrapper">
+    <div class="sidebar-brand">
+        <a href='https://geteventpilot.com' aria-label="HomePage" alt="HomePage">
+            
+                <svg width="26" height="26" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_13_2)">
+<rect width="100" height="100" fill="#0054A6"/>
+<rect x="-50.222" y="113.489" width="100.262" height="51.4949" transform="rotate(-45 -50.222 113.489)" fill="#4D87C1"/>
+<rect x="-37.7702" y="112.126" width="100.262" height="37.0368" transform="rotate(-45 -37.7702 112.126)" fill="#4D87C1"/>
+<g clip-path="url(#clip1_13_2)">
+<path d="M78.125 21.875L57.8125 78.125C57.6754 78.4242 57.4553 78.6777 57.1783 78.8555C56.9013 79.0332 56.5791 79.1277 56.25 79.1277C55.9209 79.1277 55.5987 79.0332 55.3217 78.8555C55.0447 78.6777 54.8246 78.4242 54.6875 78.125L43.75 56.25L21.875 45.3125C21.5758 45.1754 21.3223 44.9553 21.1445 44.6783C20.9668 44.4013 20.8723 44.0791 20.8723 43.75C20.8723 43.4209 20.9668 43.0987 21.1445 42.8217C21.3223 42.5447 21.5758 42.3246 21.875 42.1875L78.125 21.875Z" fill="#4D87C1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M43.75 56.25L78.125 21.875" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_13_2">
+<rect width="100" height="100" fill="white"/>
+</clipPath>
+<clipPath id="clip1_13_2">
+<rect width="75" height="75" fill="white" transform="translate(12.5 12.5)"/>
+</clipPath>
+</defs>
+</svg>
+
+            
+        </a>
+    </div>
+    <div class="sidebar-content" style="height: calc(100% - 131px);">
+        <ul class="sidebar-menu">
+            
+                
+                
+                    
+                        
+                        <li class="">
+                            <a class="sidebar-root-link" href="http://localhost:1313/docs/welcome/">
+                                <i class="material-icons me-2">rocket_launch</i>
+                                
+                                Welcome to EventPilot
+                            </a>
+                        </li>
+                    
+                
+                    
+                        
+                        <li class="">
+                            <a class="sidebar-root-link" href="http://localhost:1313/docs/getting-started/">
+                                <i class="material-icons me-2">emoticon</i>
+                                
+                                Getting Started
+                            </a>
+                        </li>
+                    
+                
+                    
+                    
+                        <li class="sidebar-dropdown  ">
+                            <button class="btn">
+                                <i class="material-icons me-2">overview</i>
+                                The Basics
+                            </button>
+                            <div class="sidebar-submenu ">
+                                <ul>
+                                    
+                                        
+                                        
+                                            <li class=" "><a class="sidebar-nested-link" href="http://localhost:1313/docs/what-is/core/">Features &amp; Goals</a></li>
+                                        
+                                    
+                                        
+                                        
+                                            <li class=" "><a class="sidebar-nested-link" href="http://localhost:1313/docs/what-is/volunteer/">Volunteer Management</a></li>
+                                        
+                                    
+                                        
+                                        
+                                            <li class=" "><a class="sidebar-nested-link" href="http://localhost:1313/docs/what-is/crm/">CRM / Relationship Management</a></li>
+                                        
+                                    
+                                        
+                                        
+                                            <li class=" "><a class="sidebar-nested-link" href="http://localhost:1313/docs/what-is/locations&#43;jobs&#43;shifts/">Locations, Jobs, and Shifts</a></li>
+                                        
+                                    
+                                </ul>
+                            </div>
+                        </li>
+                    
+                
+                    
+                    
+                        <li class="sidebar-dropdown  current active">
+                            <button class="btn">
+                                <i class="material-icons me-2">description</i>
+                                Pages
+                            </button>
+                            <div class="sidebar-submenu d-block">
+                                <ul>
+                                    
+                                        
+                                        
+                                            <li class="current "><a class="sidebar-nested-link" href="http://localhost:1313/docs/pages/registration-builder/">Volunteer Registration Builder</a></li>
+                                        
+                                    
+                                </ul>
+                            </div>
+                        </li>
+                    
+                
+                    
+                        
+                        <li class="">
+                            <a class="sidebar-root-link" href="http://localhost:1313/docs/vocab/">
+                                <i class="material-icons me-2">article</i>
+                                
+                                Glossary
+                            </a>
+                        </li>
+                    
+                
+                    
+                        
+                        <li class="">
+                            <a class="sidebar-root-link" href="http://localhost:1313/docs/roadmap/">
+                                <i class="material-icons me-2">timeline</i>
+                                
+                                Roadmap
+                            </a>
+                        </li>
+                    
+                
+                    
+                    
+                        <li class="sidebar-dropdown  ">
+                            <button class="btn">
+                                <i class="material-icons me-2">balance</i>
+                                Terms &amp; Privacy
+                            </button>
+                            <div class="sidebar-submenu ">
+                                <ul>
+                                    
+                                        
+                                        
+                                            <li class=" "><a class="sidebar-nested-link" href="http://localhost:1313/docs/legal/privacy/">Privacy Policy</a></li>
+                                        
+                                    
+                                        
+                                        
+                                            <li class=" "><a class="sidebar-nested-link" href="http://localhost:1313/docs/legal/terms/">Terms &amp; Conditions</a></li>
+                                        
+                                    
+                                </ul>
+                            </div>
+                        </li>
+                    
+                
+            
+        </ul>
+        
+    </div>
+    
+        <ul class="sidebar-footer list-unstyled mb-0">
+            
+        </ul>
+    
+</nav>
+
+                    <main class="page-content bg-transparent">
+                        
+<div id="top-header" class="top-header d-print-none">
+    <div class="header-bar d-flex justify-content-between">
+        <div class="d-flex align-items-center">
+            <a href='https://geteventpilot.com' class="logo-icon me-3" aria-label="HomePage" alt="HomePage">
+                <div class="small">
+                    
+                            <svg width="440" height="100" viewBox="0 0 440 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_1_97)">
+<rect width="100" height="100" rx="35" fill="#0054A6"/>
+<rect x="-50.222" y="113.489" width="100.262" height="51.4949" transform="rotate(-45 -50.222 113.489)" fill="#4D87C1"/>
+<rect x="-37.7702" y="112.126" width="100.262" height="37.0368" transform="rotate(-45 -37.7702 112.126)" fill="#4D87C1"/>
+<g clip-path="url(#clip1_1_97)">
+<path d="M78.125 21.875L57.8125 78.125C57.6754 78.4242 57.4553 78.6777 57.1783 78.8555C56.9013 79.0332 56.5791 79.1277 56.25 79.1277C55.9209 79.1277 55.5987 79.0332 55.3217 78.8555C55.0447 78.6777 54.8246 78.4242 54.6875 78.125L43.75 56.25L21.875 45.3125C21.5758 45.1754 21.3223 44.9553 21.1445 44.6783C20.9668 44.4013 20.8723 44.0791 20.8723 43.75C20.8723 43.4209 20.9668 43.0987 21.1445 42.8217C21.3223 42.5447 21.5758 42.3246 21.875 42.1875L78.125 21.875Z" fill="#4D87C1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M43.75 56.25L78.125 21.875" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+<path d="M115.289 75V25.6787H145.846V31.2158H121.441V47.041H144.581V52.5098H121.441V69.4629H145.846V75H115.289ZM166.661 75L153.023 38.1543H159.312L169.396 68.5059H169.942L180.025 38.1543H186.314L172.677 75H166.661ZM207.848 75.6494C197.32 75.6494 190.963 68.2666 190.963 56.7139V56.6797C190.963 45.2979 197.457 37.5049 207.472 37.5049C217.486 37.5049 223.57 44.9561 223.57 55.9619V58.2861H197.047C197.218 65.9082 201.422 70.3516 207.984 70.3516C212.975 70.3516 216.051 67.9932 217.042 65.7715L217.179 65.4639H223.126L223.058 65.7373C221.793 70.7275 216.529 75.6494 207.848 75.6494ZM207.438 42.8027C201.969 42.8027 197.799 46.5283 197.149 53.5352H217.521C216.905 46.2549 212.872 42.8027 207.438 42.8027ZM232.799 75V38.1543H238.746V43.6914H239.293C241.139 39.7949 244.591 37.5049 250.025 37.5049C258.297 37.5049 262.911 42.3926 262.911 51.1426V75H256.964V52.5781C256.964 45.9473 254.229 42.7686 248.351 42.7686C242.472 42.7686 238.746 46.7334 238.746 53.1934V75H232.799ZM286.769 75.2734C279.181 75.2734 276.002 72.4707 276.002 65.4297V43.0762H270.191V38.1543H276.002V28.6182H282.154V38.1543H290.221V43.0762H282.154V63.9258C282.154 68.2666 283.658 70.0098 287.486 70.0098C288.546 70.0098 289.127 69.9756 290.221 69.873V74.9316C289.059 75.1367 287.931 75.2734 286.769 75.2734ZM299.859 75V25.6787H318.453C327.716 25.6787 334.278 32.0703 334.278 41.4355V41.5039C334.278 50.8691 327.716 57.3975 318.453 57.3975H306.012V75H299.859ZM316.881 31.1475H306.012V51.9287H316.881C323.922 51.9287 327.989 48.0664 327.989 41.5723V41.5039C327.989 35.0098 323.922 31.1475 316.881 31.1475ZM346.754 31.0449C344.498 31.0449 342.652 29.1992 342.652 26.9434C342.652 24.6875 344.498 22.8418 346.754 22.8418C349.01 22.8418 350.855 24.6875 350.855 26.9434C350.855 29.1992 349.01 31.0449 346.754 31.0449ZM343.746 75V38.1543H349.693V75H343.746ZM361.246 75V23.5254H367.193V75H361.246ZM393.751 75.6494C383.258 75.6494 376.764 68.4033 376.764 56.6113V56.543C376.764 44.7168 383.258 37.5049 393.751 37.5049C404.244 37.5049 410.738 44.7168 410.738 56.543V56.6113C410.738 68.4033 404.244 75.6494 393.751 75.6494ZM393.751 70.3857C400.724 70.3857 404.654 65.293 404.654 56.6113V56.543C404.654 47.8271 400.724 42.7686 393.751 42.7686C386.778 42.7686 382.848 47.8271 382.848 56.543V56.6113C382.848 65.293 386.778 70.3857 393.751 70.3857ZM433.058 75.2734C425.47 75.2734 422.291 72.4707 422.291 65.4297V43.0762H416.48V38.1543H422.291V28.6182H428.443V38.1543H436.51V43.0762H428.443V63.9258C428.443 68.2666 429.947 70.0098 433.775 70.0098C434.835 70.0098 435.416 69.9756 436.51 69.873V74.9316C435.348 75.1367 434.22 75.2734 433.058 75.2734Z" fill="black"/>
+<defs>
+<clipPath id="clip0_1_97">
+<rect width="100" height="100" rx="35" fill="white"/>
+</clipPath>
+<clipPath id="clip1_1_97">
+<rect width="75" height="75" fill="white" transform="translate(12.5 12.5)"/>
+</clipPath>
+</defs>
+</svg>
+
+                    
+                </div>
+                <div class="big">
+                    
+                            <svg width="26" height="26" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_13_2)">
+<rect width="100" height="100" fill="#0054A6"/>
+<rect x="-50.222" y="113.489" width="100.262" height="51.4949" transform="rotate(-45 -50.222 113.489)" fill="#4D87C1"/>
+<rect x="-37.7702" y="112.126" width="100.262" height="37.0368" transform="rotate(-45 -37.7702 112.126)" fill="#4D87C1"/>
+<g clip-path="url(#clip1_13_2)">
+<path d="M78.125 21.875L57.8125 78.125C57.6754 78.4242 57.4553 78.6777 57.1783 78.8555C56.9013 79.0332 56.5791 79.1277 56.25 79.1277C55.9209 79.1277 55.5987 79.0332 55.3217 78.8555C55.0447 78.6777 54.8246 78.4242 54.6875 78.125L43.75 56.25L21.875 45.3125C21.5758 45.1754 21.3223 44.9553 21.1445 44.6783C20.9668 44.4013 20.8723 44.0791 20.8723 43.75C20.8723 43.4209 20.9668 43.0987 21.1445 42.8217C21.3223 42.5447 21.5758 42.3246 21.875 42.1875L78.125 21.875Z" fill="#4D87C1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M43.75 56.25L78.125 21.875" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_13_2">
+<rect width="100" height="100" fill="white"/>
+</clipPath>
+<clipPath id="clip1_13_2">
+<rect width="75" height="75" fill="white" transform="translate(12.5 12.5)"/>
+</clipPath>
+</defs>
+</svg>
+
+                    
+                </div>
+            </a>
+            <button id="close-sidebar" class="btn btn-icon btn-soft">
+                <span class="material-icons size-20 menu-icon align-middle">menu</span>
+            </button>
+            
+            
+                    
+                    <button id="flexsearch-button" class="ms-3 btn btn-soft" data-bs-toggle="collapse" data-bs-target="#FlexSearchCollapse" aria-expanded="false" aria-controls="FlexSearchCollapse">
+                        <span class="material-icons size-20 menu-icon align-middle">search</span>
+                        <span class="flexsearch-button-placeholder ms-1 me-2 d-none d-sm-block">Search</span>
+                        <div class="d-none d-sm-block">
+                            <span class="flexsearch-button-keys">
+                                <kbd class="flexsearch-button-cmd-key">
+                                    <svg width="44" height="15"><path d="M2.118,11.5A1.519,1.519,0,0,1,1,11.042,1.583,1.583,0,0,1,1,8.815a1.519,1.519,0,0,1,1.113-.458h.715V6.643H2.118A1.519,1.519,0,0,1,1,6.185,1.519,1.519,0,0,1,.547,5.071,1.519,1.519,0,0,1,1,3.958,1.519,1.519,0,0,1,2.118,3.5a1.519,1.519,0,0,1,1.114.458A1.519,1.519,0,0,1,3.69,5.071v.715H5.4V5.071A1.564,1.564,0,0,1,6.976,3.5,1.564,1.564,0,0,1,8.547,5.071,1.564,1.564,0,0,1,6.976,6.643H6.261V8.357h.715a1.575,1.575,0,0,1,1.113,2.685,1.583,1.583,0,0,1-2.227,0A1.519,1.519,0,0,1,5.4,9.929V9.214H3.69v.715a1.519,1.519,0,0,1-.458,1.113A1.519,1.519,0,0,1,2.118,11.5Zm0-.857a.714.714,0,0,0,.715-.714V9.214H2.118a.715.715,0,1,0,0,1.429Zm4.858,0a.715.715,0,1,0,0-1.429H6.261v.715a.714.714,0,0,0,.715.714ZM3.69,8.357H5.4V6.643H3.69ZM2.118,5.786h.715V5.071a.714.714,0,0,0-.715-.714.715.715,0,0,0-.5,1.22A.686.686,0,0,0,2.118,5.786Zm4.143,0h.715a.715.715,0,0,0,.5-1.22.715.715,0,0,0-1.22.5Z" fill="currentColor"></path><path d="M12.4,11.475H11.344l3.879-7.95h1.056Z" fill="currentColor"></path><path d="M25.073,5.384l-.864.576a2.121,2.121,0,0,0-1.786-.923,2.207,2.207,0,0,0-2.266,2.326,2.206,2.206,0,0,0,2.266,2.325,2.1,2.1,0,0,0,1.782-.918l.84.617a3.108,3.108,0,0,1-2.622,1.293,3.217,3.217,0,0,1-3.349-3.317,3.217,3.217,0,0,1,3.349-3.317A3.046,3.046,0,0,1,25.073,5.384Z" fill="currentColor"></path><path d="M30.993,5.142h-2.07v5.419H27.891V5.142h-2.07V4.164h5.172Z" fill="currentColor"></path><path d="M34.67,4.164c1.471,0,2.266.658,2.266,1.851,0,1.087-.832,1.809-2.134,1.855l2.107,2.691h-1.28L33.591,7.87H33.07v2.691H32.038v-6.4Zm-1.6.969v1.8h1.572c.832,0,1.22-.3,1.22-.918s-.411-.882-1.22-.882Z" fill="currentColor"></path><path d="M42.883,10.561H38.31v-6.4h1.033V9.583h3.54Z" fill="currentColor"></path></svg>
+                                </kbd>
+                                <kbd class="flexsearch-button-key">
+                                    <svg width="15" height="15"><path d="M5.926,12.279H4.41L9.073,2.721H10.59Z" fill="currentColor"/></svg>
+                                </kbd>
+                            </span>
+                        </div>
+                    </button>
+                
+            </div>
+
+        <div class="d-flex align-items-center">
+            <ul class="list-unstyled mb-0">
+                
+            </ul>
+            <button id="mode" class="btn btn-icon btn-default ms-2" type="button" aria-label="Toggle user interface mode">
+                <span class="toggle-dark">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="30" width="30" viewBox="0 0 48 48" fill="currentColor">
+                        <title>Enable dark mode</title>
+                        <path d="M24 42q-7.5 0-12.75-5.25T6 24q0-7.5 5.25-12.75T24 6q.4 0 .85.025.45.025 1.15.075-1.8 1.6-2.8 3.95-1 2.35-1 4.95 0 4.5 3.15 7.65Q28.5 25.8 33 25.8q2.6 0 4.95-.925T41.9 22.3q.05.6.075.975Q42 23.65 42 24q0 7.5-5.25 12.75T24 42Zm0-3q5.45 0 9.5-3.375t5.05-7.925q-1.25.55-2.675.825Q34.45 28.8 33 28.8q-5.75 0-9.775-4.025T19.2 15q0-1.2.25-2.575.25-1.375.9-3.125-4.9 1.35-8.125 5.475Q9 18.9 9 24q0 6.25 4.375 10.625T24 39Zm-.2-14.85Z"/>
+                    </svg>
+                </span>
+                <span class="toggle-light">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="30" width="30" viewBox="0 0 48 48" fill="currentColor">
+                        <title>Enable light mode</title>
+                        <path d="M24 31q2.9 0 4.95-2.05Q31 26.9 31 24q0-2.9-2.05-4.95Q26.9 17 24 17q-2.9 0-4.95 2.05Q17 21.1 17 24q0 2.9 2.05 4.95Q21.1 31 24 31Zm0 3q-4.15 0-7.075-2.925T14 24q0-4.15 2.925-7.075T24 14q4.15 0 7.075 2.925T34 24q0 4.15-2.925 7.075T24 34ZM3.5 25.5q-.65 0-1.075-.425Q2 24.65 2 24q0-.65.425-1.075Q2.85 22.5 3.5 22.5h5q.65 0 1.075.425Q10 23.35 10 24q0 .65-.425 1.075-.425.425-1.075.425Zm36 0q-.65 0-1.075-.425Q38 24.65 38 24q0-.65.425-1.075.425-.425 1.075-.425h5q.65 0 1.075.425Q46 23.35 46 24q0 .65-.425 1.075-.425.425-1.075.425ZM24 10q-.65 0-1.075-.425Q22.5 9.15 22.5 8.5v-5q0-.65.425-1.075Q23.35 2 24 2q.65 0 1.075.425.425.425.425 1.075v5q0 .65-.425 1.075Q24.65 10 24 10Zm0 36q-.65 0-1.075-.425-.425-.425-.425-1.075v-5q0-.65.425-1.075Q23.35 38 24 38q.65 0 1.075.425.425.425.425 1.075v5q0 .65-.425 1.075Q24.65 46 24 46ZM12 14.1l-2.85-2.8q-.45-.45-.425-1.075.025-.625.425-1.075.45-.45 1.075-.45t1.075.45L14.1 12q.4.45.4 1.05 0 .6-.4 1-.4.45-1.025.45-.625 0-1.075-.4Zm24.7 24.75L33.9 36q-.4-.45-.4-1.075t.45-1.025q.4-.45 1-.45t1.05.45l2.85 2.8q.45.45.425 1.075-.025.625-.425 1.075-.45.45-1.075.45t-1.075-.45ZM33.9 14.1q-.45-.45-.45-1.05 0-.6.45-1.05l2.8-2.85q.45-.45 1.075-.425.625.025 1.075.425.45.45.45 1.075t-.45 1.075L36 14.1q-.4.4-1.025.4-.625 0-1.075-.4ZM9.15 38.85q-.45-.45-.45-1.075t.45-1.075L12 33.9q.45-.45 1.05-.45.6 0 1.05.45.45.45.45 1.05 0 .6-.45 1.05l-2.8 2.85q-.45.45-1.075.425-.625-.025-1.075-.425ZM24 24Z"/>
+                    </svg>
+                </span>
+            </button>
+            
+        </div>
+    </div>
+    
+    
+            <div class="collapse" id="FlexSearchCollapse">
+                <div class="flexsearch-container">
+                    <div class="flexsearch-keymap">
+                        <li>
+                            <kbd class="flexsearch-button-cmd-key"><svg width="15" height="15" aria-label="Arrow down" role="img"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2"><path d="M7.5 3.5v8M10.5 8.5l-3 3-3-3"></path></g></svg></kbd>
+                            <kbd class="flexsearch-button-cmd-key"><svg width="15" height="15" aria-label="Arrow up" role="img"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2"><path d="M7.5 11.5v-8M10.5 6.5l-3-3-3 3"></path></g></svg></kbd>
+                            <span class="flexsearch-key-label">to navigate</span>
+                        </li>
+                        <li>
+                            <kbd class="flexsearch-button-cmd-key"><svg width="15" height="15" aria-label="Enter key" role="img"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2"><path d="M12 3.53088v3c0 1-1 2-2 2H4M7 11.53088l-3-3 3-3"></path></g></svg></kbd>
+                            <span class="flexsearch-key-label">to select</span>
+                        </li>
+                        <li>
+                            <kbd class="flexsearch-button-cmd-key"><svg width="15" height="15" aria-label="Escape key" role="img"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2"><path d="M13.6167 8.936c-.1065.3583-.6883.962-1.4875.962-.7993 0-1.653-.9165-1.653-2.1258v-.5678c0-1.2548.7896-2.1016 1.653-2.1016.8634 0 1.3601.4778 1.4875 1.0724M9 6c-.1352-.4735-.7506-.9219-1.46-.8972-.7092.0246-1.344.57-1.344 1.2166s.4198.8812 1.3445.9805C8.465 7.3992 8.968 7.9337 9 8.5c.032.5663-.454 1.398-1.4595 1.398C6.6593 9.898 6 9 5.963 8.4851m-1.4748.5368c-.2635.5941-.8099.876-1.5443.876s-1.7073-.6248-1.7073-2.204v-.4603c0-1.0416.721-2.131 1.7073-2.131.9864 0 1.6425 1.031 1.5443 2.2492h-2.956"></path></g></svg></kbd>
+                            <span class="flexsearch-key-label">to close</span>
+                        </li>
+                    </div>
+                    <form class="flexsearch position-relative flex-grow-1 ms-2 me-2">
+                        <div class="d-flex flex-row">
+                            <input id="flexsearch" class="form-control" type="search" placeholder="Search" aria-label="Search" autocomplete="off">
+                            <button id="hideFlexsearch" type="button" class="ms-2 btn btn-soft">
+                                cancel
+                            </button>
+                        </div>
+                        <div id="suggestions" class="shadow rounded-1 d-none"></div>
+                    </form>
+                </div>
+            </div>
+        
+    
+    
+</div>
+
+
+                            <div class="container-fluid">
+                                <div class="layout-spacing">
+                                    
+                                        <div class="d-md-flex justify-content-between align-items-center"><nav aria-label="breadcrumb" class="d-inline-block pb-2 mt-1 mt-sm-0">
+    <ul id="breadcrumbs" class="breadcrumb bg-transparent mb-0" itemscope itemtype="https://schema.org/BreadcrumbList">
+        
+            
+                <li class="breadcrumb-item text-capitalize active" aria-current="page" itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                    <a itemprop="item" href="/docs/">
+                        <i class="material-icons size-20 align-text-bottom" itemprop="name">Home</i>
+                    </a>
+                    <meta itemprop="position" content='1' />
+                </li>
+            
+            
+                <li class="breadcrumb-item text-capitalize" itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                    <a itemprop="item" href="/docs/pages/">
+                        <span itemprop="name">Pages</span>
+                    </a>
+                    <meta itemprop="position" content='2' />
+                </li>
+            
+        
+            <li class="breadcrumb-item text-capitalize active" itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                <span itemprop="name">Volunteer Registration Builder</span>
+                <meta itemprop="position" content='3' />
+            </li>
+        
+    </ul>
+</nav></div>
+                                    
+                                    <div class="row flex-xl-nowrap">
+                                        
+                                        <div class="docs-toc col-xl-3    d-xl-block"><toc>
+    <div class="fw-bold text-uppercase mb-2">On this page</div>
+    <nav id="toc">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#sections">Sections</a>
+          <ul>
+            <li><a href="#1-the-canvas">1. The Canvas</a></li>
+            <li><a href="#2-the-field-palette">2. The Field Palette</a></li>
+            <li><a href="#3-the-template-palette">3. The Template Palette</a></li>
+          </ul>
+        </li>
+        <li><a href="#customizing-the-fields">Customizing the fields</a>
+          <ul>
+            <li></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+    </toc></div>
+                                        
+                                        
+                                        <div class="docs-toc-mobile    d-print-none d-xl-none">
+                                            <button id="toc-dropdown-btn" class="btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-offset="0,0" aria-expanded="false">
+                                                Table of Contents
+                                            </button>
+<nav id="toc-mobile">
+  <ul class="dropdown-menu">
+    <li>
+      <ul>
+        <li><a href="#sections">Sections</a>
+          <ul>
+            <li><a href="#1-the-canvas">1. The Canvas</a></li>
+            <li><a href="#2-the-field-palette">2. The Field Palette</a></li>
+            <li><a href="#3-the-template-palette">3. The Template Palette</a></li>
+          </ul>
+        </li>
+        <li><a href="#customizing-the-fields">Customizing the fields</a>
+          <ul>
+            <li></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+                                        <div class="docs-content col-12 col-xl-9 mt-0">
+                                            <div class="mb-0 d-flex">
+                                                
+                                                <i class="material-icons title-icon me-2">favorite</i>
+                                                
+                                                <h1 class="content-title mb-0">
+                                                    Volunteer Registration Builder
+                                                    
+                                                </h1>
+                                            </div>
+                                            
+                                            <div id="content" class="main-content" >
+                                                
+    
+    <div data-prismjs-copy="" data-prismjs-copy-success="" data-prismjs-copy-error="">
+        <p>The registration builder is a tool in EventPilot that allows you to customize what data you want to collect from your volunteers.</p>
+<img src="/images/registration-builder.png" alt="Registration builder" style="width: 100%;" />
+<p>By default, EventPilot will collect your volunteers&rsquo; name and email address. You cannot customize this, but you can add additional fields.</p>
+<h2 id="sections">Sections <a href="#sections" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h2><p>The registration builder is divided into 3 primary sections. We recommend taking the tour (click the red &ldquo;Help!
+button in the bottom left corner of the page) to get familiar with the UI.</p>
+<img src="/images/registration-builder-annotated.png" alt="Registration builder sections" style="width: 100%;" />
+<h3 id="1-the-canvas">1. The Canvas <a href="#1-the-canvas" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h3><p>The canvas, highlighted in green in the image above, is a &ldquo;preview&rdquo; of what your registration form will collect and is where you can customize the bahavior and content of the fields.</p>
+<h3 id="2-the-field-palette">2. The Field Palette <a href="#2-the-field-palette" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h3><p>The field palette, highlighted in red in the image above, hosts &ldquo;primitive&rdquo; fields that you can add to your registration form. These fields are the most basic building blocks of a registration form.</p>
+
+
+
+
+
+
+
+<table class="table table-responsive">
+  <thead>
+      <tr>
+          <th style="text-align: left">Field Type</th>
+          <th style="text-align: left">Description</th>
+          <th style="text-align: left">Example prompt</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: left">Text</td>
+          <td style="text-align: left">A simple, single-line text input that accepts any text, but will strip line breaks.</td>
+          <td style="text-align: left">&ldquo;What is your favorite color?&rdquo;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Email</td>
+          <td style="text-align: left">An email input that only accepts valid email addresses. <em>Remember that EventPilot automatically collects the name and email of your volunteers. You can collect additional information, but EventPilot will use the automatic fields to identify your volunteers and send them emails.</em></td>
+          <td style="text-align: left">&ldquo;What is your email address?&rdquo;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Phone</td>
+          <td style="text-align: left">A phone number input that accepts any phone number, including international prefixes, extensions, and other formats.</td>
+          <td style="text-align: left">&ldquo;What is your phone number?&rdquo;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Short Answer</td>
+          <td style="text-align: left">A multi-line text input that accepts any text. Should be used for fields with longer responses or responses requiring multiple lines.</td>
+          <td style="text-align: left">&ldquo;What is your address?&rdquo;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Boolean</td>
+          <td style="text-align: left">A switch that allows the user to select &ldquo;Yes&rdquo; or &ldquo;No&rdquo;.</td>
+          <td style="text-align: left">&ldquo;Have you volunteered before?&rdquo;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Dropdown</td>
+          <td style="text-align: left">A dropdown menu that allows the user to select from a list of preset options and does not allow any custom text.</td>
+          <td style="text-align: left">&ldquo;What is your favorite sport?&rdquo;</td>
+      </tr>
+  </tbody>
+</table>
+
+<h3 id="3-the-template-palette">3. The Template Palette <a href="#3-the-template-palette" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h3><p>The template palette, highlighted in blue in the image above, hosts &ldquo;template&rdquo; fields that you can add to your registration form. These are just normal fields, but they are pre-populated with default values for common needs.</p>
+
+
+
+
+
+
+
+<table class="table table-responsive">
+  <thead>
+      <tr>
+          <th style="text-align: left">Field Type</th>
+          <th style="text-align: left">Description</th>
+          <th style="text-align: left">Example prompt</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: left">T-Shirt Size</td>
+          <td style="text-align: left">A dropdown menu that allows the user to select from a list of t-shirt sizes ranging from XS to XXL</td>
+          <td style="text-align: left">&ldquo;What is your t-shirt size?&rdquo;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Referral Source</td>
+          <td style="text-align: left">A dropdown menu that allows the user to select from a list of referral sources.</td>
+          <td style="text-align: left">&ldquo;What is your referral source?&rdquo;</td>
+      </tr>
+  </tbody>
+</table>
+
+<p>If, for example, you have an event with lots of kids volunteering and our preset t-shirt sizes are not enough, you can just drag the t-shirt size field from the template palette to the canvas and add your own options.</p>
+<h2 id="customizing-the-fields">Customizing the fields <a href="#customizing-the-fields" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h2><p>Any good form builder needs to allow you to customize the fields that are in the canvas. Different fields have different options, but we will go over all of them here.</p>
+<h4 id="label">Label <a href="#label" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h4><p>The label is the text that will be displayed to the user above the input field. This should be a very short description of what this field is for. Examples could include &ldquo;Your Name&rdquo;, &ldquo;Phone Number&rdquo;, &ldquo;Address&rdquo;, &ldquo;What is your favorite color?&rdquo;, etc.</p>
+<h4 id="placeholder">Placeholder <a href="#placeholder" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h4><p>The placeholder is the text that will be displayed inside the input field when the user hasn&rsquo;t entered anything. This is great for an example, like &ldquo;555-555-5555&rdquo; for a phone number, or &ldquo;yellow&rdquo; for a favorite color. This text will be greyed out, and once the user starts typing, the placeholder will disappear.</p>
+<h4 id="description">Description <a href="#description" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h4><p>The description is the text that will be displayed below the label. This can be a longer, multi-line description of what this field is for.</p>
+<h4 id="required">Required <a href="#required" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h4><p>This is a switch that determines whether the field is required or not. If a field is required, EventPilot will display a red asterisk next to the field to indicate that it is required and will not allow the form to be submitted unless something is entered in the field.</p>
+<h4 id="autocomplete-type">Autocomplete Type <a href="#autocomplete-type" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h4><p>This is a dropdown that allows you to select an autocomplete type. Setting an autocomplete type allows user&rsquo;s browsers to suggest addresses, phone numbers, and other fields. This will make it easier for your users to fill out the form, and will allow EventPilot to better understand your data to give you better insights. Setting a type will not force your users to accept an autocomplete, it will just provide a suggestion.</p>
+<p>This is optional and defaults to &ldquo;Off&rdquo;.</p>
+<details class="alert alert-info">
+  <summary>
+    <h5 style='display: inline-block'>Click to see a list of supported autocomplete types</h5>
+  </summary>
+  <div><table class="table table-responsive">
+  <thead>
+      <tr>
+          <th style="text-align: left">Autocomplete Type</th>
+          <th style="text-align: left">Description</th>
+          <th style="text-align: left">Example</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: left">Off</td>
+          <td style="text-align: left">No autocomplete</td>
+          <td style="text-align: left"><em>n/a</em></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">First line of the street address</td>
+          <td style="text-align: left">First line of the street address</td>
+          <td style="text-align: left">1234 Main St</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Second line of the street address</td>
+          <td style="text-align: left">Second line of the street address</td>
+          <td style="text-align: left">Apt. 123</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">First level of the address</td>
+          <td style="text-align: left">First level of the address, e.g. the county (less commonly used in the US)</td>
+          <td style="text-align: left">Hamilton</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Second level of the address</td>
+          <td style="text-align: left">Second level of the address, e.g. the city (less commonly used in the US)</td>
+          <td style="text-align: left">Cincinnati</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Third level of the address</td>
+          <td style="text-align: left">Third level of the address</td>
+          <td style="text-align: left"></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Fourth level of the address</td>
+          <td style="text-align: left">Fourth level of the address</td>
+          <td style="text-align: left"></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Street Address</td>
+          <td style="text-align: left">Full street address</td>
+          <td style="text-align: left">1234 Main St, Apt. 123, San Francisco, CA 94102</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Country Code</td>
+          <td style="text-align: left">Country code (<a href="https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes" rel="external" target="_blank">ISO 3166<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M14 5c-.552 0-1-.448-1-1s.448-1 1-1h6c.552 0 1 .448 1 1v6c0 .552-.448 1-1 1s-1-.448-1-1v-3.586l-7.293 7.293c-.391.39-1.024.39-1.414 0-.391-.391-.391-1.024 0-1.414l7.293-7.293h-3.586zm-9 2c-.552 0-1 .448-1 1v11c0 .552.448 1 1 1h11c.552 0 1-.448 1-1v-4.563c0-.552.448-1 1-1s1 .448 1 1v4.563c0 1.657-1.343 3-3 3h-11c-1.657 0-3-1.343-3-3v-11c0-1.657 1.343-3 3-3h4.563c.552 0 1 .448 1 1s-.448 1-1 1h-4.563z"/></svg></a>)</td>
+          <td style="text-align: left">US</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Country Name</td>
+          <td style="text-align: left">Country name</td>
+          <td style="text-align: left">United States</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Postal Code</td>
+          <td style="text-align: left">Postal code</td>
+          <td style="text-align: left">94102</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Full Name</td>
+          <td style="text-align: left">Full name</td>
+          <td style="text-align: left">John Doe</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">First Name</td>
+          <td style="text-align: left">First name</td>
+          <td style="text-align: left">John</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Middle Name</td>
+          <td style="text-align: left">Middle name</td>
+          <td style="text-align: left"></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Last Name</td>
+          <td style="text-align: left">Last name</td>
+          <td style="text-align: left">Doe</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Honorific Prefix</td>
+          <td style="text-align: left">Honorific prefix</td>
+          <td style="text-align: left">Mr., Mrs., Dr., etc.</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Honorific Suffix</td>
+          <td style="text-align: left">Honorific suffix</td>
+          <td style="text-align: left">Jr., Sr., III, esq, etc.</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Nickname</td>
+          <td style="text-align: left">Nickname</td>
+          <td style="text-align: left"></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Job Title</td>
+          <td style="text-align: left">Job title</td>
+          <td style="text-align: left"></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Birthday (full date)</td>
+          <td style="text-align: left">Full birthday</td>
+          <td style="text-align: left">03/01/1980</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Birthday (day)</td>
+          <td style="text-align: left">Birthday</td>
+          <td style="text-align: left">1</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Birthday (month)</td>
+          <td style="text-align: left">Birthday</td>
+          <td style="text-align: left">3</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Birthday (year)</td>
+          <td style="text-align: left">Birthday</td>
+          <td style="text-align: left">1980</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Gender Identity</td>
+          <td style="text-align: left">Gender identity</td>
+          <td style="text-align: left">freeform response</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Company Name</td>
+          <td style="text-align: left">Company name</td>
+          <td style="text-align: left"></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Language</td>
+          <td style="text-align: left">Language</td>
+          <td style="text-align: left"></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">URL</td>
+          <td style="text-align: left">URL</td>
+          <td style="text-align: left"></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Email</td>
+          <td style="text-align: left">Email</td>
+          <td style="text-align: left"></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Phone</td>
+          <td style="text-align: left">Phone</td>
+          <td style="text-align: left"></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Country code for phone number</td>
+          <td style="text-align: left">The phone number&rsquo;s country country code in <a href="https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes" rel="external" target="_blank">ISO 3166<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M14 5c-.552 0-1-.448-1-1s.448-1 1-1h6c.552 0 1 .448 1 1v6c0 .552-.448 1-1 1s-1-.448-1-1v-3.586l-7.293 7.293c-.391.39-1.024.39-1.414 0-.391-.391-.391-1.024 0-1.414l7.293-7.293h-3.586zm-9 2c-.552 0-1 .448-1 1v11c0 .552.448 1 1 1h11c.552 0 1-.448 1-1v-4.563c0-.552.448-1 1-1s1 .448 1 1v4.563c0 1.657-1.343 3-3 3h-11c-1.657 0-3-1.343-3-3v-11c0-1.657 1.343-3 3-3h4.563c.552 0 1 .448 1 1s-.448 1-1 1h-4.563z"/></svg></a></td>
+          <td style="text-align: left"></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">National phone number</td>
+          <td style="text-align: left">The phone number&rsquo;s country prefix</td>
+          <td style="text-align: left">+1 <em>(US)</em></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Area code for phone number</td>
+          <td style="text-align: left">The phone number&rsquo;s area code</td>
+          <td style="text-align: left">513</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Local phone number</td>
+          <td style="text-align: left">The phone number&rsquo;s local number</td>
+          <td style="text-align: left">555-5555</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Local phone number prefix</td>
+          <td style="text-align: left">The phone number&rsquo;s local number prefix</td>
+          <td style="text-align: left"></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Local phone number suffix</td>
+          <td style="text-align: left">The phone number&rsquo;s local number suffix</td>
+          <td style="text-align: left"></td>
+      </tr>
+      <tr>
+          <td style="text-align: left">Phone number extension</td>
+          <td style="text-align: left">The phone number&rsquo;s extension</td>
+          <td style="text-align: left">x123</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">IM address</td>
+          <td style="text-align: left">IM address</td>
+          <td style="text-align: left"></td>
+      </tr>
+  </tbody>
+</table>
+</div>
+</details>
+
+<h4 id="prompt">Prompt <a href="#prompt" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h4><p>Present only on Dropdown fields, this is the text that will be displayed in the button that opens the dropdown menu when there is no value selected. Should not be left blank, commonly values are &ldquo;Select a value&rdquo; or &ldquo;Choose an option&rdquo; but can be more specific to the field.</p>
+<h4 id="options">Options <a href="#options" class="anchor" aria-hidden="true"><i class="material-icons align-middle">link</i></a></h4><p>Present only on Dropdown fields, this is a list of options that will be displayed in the dropdown menu.</p>
+
+    </div>
+
+    
+
+    
+                                            </div>
+                                            <div><hr class="doc-hr">
+<div id="doc-nav" class="d-print-none">
+
+	<div class="row flex-xl-nowrap ">
+	<div class="col-sm-6 pt-2 doc-next">
+		<a href="/docs/legal/privacy/">
+			<div class="card h-100 my-1">
+				<div class="card-body py-2">
+                    <p class="card-title fs-5 fw-semibold lh-base mb-0"><i class="material-icons align-middle">navigate_before</i> Privacy Policy</p>
+					
+				</div>
+			</div>
+		</a>
+        </div>
+	<div class="col-sm-6 pt-2 doc-prev">
+		<a class="ms-auto" href="/docs/getting-started/">
+			<div class="card h-100 my-1 text-end">
+				<div class="card-body py-2">
+                    <p class="card-title fs-5 fw-semibold lh-base mb-0">Getting Started <i class="material-icons align-middle">navigate_next</i></p>
+					
+				</div>
+			</div>
+		</a>
+        </div>
+	</div>
+</div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+<footer class="shadow py-3 d-print-none">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="text-sm-start text-center mx-md-2">
+                    <p class="mb-0">
+                        
+                        Copyright 2025 EventPilot
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+</main>
+            </div>
+        </div>
+
+        
+        
+        <button onclick="topFunction()" id="back-to-top" aria-label="Back to Top Button" class="back-to-top fs-5"><svg width="24" height="24"><path d="M12,10.224l-6.3,6.3L4.32,15.152,12,7.472l7.68,7.68L18.3,16.528Z" style="fill:#fff"/></svg></button>
+        
+        
+
+        
+        
+            <script>(()=>{var e=document.getElementById("mode");e!==null&&(window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",e=>{e.matches?(localStorage.setItem("theme","dark"),document.documentElement.setAttribute("data-dark-mode","")):(localStorage.setItem("theme","light"),document.documentElement.removeAttribute("data-dark-mode"))}),e.addEventListener("click",()=>{document.documentElement.toggleAttribute("data-dark-mode"),localStorage.setItem("theme",document.documentElement.hasAttribute("data-dark-mode")?"dark":"light")}),localStorage.getItem("theme")==="dark"?document.documentElement.setAttribute("data-dark-mode",""):document.documentElement.removeAttribute("data-dark-mode"))})()</script>
+        
+
+
+
+
+    
+        
+        
+    
+    
+
+
+
+
+
+
+    <script src="/docs/js/bootstrap.js" defer></script>
+
+
+    <script type="text/javascript" src="http://localhost:1313/docs/js/bundle.js" defer></script>
+
+        
+
+        
+        <script type="module">
+    var suggestions = document.getElementById('suggestions');
+    var search = document.getElementById('flexsearch');
+
+    const flexsearchContainer = document.getElementById('FlexSearchCollapse');
+
+    const hideFlexsearchBtn = document.getElementById('hideFlexsearch');
+
+    const configObject = { toggle: false }
+    const flexsearchContainerCollapse = new Collapse(flexsearchContainer, configObject) 
+
+    if (search !== null) {
+        document.addEventListener('keydown', inputFocus);
+        flexsearchContainer.addEventListener('shown.bs.collapse', function () {
+            search.focus();
+        });
+        
+        var topHeader = document.getElementById("top-header");
+        document.addEventListener('click', function(elem) {
+            if (!flexsearchContainer.contains(elem.target) && !topHeader.contains(elem.target))
+                flexsearchContainerCollapse.hide();
+        });
+    }
+
+    hideFlexsearchBtn.addEventListener('click', () =>{
+        flexsearchContainerCollapse.hide()
+    })
+
+    function inputFocus(e) {
+        if (e.ctrlKey && e.key === '/') {
+            e.preventDefault();
+            flexsearchContainerCollapse.toggle();
+        }
+        if (e.key === 'Escape' ) {
+            search.blur();
+            
+            flexsearchContainerCollapse.hide();
+        }
+    };
+
+    document.addEventListener('click', function(event) {
+
+    var isClickInsideElement = suggestions.contains(event.target);
+
+    if (!isClickInsideElement) {
+        suggestions.classList.add('d-none');
+    }
+
+    });
+
+    
+
+
+    document.addEventListener('keydown',suggestionFocus);
+
+    function suggestionFocus(e) {
+    const suggestionsHidden = suggestions.classList.contains('d-none');
+    if (suggestionsHidden) return;
+
+    const focusableSuggestions= [...suggestions.querySelectorAll('a')];
+    if (focusableSuggestions.length === 0) return;
+
+    const index = focusableSuggestions.indexOf(document.activeElement);
+
+    if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const nextIndex = index > 0 ? index - 1 : 0;
+        focusableSuggestions[nextIndex].focus();
+    }
+    else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const nextIndex= index + 1 < focusableSuggestions.length ? index + 1 : index;
+        focusableSuggestions[nextIndex].focus();
+    }
+
+    }
+
+    
+
+
+    (function(){
+
+    var index = new FlexSearch.Document({
+        
+        tokenize: "forward",
+        minlength:  0 ,
+        cache:  100 ,
+        optimize:  true ,
+        document: {
+        id: 'id',
+        store: [
+            "href", "title", "description"
+        ],
+        index: ["title", "description", "content"]
+        }
+    });
+
+
+    
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+
+    
+
+    
+
+    index.add(
+            {
+                id:  0 ,
+                href: "\/docs\/what-is\/core\/",
+                title: "Features \u0026 Goals",
+                description: "Understand what EventPilot is and how you can interact with it.",
+                content: "At it’s core, EventPilot is a powerful tool for event organizers to manage their events. But that is just our tagline, what actually is it?\nfavorite Volunteer Management\nUnderstand the volunteer lifecycle and how EventPilot can simplify your overhead.\nwork CRM\nKeep track of your contacts and manage relationships with volunteers, participants, sponsors, and any other contact.\ncheck Todo List Tracking\nKeep track of everything that needs to be done before, during, and after your event.\nmap Location, Job \u0026 Shift Management\nBuild out your event with locations, jobs, and shifts to help you manage your volunteers and direct efforts.\n"
+            }
+        );
+    index.add(
+            {
+                id:  1 ,
+                href: "\/docs\/welcome\/",
+                title: "Welcome to EventPilot",
+                description: "Welcome to the EventPilot User Guide, your go-to resource for everything EventPilot.",
+                content: "Welcome to EventPilot! We are excited to have you here and are ready to help you get the most out of EventPilot. We are continuously improving EventPilot and want to make it the most powerful and intuitive tool for event organizers.\nAbout EventPilot linkEventPilot was born out of an event called Ohio River Paddlefest and a desire to make it easier to manage volunteers for a medium-sized event. From there, it has grown into a powerful tool to allow event organizers to host their events, keep track of what needs to be done, recruit and manage volunteers, manage relationships, and more. If you have any questions, comments, or suggestions anytime, please reach out to us at support@geteventpilot.com.\nOur Core Goals link Arm events management teams with never-before-accessible tools to manage, grow, and understand their events. Keep our software down-to-earth and easy to use and understand. Anytime there is complexity, thoroughly document it and make it easier to understand. Provide a great user experience for event organizers, volunteers, participants, and anyone else who uses EventPilot. "
+            }
+        );
+    index.add(
+            {
+                id:  2 ,
+                href: "\/docs\/legal\/privacy\/",
+                title: "Privacy Policy",
+                description: "Privacy policy and terms of service.",
+                content: "Last updated: July 01, 2025\nThis Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.\nWe use Your Personal data to provide and improve the Service. By using the Service, You agree to the collection and use of information in accordance with this Privacy Policy.\nInterpretation and Definitions linkInterpretation linkThe words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.\nDefinitions linkFor the purposes of this Privacy Policy:\nAccount means a unique account created for You to access our Service or parts of our Service.\nAffiliate means an entity that controls, is controlled by or is under common control with a party, where “control” means ownership of 50% or more of the shares, equity interest or other securities entitled to vote for election of directors or other managing authority.\nCompany (referred to as either “the Company”, “We”, “Us” or “Our” in this Agreement) refers to EventPilot.\nCookies are small files that are placed on Your computer, mobile device or any other device by a website, containing the details of Your browsing history on that website among its many uses.\nCountry refers to: Ohio, United States\nDevice means any device that can access the Service such as a computer, a cellphone or a digital tablet.\nPersonal Data is any information that relates to an identified or identifiable individual.\nService refers to the Website.\nService Provider means any natural or legal person who processes the data on behalf of the Company. It refers to third-party companies or individuals employed by the Company to facilitate the Service, to provide the Service on behalf of the Company, to perform services related to the Service or to assist the Company in analyzing how the Service is used.\nThird-party Social Media Service refers to any website or any social network website through which a User can log in or create an account to use the Service.\nUsage Data refers to data collected automatically, either generated by the use of the Service or from the Service infrastructure itself (for example, the duration of a page visit).\nWebsite refers to EventPilot, accessible from https://geteventpilot.com\nYou means the individual accessing or using the Service, or the company, or other legal entity on behalf of which such individual is accessing or using the Service, as applicable.\nCollecting and Using Your Personal Data linkTypes of Data Collected linkPersonal Data linkWhile using Our Service, We may ask You to provide Us with certain personally identifiable information that can be used to contact or identify You. Personally identifiable information may include, but is not limited to:\nEmail address\nFirst name and last name\nPhone number\nAddress, State, Province, ZIP/Postal code, City\nUsage Data\nUsage Data linkUsage Data is collected automatically when using the Service.\nUsage Data may include information such as Your Device’s Internet Protocol address (e.g. IP address), browser type, browser version, the pages of our Service that You visit, the time and date of Your visit, the time spent on those pages, unique device identifiers and other diagnostic data.\nWhen You access the Service by or through a mobile device, We may collect certain information automatically, including, but not limited to, the type of mobile device You use, Your mobile device unique ID, the IP address of Your mobile device, Your mobile operating system, the type of mobile Internet browser You use, unique device identifiers and other diagnostic data.\nWe may also collect information that Your browser sends whenever You visit our Service or when You access the Service by or through a mobile device.\nInformation from Third-Party Social Media Services linkThe Company allows You to create an account and log in to use the Service through the following Third-party Social Media Services:\nGoogle Facebook Instagram Twitter LinkedIn If You decide to register through or otherwise grant us access to a Third-Party Social Media Service, We may collect Personal data that is already associated with Your Third-Party Social Media Service’s account, such as Your name, Your email address, Your activities or Your contact list associated with that account.\nYou may also have the option of sharing additional information with the Company through Your Third-Party Social Media Service’s account. If You choose to provide such information and Personal Data, during registration or otherwise, You are giving the Company permission to use, share, and store it in a manner consistent with this Privacy Policy.\nTracking Technologies and Cookies linkWe use Cookies and similar tracking technologies to track the activity on Our Service and store certain information. Tracking technologies used are beacons, tags, and scripts to collect and track information and to improve and analyze Our Service. The technologies We use may include:\nCookies or Browser Cookies. A cookie is a small file placed on Your Device. You can instruct Your browser to refuse all Cookies or to indicate when a Cookie is being sent. However, if You do not accept Cookies, You may not be able to use some parts of our Service. Unless you have adjusted Your browser setting so that it will refuse Cookies, our Service may use Cookies. Web Beacons. Certain sections of our Service and our emails may contain small electronic files known as web beacons (also referred to as clear gifs, pixel tags, and single-pixel gifs) that permit the Company, for example, to count users who have visited those pages or opened an email and for other related website statistics (for example, recording the popularity of a certain section and verifying system and server integrity). Cookies can be “Persistent” or “Session” Cookies. Persistent Cookies remain on Your personal computer or mobile device when You go offline, while Session Cookies are deleted as soon as You close Your web browser.\nWe use both Session and Persistent Cookies for the purposes set out below:\nNecessary / Essential Cookies\nType: Session Cookies\nAdministered by: Us\nPurpose: These Cookies are essential to provide You with services available through the Website and to enable You to use some of its features. They help to authenticate users and prevent fraudulent use of user accounts. Without these Cookies, the services that You have asked for cannot be provided, and We only use these Cookies to provide You with those services.\nCookies Policy / Notice Acceptance Cookies\nType: Persistent Cookies\nAdministered by: Us\nPurpose: These Cookies identify if users have accepted the use of cookies on the Website.\nFunctionality Cookies\nType: Persistent Cookies\nAdministered by: Us\nPurpose: These Cookies allow us to remember choices You make when You use the Website, such as remembering your login details or language preference. The purpose of these Cookies is to provide You with a more personal experience and to avoid You having to re-enter your preferences every time You use the Website.\nFor more information about the cookies we use and your choices regarding cookies, please visit our Cookies Policy or the Cookies section of our Privacy Policy.\nUse of Your Personal Data linkThe Company may use Personal Data for the following purposes:\nTo provide and maintain our Service, including to monitor the usage of our Service.\nTo manage Your Account: to manage Your registration as a user of the Service. The Personal Data You provide can give You access to different functionalities of the Service that are available to You as a registered user.\nFor the performance of a contract: the development, compliance and undertaking of the purchase contract for the products, items or services You have purchased or of any other contract with Us through the Service.\nTo contact You: To contact You by email, telephone calls, SMS, or other equivalent forms of electronic communication, such as a mobile application’s push notifications regarding updates or informative communications related to the functionalities, products or contracted services, including the security updates, when necessary or reasonable for their implementation.\nTo provide You with news, special offers and general information about other goods, services and events which we offer that are similar to those that you have already purchased or enquired about unless You have opted not to receive such information.\nTo manage Your requests: To attend and manage Your requests to Us.\nFor business transfers: We may use Your information to evaluate or conduct a merger, divestiture, restructuring, reorganization, dissolution, or other sale or transfer of some or all of Our assets, whether as a going concern or as part of bankruptcy, liquidation, or similar proceeding, in which Personal Data held by Us about our Service users is among the assets transferred.\nFor other purposes: We may use Your information for other purposes, such as data analysis, identifying usage trends, determining the effectiveness of our promotional campaigns and to evaluate and improve our Service, products, services, marketing and your experience.\nWe may share Your personal information in the following situations:\nWith Service Providers: We may share Your personal information with Service Providers to monitor and analyze the use of our Service, to contact You. For business transfers: We may share or transfer Your personal information in connection with, or during negotiations of, any merger, sale of Company assets, financing, or acquisition of all or a portion of Our business to another company. With Affiliates: We may share Your information with Our affiliates, in which case we will require those affiliates to honor this Privacy Policy. Affiliates include Our parent company and any other subsidiaries, joint venture partners or other companies that We control or that are under common control with Us. With business partners: We may share Your information with Our business partners to offer You certain products, services or promotions. With other users: when You share personal information or otherwise interact in the public areas with other users, such information may be viewed by all users and may be publicly distributed outside. If You interact with other users or register through a Third-Party Social Media Service, Your contacts on the Third-Party Social Media Service may see Your name, profile, pictures and description of Your activity. Similarly, other users will be able to view descriptions of Your activity, communicate with You and view Your profile. With Your consent: We may disclose Your personal information for any other purpose with Your consent. Retention of Your Personal Data linkThe Company will retain Your Personal Data only for as long as is necessary for the purposes set out in this Privacy Policy. We will retain and use Your Personal Data to the extent necessary to comply with our legal obligations (for example, if we are required to retain your data to comply with applicable laws), resolve disputes, and enforce our legal agreements and policies.\nThe Company will also retain Usage Data for internal analysis purposes. Usage Data is generally retained for a shorter period of time, except when this data is used to strengthen the security or to improve the functionality of Our Service, or We are legally obligated to retain this data for longer time periods.\nTransfer of Your Personal Data linkYour information, including Personal Data, is processed at the Company’s operating offices and in any other places where the parties involved in the processing are located. It means that this information may be transferred to — and maintained on — computers located outside of Your state, province, country or other governmental jurisdiction where the data protection laws may differ than those from Your jurisdiction.\nYour consent to this Privacy Policy followed by Your submission of such information represents Your agreement to that transfer.\nThe Company will take all steps reasonably necessary to ensure that Your data is treated securely and in accordance with this Privacy Policy and no transfer of Your Personal Data will take place to an organization or a country unless there are adequate controls in place including the security of Your data and other personal information.\nDelete Your Personal Data linkYou have the right to delete or request that We assist in deleting the Personal Data that We have collected about You.\nOur Service may give You the ability to delete certain information about You from within the Service.\nYou may update, amend, or delete Your information at any time by signing in to Your Account, if you have one, and visiting the account settings section that allows you to manage Your personal information. You may also contact Us to request access to, correct, or delete any personal information that You have provided to Us.\nPlease note, however, that We may need to retain certain information when we have a legal obligation or lawful basis to do so.\nDisclosure of Your Personal Data linkBusiness Transactions linkIf the Company is involved in a merger, acquisition or asset sale, Your Personal Data may be transferred. We will provide notice before Your Personal Data is transferred and becomes subject to a different Privacy Policy.\nLaw enforcement linkUnder certain circumstances, the Company may be required to disclose Your Personal Data if required to do so by law or in response to valid requests by public authorities (e.g. a court or a government agency).\nOther legal requirements linkThe Company may disclose Your Personal Data in the good faith belief that such action is necessary to:\nComply with a legal obligation Protect and defend the rights or property of the Company Prevent or investigate possible wrongdoing in connection with the Service Protect the personal safety of Users of the Service or the public Protect against legal liability Security of Your Personal Data linkThe security of Your Personal Data is important to Us, but remember that no method of transmission over the Internet, or method of electronic storage is 100% secure. While We strive to use commercially acceptable means to protect Your Personal Data, We cannot guarantee its absolute security.\nChildren’s Privacy linkOur Service does not address anyone under the age of 13. We do not knowingly collect personally identifiable information from anyone under the age of 13. If You are a parent or guardian and You are aware that Your child has provided Us with Personal Data, please contact Us. If We become aware that We have collected Personal Data from anyone under the age of 13 without verification of parental consent, We take steps to remove that information from Our servers.\nIf We need to rely on consent as a legal basis for processing Your information and Your country requires consent from a parent, We may require Your parent’s consent before We collect and use that information.\nLinks to Other Websites linkOur Service may contain links to other websites that are not operated by Us. If You click on a third party link, You will be directed to that third party’s site. We strongly advise You to review the Privacy Policy of every site You visit.\nWe have no control over and assume no responsibility for the content, privacy policies or practices of any third party sites or services.\nChanges to this Privacy Policy linkWe may update Our Privacy Policy from time to time. We will notify You of any changes by posting the new Privacy Policy on this page.\nWe will let You know via email and/or a prominent notice on Our Service, prior to the change becoming effective and update the “Last updated” date at the top of this Privacy Policy.\nYou are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy are effective when they are posted on this page.\nContact Us linkIf you have any questions about this Privacy Policy, You can contact us:\nBy email: support@geteventpilot.com "
+            }
+        );
+    index.add(
+            {
+                id:  3 ,
+                href: "\/docs\/pages\/registration-builder\/",
+                title: "Volunteer Registration Builder",
+                description: "How to build a registration form for volunteers.",
+                content: "The registration builder is a tool in EventPilot that allows you to customize what data you want to collect from your volunteers.\nBy default, EventPilot will collect your volunteers’ name and email address. You cannot customize this, but you can add additional fields.\nSections linkThe registration builder is divided into 3 primary sections. We recommend taking the tour (click the red “Help! button in the bottom left corner of the page) to get familiar with the UI.\n1. The Canvas linkThe canvas, highlighted in green in the image above, is a “preview” of what your registration form will collect and is where you can customize the bahavior and content of the fields.\n2. The Field Palette linkThe field palette, highlighted in red in the image above, hosts “primitive” fields that you can add to your registration form. These fields are the most basic building blocks of a registration form.\nField Type Description Example prompt Text A simple, single-line text input that accepts any text, but will strip line breaks. “What is your favorite color?” Email An email input that only accepts valid email addresses. Remember that EventPilot automatically collects the name and email of your volunteers. You can collect additional information, but EventPilot will use the automatic fields to identify your volunteers and send them emails. “What is your email address?” Phone A phone number input that accepts any phone number, including international prefixes, extensions, and other formats. “What is your phone number?” Short Answer A multi-line text input that accepts any text. Should be used for fields with longer responses or responses requiring multiple lines. “What is your address?” Boolean A switch that allows the user to select “Yes” or “No”. “Have you volunteered before?” Dropdown A dropdown menu that allows the user to select from a list of preset options and does not allow any custom text. “What is your favorite sport?” 3. The Template Palette linkThe template palette, highlighted in blue in the image above, hosts “template” fields that you can add to your registration form. These are just normal fields, but they are pre-populated with default values for common needs.\nField Type Description Example prompt T-Shirt Size A dropdown menu that allows the user to select from a list of t-shirt sizes ranging from XS to XXL “What is your t-shirt size?” Referral Source A dropdown menu that allows the user to select from a list of referral sources. “What is your referral source?” If, for example, you have an event with lots of kids volunteering and our preset t-shirt sizes are not enough, you can just drag the t-shirt size field from the template palette to the canvas and add your own options.\nCustomizing the fields linkAny good form builder needs to allow you to customize the fields that are in the canvas. Different fields have different options, but we will go over all of them here.\nLabel linkThe label is the text that will be displayed to the user above the input field. This should be a very short description of what this field is for. Examples could include “Your Name”, “Phone Number”, “Address”, “What is your favorite color?”, etc.\nPlaceholder linkThe placeholder is the text that will be displayed inside the input field when the user hasn’t entered anything. This is great for an example, like “555-555-5555” for a phone number, or “yellow” for a favorite color. This text will be greyed out, and once the user starts typing, the placeholder will disappear.\nDescription linkThe description is the text that will be displayed below the label. This can be a longer, multi-line description of what this field is for.\nRequired linkThis is a switch that determines whether the field is required or not. If a field is required, EventPilot will display a red asterisk next to the field to indicate that it is required and will not allow the form to be submitted unless something is entered in the field.\nAutocomplete Type linkThis is a dropdown that allows you to select an autocomplete type. Setting an autocomplete type allows user’s browsers to suggest addresses, phone numbers, and other fields. This will make it easier for your users to fill out the form, and will allow EventPilot to better understand your data to give you better insights. Setting a type will not force your users to accept an autocomplete, it will just provide a suggestion.\nThis is optional and defaults to “Off”.\nClick to see a list of supported autocomplete types Autocomplete Type Description Example Off No autocomplete n/a First line of the street address First line of the street address 1234 Main St Second line of the street address Second line of the street address Apt. 123 First level of the address First level of the address, e.g. the county (less commonly used in the US) Hamilton Second level of the address Second level of the address, e.g. the city (less commonly used in the US) Cincinnati Third level of the address Third level of the address Fourth level of the address Fourth level of the address Street Address Full street address 1234 Main St, Apt. 123, San Francisco, CA 94102 Country Code Country code (ISO 3166) US Country Name Country name United States Postal Code Postal code 94102 Full Name Full name John Doe First Name First name John Middle Name Middle name Last Name Last name Doe Honorific Prefix Honorific prefix Mr., Mrs., Dr., etc. Honorific Suffix Honorific suffix Jr., Sr., III, esq, etc. Nickname Nickname Job Title Job title Birthday (full date) Full birthday 03/01/1980 Birthday (day) Birthday 1 Birthday (month) Birthday 3 Birthday (year) Birthday 1980 Gender Identity Gender identity freeform response Company Name Company name Language Language URL URL Email Email Phone Phone Country code for phone number The phone number’s country country code in ISO 3166 National phone number The phone number’s country prefix +1 (US) Area code for phone number The phone number’s area code 513 Local phone number The phone number’s local number 555-5555 Local phone number prefix The phone number’s local number prefix Local phone number suffix The phone number’s local number suffix Phone number extension The phone number’s extension x123 IM address IM address Prompt linkPresent only on Dropdown fields, this is the text that will be displayed in the button that opens the dropdown menu when there is no value selected. Should not be left blank, commonly values are “Select a value” or “Choose an option” but can be more specific to the field.\nOptions linkPresent only on Dropdown fields, this is a list of options that will be displayed in the dropdown menu.\n"
+            }
+        );
+    index.add(
+            {
+                id:  4 ,
+                href: "\/docs\/getting-started\/",
+                title: "Getting Started",
+                description: "Your first steps into EventPilot.",
+                content: "EventPilot is a powerful tool, and we have strived to make it easy to use, but a little guidance is always helpful. This page will cover your first steps into EventPilot, getting you up and running with the basics.\n1. Create an EventPilot Account linkTo get started, you’ll need to create an account. You will do this by clicking any of the “register” buttons or by visiting geteventpilot.com/register. We will need your name, your email address, and a password to create your accout. Be sure to use an email address you have access to, as you will need to verify your email address to access your account.\nOnce you verify your email, you will be taken to the events page (geteventpilot.com/events), where, once you have created an event, you will see a list of your events.\nYou will see a list of “What to do next?” items. You will see this box a few places throughout EventPilot, and it is a great way to keep track of what you need to do next. If you feel like you are ready to go it alone, you can follow the “What to do next?” items and get started. Otherwise, keep following this page to get up and running.\n2. Create an Event linkCreating an event is the first step in using EventPilot. It will hold all of your data for a particular event.\nCreate an event by clicking the “Create Event” button on the page you are directed to after registering (geteventpilot.com/events). You will need to enter:\nField Description Restrictions Example Name The name of your event Must be at least 2 characters long “The Atlantis Marathon” Description A short description of your event Must be at least 10 characters long “Run 26.2 miles through the lost city of Atlantis” Slug A short, lowercase, hyphenated string of letters Must be 3-30 characters long and can only contain lowercase letters, numbers, and hyphens “atlantis-marathon” Logo Your event’s logo Should be a square image at least 200px by 200px n/a Default Timezone The timezone in which your event will be hosted n/a “Eastern Standard Time” All fields are required, but can be changed later.\nwarning We strongly recommend not changing the slug after you have created your event. URLs autogenerated by EventPilot will use the event’s slug, so changing the slug will break links to your event (including ones that EventPilot has generated and sent to your contacts). 3. The event dashboard linkOnce you have created your event, you will be taken to the event dashboard.\nThis is your main headquarters for your event. As more starts to happen in your event, you will see analytics and prompts here to help you keep track of what is happening. For now though, lets take a tour to get you familiar with the dashboard.\n3.1 Take a tour linkMany pages in EventPilot have a tour that can help you get familiar with the page. If a tour is available, you will see a red “Help!” button at the bottom left of the page. Clicking this button will launch the tour.\nGo take the tour and come back to this page when you are done.\nThe tour highlighted a few main sections of the page:\nThe top navigation is the main navigation for your event. It is where you can visit different pages of your event. The event picker is where you can quickly jump to a different event or create a new one. The “Help! button is where you can launch the tour for the page. The Todo List is where you can quickly see what needs to be done next. The todo list is what this page is built on. You can follow it yourself, or you can keep this page as a reference so we can explain what is happening and what is happening next.\n4. Volunteer Registration Form linkLooking at the todo list, you will see that there is an item called “Volunteer Registration Form Not Started”, with a button that will take you to the registration builder.\nLooking in the bottom left corner of the page, you can see that a tour is available. Take the tour and come back to this page when you are done.\nNow that you have taken the tour, you have an idea of what the registration builder is and how it works. We are going to add a phone number and favorite color field to the registration form.\nIf you have specific questions or want more information about a section in the registration builder, visit the link below for the documentation for the Registration Builder.\n🔗 Click here to go to the documentation for the Registration Builder 4.1 Add a phone number field linkOn the left side of the registration builder, drag a “Phone” field from the field palette to the canvas. That means click on the “Phone” field in the field palette, and (while holding the mouse down) move it into the dashed area in the canvas. The order of the fields in the canvas will determine the order in which they are displayed on the form, so if you want to change the order, just drag the fields around.\nSet the Label to “Your Phone Number”, and the *Placeholder to “555-555-5555”. Take a look at the preview to see what the field will look like. If you want to add anything else (context, how you will use the phone number, etc.), you can do that in the description.\nLets set it to Required by clicking on the switch next to the label. Now, when you look in the preview, you will see that the field now has a red asterisk next to it.\n4.2 Add a favorite color field linkOn the left side of the registration builder, drag a “Dropdown” field from the field palette to the canvas. Again, lets set the Label to “Your Favorite Color”, and the *Placeholder to “Pick a color”. Take a look at the preview to see what the field will look like.\nIn the preview, click the dropdown button to find that there are no options. That is because we haven’t added any options yet.\nUnder the required switch, click on “Add Option” to add an option, and add “Red” to the dropdown. Now, click “Add Option” again and add “Blue” to the dropdown. You can add as many options as you want. If you add too many or want to remove an option, just click the trash icon next to the option.\nNow, when you try it out in the preview, you will see that the dropdown menu has the options you added.\n4.3 Save the form linkWhen you are done, click the save button under the canvas to save your form.\nwarning Your changes are not saved until you click the save button. Once you click the save button, your changes take effect immediately and you will not be able to go back to a previous version of the form. What now? linkNow, you have set up a registration form with a phone number and favorite color field. You can always go back and add more fields or modify or remove existing fields, but we are done for now. Click the “Event Home” button at the top of the page to go back to the event dashboard.\n5. Create a location linkBack on the event homepage, check out the Todo list. You will see that “Volunteer Registration Form Not Started” has turned green, been marked as done, and moved to the bottom of the list. Looking at what needs to be done next, we see “First Location Not Created”. This means we need to create a location.\nTo do this, we need to go to the “Jobs \u0026 Shift Builder” page. You can do this by clicking on the “Jobs \u0026 Shifts Builder” button in the navigation bar under your event name, or by clicking the “Go to the Jobs \u0026 Shifts Builder” button in the todo item.\nAs always, we recommend you take the tour. The tour on this page is very comprehensive and will discuss the entire process. That said, we will go through the steps here.\n5.1 Create a location linkClick the “Create a Location” button under the description of the page. This will open the “Create a new Location” popup. This will ask you to enter some basic information about the location:\nField Required Description Restrictions Example Name Yes The name of your location Must be at least 2 characters long “Finish Line”, “Packet Pick-Up” Description Yes A short description of your location Must be at least 10 characters long “Help us keep the finish line running” Address No The address of your location “1234 Main St, Apt. 123, San Francisco, CA 94102” City No The city of your location “San Francisco” State No The state of your location “California” Start Time and Date Yes The start time and date of your location End Time and Date* Yes The end time and date of your location * There is a button “Copy from Start Time” right next to the label for the end time. Clicking this will copy the start time to the end time. You will still have to change the end time, but this can save you some time!\nOnce you have entered all the information, click the “Create Location” button.\n5.2 Create a job linkNow that we have a location, we can create a job. Click the “Create Job” button on the right side of the page. This will open the “Create a new Job” popup. This will ask you to enter some basic information about the job:\nField Required Description Restrictions Example Location Yes The location that this job is for (this will default to the location you just created) Job Name Yes The name of your job Must be at least 2 characters long “Finish Line”, “Packet Pick-Up” Description No A short description of your job “Help us keep the finish line running” Maximum Volunteers No The maximum number of volunteers that can be registered for this job. If you set this to 0, it will be unlimited. 10 Restrictions No Any restrictions that apply to this job “Must be over 21” Once you have entered all the information for the job, we need to create some shifts.\n5.3 Create shifts linkFrom inside the job popup, click the “Create a shift” button. This will ask you for some information about the shift:\nField Required Description Restrictions Example Capacity No The maximum number of volunteers that can be registered for this shift. If you set this to 0, it will be unlimited. By default, this will inherit from the job. 10 Start Time and Date Yes The start time and date of the shift. If this is the first shift, this will default to the start time of your location. If it is not the first shift, it will default to the end time of the previous shift. End Time and Date Yes The end time and date of the shift. Just like the location, you can copy the start time and date to the end time and date.\nOnce you have entered all the information, the shift builder will show you the approximate length of the shift. Give this a quick gut-check to make sure it is correct. If it is not, check the start and end times and make sure they are correct. Once you are satisfied, you can click the “Create another shift” button to create more shifts. They will automatically infer the length of the previous shift, so if you are just creating several 2 hour shifts, you won’t have to enter the start and end times for each one.\nOnce you are finished, click the “Create Job” button at the bottom of the popup to save your job.\n5.3.1 Job Interfaces linkNote that there are 2 interfaces for viewing jobs and shifts. You can switch between them by clicking the “View as Calendar” or “View as Table” button in the “Actions” dropdown pictured in the screenshots.\n5.3.1.1 The Job Calendar linkThe job calendar is the default interface for viewing jobs and shows the most data.\n5.3.1.1 The Job Table linkThe job table is a more explicit interface for viewing jobs and shifts.\n6. Getting in good payment standing linkIf you go back to the event home, you will see that lots of todo items are marked as done. All that is left is to get in good payment standing by setting up a payment method. You will see a red banner across the top of the page with a link to set up a payment method, or you can click the “Set up a payment method” button in the todo list.\n7. Finishing up linkCongratulations! You have successfully created your first event and are ready to go live. You have a basic understanding of how EventPilot works and how to interact with its interface. If you have any questions, comments, or suggestions, please reach out to us at support@geteventpilot.com.\n"
+            }
+        );
+    index.add(
+            {
+                id:  5 ,
+                href: "\/docs\/legal\/terms\/",
+                title: "Terms \u0026 Conditions",
+                description: "Privacy policy and terms of service.",
+                content: "Last updated: July 1, 2025\nCompany: EventPilot\nWebsite: https://geteventpilot.com\nContact: support@geteventpilot.com\n1. Definitions linkService: the EventPilot online platform and any related features, content or applications. User: anyone who accesses or uses the Service. Account: a registered User profile with unique credentials. Content: text, images, forms, data or other materials uploaded by Users.\n2. Acceptance of Terms linkBy accessing or using the Service you agree to these Terms. If you don’t agree, do not use or access the Service.\n3. Changes to Terms linkWe may modify these Terms at any time. Revised Terms take effect upon posting at https://geteventpilot.com/terms. Your continued use constitutes acceptance.\n4. Eligibility \u0026 Account Registration link You must be 18 years or older to register. Provide accurate, up-to-date information. Secure your credentials; you’re responsible for all activity on your Account. 5. Fees, Billing \u0026 Payment link All fees are in USD and processed via Stripe. You authorize EventPilot to bill your chosen payment method. If payment fails, we may suspend or terminate your Account until resolved. 6. Refund \u0026 Cancellation Policy link 30-day money-back guarantee from first payment. Cancel anytime; you remain liable for the remainder of your paid term. To request a refund or cancel, contact support@geteventpilot.com. 7. License to Access the Service linkSubject to these Terms, we grant you a limited, non-exclusive, non-transferable license to access and use the Service for your internal event-management purposes.\n8. User Content \u0026 Intellectual Property link Your Representations You own or have rights to all Content you upload. Assignment of Rights You hereby assign to EventPilot all worldwide right, title and interest in and to your Content, including all intellectual property rights. License to Other Users You grant other Users a license to view and submit your forms. Our Use EventPilot may host, reproduce, modify and display your Content to provide and improve the Service. 9. Our Intellectual Property linkAll software, trademarks, logos, designs, graphics and text on the Service are owned by EventPilot or its licensors. You may not copy, distribute, modify or create derivative works without our express written permission.\n10. Prohibited Conduct linkYou agree not to:\nUse the Service for unlawful purposes or to solicit criminal activity. Harass, abuse or harm another person. Upload malware or other harmful code. Reverse-engineer, decompile or otherwise attempt to access source code. 11. Third-Party Services \u0026 Links link We integrate with Stripe for payments. Your use of Stripe is governed by Stripe’s terms. The Service may contain links to third-party websites; we’re not responsible for their content or practices. 12. Privacy linkYour privacy is governed by our Privacy Policy. We collect device fingerprints, IP addresses, email, name and any data you or your form respondents provide.\n13. Disclaimers link AS-IS: The Service is provided “as is” and “as available.” EVENT OUTCOMES: We aren’t responsible for the success or failure of your events—even if due to our negligence. 14. Limitation of Liability linkTo the fullest extent permitted by law, EventPilot’s total liability for any claim arising from or relating to the Service shall not exceed the fees you paid in the 12 months preceding the claim. Under no circumstances shall we be liable for any indirect, incidental, special or consequential damages.\n15. Indemnification linkYou agree to defend, indemnify and hold harmless EventPilot and its officers, directors and employees from any claim, demand or damages, including reasonable attorneys’ fees, arising out of:\nYour use of the Service. Your Content. Your breach of these Terms. 16. Termination link You may close your Account at any time via your dashboard or by emailing support@geteventpilot.com. We may suspend or terminate your access for violations of these Terms or non-payment. 17. Governing Law \u0026 Dispute Resolution link These Terms are governed by the laws of the State of Ohio, USA. Arbitration: All disputes will be resolved by binding arbitration in Ohio, under the American Arbitration Association’s rules. You and EventPilot each waive any right to a jury trial or class-action. 18. Force Majeure linkEventPilot is not liable for delays or failures caused by events beyond our reasonable control (e.g., natural disasters, strikes, acts of war, Internet outages).\n19. Assignment linkYou may not assign or transfer your rights under these Terms without our prior written consent. We may assign without restriction.\n20. Severability linkIf any provision is held invalid or unenforceable, the remaining provisions remain in full force and effect.\n21. Waiver linkNo failure or delay in exercising any right under these Terms will constitute a waiver of that right.\n22. Entire Agreement linkThese Terms, together with our Privacy Policy and any additional term posted on the Service, constitute the entire agreement between you and EventPilot.\n23. Notices linkWe may provide notices by posting on the Service or emailing the address you provided. You agree that such notices are effective.\n24. Contact Information linkIf you have any questions or requests, please contact us at: support@geteventpilot.com\nBy using EventPilot, you acknowledge that you have read, understood and agree to these Terms \u0026 Conditions.\n"
+            }
+        );
+    index.add(
+            {
+                id:  6 ,
+                href: "\/docs\/what-is\/volunteer\/",
+                title: "Volunteer Management",
+                description: "How EventPilot can help you manage your volunteers.",
+                content: "Recruit, manage, track, check-in, follow-up, and re-engage with your volunteers. In our eyes, the volunteer experience is one of the most important parts of any event.\nHow to set up for volunteers using EventPilot linkBefore you can start using EventPilot to recruit volunteers, you need to set up your event. This means setting up the locations, jobs, and shifts that your volunteers will work at, as well as building out the registration form so that you are gathering the information you need from your volunteers.\nLocations, Jobs, and Shifts linkThis means creating at least one location for your volunteers to work at, at least one job for your volunteers to spend their time at, and at least one shift for each job you created. Small events may just have one location, job and shift, but larger events will easily cross through 10s of locations and jobs and potentially hundreds of shifts. Registration Form linkBuilding out the registration form is the next step. EventPilot automatically collects the name and email of your volunteers, but it is up to you to decide what else you want to collect. Common things to collect include phone numbers, shirt sizes, “how you heard about us”, if they have volunteered with your event before, and more. The Volunteer Lifecycle linkEventPilot believes that the volunteer experience is one of the most important parts of any event. With EventPilot, the volunteer lifecycle is as easy as:\nRegistration linkYour volunteer uses an easy-to-use form made by EventPilot to register to volunteer for your event.\nConfirmation \u0026 Self-Service linkVolunteer receives an email with all their information and a link to a self-service dashboard where they can manage their registration.\n(This makes volunteers happier because they can change how and when they volunteer to better fit their schedule, and this makes event organizers happier because the volunteer can do this on their own, without having to bug you.)\nReminders linkVolunteer receives an email the week before the event with information about their shift and about the event. This serves as a reminder to volunteers and is an opportunity for event organizers to distribute information about the event.\nDay-of Reminders \u0026 last-minute updates linkVolunteer receives an email the day of the event with information about the event and their shift. This serves as a reference to volunteers and is an opportunity for event organizers to distribute last-minute information about the event.\nCritical event-day updates linkVolunteer receives critical updates sent by organizers during the event via email and SMS (this can include things like weather updates, last-minute changes to the event, and more).\nEvent-day dashboard linkVolunteer has access to a self-service event-day dashboard where they can access information about the event such as FAQ, the schedule, maps, and anything else shared by the organizers. This arms your volunteers with the information they need to feel involved and engaged, and gives them more information about the event that they can pass on to participants, helping your event run more smoothly.\nImmediate thank you linkVolunteer receives an immediate thank you email after they complete their shift.\nFeedback linkVolunteer receives an email after the event with a link to a feedback form where they can share their experience with the organizers.\nRe-Engagement \u0026 follow-up linkVolunteer receives an invitation to volunteer for your event next time it comes around!\n"
+            }
+        );
+    index.add(
+            {
+                id:  7 ,
+                href: "\/docs\/what-is\/",
+                title: "The Basics",
+                description: "This section will cover what EventPilot is and how you can interact with it.",
+                content: ""
+            }
+        );
+    index.add(
+            {
+                id:  8 ,
+                href: "\/docs\/what-is\/crm\/",
+                title: "CRM / Relationship Management",
+                description: "How EventPilot can help you manage your relationships.",
+                content: "Keep track of your contacts and manage relationships with volunteers, participants, sponsors, and any other contact.\nWhy the EventPilot CRM is powerful linkEventPilot’s CRM is a powerful tool that is built-in to other EventPilot features. When a volunteer registers, they are automatically added to the CRM. When a participant registers, they are automatically added to the CRM. We don’t want to limit you to just using the CRM for people who have interacted with our platform, however, so we allow you to add any other contacts to the CRM. You can add a single contact at a time, or you can import unlimited contacts at once from a CSV file.\nWe wanted to build a powerful CRM that is easy to use and manage. You can add custom fields to your CRM table, allowing you to keep track of the information that matters to you. By default, we have a few fields that we require for contacts (like name), but beyond that, it is pretty much up to you!\nThe EventPilot CRM is also tightly integrated with the interactions that occur between your contacts and EventPilot. Anytime a contact interacts with EventPilot in any way, it will be automatically logged in the CRM. That means that you won’t have anything slip through the cracks.\n"
+            }
+        );
+    index.add(
+            {
+                id:  9 ,
+                href: "\/docs\/what-is\/locations\u002bjobs\u002bshifts\/",
+                title: "Locations, Jobs, and Shifts",
+                description: "How EventPilot organizes workloads.",
+                content: "Understand how EventPilot organizes the work that needs to be done so your event can run smoothly.\nHow we set it up linkEventPilot is built around the concept of locations, jobs, and shifts.\nShifts live inside of jobs, and jobs live inside of locations.\nLocations linkThink of a location as an independent time and space where volunteers can work. You can have as many locations as you want, and they are a great way to communicate seperate units of work to your volunteers.\nIt is not uncommon to have multiple locations that take place at the same physical location, but may take place at different times. For example, if you are hosting a race of some sort, you might have a few packet pick-up pop-ups in the days leading up to the event. If you event is on Saturday, you might have packet pick-ups on Wednesday, Thursday, and Friday at a local coffee shop. Those are all at the same location, but it would make sense to have them as separate locations.\nLocations can be as small and specific as you want. If you are hosting a marathon, you could have a single location for each individual water station if you wanted your volunteers to be able to pick what station they want to work, or you could have a single location and you manage the physical locations yourself.\nIf you have any questions regarding how to set up your event, please contact us at support@geteventpilot.com and we can talk you through it!\nJobs linkThink of a job as a distinct task that needs to be done. For example, if you are hosting a conference, you might have a job for ushers to help attendees find their seats, a job to help speakers get ready for their talk, and a job to help make sure the food table is stocked.\nShifts linkThink of a shift as a time period during which a volunteer is working on a job. Most events last longer than a volunteer would like to work, so it is helpful to allow volunteers to sign up for shorter periods of time.\nThe philosophy behind EventPilot’s organization linkEventPilot is designed for medium- to large-scale events. These events commonly last several days, and span a large geographic area. We want to make it easy for you to manage volunteers across these dimensions, and we want to make it easy for your volunteers to do what they want to do, where they want to do it, and when they want to do it.\n"
+            }
+        );
+    index.add(
+            {
+                id:  10 ,
+                href: "\/docs\/pages\/",
+                title: "Pages",
+                description: "How-to guides for the various pages in EventPilot.",
+                content: ""
+            }
+        );
+    index.add(
+            {
+                id:  11 ,
+                href: "\/docs\/vocab\/",
+                title: "Glossary",
+                description: "A glossary of terms used in EventPilot.",
+                content: "EventPilot uses a number of terms where clarity is important. Here is a glossary of terms used in EventPilot.\nEvent linkAn event is a collection of locations, jobs, shifts, volunteers, statistics, and contacts. It is the “highest level” form of organization in EventPilot. We recommend creating a distinct EventPilot event for each event you are running. You can create as many events as you want.\n"
+            }
+        );
+    index.add(
+            {
+                id:  12 ,
+                href: "\/docs\/roadmap\/",
+                title: "Roadmap",
+                description: "What is coming next for EventPilot?",
+                content: "We are constantly working on new features and improvements to EventPilot. Here is a list of what we are working on next.\nTight Email Integration linkEmails are a great opportunity for us to allow our customers to interact with their contacts. Whether that is an automated welcome or thanks for registering email, every email is a touch point and we want to make it easy for you to use EventPilot to tighten your relationships with your contacts.\nEmails are also a great source of data for the CRM, so we want to build a powerful email integration into EventPilot. This means being able to send emails to contacts right from the CRM, and being able to see when the email was delivered and opened right in the timeline with all the other interactions from that contact. We also want to build out an email marketing feature that allows you to send emails to your contacts based on the data living in the CRM.\nGiven all this data, we will be able to build a solid picture of your contacts, their interactions, and their interest in your event, allowing you to target your efforts more effectively.\nEventPilot for Teams linkEventPilot is a great tool for event organizers, but everyone knows everything is more fun with a friend! We want to make it easy for you to invite your team to EventPilot and use it to manage your event alongside your team. No longer will the entire burden land on the shoulders of the event organizer, but instead, you can give your volunteer coordinator the power to manage volunteers, hand the email marketing tools to your marketing/outreach person, and more.\nOrganizations linkWe want to make it easy for you to spin up new events and allow them to inherit the data from your existing events. Many organizations have many events through the year, so we want to give them the same tools present in EventPilot now, but scope them to an organization. This will involve moving the CRM and donations to the organization level.\nDonations linkWe know how important donations are to events and nonprofits, so we want to make it easy for you to accept donations through EventPilot. Centralizing your donations to being on EventPilot will provide you with a powerful tool to help understand the financial picture of your event and your donors.\nUsing the glut of data on your event gathered by EventPilot, you can build out an impactful fundraising campaign that will not only help raise the money for your event to succeed, but raise money for your nonprofit as well.\nParticipant Registration \u0026 Management linkYou can have a great event, but without participants, what is the point? We want to arm event organizers with modern, powerful, and easy-to-use tools to allow participants to register for your event. That means taking the work we have done to build the volunteer registration system and applying it to a participant registration system.\nThis also means integrating with a payments system so that participants can pay for their registration.\nCentralized Support \u0026 Contact Hub linkWe want to allow events to route their support requests to a centralized support hub. That will mean setting up a mailbox that directs to our servers, so that when someone sends an email to support@yourevent.com, it will be routed directly into your EventPilot account, where it gets affiliated and logged with a CRM record, and gives you the ability to respond to the request with all the context of that person’s previous interactions with your event.\nWe can also integrate with social media platforms, so when people send you direct messages, they can filter into the same system, meaning you only have to watch one inbox for all your interactions.\nSocial Media Integration linkGreat events are built on social media, so we want to make it easy for you to integrate your event with your social media accounts. We want to give you the ability to post to all your social media accounts from a single dashboard, manage responses and feedbacks, understand engagement, and see the impact of your social media efforts directly overlaid on your event’s timeline.\n"
+            }
+        );
+    index.add(
+            {
+                id:  13 ,
+                href: "\/docs\/legal\/",
+                title: "Terms \u0026 Privacy",
+                description: "Privacy policy and terms of service.",
+                content: ""
+            }
+        );
+    index.add(
+            {
+                id:  14 ,
+                href: "\/docs\/",
+                title: "Docs",
+                description: "",
+                content: ""
+            }
+        );
+    search.addEventListener('input', show_results, true);
+
+    function show_results(){
+        const maxResult =  5 ;
+        const minlength =  0 ;
+        var searchQuery = sanitizeHTML(this.value);
+        var results = index.search(searchQuery, {limit: maxResult, enrich: true});
+
+        
+        const flatResults = new Map(); 
+        for (const result of results.flatMap(r => r.result)) {
+        if (flatResults.has(result.doc.href)) continue;
+        flatResults.set(result.doc.href, result.doc);
+        }
+
+        suggestions.innerHTML = "";
+        suggestions.classList.remove('d-none');
+
+        
+        if (searchQuery.length < minlength) {
+            const minCharMessage = document.createElement('div')
+            minCharMessage.innerHTML = `Please type at least <strong>${minlength}</strong> characters`
+            minCharMessage.classList.add("suggestion__no-results");
+            suggestions.appendChild(minCharMessage);
+            return;
+        } else {
+            
+            if (flatResults.size === 0 && searchQuery) {
+                const noResultsMessage = document.createElement('div')
+                noResultsMessage.innerHTML = "No results for" + ` "<strong>${searchQuery}</strong>"`
+                noResultsMessage.classList.add("suggestion__no-results");
+                suggestions.appendChild(noResultsMessage);
+                return;
+            }
+        }
+
+        
+        for(const [href, doc] of flatResults) {
+            const entry = document.createElement('div');
+            suggestions.appendChild(entry);
+
+            const a = document.createElement('a');
+            a.href = href;
+            entry.appendChild(a);
+
+            const title = document.createElement('span');
+            title.textContent = doc.title;
+            title.classList.add("suggestion__title");
+            a.appendChild(title);
+
+            const description = document.createElement('span');
+            description.textContent = doc.description;
+            description.classList.add("suggestion__description");
+            a.appendChild(description);
+
+            suggestions.appendChild(entry);
+
+            if(suggestions.childElementCount == maxResult) break;
+        }
+    }
+    }());
+</script>
+        
+    </body>
+</html>

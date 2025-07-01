@@ -8,14 +8,18 @@
     <loc>http://localhost:1313/docs/welcome/</loc>
     <lastmod>2025-06-29T22:08:03-04:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/docs/what-is/</loc>
-    <lastmod>2025-06-29T22:08:03-04:00</lastmod>
+    <loc>http://localhost:1313/docs/getting-started/</loc>
   </url><url>
     <loc>http://localhost:1313/docs/what-is/volunteer/</loc>
+  </url><url>
+    <loc>http://localhost:1313/docs/what-is/</loc>
+    <lastmod>2025-06-29T22:08:03-04:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/docs/what-is/crm/</loc>
   </url><url>
     <loc>http://localhost:1313/docs/what-is/locations&#43;jobs&#43;shifts/</loc>
+  </url><url>
+    <loc>http://localhost:1313/docs/vocab/</loc>
   </url><url>
     <loc>http://localhost:1313/docs/roadmap/</loc>
   </url><url>

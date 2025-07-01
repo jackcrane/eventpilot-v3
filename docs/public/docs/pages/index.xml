@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Pages on EventPilot User Guide</title>
+    <link>http://localhost:1313/docs/pages/</link>
+    <description>Recent content in Pages on EventPilot User Guide</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <atom:link href="http://localhost:1313/docs/pages/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Volunteer Registration Builder</title>
+      <link>http://localhost:1313/docs/pages/registration-builder/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/docs/pages/registration-builder/</guid>
+      <description>&lt;p&gt;The registration builder is a tool in EventPilot that allows you to customize what data you want to collect from your volunteers.&lt;/p&gt;&#xA;&lt;img src=&#34;http://localhost:1313/images/registration-builder.png&#34; alt=&#34;Registration builder&#34; style=&#34;width: 100%;&#34; /&gt;&#xA;&lt;p&gt;By default, EventPilot will collect your volunteers&amp;rsquo; name and email address. You cannot customize this, but you can add additional fields.&lt;/p&gt;&#xA;&lt;h2 id=&#34;sections&#34;&gt;Sections &lt;a href=&#34;#sections&#34; class=&#34;anchor&#34; aria-hidden=&#34;true&#34;&gt;&lt;i class=&#34;material-icons align-middle&#34;&gt;link&lt;/i&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The registration builder is divided into 3 primary sections. We recommend taking the tour (click the red &amp;ldquo;Help!&#xA;button in the bottom left corner of the page) to get familiar with the UI.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

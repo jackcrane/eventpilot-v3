@@ -109,7 +109,7 @@
                             <a class="sidebar-root-link" href="http://localhost:1313/docs/getting-started/">
                                 <i class="material-icons me-2">emoticon</i>
                                 
-                                Welcome to EventPilot
+                                Getting Started
                             </a>
                         </li>
                     
@@ -146,6 +146,37 @@
                                     
                                 </ul>
                             </div>
+                        </li>
+                    
+                
+                    
+                    
+                        <li class="sidebar-dropdown  ">
+                            <button class="btn">
+                                <i class="material-icons me-2">description</i>
+                                Pages
+                            </button>
+                            <div class="sidebar-submenu ">
+                                <ul>
+                                    
+                                        
+                                        
+                                            <li class=" "><a class="sidebar-nested-link" href="http://localhost:1313/docs/pages/registration-builder/">Volunteer Registration Builder</a></li>
+                                        
+                                    
+                                </ul>
+                            </div>
+                        </li>
+                    
+                
+                    
+                        
+                        <li class="">
+                            <a class="sidebar-root-link" href="http://localhost:1313/docs/vocab/">
+                                <i class="material-icons me-2">article</i>
+                                
+                                Glossary
+                            </a>
                         </li>
                     
                 
@@ -432,10 +463,10 @@
 
 	<div class="row flex-xl-nowrap flex-row-reverse">
 	<div class="col-sm-6 pt-2 doc-prev">
-		<a class="ms-auto" href="/docs/welcome/">
+		<a class="ms-auto" href="/docs/pages/registration-builder/">
 			<div class="card h-100 my-1 text-end">
 				<div class="card-body py-2">
-                    <p class="card-title fs-5 fw-semibold lh-base mb-0">Welcome to EventPilot <i class="material-icons align-middle">navigate_next</i></p>
+                    <p class="card-title fs-5 fw-semibold lh-base mb-0">Volunteer Registration Builder <i class="material-icons align-middle">navigate_next</i></p>
 					
 				</div>
 			</div>
@@ -664,6 +695,27 @@
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
 
     
@@ -682,6 +734,15 @@
     index.add(
             {
                 id:  1 ,
+                href: "\/docs\/pages\/registration-builder\/",
+                title: "Volunteer Registration Builder",
+                description: "Understand what EventPilot is and how you can interact with it.",
+                content: ""
+            }
+        );
+    index.add(
+            {
+                id:  2 ,
                 href: "\/docs\/welcome\/",
                 title: "Welcome to EventPilot",
                 description: "Welcome to the EventPilot User Guide, your go-to resource for everything EventPilot.",
@@ -690,16 +751,16 @@
         );
     index.add(
             {
-                id:  2 ,
+                id:  3 ,
                 href: "\/docs\/getting-started\/",
-                title: "Welcome to EventPilot",
-                description: "Welcome to the EventPilot User Guide, your go-to resource for everything EventPilot.",
-                content: ""
+                title: "Getting Started",
+                description: "Your first steps into EventPilot.",
+                content: "EventPilot is a powerful tool, and we have strived to make it easy to use, but a little guidance is always helpful. This page will cover your first steps into EventPilot, getting you up and running with the basics.\n1. Create an EventPilot Account linkTo get started, you’ll need to create an account. You will do this by clicking any of the “register” buttons or by visiting geteventpilot.com/register. We will need your name, your email address, and a password to create your accout. Be sure to use an email address you have access to, as you will need to verify your email address to access your account.\nOnce you verify your email, you will be taken to the events page (geteventpilot.com/events), where, once you have created an event, you will see a list of your events.\nYou will see a list of “What to do next?” items. You will see this box a few places throughout EventPilot, and it is a great way to keep track of what you need to do next. If you feel like you are ready to go it alone, you can follow the “What to do next?” items and get started. Otherwise, keep following this page to get up and running.\n2. Create an Event linkCreating an event is the first step in using EventPilot. It will hold all of your data for a particular event.\nCreate an event by clicking the “Create Event” button on the page you are directed to after registering (geteventpilot.com/events). You will need to enter:\nField Description Restrictions Example Name The name of your event Must be at least 2 characters long “The Atlantis Marathon” Description A short description of your event Must be at least 10 characters long “Run 26.2 miles through the lost city of Atlantis” Slug A short, lowercase, hyphenated string of letters Must be 3-30 characters long and can only contain lowercase letters, numbers, and hyphens “atlantis-marathon” Logo Your event’s logo Should be a square image at least 200px by 200px n/a Default Timezone The timezone in which your event will be hosted n/a “Eastern Standard Time” All fields are required, but can be changed later.\nwarning We strongly recommend not changing the slug after you have created your event. URLs autogenerated by EventPilot will use the event’s slug, so changing the slug will break links to your event (including ones that EventPilot has generated and sent to your contacts). 3. The event dashboard linkOnce you have created your event, you will be taken to the event dashboard.\nThis is your main headquarters for your event. As more starts to happen in your event, you will see analytics and prompts here to help you keep track of what is happening. For now though, lets take a tour to get you familiar with the dashboard.\n3.1 Take a tour linkMany pages in EventPilot have a tour that can help you get familiar with the page. If a tour is available, you will see a red “Help!” button at the bottom left of the page. Clicking this button will launch the tour.\nGo take the tour and come back to this page when you are done.\nThe tour highlighted a few main sections of the page:\nThe top navigation is the main navigation for your event. It is where you can visit different pages of your event. The event picker is where you can quickly jump to a different event or create a new one. The “Help! button is where you can launch the tour for the page. The Todo List is where you can quickly see what needs to be done next. The todo list is what this page is built on. You can follow it yourself, or you can keep this page as a reference so we can explain what is happening and what is happening next.\n4. Volunteer Registration Form linkLooking at the todo list, you will see that there is an item called “Volunteer Registration Form Not Started”, with a button that will take you to the registration builder.\nLooking in the bottom left corner of the page, you can see that a tour is available. Take the tour and come back to this page when you are done.\nNow that you have taken the tour, you have an idea of what the registration builder is and how it works. For more information, visit the documentation for the Registration Builder with the link below. It will open in a new tab so you can keep this page open.\n🔗 Click here to go to the documentation for the Registration Builder "
             }
         );
     index.add(
             {
-                id:  3 ,
+                id:  4 ,
                 href: "\/docs\/what-is\/volunteer\/",
                 title: "Volunteer Management",
                 description: "How EventPilot can help you manage your volunteers.",
@@ -708,7 +769,7 @@
         );
     index.add(
             {
-                id:  4 ,
+                id:  5 ,
                 href: "\/docs\/what-is\/",
                 title: "The Basics",
                 description: "This section will cover what EventPilot is and how you can interact with it.",
@@ -717,7 +778,7 @@
         );
     index.add(
             {
-                id:  5 ,
+                id:  6 ,
                 href: "\/docs\/what-is\/crm\/",
                 title: "CRM / Relationship Management",
                 description: "How EventPilot can help you manage your relationships.",
@@ -726,7 +787,7 @@
         );
     index.add(
             {
-                id:  6 ,
+                id:  7 ,
                 href: "\/docs\/what-is\/locations\u002bjobs\u002bshifts\/",
                 title: "Locations, Jobs, and Shifts",
                 description: "How EventPilot organizes workloads.",
@@ -735,7 +796,25 @@
         );
     index.add(
             {
-                id:  7 ,
+                id:  8 ,
+                href: "\/docs\/pages\/",
+                title: "Pages",
+                description: "How-to guides for the various pages in EventPilot.",
+                content: ""
+            }
+        );
+    index.add(
+            {
+                id:  9 ,
+                href: "\/docs\/vocab\/",
+                title: "Glossary",
+                description: "A glossary of terms used in EventPilot.",
+                content: "EventPilot uses a number of terms where clarity is important. Here is a glossary of terms used in EventPilot.\nEvent linkAn event is a collection of locations, jobs, shifts, volunteers, statistics, and contacts. It is the “highest level” form of organization in EventPilot. We recommend creating a distinct EventPilot event for each event you are running. You can create as many events as you want.\n"
+            }
+        );
+    index.add(
+            {
+                id:  10 ,
                 href: "\/docs\/roadmap\/",
                 title: "Roadmap",
                 description: "What is coming next for EventPilot?",
@@ -744,7 +823,7 @@
         );
     index.add(
             {
-                id:  8 ,
+                id:  11 ,
                 href: "\/docs\/",
                 title: "Docs",
                 description: "",
