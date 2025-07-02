@@ -59,6 +59,105 @@ export const groupByLocationAndJob = (responses) => {
   return result;
 };
 
+export const findSubmission = async (eventId, submissionId) => {
+  const fields = await prisma.formField.findMany({
+    where: { eventId, deleted: false },
+    orderBy: { order: "asc" },
+    select: {
+      id: true,
+      label: true,
+      type: true,
+      options: {
+        select: { id: true, label: true, deleted: true },
+      },
+      deleted: true,
+      order: true,
+      required: true,
+    },
+  });
+
+  const resp = await prisma.formResponse.findUnique({
+    where: { id: submissionId },
+    include: {
+      fieldResponses: {
+        select: { fieldId: true, value: true, field: true },
+      },
+      shifts: {
+        include: {
+          shift: {
+            include: {
+              job: {
+                include: {
+                  location: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      pii: true,
+    },
+  });
+
+  if (!resp || resp.eventId !== eventId) {
+    throw new Error("Submission not found");
+  }
+
+  const shifts = [...resp.shifts];
+  const formattedResponse = formatFormResponse(resp, fields);
+
+  const emailField = fields.find((f) => f.label === "Your Email");
+  const email = formattedResponse[emailField.id];
+  const nameField = fields.find((f) => f.label === "Your Name");
+  const name = formattedResponse[nameField.id];
+  formattedResponse["flat"] = { email, name };
+
+  const fieldsMeta = fields.map((f) => ({
+    ...f,
+    currentlyInForm: !f.deleted,
+  }));
+
+  const otherResponsesWithSameFingerprint = await prisma.formResponse.findMany({
+    where: {
+      eventId,
+      deleted: false,
+      pii: {
+        fingerprint: resp.pii?.fingerprint,
+      },
+      id: {
+        not: resp.id,
+      },
+    },
+    orderBy: { createdAt: "asc" },
+    include: {
+      fieldResponses: {
+        select: { fieldId: true, value: true },
+      },
+    },
+  });
+
+  const otherResponsesWithSameFingerprintFormatted =
+    otherResponsesWithSameFingerprint.map((r) => {
+      const formatted = formatFormResponse(r, fields);
+      const nameFieldId = fields.find((f) => f.label === "Your Name")?.id;
+      return {
+        ...formatted,
+        name: formatted[nameFieldId],
+      };
+    });
+
+  resp.pii.otherResponsesWithSameFingerprint =
+    otherResponsesWithSameFingerprintFormatted;
+
+  return {
+    response: formattedResponse,
+    fields: fieldsMeta,
+    pii: resp.pii,
+    groupedShifts: groupByLocationAndJob(shifts),
+    shifts: shifts.map((s) => s.shift),
+  };
+};
+
 /**
  * GET → fetch a single submission with flattened values
  */
@@ -66,111 +165,14 @@ export const get = [
   verifyAuth(["manager"]),
   async (req, res) => {
     const { eventId, submissionId } = req.params;
+
     try {
-      // Fetch all fields (including deleted ones) with type + options
-      const fields = await prisma.formField.findMany({
-        where: { eventId, deleted: false },
-        orderBy: { order: "asc" },
-        select: {
-          id: true,
-          label: true,
-          type: true,
-          options: {
-            select: { id: true, label: true, deleted: true },
-          },
-          deleted: true,
-          order: true,
-          required: true,
-        },
-      });
-
-      // Fetch the specific submission
-      const resp = await prisma.formResponse.findUnique({
-        where: { id: submissionId },
-        include: {
-          fieldResponses: {
-            select: { fieldId: true, value: true, field: true },
-          },
-          shifts: {
-            include: {
-              shift: {
-                include: {
-                  job: {
-                    include: {
-                      location: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-          pii: true,
-        },
-      });
-      if (!resp || resp.eventId !== eventId) {
-        return res.status(404).json({ message: "Submission not found" });
-      }
-
-      const shifts = [...resp.shifts];
-
-      const formattedResponse = formatFormResponse(resp, fields);
-
-      const emailField = fields.find((f) => f.label === "Your Email");
-      const email = formattedResponse[emailField.id];
-      const nameField = fields.find((f) => f.label === "Your Name");
-      const name = formattedResponse[nameField.id];
-      formattedResponse["flat"] = {
-        email,
-        name,
-      };
-
-      const fieldsMeta = fields.map((f) => ({
-        ...f,
-        currentlyInForm: !f.deleted,
-      }));
-
-      const otherResponsesWithSameFingerprint =
-        await prisma.formResponse.findMany({
-          where: {
-            eventId,
-            deleted: false,
-            pii: {
-              fingerprint: resp.pii?.fingerprint,
-            },
-            id: {
-              not: resp.id,
-            },
-          },
-          orderBy: { createdAt: "asc" },
-          include: {
-            fieldResponses: {
-              select: { fieldId: true, value: true },
-            },
-          },
-        });
-
-      const otherReponsesWithSameFingerprintFormatted =
-        otherResponsesWithSameFingerprint.map((r) => {
-          const formatted = formatFormResponse(r, fields);
-          const nameFieldId = fields.find((f) => f.label === "Your Name")?.id;
-          return {
-            ...formatted,
-            name: formatted[nameFieldId],
-          };
-        });
-      resp.pii.otherResponsesWithSameFingerprint =
-        otherReponsesWithSameFingerprintFormatted;
-
-      return res.json({
-        response: formattedResponse,
-        fields: fieldsMeta,
-        pii: resp.pii,
-        groupedShifts: groupByLocationAndJob(shifts),
-        shifts: shifts.map((shift) => shift.shift),
-      });
+      const result = await findSubmission(eventId, submissionId);
+      return res.json(result);
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ message: error.message });
+      const code = error.message === "Submission not found" ? 404 : 500;
+      return res.status(code).json({ message: error.message });
     }
   },
 ];

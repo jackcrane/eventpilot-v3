@@ -6,6 +6,18 @@ import { z } from "zod";
 
 let rawEmailClient = new postmark.ServerClient(process.env.POSTMARK_API_TOKEN);
 
+/**
+ * Sends an email using postmark
+ * @param {*} options
+ * @param {*} options.From
+ * @param {*} options.To
+ * @param {*} options.Subject
+ * @param {*} options.TextBody
+ * @param {*} options.HtmlBody
+ * @param {*} options.userId
+ * @param {*} options.crmPersonId
+ * @returns
+ */
 const sendEmail = async (options) => {
   const schema = z.object({
     From: z.string({
@@ -22,7 +34,8 @@ const sendEmail = async (options) => {
     HtmlBody: z.string({
       required_error: "HtmlBody is a required field",
     }),
-    userId: z.string(),
+    userId: z.string().optional(),
+    crmPersonId: z.string().optional(),
   });
   const result = schema.safeParse(options);
 
@@ -41,6 +54,7 @@ const sendEmail = async (options) => {
       to: options.To,
       subject: options.Subject,
       userId: options.userId,
+      crmPersonId: options.crmPersonId,
     },
   });
 
@@ -49,6 +63,7 @@ const sendEmail = async (options) => {
       type: "EMAIL_SENT",
       userId: options.userId,
       emailId: emailRecord.id,
+      crmPersonId: options.crmPersonId,
     },
   });
 

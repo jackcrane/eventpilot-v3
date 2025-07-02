@@ -70,6 +70,9 @@ model Email {
   crmPersonEmailId String?
   crmPersonEmail CrmPersonEmail? @relation(fields: [crmPersonEmailId], references: [id], onDelete: Cascade)
 
+  crmPersonId String?
+  crmPerson CrmPerson? @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+
   responses EmailWebhooks[]
 
   logs Logs[]
@@ -432,6 +435,7 @@ model CrmPerson {
   links CrmPersonLink[]
 
   logs Logs[]
+  sentEmails Email[]
   deleted Boolean @default(false)
 
   fieldValues CrmPersonField[]
@@ -621,6 +625,11 @@ enum LogType {
   EMAIL_SENT
   EMAIL_VERIFIED
   EMAIL_WEBHOOK_RECEIVED
+  EMAIL_WEBHOOK_BOUNCE
+  EMAIL_WEBHOOK_DELIVERY
+  EMAIL_WEBHOOK_OPEN
+  EMAIL_WEBHOOK_SPAM_COMPLAINT
+  EMAIL_WEBHOOK_LINK_CLICK
   FILE_UPLOADED
   EVENT_CREATED
   EVENT_MODIFIED

@@ -4,6 +4,10 @@ import { serializeError } from "#serializeError";
 import { verifyAuth } from "#verifyAuth";
 import { formatFormResponse } from "./[submissionId]";
 import { LogType } from "@prisma/client";
+import { sendEmail } from "#postmark";
+import { findSubmission } from "./[submissionId]";
+import { render } from "@react-email/render";
+import { VolunteerFormResponseThankYouEmail } from "../../../../react-email/emails/volunteer-form-response-thank-you";
 
 const bodySchema = z.object({
   values: z.record(z.string(), z.string()),
@@ -40,14 +44,76 @@ export const post = async (req, res) => {
       },
     });
 
-    const createdShifts = await prisma.formResponseShift.createMany({
+    await prisma.formResponseShift.createMany({
       data: shifts.map((s) => ({
         formResponseId: formResponse.id,
         shiftId: s.id,
       })),
     });
 
-    console.log(createdShifts);
+    const fullSubmission = await findSubmission(
+      formResponse.eventId,
+      formResponse.id
+    );
+
+    let existingCrmPersonByEmailAndName = await prisma.crmPerson.findFirst({
+      where: {
+        name: fullSubmission.response.flat.name,
+        emails: {
+          some: {
+            email: fullSubmission.response.flat.email,
+          },
+        },
+      },
+    });
+
+    if (!existingCrmPersonByEmailAndName) {
+      existingCrmPersonByEmailAndName = await prisma.crmPerson.create({
+        data: {
+          name: fullSubmission.response.flat.name,
+          emails: {
+            create: {
+              email: fullSubmission.response.flat.email,
+            },
+          },
+          source: "VOLUNTEER",
+          eventId: formResponse.eventId,
+          links: {
+            create: {
+              formResponseId: formResponse.id,
+            },
+          },
+        },
+      });
+    } else {
+      let crmPersonEmail = await prisma.crmPersonEmail.findFirst({
+        where: {
+          email: fullSubmission.response.flat.email,
+          crmPersonId: existingCrmPersonByEmailAndName.id,
+        },
+      });
+      if (!crmPersonEmail) {
+        crmPersonEmail = await prisma.crmPersonEmail.create({
+          data: {
+            email: fullSubmission.response.flat.email,
+            crmPersonId: existingCrmPersonByEmailAndName.id,
+          },
+        });
+      }
+
+      await prisma.crmPerson.update({
+        where: {
+          id: existingCrmPersonByEmailAndName.id,
+        },
+        data: {
+          links: {
+            create: {
+              formResponseId: formResponse.id,
+            },
+          },
+        },
+      });
+    }
 
     await prisma.logs.create({
       data: {
@@ -58,6 +124,24 @@ export const post = async (req, res) => {
         formResponseId: formResponse.id,
         data: formResponse,
       },
+    });
+
+    const event = await prisma.event.findUnique({
+      where: { id: formResponse.eventId },
+    });
+
+    await sendEmail({
+      From: req.user?.email,
+      To: formResponse.crmPersonId,
+      Subject: "Form Response Submitted",
+      TextBody: `Form Response Submitted`,
+      HtmlBody: await render(
+        VolunteerFormResponseThankYouEmail.VolunteerFormResponseThankYouEmail({
+          data: fullSubmission,
+          event: event,
+        })
+      ),
+      crmPersonId: formResponse.crmPersonId,
     });
 
     res.json({ id: formResponse.id });

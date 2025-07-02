@@ -76,7 +76,10 @@ export const LoginEmail = ({ name, city, regionName, ip }) => (
     <Preview>New login to EventPilot</Preview>
     <Body style={styles.main}>
       <Container style={styles.container}>
-        <Img src={"https://cdn.jackcrane.rocks/ski.jpg"} width="100%" />
+        <Img
+          src={"https://geteventpilot.com/static/email-header.png"}
+          width="100%"
+        />
         <div style={styles.content}>
           <Heading mt={0} as={"h1"} style={styles.heading}>
             New login to EventPilot
@@ -96,7 +99,8 @@ export const LoginEmail = ({ name, city, regionName, ip }) => (
           <Text style={styles.or}>
             We value your privacy and security. Please do not reply to this
             email. If you need, you can{" "}
-            <Link href="mailto:support@EventPilot.pro">contact us here</Link>.
+            <Link href="mailto:support@geteventpilot.com">contact us here</Link>
+            .
           </Text>
         </div>
       </Container>

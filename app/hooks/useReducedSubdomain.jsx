@@ -6,13 +6,17 @@ export const useReducedSubdomain = () => {
 
   const parts = hostname.split(".");
 
-  // Handle localhost or IPs (no subdomain)
-  if (hostname === "localhost" || parts.length < 3) return null;
+  // Special handling for localhost (e.g., paddlefest.localhost)
+  if (hostname.endsWith("localhost")) {
+    const index = parts.findIndex((p) => p === "localhost");
+    const subdomainParts = parts.slice(0, index);
+    return subdomainParts.length ? subdomainParts.join(".") : null;
+  }
 
-  // Strip www if present
+  // Handle www stripping and normal domains
   if (parts[0] === "www") parts.shift();
 
-  // Remove the last two elements (domain and TLD)
+  // Remove the last two parts (domain and TLD)
   const subdomainParts = parts.slice(0, -2);
 
   return subdomainParts.length ? subdomainParts.join(".") : null;
