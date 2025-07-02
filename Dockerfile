@@ -20,6 +20,12 @@ ENV NODE_ENV=production
 # Build the frontend
 RUN yarn build
 
+WORKDIR /api/react-email
+
+COPY ./api/react-email/ ./
+
+RUN yarn install
+
 # Set the working directory to /api for the backend
 WORKDIR /api
 
