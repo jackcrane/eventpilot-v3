@@ -50,6 +50,7 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 await registerRoutes(app, path.join(process.cwd(), "routes"));
 
 app.use(express.static("../app/dist"));
+app.use("/static", express.static(path.join(process.cwd(), "static")));
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../app/dist", "index.html"));

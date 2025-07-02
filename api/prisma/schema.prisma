@@ -151,6 +151,7 @@ model File {
   contentType String
   size Int
   location String
+  blurhash String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
