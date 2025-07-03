@@ -15,11 +15,31 @@ export const get = [
       });
 
       if (!email) {
+        const inboundEmail = await prisma.inboundEmail.findUnique({
+          where: {
+            id: emailId,
+          },
+          include: {
+            from: true,
+            to: true,
+            cc: true,
+            bcc: true,
+            attachments: true,
+            crmPersons: true,
+          },
+        });
+
+        if (inboundEmail) {
+          return res.status(200).json({
+            email: { type: "INBOUND", ...inboundEmail },
+          });
+        }
+
         return res.status(404).json({ message: "Email not found" });
       }
 
       res.json({
-        email,
+        email: { type: "OUTBOUND", email },
       });
     } catch (error) {
       console.error("Error in GET /event/:eventId/email/:emailId:", error);

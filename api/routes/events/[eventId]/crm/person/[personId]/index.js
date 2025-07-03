@@ -53,6 +53,7 @@ export const get = [
           emails: {
             where: { deleted: req.query.includeDeleted ? undefined : false },
           },
+          inboundEmails: true,
           phones: true,
           fieldValues: true,
           logs: {

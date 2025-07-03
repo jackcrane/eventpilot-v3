@@ -8,22 +8,22 @@ datasource db {
 }
 
 model User {
-  id String @id @default(cuid())
-  email String @unique
-  password String
-  name String
+  id          String  @id @default(cuid())
+  email       String  @unique
+  password    String
+  name        String
   phoneNumber String?
 
   emailVerified Boolean @default(false)
 
-  emailVerifications EmailVerification[]
-  logs Logs[]
+  emailVerifications   EmailVerification[]
+  logs                 Logs[]
   forgotPasswordTokens ForgotPasswordToken[]
-  files File[]
+  files                File[]
 
   emailPreferences EmailPreferences?
 
-  stripe_customerId String?
+  stripe_customerId    String?
   stripe_setupIntentId String?
 
   goodPaymentStanding Boolean @default(false)
@@ -47,7 +47,7 @@ model EmailPreferences {
   id String @id @default(cuid())
 
   userId String @unique
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   login Boolean @default(true)
 
@@ -57,25 +57,112 @@ model EmailPreferences {
   updatedAt DateTime @updatedAt
 }
 
-model Email {
+model Conversation {
   id String @id @default(cuid())
-  messageId String
-  from String
-  to String
+
+  inboundEmails InboundEmail[]
+  outboundEmails Email[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InboundEmail {
+  id                String  @id @default(cuid())
+  conversationId    String?
+  conversation      Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  from              InboundEmailParticipant?   @relation("FromParticipant")
+  originalRecipient String?
+
+  eventId String?
+  event   Event? @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  crmPersons CrmPerson[]
+
+  to  InboundEmailParticipant[] @relation("ToParticipants")
+  cc  InboundEmailParticipant[] @relation("CcParticipants")
+  bcc InboundEmailParticipant[] @relation("BccParticipants")
+
   subject String
-  htmlBody String?
+  messageId String /// Postmark MessageID
+  replyTo String?
+  mailboxHash String?
+
   textBody String?
+  htmlBody String?
+  strippedTextReply String?
+
+  tag String?
+
+  headers InboundEmailHeaders[]
+  attachments InboundEmailAttachment[]
+  logs Logs[]
+
+  receivedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InboundEmailHeaders {
+  id String @id @default(cuid())
+
+  inboundEmailId String
+  inboundEmail InboundEmail @relation(fields: [inboundEmailId], references: [id], onDelete: Cascade)
+
+  key String
+  value String
+}
+
+model InboundEmailAttachment {
+  id String @id @default(cuid())
+
+  inboundEmailId String
+  inboundEmail   InboundEmail @relation(fields: [inboundEmailId], references: [id], onDelete: Cascade)
+
+  file   File?  @relation("FileAttachment", fields: [fileId], references: [id], onDelete: Cascade)
+  fileId String? @unique
+}
+
+model InboundEmailParticipant {
+  id      String @id @default(cuid())
+  email String
+  name String?
+  mailboxHash String?
+
+  fromEmailId       String? @unique
+  fromEmail         InboundEmail? @relation("FromParticipant", fields: [fromEmailId], references: [id])
+
+  inboundEmailToId String?
+  inboundEmailTo   InboundEmail? @relation("ToParticipants", fields: [inboundEmailToId], references: [id], onDelete: Cascade)
+
+  inboundEmailCcId String?
+  inboundEmailCc   InboundEmail? @relation("CcParticipants", fields: [inboundEmailCcId], references: [id], onDelete: Cascade)
+
+  inboundEmailBccId String?
+  inboundEmailBcc   InboundEmail? @relation("BccParticipants", fields: [inboundEmailBccId], references: [id], onDelete: Cascade)
+}
+
+model Email {
+  id        String  @id @default(cuid())
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  messageId String
+  from      String
+  to        String
+  subject   String
+  htmlBody  String?
+  textBody  String?
 
   opened Boolean @default(false)
 
   userId String?
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   crmPersonEmailId String?
-  crmPersonEmail CrmPersonEmail? @relation(fields: [crmPersonEmailId], references: [id], onDelete: Cascade)
+  crmPersonEmail   CrmPersonEmail? @relation(fields: [crmPersonEmailId], references: [id], onDelete: Cascade)
 
   crmPersonId String?
-  crmPerson CrmPerson? @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+  crmPerson   CrmPerson? @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
 
   responses EmailWebhooks[]
 
@@ -89,7 +176,7 @@ model EmailVerification {
   id String @id @default(cuid())
 
   userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   active Boolean @default(true)
 
   logs Logs[]
@@ -99,11 +186,11 @@ model EmailVerification {
 }
 
 model EmailWebhooks {
-  id String @id @default(cuid())
+  id        String @id @default(cuid())
   messageId String
 
   emailId String
-  email Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  email   Email  @relation(fields: [emailId], references: [id], onDelete: Cascade)
 
   data String
   type EmailWebhookType
@@ -118,7 +205,7 @@ model ForgotPasswordToken {
   id String @id @default(cuid())
 
   userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   active Boolean @default(true)
 
@@ -137,46 +224,50 @@ enum EmailWebhookType {
 }
 
 model Geolocation {
-  id String @id @default(cuid())
-  ip String @unique
-  city String?
+  id         String   @id @default(cuid())
+  ip         String   @unique
+  city       String?
   regionName String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  logs Logs[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  logs       Logs[]
 }
 
 model File {
   id String @id @default(cuid())
 
   userId String?
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  key String
+  key          String
   originalname String
-  mimetype String
-  contentType String
-  size Int
-  location String
-  blurhash String?
+  mimetype     String
+  contentType  String
+  size         Int
+  location     String
+  blurhash     String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  event        Event?   @relation(name: "EventLogo")
-  event_banner        Event?   @relation(name: "EventBanner")
+  event        Event? @relation(name: "EventLogo")
+  event_banner Event? @relation(name: "EventBanner")
+
+  inboundEmailAttachment   InboundEmailAttachment? @relation("FileAttachment")
+  inboundEmailAttachmentId String? @unique
+
   logs Logs[]
 }
 
 model Event {
-  id String @id @default(cuid())
-  name String
+  id          String     @id @default(cuid())
+  name        String
   description String
-  userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  locations Location[]
-  jobs Job[]
-  shifts Shift[]
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locations   Location[]
+  jobs        Job[]
+  shifts      Shift[]
 
   defaultTz String?
 
@@ -185,47 +276,48 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  logoFileId    String?   @unique
-  logo          File?     @relation(name: "EventLogo", fields: [logoFileId], references: [id], onDelete: Cascade)
+  logoFileId String? @unique
+  logo       File?   @relation(name: "EventLogo", fields: [logoFileId], references: [id], onDelete: Cascade)
 
   bannerFileId String? @unique
   banner       File?   @relation(name: "EventBanner", fields: [bannerFileId], references: [id], onDelete: Cascade)
 
-  contactEmail String?
+  contactEmail   String?
   primaryAddress String?
 
   contactPhone String?
-  website String?
+  website      String?
 
   organization String?
 
   // Socials
-  facebook String?
+  facebook  String?
   instagram String?
-  twitter String?
-  youtube String?
-  linkedin String?
-  tiktok String?
-  snapchat String?
-  reddit String?
-  threads String?
+  twitter   String?
+  youtube   String?
+  linkedin  String?
+  tiktok    String?
+  snapchat  String?
+  reddit    String?
+  threads   String?
 
-  formFields FormField[]
-  formResponses FormResponse[]
-  logs Logs[]
-  crmPersons CrmPerson[]
-  crmFields CrmField[]
+  formFields       FormField[]
+  formResponses    FormResponse[]
+  logs             Logs[]
+  crmPersons       CrmPerson[]
+  crmFields        CrmField[]
   crmPersonImports CrmPersonsImport[]
+  inboundEmails    InboundEmail[]
 }
 
 model CrmPersonsImport {
   id String @id @default(cuid())
 
   eventId String
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   crmPersons CrmPerson[]
-  total Int
+  total      Int
 
   logs Logs[]
 
@@ -236,77 +328,77 @@ model CrmPersonsImport {
 }
 
 model FormField {
-  id            String               @id @default(cuid())
-  type          String
-  label         String
-  placeholder   String?
-  description   String?
-  required      Boolean              @default(false)
-  defaultValue  Boolean              @default(false)
-  prompt        String?
-  order         Int
+  id           String  @id @default(cuid())
+  type         String
+  label        String
+  placeholder  String?
+  description  String?
+  required     Boolean @default(false)
+  defaultValue Boolean @default(false)
+  prompt       String?
+  order        Int
 
   eventpilotFieldType String?
-  autocompleteType String?
+  autocompleteType    String?
 
-  options       FormFieldOption[]
+  options        FormFieldOption[]
   fieldResponses FieldResponse[]
 
-  deleted       Boolean              @default(false)
+  deleted Boolean @default(false)
 
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   eventId String
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   logs Logs[]
 }
 
 model FormFieldOption {
-  id        String     @id @default(cuid())
-  fieldId   String
-  field     FormField  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
-  label     String
-  order     Int
-  deleted      Boolean   @default(false)
+  id      String    @id @default(cuid())
+  fieldId String
+  field   FormField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  label   String
+  order   Int
+  deleted Boolean   @default(false)
 
   @@index([fieldId])
 }
 
 model FormResponse {
-  id             String           @id @default(cuid())
+  id             String          @id @default(cuid())
   fieldResponses FieldResponse[]
   pii            PII?
-  deleted Boolean @default(false)
+  deleted        Boolean         @default(false)
 
   crmPersonLink CrmPersonLink?
 
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   eventId String
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  logs Logs[]
+  logs   Logs[]
   shifts FormResponseShift[]
 }
 
 model PII {
   id String @id @default(cuid())
 
-  formResponseId String? @unique
+  formResponseId String?       @unique
   formResponse   FormResponse? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
 
-  userAgent String?
-  ipAddress String?
-  fingerprint String?
-  location Json?
-  tz String?
-  browser Json?
-  device Json?
-  os Json?
-  screenWidth Int?
+  userAgent    String?
+  ipAddress    String?
+  fingerprint  String?
+  location     Json?
+  tz           String?
+  browser      Json?
+  device       Json?
+  os           Json?
+  screenWidth  Int?
   screenHeight Int?
 
   createdAt DateTime @default(now())
@@ -314,12 +406,12 @@ model PII {
 }
 
 model FieldResponse {
-  id          String        @id @default(cuid())
-  responseId  String
-  response    FormResponse  @relation(fields: [responseId], references: [id], onDelete: Cascade)
-  fieldId     String
-  field       FormField     @relation(fields: [fieldId], references: [id])
-  value       String?
+  id         String       @id @default(cuid())
+  responseId String
+  response   FormResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  fieldId    String
+  field      FormField    @relation(fields: [fieldId], references: [id])
+  value      String?
 
   @@index([responseId])
   @@index([fieldId])
@@ -328,35 +420,35 @@ model FieldResponse {
 model Location {
   id String @id @default(cuid())
 
-  name String
+  name        String
   description String
-  eventId String
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId     String
+  event       Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   address String?
-  city String?
-  state String?
+  city    String?
+  state   String?
 
-  startTime DateTime
-  endTime DateTime
+  startTime   DateTime
+  endTime     DateTime
   startTimeTz String
-  endTimeTz String
+  endTimeTz   String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   deleted Boolean @default(false)
 
-  jobs Job[]
+  jobs   Job[]
   shifts Shift[]
-  logs Logs[]
+  logs   Logs[]
 }
 
 model Job {
   id String @id @default(cuid())
 
-  name String
-  description String
+  name         String
+  description  String
   restrictions JobRestrictions[]
 
   createdAt DateTime @default(now())
@@ -367,13 +459,13 @@ model Job {
   capacity Int
 
   eventId String
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   locationId String
-  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   shifts Shift[]
-  logs Logs[]
+  logs   Logs[]
 }
 
 enum JobRestrictions {
@@ -388,10 +480,10 @@ model FormResponseShift {
   id String @id @default(cuid())
 
   formResponseId String
-  formResponse FormResponse @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
+  formResponse   FormResponse @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
 
   shiftId String
-  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  shift   Shift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -404,51 +496,52 @@ model Shift {
   id String @id @default(cuid())
 
   eventId String
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   locationId String
-  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   jobId String
-  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
-  startTime DateTime
-  endTime DateTime
+  startTime   DateTime
+  endTime     DateTime
   startTimeTz String
-  endTimeTz String
+  endTimeTz   String
 
   capacity Int
-  open Boolean @default(true)
-  active Boolean @default(true)
+  open     Boolean @default(true)
+  active   Boolean @default(true)
 
   volunteers FormResponseShift[]
 
-  logs Logs[]
+  logs    Logs[]
   deleted Boolean @default(false)
 }
 
 model CrmPerson {
-  id String @id @default(cuid())
-  name String
-  source String @default("MANUAL")
+  id     String           @id @default(cuid())
+  name   String
+  source String           @default("MANUAL")
   emails CrmPersonEmail[]
   phones CrmPersonPhone[]
-  links CrmPersonLink[]
+  links  CrmPersonLink[]
 
-  logs Logs[]
+  logs       Logs[]
   sentEmails Email[]
-  deleted Boolean @default(false)
+  inboundEmails InboundEmail[]
+  deleted    Boolean @default(false)
 
   fieldValues CrmPersonField[]
 
   eventId String
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   importId String?
-  import CrmPersonsImport? @relation(fields: [importId], references: [id], onDelete: Cascade)
+  import   CrmPersonsImport? @relation(fields: [importId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -458,10 +551,10 @@ model CrmPersonLink {
   id String @id @default(cuid())
 
   crmPersonId String
-  crmPerson CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+  crmPerson   CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
 
-  formResponseId String? @unique
-  formResponse FormResponse? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
+  formResponseId String?       @unique
+  formResponse   FormResponse? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -471,7 +564,7 @@ model CrmPersonEmail {
   id String @id @default(cuid())
 
   crmPersonId String
-  crmPerson CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+  crmPerson   CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
 
   email String
   label String?
@@ -481,14 +574,14 @@ model CrmPersonEmail {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  deleted Boolean @default(false)
+  deleted   Boolean  @default(false)
 }
 
 model CrmPersonPhone {
   id String @id @default(cuid())
 
   crmPersonId String
-  crmPerson CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+  crmPerson   CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
 
   phone String
   label String?
@@ -496,41 +589,41 @@ model CrmPersonPhone {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  deleted Boolean @default(false)
+  deleted   Boolean  @default(false)
 }
 
 model CrmField {
   id String @id @default(cuid())
 
-  label String
+  label       String
   description String?
-  type  CrmFieldType
+  type        CrmFieldType
 
   persons CrmPersonField[]
 
   showInGeneralTable Boolean @default(true)
-  generalTableOrder Int @default(0)
+  generalTableOrder  Int     @default(0)
 
   showInPersonTable Boolean @default(true)
-  personTableOrder Int @default(0)
+  personTableOrder  Int     @default(0)
 
   eventId String
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  deleted Boolean @default(false)
-  logs Logs[]
+  deleted   Boolean  @default(false)
+  logs      Logs[]
 }
 
 model CrmPersonField {
   id String @id @default(cuid())
 
   crmFieldId String
-  crmField CrmField @relation(fields: [crmFieldId], references: [id], onDelete: Cascade)
+  crmField   CrmField @relation(fields: [crmFieldId], references: [id], onDelete: Cascade)
 
   crmPersonId String
-  crmPerson CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+  crmPerson   CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
 
   value String
 
@@ -553,64 +646,66 @@ enum CrmFieldType {
   ADDRESS
 }
 
-
 model Logs {
   id String @id @default(cuid())
 
   userId String?
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   emailPreferencesId String?
-  emailPreferences EmailPreferences? @relation(fields: [emailPreferencesId], references: [id], onDelete: Cascade)
+  emailPreferences   EmailPreferences? @relation(fields: [emailPreferencesId], references: [id], onDelete: Cascade)
 
   emailId String?
-  email Email? @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  email   Email?  @relation(fields: [emailId], references: [id], onDelete: Cascade)
 
   emailVerificationId String?
-  emailVerification EmailVerification? @relation(fields: [emailVerificationId], references: [id], onDelete: Cascade)
+  emailVerification   EmailVerification? @relation(fields: [emailVerificationId], references: [id], onDelete: Cascade)
 
   emailWebookId String?
-  emailWebook EmailWebhooks? @relation(fields: [emailWebookId], references: [id], onDelete: Cascade)
+  emailWebook   EmailWebhooks? @relation(fields: [emailWebookId], references: [id], onDelete: Cascade)
 
   forgotPasswordTokenId String?
-  forgotPasswordToken ForgotPasswordToken? @relation(fields: [forgotPasswordTokenId], references: [id], onDelete: Cascade)
+  forgotPasswordToken   ForgotPasswordToken? @relation(fields: [forgotPasswordTokenId], references: [id], onDelete: Cascade)
 
   geolocationId String?
-  geolocation Geolocation? @relation(fields: [geolocationId], references: [id], onDelete: Cascade)
+  geolocation   Geolocation? @relation(fields: [geolocationId], references: [id], onDelete: Cascade)
 
   fileId String?
-  file File? @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  file   File?   @relation(fields: [fileId], references: [id], onDelete: Cascade)
 
   eventId String?
-  event Event? @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   formFieldId String?
-  formField FormField? @relation(fields: [formFieldId], references: [id], onDelete: Cascade)
+  formField   FormField? @relation(fields: [formFieldId], references: [id], onDelete: Cascade)
 
   formResponseId String?
-  formResponse FormResponse? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
+  formResponse   FormResponse? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
 
   locationId String?
-  location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   jobId String?
-  job Job? @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job   Job?    @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   shiftId String?
-  shift Shift? @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  shift   Shift?  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
 
   crmPersonId String?
-  crmPerson CrmPerson? @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+  crmPerson   CrmPerson? @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
 
   crmFieldId String?
-  crmField CrmField? @relation(fields: [crmFieldId], references: [id], onDelete: Cascade)
+  crmField   CrmField? @relation(fields: [crmFieldId], references: [id], onDelete: Cascade)
 
   importId String?
-  import CrmPersonsImport? @relation(fields: [importId], references: [id], onDelete: Cascade)
+  import   CrmPersonsImport? @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  inboundEmailId String?
+  inboundEmail   InboundEmail? @relation(fields: [inboundEmailId], references: [id], onDelete: Cascade)
 
   type LogType
 
-  ip String?
+  ip   String?
   data Json?
 
   createdAt DateTime @default(now())

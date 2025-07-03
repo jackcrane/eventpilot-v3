@@ -1,4 +1,4 @@
-import { S3Client } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import cuid from "cuid";
 import multer from "multer";
 import multerS3 from "multer-s3";
@@ -93,3 +93,52 @@ export const upload =
       }
     });
   };
+
+export const uploadFile = async ({
+  file, // base64 string
+  name, // file name
+  contentType, // file content type
+  contentLength,
+  inboundEmailAttachmentId,
+}) => {
+  const buffer = Buffer.from(file, "base64");
+
+  const key = `${process.env.PROJECT_NAME}/${cuid()}.${name}`;
+
+  const command = new PutObjectCommand({
+    Bucket: process.env.AWS_BUCKET,
+    Key: key,
+    Body: buffer,
+    ContentType: contentType,
+    ContentLength: contentLength ?? buffer.length,
+    ACL: "public-read",
+  });
+
+  try {
+    await s3.send(command);
+
+    const uploadedFile = await prisma.file.create({
+      data: {
+        key,
+        originalname: name,
+        mimetype: contentType,
+        contentType,
+        size: contentLength,
+        location: `${process.env.AWS_ENDPOINT}/${process.env.AWS_BUCKET}/${key}`,
+        inboundEmailAttachmentId,
+      },
+    });
+
+    return uploadedFile;
+  } catch (err) {
+    console.error("S3 upload error", err);
+    throw err;
+  }
+};
+
+// uploadFile({
+//   file: "VGhpcyBpcyBhdHRhY2htZW50IGNvbnRlbnRzLCBiYXNlLTY0IGVuY29kZWQu",
+//   name: "test.txt",
+//   contentType: "text/plain",
+//   contentLength: 45,
+// });
