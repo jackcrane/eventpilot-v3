@@ -41,6 +41,7 @@ const sendEmail = async (options) => {
     Headers: z
       .array(z.object({ Name: z.string(), Value: z.string() }))
       .optional(),
+    ReplyTo: z.string().optional(),
   });
   const result = schema.safeParse(options);
 

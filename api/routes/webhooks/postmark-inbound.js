@@ -223,12 +223,13 @@ export const post = async (req, res) => {
 
       // Inject the conversation ID into the originalRecipient email
       const conversationId = createdInboundEmail.conversationId;
-      let split = body.originalRecipient.split("@");
+      let split = body.OriginalRecipient.split("@");
       let newRecipient = split[0] + "+" + conversationId + "@" + split[1];
 
       if (body.FromFull.MailboxHash.length === 0) {
         const responseEmail = await sendEmail({
-          From: `${event?.name} <${newRecipient}>`,
+          From: `${event?.name} <response+${conversationId}+${event.slug}@geteventpilot.com>`,
+          ReplyTo: newRecipient,
           To: body.FromFull.Email,
           Subject: body.Subject,
           TextBody:
