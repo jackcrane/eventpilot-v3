@@ -56,6 +56,8 @@ const sendEmail = async (options) => {
         subject: options.Subject,
         userId: options.userId,
         crmPersonId: options.crmPersonId,
+        htmlBody: options.HtmlBody,
+        textBody: options.TextBody,
       },
     });
 

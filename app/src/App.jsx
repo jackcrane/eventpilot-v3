@@ -21,6 +21,7 @@ import { EventJobs } from "./routes/events/[eventId]/jobs";
 import { Home } from "./home";
 import { EventSettings } from "./routes/events/[eventId]/settings";
 import { EventCrm } from "./routes/events/[eventId]/crm";
+import { EmailPage } from "./routes/email/[emailId]";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -64,6 +65,9 @@ export default () => {
             </>
           )}
           <Route path="/verify" element={<Verify />} />
+
+          <Route path="/email/:emailId" element={<EmailPage />} />
+
           <Route path="/events/:eventId" element={<Event />} />
           <Route path="/events" element={<Events />} />
           <Route

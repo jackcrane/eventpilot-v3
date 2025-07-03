@@ -1,0 +1,28 @@
+.emailPreviewPrompt {
+  text-decoration: none;
+}
+
+.emailPreviewPrompt > div {
+  transition: background-color 0.2s ease-in-out;
+}
+
+.emailPreviewPrompt:hover {
+  text-decoration: none;
+}
+
+.emailPreviewPrompt:hover > div {
+  background-color: var(--tblr-gray-100);
+}
+
+.goLink {
+  transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+  color: var(--tblr-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-right: 0.5rem;
+}
+
+.emailPreviewPrompt:hover .goLink {
+  color: var(--tblr-primary);
+}

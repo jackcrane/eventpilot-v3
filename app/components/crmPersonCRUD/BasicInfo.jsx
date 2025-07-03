@@ -8,6 +8,8 @@ const switchSource = (source) => {
       return "Manually added from dashboard";
     case "IMPORT":
       return "Imported from CSV";
+    case "VOLUNTEER":
+      return "Registered as a volunteer";
     default:
       return "Unknown";
   }

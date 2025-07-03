@@ -31,5 +31,6 @@ export const SystemInfo = ({ crmPerson = {} }) => (
         screamingSnakeToSentence(crmPerson.source)
       )}
     />
+    <Dg title="CRM Person Id" content={crmPerson.id} />
   </div>
 );

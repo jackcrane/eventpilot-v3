@@ -19,6 +19,17 @@ export const post = async (req, res) => {
     },
   });
 
+  if (req.body.RecordType === "Open") {
+    await prisma.email.update({
+      where: {
+        messageId: req.body.MessageID,
+      },
+      data: {
+        opened: true,
+      },
+    });
+  }
+
   if (email) {
     await prisma.emailWebhooks.create({
       data: {
