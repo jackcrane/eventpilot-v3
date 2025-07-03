@@ -221,6 +221,9 @@ export const post = async (req, res) => {
         (h) => h.Name === "Message-ID"
       )?.Value;
 
+      console.log("Created inbound email");
+      console.log(JSON.stringify(createdInboundEmail));
+
       // Inject the conversation ID into the originalRecipient email
       const conversationId = createdInboundEmail.conversationId;
       let split = body.OriginalRecipient.split("@");
