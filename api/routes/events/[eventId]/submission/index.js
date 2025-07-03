@@ -67,6 +67,7 @@ export const post = async (req, res) => {
       },
     });
 
+    let crmPersonId;
     if (!existingCrmPersonByEmailAndName) {
       existingCrmPersonByEmailAndName = await prisma.crmPerson.create({
         data: {
@@ -85,6 +86,7 @@ export const post = async (req, res) => {
           },
         },
       });
+      crmPersonId = existingCrmPersonByEmailAndName.id;
     } else {
       let crmPersonEmail = await prisma.crmPersonEmail.findFirst({
         where: {
@@ -113,6 +115,8 @@ export const post = async (req, res) => {
           },
         },
       });
+
+      crmPersonId = existingCrmPersonByEmailAndName.id;
     }
 
     await prisma.logs.create({
@@ -123,6 +127,7 @@ export const post = async (req, res) => {
         eventId: formResponse.eventId,
         formResponseId: formResponse.id,
         data: formResponse,
+        crmPersonId,
       },
     });
 
@@ -141,7 +146,7 @@ export const post = async (req, res) => {
           event: event,
         })
       ),
-      crmPersonId: formResponse.crmPersonId,
+      crmPersonId,
     });
 
     res.json({ id: formResponse.id });
