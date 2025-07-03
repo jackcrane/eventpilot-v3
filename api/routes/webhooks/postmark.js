@@ -26,7 +26,6 @@ export const post = async (req, res) => {
         emailId: email.id,
         data: JSON.stringify(req.body),
         type: switchRecordType[req.body.RecordType],
-        userId: email.userId,
         logs: {
           create: {
             data: JSON.stringify(req.body),

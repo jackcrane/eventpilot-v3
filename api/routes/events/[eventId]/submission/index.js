@@ -7,7 +7,7 @@ import { LogType } from "@prisma/client";
 import { sendEmail } from "#postmark";
 import { findSubmission } from "./[submissionId]";
 import { render } from "@react-email/render";
-import { VolunteerFormResponseThankYouEmail } from "../../../../react-email/emails/volunteer-form-response-thank-you";
+import VolunteerFormResponseThankYouEmail from "#emails/volunteer-form-response-thank-you.jsx";
 
 const bodySchema = z.object({
   values: z.record(z.string(), z.string()),
@@ -131,8 +131,8 @@ export const post = async (req, res) => {
     });
 
     await sendEmail({
-      From: req.user?.email,
-      To: formResponse.crmPersonId,
+      From: "EventPilot Support <EventPilot@jackcrane.rocks>",
+      To: fullSubmission.response.flat.email,
       Subject: "Form Response Submitted",
       TextBody: `Form Response Submitted`,
       HtmlBody: await render(

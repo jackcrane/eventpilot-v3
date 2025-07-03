@@ -2,9 +2,13 @@ import React, { useEffect, useState } from "react";
 import { UAParser } from "ua-parser-js";
 
 const getLocation = async () => {
-  const f = await fetch("https://geolocation-db.com/json/");
-  const data = await f.json();
-  return data;
+  try {
+    const f = await fetch("https://geolocation-db.com/json/");
+    const data = await f.json();
+    return data;
+  } catch (e) {
+    return {};
+  }
 };
 
 const isArc = () => {

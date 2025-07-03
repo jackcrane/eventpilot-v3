@@ -45,29 +45,49 @@ const sendEmail = async (options) => {
     throw new Error(result.error.issues);
   }
 
-  const res = await rawEmailClient.sendEmail(options);
+  try {
+    const res = await rawEmailClient.sendEmail(options);
 
-  const emailRecord = await prisma.email.create({
-    data: {
-      messageId: res.MessageID,
-      from: options.From,
-      to: options.To,
-      subject: options.Subject,
-      userId: options.userId,
-      crmPersonId: options.crmPersonId,
-    },
-  });
+    const emailRecord = await prisma.email.create({
+      data: {
+        messageId: res.MessageID,
+        from: options.From,
+        to: options.To,
+        subject: options.Subject,
+        userId: options.userId,
+        crmPersonId: options.crmPersonId,
+      },
+    });
 
-  await prisma.logs.create({
-    data: {
-      type: "EMAIL_SENT",
-      userId: options.userId,
-      emailId: emailRecord.id,
-      crmPersonId: options.crmPersonId,
-    },
-  });
+    await prisma.logs.create({
+      data: {
+        type: "EMAIL_SENT",
+        userId: options.userId,
+        emailId: emailRecord.id,
+        crmPersonId: options.crmPersonId,
+      },
+    });
 
-  return { postmarkResponse: res, emailRecord };
+    return { postmarkResponse: res, emailRecord };
+  } catch (e) {
+    console.error(e);
+    console.log(options);
+    throw new Error("Error sending email");
+  }
 };
 
 export { rawEmailClient, sendEmail };
+
+const test = async () => {
+  const res = await sendEmail({
+    From: "EventPilot Support <EventPilot@jackcrane.rocks>",
+    To: "jack@jackcrane.rocks",
+    Subject: "Test",
+    TextBody: "Test",
+    HtmlBody: "<h1>Test</h1>",
+  });
+
+  console.log(res);
+};
+
+// test();
