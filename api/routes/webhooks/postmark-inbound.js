@@ -37,7 +37,11 @@ export const post = async (req, res) => {
 
     const createdInboundEmail = await prisma.inboundEmail.create({
       data: {
-        eventId: event?.id,
+        event: {
+          connect: {
+            id: event?.id,
+          },
+        },
         from: {
           create: {
             email: body.FromFull.Email,
