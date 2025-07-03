@@ -240,6 +240,21 @@ export const Logs = ({ logs, containerRef }) => {
           ),
           iconBgColor: "success",
         };
+      case "EMAIL_WEBHOOK_RECEIVED":
+        return {
+          icon: <Icon i="message" />,
+          title: "Email Received",
+          time: moment(log.createdAt).format("M/DD/YYYY h:mm a"),
+          description: (
+            <>
+              <Typography.Text className="mb-1">
+                This person sent an email handled by EventPilot.
+              </Typography.Text>
+              <EmailPreviewPrompt emailId={log.inboundEmailId} />
+            </>
+          ),
+          iconBgColor: "success",
+        };
       default:
         return { icon: <Icon i="message" />, title: log.type };
     }

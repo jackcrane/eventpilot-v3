@@ -20,6 +20,21 @@ export const EmailPreviewPrompt = ({ emailId }) => {
   if (loading) return null;
   if (!email) return null;
 
+  const to =
+    email.type === "OUTBOUND"
+      ? email.to
+      : email.to.map((to) => `${to.name} <${to.email}>`).join(", ");
+
+  const initials =
+    email.type === "OUTBOUND"
+      ? extractInitialsFromName(email.crmPerson?.name)
+      : extractInitialsFromName(email.from.name);
+
+  const from =
+    email.type === "OUTBOUND"
+      ? email.from
+      : `${email.from.name} <${email.from.email}>`;
+
   return (
     <a
       href={`/email/${emailId}`}
@@ -28,27 +43,29 @@ export const EmailPreviewPrompt = ({ emailId }) => {
     >
       <Row className={"card p-1"} gap={1} align="center">
         <div style={{ alignSelf: "flex-start" }}>
-          <Avatar initials={extractInitialsFromName(email.crmPerson?.name)} />
+          <Avatar initials={extractInitialsFromName(initials)} />
         </div>
         <div>
           <Col gap={0.25} align="flex-start">
-            <Row gap={0.5}>
+            <Row gap={0.5} align="flex-start">
               <Typography.Text className="text-muted mb-0">To:</Typography.Text>
-              <Typography.Text className="mb-0">{email.to}</Typography.Text>
+              <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
+                {to}
+              </Typography.Text>
             </Row>
             <Row gap={0.5} align="flex-start">
               <Typography.Text className="text-muted mb-0">
                 From:
               </Typography.Text>
               <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
-                {email.from}
+                {from}
               </Typography.Text>
             </Row>
             <Row gap={0.5}>
               <Typography.Text className="text-muted mb-0">
                 Subject:
               </Typography.Text>
-              <Typography.Text className="mb-0">
+              <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
                 {email.subject}
               </Typography.Text>
             </Row>
@@ -56,7 +73,7 @@ export const EmailPreviewPrompt = ({ emailId }) => {
               <Typography.Text className="text-muted mb-0">
                 Sent:
               </Typography.Text>
-              <Typography.Text className="mb-0">
+              <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
                 {moment(email.createdAt).format("M/DD/YYYY h:mm a")}
               </Typography.Text>
             </Row>

@@ -139,6 +139,7 @@ export const post = async (req, res) => {
                 type: "EMAIL_WEBHOOK_RECEIVED",
                 eventId: event?.id,
                 data: JSON.stringify(body),
+                inboundEmailId: createdInboundEmail.id,
               },
             },
           },
