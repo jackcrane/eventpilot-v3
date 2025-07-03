@@ -82,7 +82,10 @@ export const VolunteerFormResponseThankYouEmail = ({ data, event }) => (
         fontStyle="semibold"
       />
     </Head>
-    <Preview>An import has finished</Preview>
+    <Preview>
+      Thank you for volunteering! Here is a summary of your responses and the
+      shifts you registered for.
+    </Preview>
     <Body style={styles.main}>
       <Container style={styles.container}>
         <Img
