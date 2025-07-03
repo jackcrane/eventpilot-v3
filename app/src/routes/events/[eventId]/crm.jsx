@@ -62,6 +62,24 @@ export const EventCrm = () => {
 
   const [columnConfig, setColumnConfig] = useState([
     {
+      id: "actions",
+      label: "Actions",
+      order: 6,
+      show: true,
+      accessor: "id",
+      render: (id) => (
+        <Button
+          size="sm"
+          onClick={() =>
+            offcanvas({ content: <CrmPersonCRUD crmPersonId={id} /> })
+          }
+        >
+          <Icon i="info-circle" /> Details
+        </Button>
+      ),
+      sortable: false,
+    },
+    {
       id: "name",
       label: "Name",
       order: 1,
@@ -108,24 +126,6 @@ export const EventCrm = () => {
       accessor: "source",
       render: (v) => <Badge outline>{v}</Badge>,
       sortable: true,
-    },
-    {
-      id: "actions",
-      label: "Actions",
-      order: 6,
-      show: true,
-      accessor: "id",
-      render: (id) => (
-        <Button
-          size="sm"
-          onClick={() =>
-            offcanvas({ content: <CrmPersonCRUD crmPersonId={id} /> })
-          }
-        >
-          <Icon i="info-circle" /> Details
-        </Button>
-      ),
-      sortable: false,
     },
   ]);
 

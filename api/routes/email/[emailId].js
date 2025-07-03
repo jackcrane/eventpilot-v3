@@ -39,7 +39,7 @@ export const get = [
       }
 
       res.json({
-        email: { type: "OUTBOUND", email },
+        email: { type: "OUTBOUND", ...email },
       });
     } catch (error) {
       console.error("Error in GET /event/:eventId/email/:emailId:", error);

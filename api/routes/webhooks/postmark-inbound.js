@@ -120,7 +120,7 @@ export const post = async (req, res) => {
 
       // 1) Find existing CrmPersonEmail records
       const existingEmailRecs = await prisma.crmPersonEmail.findMany({
-        where: { email: { in: distinctEmails } },
+        where: { email: { in: distinctEmails, mode: "insensitive" } },
         include: { crmPerson: true },
       });
 
@@ -128,12 +128,19 @@ export const post = async (req, res) => {
       const matchedPersonIds = Array.from(
         new Set(existingEmailRecs.map((r) => r.crmPersonId))
       );
+      console.log("Matched persons", matchedPersonIds.length);
       for (const personId of matchedPersonIds) {
-        console.log("Matched persons", matchedPersonIds.length);
         await prisma.crmPerson.update({
           where: { id: personId },
           data: {
             inboundEmails: { connect: { id: createdInboundEmail.id } },
+            logs: {
+              create: {
+                type: "EMAIL_WEBHOOK_RECEIVED",
+                eventId: event?.id,
+                data: JSON.stringify(body),
+              },
+            },
           },
         });
       }
@@ -159,9 +166,19 @@ export const post = async (req, res) => {
               connect: { id: createdInboundEmail.id },
             },
             logs: {
-              create: {
-                type: "CRM_PERSON_CREATED",
-                eventId: event?.id,
+              createMany: {
+                data: [
+                  {
+                    type: "CRM_PERSON_CREATED",
+                    eventId: event?.id,
+                  },
+                  {
+                    type: "EMAIL_WEBHOOK_RECEIVED",
+                    eventId: event?.id,
+                    inboundEmailId: createdInboundEmail.id,
+                    data: JSON.stringify(body),
+                  },
+                ],
               },
             },
           },

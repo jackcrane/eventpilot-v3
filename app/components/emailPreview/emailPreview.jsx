@@ -27,12 +27,22 @@ export const EmailPreviewPrompt = ({ emailId }) => {
       target="_blank"
     >
       <Row className={"card p-1"} gap={1} align="center">
-        <Avatar initials={extractInitialsFromName(email.crmPerson.name)} />
+        <div style={{ alignSelf: "flex-start" }}>
+          <Avatar initials={extractInitialsFromName(email.crmPerson?.name)} />
+        </div>
         <div>
           <Col gap={0.25} align="flex-start">
             <Row gap={0.5}>
               <Typography.Text className="text-muted mb-0">To:</Typography.Text>
               <Typography.Text className="mb-0">{email.to}</Typography.Text>
+            </Row>
+            <Row gap={0.5} align="flex-start">
+              <Typography.Text className="text-muted mb-0">
+                From:
+              </Typography.Text>
+              <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
+                {email.from}
+              </Typography.Text>
             </Row>
             <Row gap={0.5}>
               <Typography.Text className="text-muted mb-0">
