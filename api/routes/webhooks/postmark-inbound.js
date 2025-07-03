@@ -30,8 +30,18 @@ export const post = async (req, res) => {
     if (body.FromFull.MailboxHash && body.FromFull.MailboxHash.length > 0) {
       conversation = await prisma.conversation.findUnique({
         where: {
-          mailboxHash: body.FromFull.MailboxHash,
+          id: body.FromFull.MailboxHash,
         },
+      });
+
+      if (!conversation) {
+        conversation = await prisma.conversation.create({
+          data: {},
+        });
+      }
+    } else {
+      conversation = await prisma.conversation.create({
+        data: {},
       });
     }
 
@@ -81,13 +91,7 @@ export const post = async (req, res) => {
             data: body.Headers.map((h) => ({ key: h.Name, value: h.Value })),
           },
         },
-        conversation: {
-          ...(conversation
-            ? { connect: { id: conversation.id } }
-            : {
-                create: {},
-              }),
-        },
+        conversationId: conversation.id,
         originalRecipient: body.OriginalRecipient,
         subject: body.Subject,
         messageId: body.MessageID,
