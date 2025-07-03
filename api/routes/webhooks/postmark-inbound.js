@@ -8,14 +8,12 @@ const subdomainFromEmail = (email) => {
 };
 
 const findEPFromToArray = (toArray) =>
-  toArray.find((to) => to.Email.includes("geteventpilot.com"));
+  toArray.find((to) => to.Email.includes(".geteventpilot.com"));
 
-const extractAllEmails = (body) => [
-  body.FromFull,
-  ...body.ToFull,
-  ...body.CcFull,
-  ...body.BccFull,
-];
+const extractAllEmails = (body) =>
+  [body.FromFull, ...body.ToFull, ...body.CcFull, ...body.BccFull].filter(
+    (email) => !email.Email.includes(".geteventpilot.com")
+  );
 
 export const post = async (req, res) => {
   console.log(`[${req.id}][WEBHOOK][POSTMARK_INBOUND] received webhook`);
