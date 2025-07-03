@@ -218,12 +218,8 @@ export const post = async (req, res) => {
 
       // 4) Send a response email
       const messageId = body.Headers.find(
-        (h) => h.Name === "Message-ID"
+        (h) => h.Name === "Message-Id"
       )?.Value;
-
-      console.log("Message ID", messageId);
-      console.log("Headers");
-      console.log(JSON.stringify(body.Headers, null, 2));
 
       // Inject the conversation ID into the originalRecipient email
       const conversationId = createdInboundEmail.conversationId;
