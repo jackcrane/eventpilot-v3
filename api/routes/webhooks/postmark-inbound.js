@@ -1,4 +1,5 @@
 import { uploadFile } from "#file";
+import { sendEmail } from "#postmark";
 import { prisma } from "#prisma";
 
 const subdomainFromEmail = (email) => {
@@ -24,6 +25,16 @@ export const post = async (req, res) => {
     const subdomain = subdomainFromEmail(findEPFromToArray(body.ToFull)?.Email);
     if (subdomain !== "geteventpilot") {
       event = await prisma.event.findUnique({ where: { slug: subdomain } });
+    }
+
+    // Find conversation
+    let conversation = null;
+    if (body.FromFull.MailboxHash && body.FromFull.MailboxHash.length > 0) {
+      conversation = await prisma.conversation.findUnique({
+        where: {
+          mailboxHash: body.FromFull.MailboxHash,
+        },
+      });
     }
 
     const createdInboundEmail = await prisma.inboundEmail.create({
@@ -67,6 +78,13 @@ export const post = async (req, res) => {
           createMany: {
             data: body.Headers.map((h) => ({ key: h.Name, value: h.Value })),
           },
+        },
+        conversation: {
+          ...(conversation
+            ? { connect: { id: conversation.id } }
+            : {
+                create: {},
+              }),
         },
         originalRecipient: body.OriginalRecipient,
         subject: body.Subject,
@@ -138,7 +156,7 @@ export const post = async (req, res) => {
       const matchedPersonIds = Array.from(
         new Set(existingEmailRecs.map((r) => r.crmPersonId))
       );
-      console.log("Matched persons", matchedPersonIds.length);
+
       for (const personId of matchedPersonIds) {
         await prisma.crmPerson.update({
           where: { id: personId },
@@ -194,6 +212,38 @@ export const post = async (req, res) => {
             },
           },
         });
+      }
+
+      // 4) Send a response email
+      const messageId = body.Headers.find(
+        (h) => h.Name === "Message-ID"
+      )?.Value;
+
+      // Inject the conversation ID into the originalRecipient email
+      const conversationId = createdInboundEmail.conversationId;
+      let split = body.originalRecipient.split("@");
+      let newRecipient = split[0] + "+" + conversationId + "@" + split[1];
+
+      if (body.FromFull.MailboxHash.length === 0) {
+        const responseEmail = await sendEmail({
+          From: `${event?.name} <${newRecipient}>`,
+          To: body.FromFull.Email,
+          Subject: body.Subject,
+          TextBody:
+            "We have received your email and will be in touch with you shortly.",
+          Headers: [
+            {
+              Name: "References",
+              Value: messageId,
+            },
+            {
+              Name: "In-Reply-To",
+              Value: messageId,
+            },
+          ],
+        });
+
+        console.log("Sent response email", responseEmail);
       }
     }
 

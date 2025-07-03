@@ -31,11 +31,16 @@ const sendEmail = async (options) => {
     Subject: z.string({
       required_error: "Subject is a required field",
     }),
-    HtmlBody: z.string({
-      required_error: "HtmlBody is a required field",
-    }),
+    HtmlBody: z
+      .string({
+        required_error: "HtmlBody is a required field",
+      })
+      .optional(),
     userId: z.string().optional(),
     crmPersonId: z.string().optional(),
+    Headers: z
+      .array(z.object({ Name: z.string(), Value: z.string() }))
+      .optional(),
   });
   const result = schema.safeParse(options);
 
