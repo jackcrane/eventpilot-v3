@@ -98,12 +98,22 @@ export const post = async (req, res) => {
             await prisma.inboundEmailAttachment.create({
               data: { inboundEmailId: createdInboundEmail.id },
             });
-          await uploadFile({
+
+          const uploadedFile = await uploadFile({
             name: Name,
             file: Content,
             contentType: ContentType,
             contentLength: ContentLength,
             inboundEmailAttachmentId: inboundEmailAttachment.id,
+          });
+
+          await prisma.inboundEmailAttachment.update({
+            where: {
+              id: inboundEmailAttachment.id,
+            },
+            data: {
+              fileId: uploadedFile.id,
+            },
           });
         } catch (err) {
           console.error(`[${req.id}] error uploading attachment:`, err);

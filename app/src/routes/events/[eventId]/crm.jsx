@@ -257,13 +257,15 @@ export const EventCrm = () => {
 
       <Util.Hr style={{ margin: "1rem 0" }} />
 
-      <Row gap={1} className="mb-3">
-        <ColumnsPicker
-          columns={columnConfig}
-          onColumnsChange={setColumnConfig}
-        />
-        <Filters onFilterChange={setFilters} />
-      </Row>
+      {crmPersons?.length > 0 && (
+        <Row gap={1} className="mb-3">
+          <ColumnsPicker
+            columns={columnConfig}
+            onColumnsChange={setColumnConfig}
+          />
+          <Filters onFilterChange={setFilters} />
+        </Row>
+      )}
 
       {crmPersons?.length === 0 && (
         <Empty text="You don't have any CRM responses yet." />
@@ -286,12 +288,14 @@ export const EventCrm = () => {
         </Alert>
       ))}
 
-      <Table
-        className="card"
-        showPagination={filteredPersons?.length > 10}
-        columns={visibleColumns}
-        data={filteredPersons}
-      />
+      {crmPersons?.length > 0 && (
+        <Table
+          className="card"
+          showPagination={filteredPersons?.length > 10}
+          columns={visibleColumns}
+          data={filteredPersons}
+        />
+      )}
     </EventPage>
   );
 };

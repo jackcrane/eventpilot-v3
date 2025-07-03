@@ -24,8 +24,13 @@ export const get = [
             to: true,
             cc: true,
             bcc: true,
-            attachments: true,
+            attachments: {
+              include: {
+                file: true,
+              },
+            },
             crmPersons: true,
+            headers: true,
           },
         });
 

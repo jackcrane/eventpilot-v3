@@ -95,24 +95,40 @@ export const EmailPreview = ({ emailId }) => {
   if (loading) return null;
   if (!email) return null;
 
-  if (!email.htmlBody) return "This email does not have a recorded HTML body.";
+  if (!email.htmlBody && !email.textBody)
+    return "This email does not have a recorded body.";
+
+  const to =
+    email.type === "OUTBOUND"
+      ? email.to
+      : email.to.map((to) => `${to.name} <${to.email}>`).join(", ");
+
+  const initials =
+    email.type === "OUTBOUND"
+      ? extractInitialsFromName(email.from)
+      : extractInitialsFromName(email.from.name);
+
+  const from =
+    email.type === "OUTBOUND"
+      ? email.from
+      : `${email.from.name} <${email.from.email}>`;
 
   return (
     <div>
       <Card
         title={
           <Row gap={1} align="flex-start">
-            {email.from.includes("EventPilot Support") ? (
+            {from.includes("EventPilot Support") ? (
               <Avatar src={eventpilotLogo} alt="EventPilot Logo" />
             ) : (
-              <Avatar initials={extractInitialsFromName(email.from)} />
+              <Avatar initials={initials} />
             )}
             <Col gap={1} align="flex-start">
               <Typography.H3 className="mb-0">
-                <span className="text-muted">To:</span> {email.to}
+                <span className="text-muted">To:</span> {to}
               </Typography.H3>
               <Typography.Text className="mb-0">
-                <span className="text-muted">From:</span> {email.from}
+                <span className="text-muted">From:</span> {from}
               </Typography.Text>
               <Typography.Text className="mb-0">
                 <span className="text-muted">Sent:</span>{" "}
@@ -125,7 +141,10 @@ export const EmailPreview = ({ emailId }) => {
           </Row>
         }
       >
-        <div dangerouslySetInnerHTML={{ __html: email.htmlBody }} />
+        <div
+          dangerouslySetInnerHTML={{ __html: email.htmlBody || email.textBody }}
+          style={{ whiteSpace: "pre-wrap" }}
+        />
       </Card>
     </div>
   );

@@ -205,22 +205,27 @@ export const post = [
 export const patch = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const { eventId } = req.params;
+    try {
+      const { eventId } = req.params;
 
-    const imports = await prisma.crmPersonsImport.findMany({
-      where: {
-        eventId,
-        finished: false,
-      },
-      include: {
-        _count: {
-          select: {
-            crmPersons: true,
+      const imports = await prisma.crmPersonsImport.findMany({
+        where: {
+          eventId,
+          finished: false,
+        },
+        include: {
+          _count: {
+            select: {
+              crmPersons: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return res.json({ imports });
+      return res.json({ imports });
+    } catch (e) {
+      console.log(e);
+      return res.status(500).json({ error: e.message });
+    }
   },
 ];
