@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useConversation } from "../../hooks/useConversation";
 import { Loading } from "../loading/Loading";
 import { Card, Typography, Util, Input, Button } from "tabler-react-2";
@@ -9,13 +9,20 @@ import toast from "react-hot-toast";
 
 export const ConversationView = ({ conversationId }) => {
   const { eventId } = useParams();
-  const { conversation, loading, sendMessage, mutationLoading } =
-    useConversation({
-      eventId,
-      conversationId,
-    });
+  const {
+    conversation,
+    loading,
+    sendMessage,
+    mutationLoading,
+    deleteConversation,
+    DeleteConfirmElement,
+  } = useConversation({
+    eventId,
+    conversationId,
+  });
   const [to, setTo] = useState("");
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
   let setToToDefaultFirstEmail = () => {
     let inboundEmails = conversation?.emails?.filter(
@@ -47,10 +54,32 @@ export const ConversationView = ({ conversationId }) => {
 
   return (
     <div style={{ flex: 1 }}>
-      <Typography.H5 className="mb-0 text-secondary">
-        CONVERSATION
-      </Typography.H5>
-      <Typography.H1>{conversation?.subject}</Typography.H1>
+      {DeleteConfirmElement}
+      <Row justify="space-between" align="center">
+        <div>
+          <Typography.H5
+            className="mb-0 text-secondary"
+            style={{ textAlign: "left" }}
+          >
+            CONVERSATION
+          </Typography.H5>
+          <Typography.H1 style={{ textAlign: "left" }}>
+            {conversation?.subject}
+          </Typography.H1>
+        </div>
+        <Button
+          variant="danger"
+          outline
+          loading={mutationLoading}
+          onClick={() =>
+            deleteConversation(() =>
+              navigate(`/events/${eventId}/conversations`)
+            )
+          }
+        >
+          Delete Conversation
+        </Button>
+      </Row>
       <Row gap={1}>
         <span className="text-muted mb-0">Participants</span>
         <Typography.Text className="mb-0">

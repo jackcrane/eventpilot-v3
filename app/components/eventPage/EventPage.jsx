@@ -30,7 +30,7 @@ export const EventPage = ({
   if (eventLoading)
     return (
       <Page title={title}>
-        <Loading />
+        <Loading gradient={false} />
       </Page>
     );
 

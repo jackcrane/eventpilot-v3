@@ -197,3 +197,52 @@ export const post = [
     }
   },
 ];
+
+export const del = [
+  verifyAuth(["manager"]),
+  async (req, res) => {
+    const { eventId, conversationId } = req.params;
+
+    try {
+      await prisma.conversation.update({
+        where: {
+          id: conversationId,
+          eventId,
+        },
+        data: {
+          deleted: true,
+        },
+      });
+
+      await prisma.logs.create({
+        data: {
+          type: "CONVERSATION_DELETED",
+          user: {
+            connect: {
+              id: req.user.id,
+            },
+          },
+          ip: req.ip,
+          event: {
+            connect: {
+              id: eventId,
+            },
+          },
+          conversation: {
+            connect: {
+              id: conversationId,
+            },
+          },
+        },
+      });
+
+      return res.json({ message: "Conversation deleted successfully" });
+    } catch (error) {
+      console.error(
+        "Error in DELETE /event/:eventId/conversations/:conversationId:",
+        error
+      );
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+];

@@ -67,6 +67,7 @@ model Conversation {
 
   inboundEmails InboundEmail[]
   outboundEmails Email[]
+  logs          Logs[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -712,6 +713,9 @@ model Logs {
   inboundEmailId String?
   inboundEmail   InboundEmail? @relation(fields: [inboundEmailId], references: [id], onDelete: Cascade)
 
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
   type LogType
 
   ip   String?
@@ -773,4 +777,5 @@ enum LogType {
   CRM_PERSON_DELETED
   CRM_PERSONS_IMPORT_STARTED
   CRM_PERSONS_IMPORT_COMPLETED
+  CONVERSATION_DELETED
 }

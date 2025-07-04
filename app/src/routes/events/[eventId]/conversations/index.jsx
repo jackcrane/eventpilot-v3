@@ -30,23 +30,21 @@ export const Conversations = () => {
       )}
 
       {conversations?.length > 0 && (
-        <>
-          <Row align="flex-start" gap={2}>
-            <ConversationListing conversations={conversations} />
-            {conversationId ? (
-              <ConversationView conversationId={conversationId} />
-            ) : (
-              <div style={{ width: "100%", flex: 1 }}>
-                <Empty
-                  gradient={false}
-                  title="Pick a conversation"
-                  icon="message"
-                  text="Pick a conversation from the list on the left to view."
-                />
-              </div>
-            )}
-          </Row>
-        </>
+        <Row align="flex-start" gap={2}>
+          <ConversationListing conversations={conversations} />
+          {conversationId ? (
+            <ConversationView conversationId={conversationId} />
+          ) : (
+            <div style={{ width: "100%", flex: 1 }}>
+              <Empty
+                gradient={false}
+                title="Pick a conversation"
+                icon="message"
+                text="Pick a conversation from the list on the left to view."
+              />
+            </div>
+          )}
+        </Row>
       )}
     </EventPage>
   );
