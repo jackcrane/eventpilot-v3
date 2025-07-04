@@ -17,20 +17,20 @@ export const ConversationView = ({ conversationId }) => {
   const [to, setTo] = useState("");
   const [message, setMessage] = useState("");
 
+  let setToToDefaultFirstEmail = () => {
+    let inboundEmails = conversation?.emails?.filter(
+      (email) => email.type === "INBOUND"
+    );
+    const originalSender =
+      inboundEmails?.[inboundEmails.length - 1]?.from?.email;
+    setTo(originalSender);
+  };
+
   useEffect(() => {
-    if (to !== "") return;
     setToToDefaultFirstEmail();
   }, [conversation]);
 
   if (loading) return <Loading gradient={false} />;
-
-  let setToToDefaultFirstEmail = () => {
-    let inboundEmails = conversation.emails.filter(
-      (email) => email.type === "INBOUND"
-    );
-    const originalSender = inboundEmails[inboundEmails.length - 1].from.email;
-    setTo(originalSender);
-  };
 
   const handleSubmit = async () => {
     if (to === "") toast.error("You must enter a recipient");
