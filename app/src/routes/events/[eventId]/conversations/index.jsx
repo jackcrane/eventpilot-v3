@@ -27,8 +27,17 @@ export const Conversations = () => {
         <>
           <Row align="flex-start" gap={2}>
             <ConversationListing conversations={conversations} />
-            {conversationId && (
+            {conversationId ? (
               <ConversationView conversationId={conversationId} />
+            ) : (
+              <div style={{ width: "100%", flex: 1 }}>
+                <Empty
+                  gradient={false}
+                  title="Pick a conversation"
+                  ctaIcon="message"
+                  ctaText="Start a conversation"
+                />
+              </div>
             )}
           </Row>
         </>
