@@ -279,7 +279,8 @@ export const post = async (req, res) => {
               },
             ],
           },
-          conversationId
+          conversationId,
+          true
         );
       }
     }

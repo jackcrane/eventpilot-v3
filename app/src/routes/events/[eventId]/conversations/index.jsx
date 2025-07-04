@@ -27,7 +27,9 @@ export const Conversations = () => {
         <>
           <Row align="flex-start" gap={2}>
             <ConversationListing conversations={conversations} />
-            <ConversationView conversationId={conversationId} />
+            {conversationId && (
+              <ConversationView conversationId={conversationId} />
+            )}
           </Row>
         </>
       )}

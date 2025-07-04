@@ -45,6 +45,34 @@ export const useConversation = ({ eventId, conversationId }) => {
       }
     }
   };
+
+  const sendMessage = async (message, to) => {
+    setMutationLoading(true);
+    try {
+      const promise = authFetch(key, {
+        method: "POST",
+        body: JSON.stringify({ message, to }),
+      }).then(async (r) => {
+        if (!r.ok) throw new Error("Request failed");
+        return r.json();
+      });
+
+      await toast.promise(promise, {
+        loading: "Sending...",
+        success: "Sent successfully",
+        error: "Error sending",
+      });
+
+      await mutate(key);
+      await mutate(`/api/events/${eventId}/conversations`);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      setMutationLoading(false);
+    }
+  };
+
   return {
     conversation: data?.conversation,
     loading: isLoading,
@@ -53,5 +81,6 @@ export const useConversation = ({ eventId, conversationId }) => {
     refetch: () => mutate(key),
     deleteConversation,
     DeleteConfirmElement: ConfirmModal,
+    sendMessage,
   };
 };

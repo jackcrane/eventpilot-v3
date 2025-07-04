@@ -1,5 +1,8 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
+import { z } from "zod";
+import { serializeError } from "#serializeError";
+import { sendEmail } from "#postmark";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -101,6 +104,93 @@ export const get = [
     } catch (error) {
       console.error(
         "Error in GET /event/:eventId/conversations/:conversationId:",
+        error
+      );
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+];
+
+const messageSchema = z.object({
+  message: z.string().min(2),
+  to: z.string().email(),
+});
+
+// Send a message to the conversation
+export const post = [
+  verifyAuth(["manager"]),
+  async (req, res) => {
+    try {
+      const { eventId, conversationId } = req.params;
+      const parseResult = messageSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ message: serializeError(parseResult) });
+      }
+
+      const conversation = await prisma.conversation.findUnique({
+        where: { id: conversationId, eventId },
+        include: {
+          inboundEmails: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            include: {
+              headers: true,
+            },
+          },
+        },
+      });
+
+      const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: {
+          slug: true,
+          name: true,
+        },
+      });
+
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+
+      const messageId = conversation.inboundEmails[0].headers.find(
+        (h) => h.key.toLowerCase() === "message-id"
+      )?.value;
+
+      let split = conversation.inboundEmails[0].originalRecipient.split("@");
+      let newRecipient;
+      if (split[0].includes("+")) {
+        newRecipient = split[0] + "@" + split[1];
+      } else {
+        newRecipient = split[0] + "+" + conversationId + "@" + split[1];
+      }
+
+      await sendEmail(
+        {
+          From: `${event.name} <response+${conversationId}+${event.slug}@geteventpilot.com>`,
+          ReplyTo: newRecipient,
+          To: parseResult.data.to,
+          Subject: conversation.inboundEmails[0].subject,
+          TextBody:
+            parseResult.data.message +
+            `\n\n\n---\nThis message was sent from EventPilot by ${req.user.name} on behalf of ${event.name}.`,
+          Headers: [
+            {
+              Name: "References",
+              Value: messageId,
+            },
+            {
+              Name: "In-Reply-To",
+              Value: messageId,
+            },
+          ],
+        },
+        conversationId
+      );
+
+      return res.json({ message: "Message sent successfully" });
+    } catch (error) {
+      console.error(
+        "Error in POST /event/:eventId/conversations/:conversationId:",
         error
       );
       res.status(500).json({ error: "Internal server error" });
