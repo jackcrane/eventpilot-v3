@@ -18,7 +18,7 @@ let rawEmailClient = new postmark.ServerClient(process.env.POSTMARK_API_TOKEN);
  * @param {*} options.crmPersonId
  * @returns
  */
-const sendEmail = async (options) => {
+const sendEmail = async (options, conversationId = undefined) => {
   const schema = z.object({
     From: z.string({
       required_error: "From is a required field",
@@ -64,6 +64,7 @@ const sendEmail = async (options) => {
         crmPersonId: options.crmPersonId,
         htmlBody: options.HtmlBody,
         textBody: options.TextBody,
+        conversationId,
       },
     });
 

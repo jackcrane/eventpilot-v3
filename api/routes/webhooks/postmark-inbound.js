@@ -27,6 +27,7 @@ export const post = async (req, res) => {
 
     // Find conversation
     let conversation = null;
+    let shouldSendConfirmation = false;
     if (body.MailboxHash && body.MailboxHash.length > 0) {
       conversation = await prisma.conversation.findUnique({
         where: {
@@ -38,11 +39,13 @@ export const post = async (req, res) => {
         conversation = await prisma.conversation.create({
           data: {},
         });
+        shouldSendConfirmation = true;
       }
     } else {
       conversation = await prisma.conversation.create({
         data: {},
       });
+      shouldSendConfirmation = true;
     }
 
     const createdInboundEmail = await prisma.inboundEmail.create({
@@ -232,27 +235,28 @@ export const post = async (req, res) => {
       let split = body.OriginalRecipient.split("@");
       let newRecipient = split[0] + "+" + conversationId + "@" + split[1];
 
-      if (body.FromFull.MailboxHash.length === 0) {
-        const responseEmail = await sendEmail({
-          From: `${event?.name} <response+${conversationId}+${event.slug}@geteventpilot.com>`,
-          ReplyTo: newRecipient,
-          To: body.FromFull.Email,
-          Subject: body.Subject,
-          TextBody:
-            "We have received your email and will be in touch with you shortly.",
-          Headers: [
-            {
-              Name: "References",
-              Value: messageId,
-            },
-            {
-              Name: "In-Reply-To",
-              Value: messageId,
-            },
-          ],
-        });
-
-        console.log("Sent response email", responseEmail);
+      if (shouldSendConfirmation) {
+        await sendEmail(
+          {
+            From: `${event?.name} <response+${conversationId}+${event.slug}@geteventpilot.com>`,
+            ReplyTo: newRecipient,
+            To: body.FromFull.Email,
+            Subject: body.Subject,
+            TextBody:
+              "We have received your email and will be in touch with you shortly.",
+            Headers: [
+              {
+                Name: "References",
+                Value: messageId,
+              },
+              {
+                Name: "In-Reply-To",
+                Value: messageId,
+              },
+            ],
+          },
+          conversationId
+        );
       }
     }
 
