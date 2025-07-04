@@ -56,6 +56,18 @@ export const EventPage = ({ children, title, tour, loading }) => {
           </Row>
         </Button>
         <Button
+          variant={url.conversations ? "primary" : "secondary"}
+          ghost={!url.conversations}
+          size="sm"
+          href={`/events/${eventId}/conversations`}
+          className="tour__navbar-conversations"
+        >
+          <Row gap={1}>
+            <Icon i={"message"} size="inherit" />
+            Conversations
+          </Row>
+        </Button>
+        <Button
           variant={url.volunteers ? "primary" : "secondary"}
           ghost={!url.volunteers}
           size="sm"

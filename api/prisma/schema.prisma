@@ -60,6 +60,11 @@ model EmailPreferences {
 model Conversation {
   id String @id @default(cuid())
 
+  deleted Boolean @default(false)
+
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
   inboundEmails InboundEmail[]
   outboundEmails Email[]
 
@@ -97,6 +102,8 @@ model InboundEmail {
   headers InboundEmailHeaders[]
   attachments InboundEmailAttachment[]
   logs Logs[]
+
+  read Boolean @default(false)
 
   receivedAt DateTime @default(now())
   createdAt DateTime @default(now())
@@ -308,6 +315,7 @@ model Event {
   crmFields        CrmField[]
   crmPersonImports CrmPersonsImport[]
   inboundEmails    InboundEmail[]
+  conversations    Conversation[]
 }
 
 model CrmPersonsImport {
@@ -729,6 +737,8 @@ enum LogType {
   EMAIL_WEBHOOK_OPEN
   EMAIL_WEBHOOK_SPAM_COMPLAINT
   EMAIL_WEBHOOK_LINK_CLICK
+  EMAIL_MARKED_READ
+  EMAIL_MARKED_UNREAD
   FILE_UPLOADED
   EVENT_CREATED
   EVENT_MODIFIED

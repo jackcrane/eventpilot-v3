@@ -7,6 +7,8 @@ import styles from "./emailPreview.module.css";
 import classNames from "classnames";
 import { Icon } from "../../util/Icon";
 import eventpilotLogo from "../../assets/logo-sharp.png";
+import { useEvent } from "../../hooks/useEvent";
+import { Loading } from "../loading/Loading";
 
 const extractInitialsFromName = (name) => {
   const parts = name.split(" ");
@@ -89,10 +91,61 @@ export const EmailPreviewPrompt = ({ emailId }) => {
   );
 };
 
-export const EmailPreview = ({ emailId }) => {
+const Attachment = ({ attachment }) => {
+  const { originalname, location, contentType, size } = attachment.file;
+  const isImage = contentType.includes("image");
+
+  return (
+    <Row
+      gap={1}
+      align="center"
+      className="card"
+      style={{ maxWidth: 500, overflow: "hidden" }}
+    >
+      {isImage && (
+        <img src={location} alt={originalname} style={{ maxWidth: 100 }} />
+      )}
+      <Col gap={1} align="flex-start">
+        <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
+          {originalname}
+        </Typography.Text>
+        <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
+          {contentType}, {size} bytes
+        </Typography.Text>
+      </Col>
+    </Row>
+  );
+};
+
+export const EmailPreview = ({ emailId, showIcon = false }) => {
   const { email, loading } = useEmail({ emailId });
 
-  if (loading) return null;
+  const from =
+    email?.type === "OUTBOUND"
+      ? email?.from
+      : `${email?.from?.name} <${email?.from?.email}>`;
+
+  const getSlugFromEmail = (input) => {
+    if (!input) return null;
+    const match = input.match(/<([^>]+)>/);
+    const email = match ? match[1] : input;
+    // take the part before the @, then split on "+" and return the third segment
+    const localPart = email.split("@")[0];
+    return localPart.split("+")[2];
+  };
+
+  const { event } = useEvent({
+    eventId: getSlugFromEmail(
+      email?.type === "OUTBOUND" ? from : email?.from?.email
+    ),
+  });
+
+  if (loading)
+    return (
+      <Card>
+        <Loading gradient={false} />
+      </Card>
+    );
   if (!email) return null;
 
   if (!email.htmlBody && !email.textBody)
@@ -108,27 +161,32 @@ export const EmailPreview = ({ emailId }) => {
       ? extractInitialsFromName(email.from)
       : extractInitialsFromName(email.from.name);
 
-  const from =
-    email.type === "OUTBOUND"
-      ? email.from
-      : `${email.from.name} <${email.from.email}>`;
-
   return (
     <div>
       <Card
         title={
           <Row gap={1} align="flex-start">
-            {from.includes("EventPilot Support") ? (
-              <Avatar src={eventpilotLogo} alt="EventPilot Logo" />
-            ) : (
-              <Avatar initials={initials} />
-            )}
+            <Col gap={1} align="center">
+              {event ? (
+                <Avatar src={event.logo?.location} alt={event.name} />
+              ) : from.includes("EventPilot Support") ? (
+                <Avatar src={eventpilotLogo} alt="EventPilot Logo" />
+              ) : (
+                <Avatar initials={initials} />
+              )}
+              {showIcon && (
+                <Icon
+                  i={email.type === "OUTBOUND" ? "arrow-up" : "arrow-down"}
+                  size={32}
+                />
+              )}
+            </Col>
             <Col gap={1} align="flex-start">
               <Typography.H3 className="mb-0">
-                <span className="text-muted">To:</span> {to}
+                <span className="text-muted">From:</span> {from}
               </Typography.H3>
               <Typography.Text className="mb-0">
-                <span className="text-muted">From:</span> {from}
+                <span className="text-muted">To:</span> {to}
               </Typography.Text>
               <Typography.Text className="mb-0">
                 <span className="text-muted">Sent:</span>{" "}
@@ -137,6 +195,18 @@ export const EmailPreview = ({ emailId }) => {
               <Typography.H1 className="mb-0">
                 <span className="text-muted">Subject:</span> {email.subject}
               </Typography.H1>
+              {email.attachments?.length > 0 && (
+                <>
+                  <Typography.Text className="mb-0">
+                    <span className="text-muted">Attachments:</span>{" "}
+                  </Typography.Text>
+                  <Row gap={1} align="flex-start">
+                    {email.attachments.map((a) => (
+                      <Attachment key={a.id} attachment={a} />
+                    ))}
+                  </Row>
+                </>
+              )}
             </Col>
           </Row>
         }

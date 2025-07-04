@@ -12,6 +12,7 @@ export const Loading = ({
     <div
       className="p-4"
       style={{
+        flex: 1,
         background:
           gradient &&
           `radial-gradient(circle,rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.3) 70%, rgba(255, 255, 255, 1) 100%)`,

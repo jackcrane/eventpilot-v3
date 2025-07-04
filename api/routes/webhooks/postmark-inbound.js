@@ -38,7 +38,11 @@ export const post = async (req, res) => {
       if (!conversation) {
         conversation = await prisma.conversation.create({
           data: {
-            eventId: event?.id,
+            event: {
+              connect: {
+                id: event?.id,
+              },
+            },
           },
         });
         shouldSendConfirmation = true;
@@ -46,7 +50,11 @@ export const post = async (req, res) => {
     } else {
       conversation = await prisma.conversation.create({
         data: {
-          eventId: event?.id,
+          event: {
+            connect: {
+              id: event?.id,
+            },
+          },
         },
       });
       shouldSendConfirmation = true;

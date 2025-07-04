@@ -22,6 +22,7 @@ import { Home } from "./home";
 import { EventSettings } from "./routes/events/[eventId]/settings";
 import { EventCrm } from "./routes/events/[eventId]/crm";
 import { EmailPage } from "./routes/email/[emailId]";
+import { Conversations } from "./routes/events/[eventId]/conversations";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -81,6 +82,15 @@ export default () => {
           <Route path="/events/:eventId/jobs" element={<EventJobs />} />
           <Route path="/events/:eventId/settings" element={<EventSettings />} />
           <Route path="/events/:eventId/crm" element={<EventCrm />} />
+
+          <Route
+            path="/events/:eventId/conversations"
+            element={<Conversations />}
+          />
+          <Route
+            path="/events/:eventId/conversations/:conversationId"
+            element={<Conversations />}
+          />
           {/* 404 error */}
           <Route
             path="*"
