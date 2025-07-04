@@ -19,6 +19,18 @@ export const post = async (req, res) => {
   console.log(`[${req.id}][WEBHOOK][POSTMARK_INBOUND] received webhook`);
   try {
     const body = req.body;
+
+    // Start by checking to see if we have the email in our db already
+    const message = await prisma.email.findFirst({
+      where: {
+        messageId: body.MessageID,
+      },
+    });
+    if (message) {
+      console.log(`[${req.id}][WEBHOOK][POSTMARK_INBOUND] email already in db`);
+      return res.status(200).json({ success: true });
+    }
+
     let event = null;
     const subdomain = subdomainFromEmail(findEPFromToArray(body.ToFull)?.Email);
     if (subdomain !== "geteventpilot") {
