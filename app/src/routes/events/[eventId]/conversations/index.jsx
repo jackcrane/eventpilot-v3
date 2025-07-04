@@ -13,7 +13,13 @@ export const Conversations = () => {
   const { loading, conversations } = useConversations({ eventId });
 
   return (
-    <EventPage title="Conversations" loading={loading || eventLoading}>
+    <EventPage
+      title="Conversations"
+      loading={loading || eventLoading}
+      description={
+        "This is the conversations page. It is an email inbox for the email address EventPilot manages for your event."
+      }
+    >
       {conversations?.length === 0 && (
         <Empty
           title="No conversations yet"
@@ -34,8 +40,8 @@ export const Conversations = () => {
                 <Empty
                   gradient={false}
                   title="Pick a conversation"
-                  ctaIcon="message"
-                  ctaText="Start a conversation"
+                  icon="message"
+                  text="Pick a conversation from the list on the left to view."
                 />
               </div>
             )}

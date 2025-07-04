@@ -3,6 +3,7 @@ import styles from "./sidenav.module.css";
 import { Button } from "tabler-react-2/dist/button";
 import { Util } from "tabler-react-2";
 import { Icon } from "../../util/Icon";
+import { Row } from "../../util/Flex";
 
 export const sidenavItems = (activeText) => {
   const items = [
@@ -28,7 +29,7 @@ export const sidenavItems = (activeText) => {
   return items;
 };
 
-export const Sidenav = ({ items }) => {
+export const Sidenav = ({ items, ...props }) => {
   const [collapsed, setCollapsed] = useState(
     localStorage.getItem("collapsed") === "true"
   );
@@ -47,11 +48,12 @@ export const Sidenav = ({ items }) => {
       style={{
         width: collapsed ? 50 : 200,
         transition: "width 0.2s",
+        ...props.style,
       }}
     >
       {items.map((item, index) =>
         item.type === "divider" ? (
-          <Util.Hr key={index} />
+          <Util.Hr key={index} style={{ margin: "8px 0" }} />
         ) : (
           <Button
             href={item.href}
@@ -59,10 +61,10 @@ export const Sidenav = ({ items }) => {
             outline={item.active}
             key={index}
           >
-            <Util.Row gap={1}>
+            <Row gap={1} justify="space-between">
               {item.icon && item.icon}
               {!collapsed && item.text}
-            </Util.Row>
+            </Row>
           </Button>
         )
       )}

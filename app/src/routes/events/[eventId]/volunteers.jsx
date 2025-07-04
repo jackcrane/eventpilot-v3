@@ -49,7 +49,13 @@ export const EventVolunteers = () => {
   });
 
   return (
-    <EventPage title="Volunteers" loading={loading}>
+    <EventPage
+      title="Volunteers"
+      loading={loading}
+      description={
+        "This is the volunteers roster. It is a list of all the volunteers who are registered to volunteer for your event."
+      }
+    >
       {ConfirmModal}
       {OffcanvasElement}
       {SubOffcanvasElement}
@@ -63,6 +69,7 @@ export const EventVolunteers = () => {
               window.open(`https://${event?.slug}.geteventpilot.com`, "_blank")
             }
             ctaIcon="heart"
+            gradient={false}
           />
         </>
       ) : (

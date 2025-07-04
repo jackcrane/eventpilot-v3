@@ -47,13 +47,19 @@ export const Event = () => {
 
   if (loading)
     return (
-      <Page title="Event">
+      <EventPage title="Event" loading={loading}>
         <Typography.Text>Loading...</Typography.Text>
-      </Page>
+      </EventPage>
     );
 
   return (
-    <EventPage title="Event" tour={() => startTour("event_home")}>
+    <EventPage
+      title="Event"
+      tour={() => startTour("event_home")}
+      description={
+        "This is your event homepage. As more starts to happen in your event, you will see analytics and prompts here to help you keep track of what is happening."
+      }
+    >
       <div
         style={{
           display: "grid",

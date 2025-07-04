@@ -23,3 +23,7 @@
   margin: 8px 0;
   margin-right: -8px;
 }
+
+.sidenav a {
+  overflow-x: hidden;
+}

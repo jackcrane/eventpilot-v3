@@ -6,8 +6,16 @@ import { Page } from "../page/Page";
 import { Icon } from "../../util/Icon";
 import { useEvent } from "../../hooks/useEvent";
 import { Loading } from "../loading/Loading";
+import { Sidenav } from "../sidenav/Sidenav";
 
-export const EventPage = ({ children, title, tour, loading }) => {
+export const EventPage = ({
+  children,
+  title,
+  tour,
+  loading,
+  description,
+  docsLink,
+}) => {
   const { eventId } = useParams();
   const {
     event,
@@ -27,16 +35,145 @@ export const EventPage = ({ children, title, tour, loading }) => {
     );
 
   return (
-    <Page title={title}>
-      <Typography.H5 className={"mb-0 text-secondary"}>EVENT</Typography.H5>
-      <Typography.H1>{event?.name}</Typography.H1>
-      <Row gap={1} className={"tour__navbar"}>
+    <Page
+      title={title}
+      sidenavItems={[
+        {
+          type: "item",
+          href: "/events",
+          text: "Back to events",
+          active: false,
+          icon: <Icon i="arrow-left" size={18} />,
+        },
+        {
+          type: "divider",
+        },
+        {
+          type: "item",
+          href: `/events/${eventId}`,
+          text: `Event Home`,
+          active: !Object.values(url).includes(true),
+          icon: <Icon i="home" size={18} />,
+        },
+        {
+          type: "divider",
+        },
+        {
+          type: "item",
+          href: `/events/${eventId}/crm`,
+          text: "Contacts",
+          active: url.crm,
+          icon: <Icon i="briefcase-2" size={18} />,
+        },
+        {
+          type: "item",
+          href: `/events/${eventId}/conversations`,
+          text: `Conversations`,
+          active: url.conversations,
+          icon: <Icon i="message" size={18} />,
+        },
+        {
+          type: "divider",
+        },
+        {
+          type: "item",
+          href: `/events/${eventId}/volunteers`,
+          text: `Volunteers`,
+          active: url.volunteers,
+          icon: <Icon i="heart" size={18} />,
+        },
+        {
+          type: "item",
+          href: `/events/${eventId}/builder`,
+          text: `Registration Builder`,
+          active: url.builder,
+          icon: <Icon i="lego" size={18} />,
+        },
+        {
+          type: "item",
+          href: `/events/${eventId}/jobs`,
+          text: `Jobs & Shift Builder`,
+          active: url.jobs,
+          icon: <Icon i="wall" size={18} />,
+        },
+        {
+          type: "divider",
+        },
+        {
+          type: "item",
+          href: `/events/${eventId}/settings`,
+          text: `Settings`,
+          active: url.settings,
+          icon: <Icon i="settings" size={18} />,
+        },
+      ]}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          width: "100%",
+          minHeight: "calc(100dvh - 70px)",
+          gap: 10,
+          alignItems: "flex-start",
+        }}
+      >
+        <div style={{ width: "100%" }}>
+          <Typography.H5 className={"mb-0 text-secondary"}>EVENT</Typography.H5>
+          <Typography.H1>{event?.name}</Typography.H1>
+          <Typography.Text className="mb-1">{description}</Typography.Text>
+          {docsLink && (
+            <Row gap={0.5} className={"tour__docslink"} align="center">
+              <a
+                href={docsLink}
+                target="_blank"
+                style={{ textDecoration: "underline" }}
+              >
+                More information
+              </a>
+            </Row>
+          )}
+          <hr style={{ margin: "1rem 0" }} />
+          {loading ? <Loading gradient={false} /> : children}
+          {tour && (
+            <Button
+              className="tour__help"
+              variant="danger"
+              primary
+              style={{
+                padding: 4,
+                height: 32,
+                position: "fixed",
+                bottom: 10,
+                right: 10,
+                zIndex: 9999,
+              }}
+              onClick={tour}
+            >
+              <Row gap={0.5}>
+                <Icon i={"help"} size={24} />
+                Help!
+              </Row>
+            </Button>
+          )}
+        </div>
+      </div>
+    </Page>
+  );
+};
+
+/*
+
+
+
+
+        {/* <Row gap={1} className={"tour__navbar"}>
         <Button
-          href={`/events`}
-          ghost
-          variant="secondary"
-          size="sm"
-          className="tour__navbar-back"
+        href={`/events`}
+        ghost
+        variant="secondary"
+        size="sm"
+        className="tour__navbar-back"
         >
           <Row gap={1}>
             <Icon i={"arrow-left"} size="inherit" />
@@ -127,30 +264,4 @@ export const EventPage = ({ children, title, tour, loading }) => {
             Contacts
           </Row>
         </Button>
-      </Row>
-      <hr style={{ margin: "1rem 0" }} />
-      {loading ? <Loading gradient={false} /> : children}
-      {tour && (
-        <Button
-          className="tour__help"
-          variant="danger"
-          primary
-          style={{
-            padding: 4,
-            height: 32,
-            position: "fixed",
-            bottom: 10,
-            left: 10,
-            zIndex: 9999,
-          }}
-          onClick={tour}
-        >
-          <Row gap={0.5}>
-            <Icon i={"help"} size={24} />
-            Help!
-          </Row>
-        </Button>
-      )}
-    </Page>
-  );
-};
+        </Row> */

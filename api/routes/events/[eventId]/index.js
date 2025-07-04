@@ -79,6 +79,8 @@ export const put = [
 
     const result = eventSchema.safeParse(req.body);
 
+    console.log(result);
+
     if (!result.success) {
       return res.status(400).json({ message: serializeError(result) });
     }

@@ -224,7 +224,14 @@ export const EventCrm = () => {
     .map(({ id, label, show, order, ...rest }) => ({ label, ...rest }));
 
   return (
-    <EventPage title="CRM" loading={fieldsLoading || personsLoading}>
+    <EventPage
+      title="CRM"
+      loading={fieldsLoading || personsLoading}
+      docsLink="https://docs.geteventpilot.com/docs/pages/crm/"
+      description={
+        "This is the contacts page. It is a powerful CRM for managing your event's contacts."
+      }
+    >
       {OffcanvasElement}
       {CreateCrmFieldModalElement}
 
