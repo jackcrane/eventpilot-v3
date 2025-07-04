@@ -91,7 +91,9 @@ export const post = async (req, res) => {
             data: body.Headers.map((h) => ({ key: h.Name, value: h.Value })),
           },
         },
-        conversationId: conversation.id,
+        conversation: {
+          connect: { id: conversation.id },
+        },
         originalRecipient: body.OriginalRecipient,
         subject: body.Subject,
         messageId: body.MessageID,
