@@ -37,13 +37,17 @@ export const post = async (req, res) => {
 
       if (!conversation) {
         conversation = await prisma.conversation.create({
-          data: {},
+          data: {
+            eventId: event?.id,
+          },
         });
         shouldSendConfirmation = true;
       }
     } else {
       conversation = await prisma.conversation.create({
-        data: {},
+        data: {
+          eventId: event?.id,
+        },
       });
       shouldSendConfirmation = true;
     }
@@ -227,7 +231,7 @@ export const post = async (req, res) => {
 
       // 4) Send a response email
       const messageId = body.Headers.find(
-        (h) => h.Name === "Message-Id"
+        (h) => h.Name.toLowerCase() === "message-id"
       )?.Value;
 
       // Inject the conversation ID into the originalRecipient email
