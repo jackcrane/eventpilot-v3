@@ -27,10 +27,10 @@ export const post = async (req, res) => {
 
     // Find conversation
     let conversation = null;
-    if (body.FromFull.MailboxHash && body.FromFull.MailboxHash.length > 0) {
+    if (body.MailboxHash && body.MailboxHash.length > 0) {
       conversation = await prisma.conversation.findUnique({
         where: {
-          id: body.FromFull.MailboxHash,
+          id: body.MailboxHash,
         },
       });
 
