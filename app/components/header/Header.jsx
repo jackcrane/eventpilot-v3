@@ -15,7 +15,7 @@ import { useParsedUrl } from "../../hooks/useParsedUrl";
 import { StripeTrigger } from "../stripe/Stripe";
 import { HideWhenSmaller, ShowWhenSmaller } from "../media/Media";
 
-export const Header = ({ setMobileNavOpen }) => {
+export const Header = ({ setMobileNavOpen, mobileNavOpen }) => {
   const { user, loggedIn, login, logout, resendVerificationEmail } = useAuth();
   const { navigate } = useNavigate();
   const url = useParsedUrl(window.location.pathname);
@@ -56,7 +56,7 @@ export const Header = ({ setMobileNavOpen }) => {
       <header className={styles.header}>
         <div className={styles.headerGroup}>
           <ShowWhenSmaller w={500}>
-            <Button onClick={() => setMobileNavOpen(true)}>
+            <Button onClick={() => setMobileNavOpen(!mobileNavOpen)}>
               <Icon i="menu" />
             </Button>
           </ShowWhenSmaller>

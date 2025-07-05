@@ -13,6 +13,39 @@
   top: 60px;
 }
 
+.container {
+  position: relative;
+}
+
+.shade {
+  display: none;
+}
+
+@media screen and (max-width: 500px) {
+  .sidenav {
+    position: fixed;
+    z-index: 799;
+    background-color: var(--tblr-body-bg);
+    display: none;
+    top: 70px;
+    left: 0px;
+    padding-left: 10px;
+  }
+  .sidenav.open {
+    display: flex;
+  }
+  .shade.open {
+    background-color: rgba(0, 0, 0, 0.1);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 798;
+  }
+}
+
 @media print {
   .sidenav {
     display: none !important;

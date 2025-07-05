@@ -1,5 +1,5 @@
 import { Header } from "../header/Header";
-import { useTitle } from "react-use";
+import { useTitle, useWindowSize } from "react-use";
 import styled from "styled-components";
 import { Sidenav } from "../sidenav/Sidenav";
 import { Footer } from "../footer/Footer";
@@ -14,24 +14,34 @@ export const Page = ({
 }) => {
   useTitle(title ? `${title} | EventPilot` : "EventPilot");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { width } = useWindowSize();
 
   return (
     <>
-      <Header setMobileNavOpen={setMobileNavOpen} />
+      <Header
+        setMobileNavOpen={setMobileNavOpen}
+        mobileNavOpen={mobileNavOpen}
+      />
       <div
         style={{
           display: "flex",
           flexDirection: "row",
           width: "100%",
           minHeight: "calc(100dvh - 70px)",
-          gap: 10,
+          gap: width < 500 ? 0 : 10,
           padding: padding ? 10 : 0,
           paddingBottom: 0,
           maxWidth: 1400,
           margin: "auto",
         }}
       >
-        {sidenavItems && <Sidenav items={sidenavItems} />}
+        {sidenavItems && (
+          <Sidenav
+            items={sidenavItems}
+            mobileNavOpen={mobileNavOpen}
+            setMobileNavOpen={setMobileNavOpen}
+          />
+        )}
         <div
           style={{
             width: "100%",
