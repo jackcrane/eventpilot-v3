@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import { Page } from "../components/page/Page";
-import { Col, Row } from "../util/Flex";
+import { Col, Responsive, Row } from "../util/Flex";
 import { useAuth } from "../hooks";
 import { Button, Typography } from "tabler-react-2";
 import { Browser } from "../components/browser/Browser";
@@ -11,6 +11,7 @@ import swim from "../assets/swim.png";
 import orsanco from "../assets/orsanco.png";
 import firstcmp from "../assets/firstcmp.png";
 import ispaceDay from "../assets/ispace-day.webp";
+import { HideWhenSmaller } from "../components/media/Media";
 
 const Container = styled.div`
   /* background-color: var(--tblr-body-bg);
@@ -37,6 +38,15 @@ const Title = styled.h1`
   padding: 0;
   text-align: center;
   width: 60%;
+  @media screen and (max-width: 700px) {
+    width: 70%;
+  }
+  @media screen and (max-width: 600px) {
+    width: 90%;
+  }
+  @media screen and (max-width: 400px) {
+    font-size: 2.5rem;
+  }
   line-height: 1.2;
   margin-bottom: 1rem;
 `;
@@ -47,6 +57,13 @@ const Subtitle = styled.p`
   padding: 0;
   text-align: center;
   width: 60%;
+  @media screen and (max-width: 700px) {
+    width: 70%;
+  }
+  @media screen and (max-width: 600px) {
+    width: 90%;
+    font-size: 1.2rem;
+  }
   line-height: 1.2;
   color: #666;
   margin-bottom: 3rem;
@@ -54,6 +71,7 @@ const Subtitle = styled.p`
 
 const BrowserContainer = styled.div`
   max-width: 800px;
+  width: 90%;
   margin: auto;
   margin-top: 20px;
   box-shadow: 100px 100px 500px -50px rgba(var(--tblr-primary-rgb), 0.15),
@@ -62,7 +80,9 @@ const BrowserContainer = styled.div`
     -100px -100px 500px -50px rgba(var(--tblr-success-rgb), 0.15);
   border-radius: 5px;
   overflow: hidden;
-  transform: translateY(-${(props) => props.scrollPos / 5}px);
+  @media screen and (min-width: 500px) {
+    transform: translateY(-${(props) => props.scrollPos / 5}px);
+  }
   z-index: 0;
 `;
 
@@ -80,6 +100,7 @@ const Section = styled.div`
   max-width: 800px;
   margin: auto;
   margin-bottom: 5rem;
+  overflow: hidden;
 `;
 
 const SectionTitle = styled.h2`
@@ -91,7 +112,7 @@ const SectionTitle = styled.h2`
   margin-bottom: 3rem;
   color: var(--tblr-body-color);
   margin: auto;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 `;
 
 const TestamonialTitle = styled.h4`
@@ -170,7 +191,7 @@ export const Home = () => {
 
   return (
     <Container>
-      <Page title="Home" allowOverflow>
+      <Page title="Home" allowOverflow padding={false}>
         <Header>
           <Title>Simplifying event management for every organizer</Title>
           <Subtitle>
@@ -198,20 +219,29 @@ export const Home = () => {
           </Browser>
         </BrowserContainer>
         <Body>
+          <HideWhenSmaller w={500}>
+            <Section>
+              <TestamonialTitle>
+                Trusted by the greatest events in the world
+              </TestamonialTitle>
+              <Row justify="center" align="center" gap={10}>
+                <TestamonialImage src={paddlefest} alt="PaddleFest" />
+                <TestamonialImage src={swim} alt="Swim" />
+                <TestamonialImage src={orsanco} alt="Orsanco" />
+                <TestamonialImage src={firstcmp} alt="FirstCMP" />
+                <TestamonialImage src={ispaceDay} alt="iSPACE Day" />
+              </Row>
+            </Section>
+          </HideWhenSmaller>
           <Section>
-            <TestamonialTitle>
-              Trusted by the greatest events in the world
-            </TestamonialTitle>
-            <Row justify="center" align="center" gap={10}>
-              <TestamonialImage src={paddlefest} alt="PaddleFest" />
-              <TestamonialImage src={swim} alt="Swim" />
-              <TestamonialImage src={orsanco} alt="Orsanco" />
-              <TestamonialImage src={firstcmp} alt="FirstCMP" />
-              <TestamonialImage src={ispaceDay} alt="iSPACE Day" />
-            </Row>
-          </Section>
-          <Section>
-            <Row justify="space-between" align="center" gap={10}>
+            <Responsive
+              justify="space-between"
+              align="center"
+              colAlign="flex-start"
+              gap={10}
+              colGap={2}
+              breakpoint={600}
+            >
               <Col align="flex-start">
                 <SectionSubtitle>Why EventPilot?</SectionSubtitle>
                 <SectionTitle>Discover the benefits of EventPilot</SectionTitle>
@@ -220,7 +250,7 @@ export const Home = () => {
                 Find out why our customers love EventPilot and how it can help
                 your event reach new heights.
               </SectionText>
-            </Row>
+            </Responsive>
             <Row gap={1} wrap>
               <SectionCard color="primary">
                 <SectionCardTitle>Built for Growth</SectionCardTitle>

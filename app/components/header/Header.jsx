@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import styles from "./Header.module.css";
 import { Dropdown } from "tabler-react-2/dist/dropdown";
-import { Typography } from "tabler-react-2";
+import { Typography, Button } from "tabler-react-2";
 import { Icon } from "../../util/Icon";
 const IconLogout = () => <Icon i={"logout"} size={18} />;
 const IconLogin2 = () => <Icon i={"login-2"} size={18} />;
@@ -13,8 +13,9 @@ import { Link, useLocation, useMatches, useNavigate } from "react-router-dom";
 import { EventPicker } from "../eventPicker/EventPicker";
 import { useParsedUrl } from "../../hooks/useParsedUrl";
 import { StripeTrigger } from "../stripe/Stripe";
+import { HideWhenSmaller, ShowWhenSmaller } from "../media/Media";
 
-export const Header = () => {
+export const Header = ({ setMobileNavOpen }) => {
   const { user, loggedIn, login, logout, resendVerificationEmail } = useAuth();
   const { navigate } = useNavigate();
   const url = useParsedUrl(window.location.pathname);
@@ -54,10 +55,17 @@ export const Header = () => {
       )}
       <header className={styles.header}>
         <div className={styles.headerGroup}>
+          <ShowWhenSmaller w={500}>
+            <Button onClick={() => setMobileNavOpen(true)}>
+              <Icon i="menu" />
+            </Button>
+          </ShowWhenSmaller>
           <Link to="/">
             <img src={icon} className={styles.headerLogo} alt="Logo" />
           </Link>
-          <Breadcrumbs />
+          <HideWhenSmaller w={500}>
+            <Breadcrumbs />
+          </HideWhenSmaller>
         </div>
         <Dropdown
           prompt={loggedIn ? user?.name : "Account"}

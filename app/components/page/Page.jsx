@@ -3,18 +3,21 @@ import { useTitle } from "react-use";
 import styled from "styled-components";
 import { Sidenav } from "../sidenav/Sidenav";
 import { Footer } from "../footer/Footer";
+import { useState } from "react";
 
 export const Page = ({
   children,
   title,
   sidenavItems,
   allowOverflow = false,
+  padding = true,
 }) => {
   useTitle(title ? `${title} | EventPilot` : "EventPilot");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
     <>
-      <Header />
+      <Header setMobileNavOpen={setMobileNavOpen} />
       <div
         style={{
           display: "flex",
@@ -22,7 +25,7 @@ export const Page = ({
           width: "100%",
           minHeight: "calc(100dvh - 70px)",
           gap: 10,
-          padding: 10,
+          padding: padding ? 10 : 0,
           paddingBottom: 0,
           maxWidth: 1400,
           margin: "auto",
@@ -33,7 +36,7 @@ export const Page = ({
           style={{
             width: "100%",
             overflowX: allowOverflow ? "visible" : "hidden",
-            padding: 4,
+            padding: padding ? 4 : 0,
             paddingBottom: 100,
           }}
         >
