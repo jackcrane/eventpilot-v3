@@ -6,8 +6,10 @@ import { Row } from "../../util/Flex";
 import { EmailPreview } from "../emailPreview/emailPreview";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Icon } from "../../util/Icon";
+import { HideWhenSmaller, ShowWhenSmaller } from "../media/Media";
 
-export const ConversationView = ({ conversationId }) => {
+export const ConversationView = ({ conversationId, onBack }) => {
   const { eventId } = useParams();
   const {
     conversation,
@@ -55,6 +57,14 @@ export const ConversationView = ({ conversationId }) => {
   return (
     <div style={{ flex: 1 }}>
       {DeleteConfirmElement}
+      {onBack && (
+        <Button onClick={onBack} className={"mb-3"}>
+          <Row gap={1} align="center">
+            <Icon i="arrow-left" size={18} />
+            Back to Conversations
+          </Row>
+        </Button>
+      )}
       <Row justify="space-between" align="center">
         <div>
           <Typography.H5
@@ -67,6 +77,32 @@ export const ConversationView = ({ conversationId }) => {
             {conversation?.subject}
           </Typography.H1>
         </div>
+        <HideWhenSmaller w={500}>
+          <Button
+            variant="danger"
+            outline
+            loading={mutationLoading}
+            onClick={() =>
+              deleteConversation(() =>
+                navigate(`/events/${eventId}/conversations`)
+              )
+            }
+          >
+            Delete Conversation
+          </Button>
+        </HideWhenSmaller>
+      </Row>
+      <Row gap={1} align="flex-start">
+        <span className="text-muted mb-0">Participants</span>
+        <Typography.Text className="mb-0">
+          {[
+            ...conversation?.participants.map((p) => `${p.name} (${p.email})`),
+            "EventPilot",
+          ].join(", ")}
+        </Typography.Text>
+      </Row>
+      <ShowWhenSmaller w={500}>
+        <Util.Hr />
         <Button
           variant="danger"
           outline
@@ -79,16 +115,7 @@ export const ConversationView = ({ conversationId }) => {
         >
           Delete Conversation
         </Button>
-      </Row>
-      <Row gap={1}>
-        <span className="text-muted mb-0">Participants</span>
-        <Typography.Text className="mb-0">
-          {[
-            ...conversation?.participants.map((p) => `${p.name} (${p.email})`),
-            "EventPilot",
-          ].join(", ")}
-        </Typography.Text>
-      </Row>
+      </ShowWhenSmaller>
       <Util.Hr />
       <Card className="mb-2">
         <Typography.H2>Send a message to this conversation</Typography.H2>

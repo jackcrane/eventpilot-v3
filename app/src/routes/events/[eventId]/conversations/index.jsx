@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useConversations } from "../../../../../hooks/useConversations";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
 import { Empty } from "../../../../../components/empty/Empty";
@@ -6,19 +6,31 @@ import { useEvent } from "../../../../../hooks/useEvent";
 import { ConversationListing } from "../../../../../components/conversationListing/ConversationListing";
 import { Row } from "../../../../../util/Flex";
 import { ConversationView } from "../../../../../components/conversationView/ConversationView";
+import {
+  HideWhenSmaller,
+  ShowWhenSmaller,
+} from "../../../../../components/media/Media";
+import { useWindowSize } from "react-use";
 
 export const Conversations = () => {
   const { eventId, conversationId } = useParams();
+  const navigate = useNavigate();
+  const { width } = useWindowSize();
   const { event, loading: eventLoading } = useEvent({ eventId });
   const { loading, conversations } = useConversations({ eventId });
+
+  const handleBack = () => {
+    navigate(`/events/${eventId}/conversations`);
+  };
+
+  const showListing = !conversationId || width >= 500;
+  const showView = conversationId !== undefined;
 
   return (
     <EventPage
       title="Conversations"
       loading={loading || eventLoading}
-      description={
-        "This is the conversations page. It is an email inbox for the email address EventPilot manages for your event."
-      }
+      description="This is the conversations page. It is an email inbox for the email address EventPilot manages for your event."
     >
       {conversations?.length === 0 && (
         <Empty
@@ -30,11 +42,26 @@ export const Conversations = () => {
       )}
 
       {conversations?.length > 0 && (
-        <Row align="flex-start" gap={2}>
-          <ConversationListing conversations={conversations} />
-          {conversationId ? (
-            <ConversationView conversationId={conversationId} />
-          ) : (
+        <Row align="flex-start" gap={2} wrap={false}>
+          {showListing && (
+            <HideWhenSmaller style={{ width: "100%" }}>
+              <ConversationListing
+                search={true}
+                conversations={conversations}
+              />
+            </HideWhenSmaller>
+          )}
+
+          {showView && (
+            <div style={{ width: "100%", flex: 1 }}>
+              <ConversationView
+                conversationId={conversationId}
+                onBack={width < 768 ? handleBack : undefined}
+              />
+            </div>
+          )}
+
+          {!conversationId && width >= 768 && (
             <div style={{ width: "100%", flex: 1 }}>
               <Empty
                 gradient={false}

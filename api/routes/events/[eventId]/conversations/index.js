@@ -60,6 +60,9 @@ export const get = [
             !latest || email.createdAt > latest.createdAt ? email : latest,
           null
         );
+        const bodies = allEmails
+          .flatMap((email) => [email.textBody ?? null, email.htmlBody ?? null])
+          .filter(Boolean);
         const subject = mostRecent?.subject ?? null;
         const hasUnread = convo.inboundEmails.some((email) => !email.read);
         const hasAttachments = convo.inboundEmails.some(
@@ -77,6 +80,7 @@ export const get = [
           hasUnread,
           hasAttachments,
           lastActivityAt,
+          bodies,
         };
       });
 
