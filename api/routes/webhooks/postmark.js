@@ -20,7 +20,7 @@ export const post = async (req, res) => {
   });
 
   if (req.body.RecordType === "Open") {
-    await prisma.email.update({
+    await prisma.email.updateMany({
       where: {
         messageId: req.body.MessageID,
       },
@@ -30,7 +30,7 @@ export const post = async (req, res) => {
       },
     });
   } else if (req.body.RecordType === "Bounce") {
-    await prisma.email.update({
+    await prisma.email.updateMany({
       where: {
         messageId: req.body.MessageID,
       },
@@ -39,7 +39,7 @@ export const post = async (req, res) => {
       },
     });
   } else if (req.body.RecordType === "Delivery") {
-    await prisma.email.update({
+    await prisma.email.updateMany({
       where: {
         messageId: req.body.MessageID,
       },
