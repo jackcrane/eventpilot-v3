@@ -11,6 +11,8 @@ import {
   ShowWhenSmaller,
 } from "../../../../../components/media/Media";
 import { useWindowSize } from "react-use";
+import { Typography } from "tabler-react-2";
+import { ConversationCompose } from "../../../../../components/conversationView/ConversationCompose";
 
 export const Conversations = () => {
   const { eventId, conversationId } = useParams();
@@ -30,7 +32,18 @@ export const Conversations = () => {
     <EventPage
       title="Conversations"
       loading={loading || eventLoading}
-      description="This is the conversations page. It is an email inbox for the email address EventPilot manages for your event."
+      description={
+        <>
+          <Typography.Text className="mb-1">
+            This is the conversations page. It is an email inbox for the email
+            address EventPilot manages for your event.
+          </Typography.Text>
+          <i>
+            Any emails sent to (anything)@{event?.slug}.geteventpilot.com will
+            be visible here.
+          </i>
+        </>
+      }
     >
       {conversations?.length === 0 && (
         <Empty
@@ -44,24 +57,31 @@ export const Conversations = () => {
       {conversations?.length > 0 && (
         <Row align="flex-start" gap={2} wrap={false}>
           {showListing && (
-            <HideWhenSmaller style={{ width: "100%" }}>
+            <HideWhenSmaller style={{ width: width < 500 && "100%" }}>
               <ConversationListing
                 search={true}
                 conversations={conversations}
+                compose={true}
               />
             </HideWhenSmaller>
           )}
 
           {showView && (
             <div style={{ width: "100%", flex: 1 }}>
-              <ConversationView
-                conversationId={conversationId}
-                onBack={width < 768 ? handleBack : undefined}
-              />
+              {conversationId === "compose" ? (
+                <ConversationCompose
+                  onBack={width < 500 ? handleBack : undefined}
+                />
+              ) : (
+                <ConversationView
+                  conversationId={conversationId}
+                  onBack={width < 500 ? handleBack : undefined}
+                />
+              )}
             </div>
           )}
 
-          {!conversationId && width >= 768 && (
+          {!conversationId && width >= 500 && (
             <div style={{ width: "100%", flex: 1 }}>
               <Empty
                 gradient={false}

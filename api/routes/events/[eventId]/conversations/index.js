@@ -1,5 +1,15 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
+import { z } from "zod";
+import { serializeError } from "#serializeError";
+import { sendEmail } from "#postmark";
+
+const sendSchema = z.object({
+  to: z.string().email(),
+  subject: z.string(),
+  text: z.string().optional(),
+  html: z.string().optional(),
+});
 
 export const get = [
   verifyAuth(["manager"]),
@@ -87,6 +97,58 @@ export const get = [
       res.json({ conversations: result });
     } catch (error) {
       console.error("Error in GET /event/:eventId/conversations:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+];
+
+export const post = [
+  verifyAuth(["manager"]),
+  async (req, res) => {
+    try {
+      const { eventId } = req.params;
+      const parseResult = sendSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res
+          .status(400)
+          .json({ message: serializeError(parseResult.error) });
+      }
+
+      const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: {
+          slug: true,
+          name: true,
+        },
+      });
+
+      const { to, subject, text, html } = parseResult.data;
+
+      const conversation = await prisma.conversation.create({
+        data: {
+          event: {
+            connect: {
+              id: eventId,
+            },
+          },
+        },
+      });
+
+      await sendEmail(
+        {
+          From: `${event.name} <response+${conversation.id}+${event.slug}@event.geteventpilot.com>`,
+          To: to,
+          Subject: subject,
+          TextBody: text,
+          HtmlBody: html,
+          userId: req.user.id,
+        },
+        conversation.id
+      );
+
+      return res.json({ message: "Message sent successfully" });
+    } catch (error) {
+      console.error("Error in POST /event/:eventId/conversations:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },

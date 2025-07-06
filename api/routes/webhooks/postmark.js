@@ -26,8 +26,29 @@ export const post = async (req, res) => {
       },
       data: {
         opened: true,
+        status: "OPENED",
       },
     });
+  } else if (req.body.RecordType === "Bounce") {
+    await prisma.email.update({
+      where: {
+        messageId: req.body.MessageID,
+      },
+      data: {
+        status: "BOUNCED",
+      },
+    });
+  } else if (req.body.RecordType === "Delivery") {
+    await prisma.email.update({
+      where: {
+        messageId: req.body.MessageID,
+      },
+      data: {
+        status: "DELIVERED",
+      },
+    });
+  } else {
+    console.log("Unknown RecordType", req.body.RecordType);
   }
 
   if (email) {

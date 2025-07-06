@@ -5,6 +5,7 @@ import moment from "moment";
 import { useParams } from "react-router-dom";
 
 const extractInitialsFromName = (name) => {
+  if (!name) return null;
   const parts = name.split(" ");
   if (parts.length === 1) return parts[0].slice(0, 2);
   return parts[0].slice(0, 1) + parts[1].slice(0, 1);

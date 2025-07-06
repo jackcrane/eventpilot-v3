@@ -166,7 +166,7 @@ export const post = [
 
       await sendEmail(
         {
-          From: `${event.name} <response+${conversationId}+${event.slug}@geteventpilot.com>`,
+          From: `${event.name} <response+${conversationId}+${event.slug}@event.geteventpilot.com>`,
           ReplyTo: newRecipient,
           To: parseResult.data.to,
           Subject: conversation.inboundEmails[0].subject,

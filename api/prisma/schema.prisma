@@ -177,8 +177,17 @@ model Email {
 
   logs Logs[]
 
+  status EmailStatus @default(SENT)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum EmailStatus {
+  SENT
+  DELIVERED
+  OPENED
+  BOUNCED
 }
 
 model EmailVerification {
