@@ -34,7 +34,6 @@ export const get = [
         },
       });
 
-      // sort by most recent email activity
       const sortedConversations = conversations.sort((a, b) => {
         const aTimes = [...a.inboundEmails, ...a.outboundEmails].map((e) =>
           e.createdAt.getTime()
@@ -48,7 +47,6 @@ export const get = [
       });
 
       const result = sortedConversations.map((convo) => {
-        // dedupe participants by email address
         const participantsMap = new Map();
         convo.inboundEmails.forEach((email) => {
           if (email.from?.email) {
@@ -58,10 +56,32 @@ export const get = [
           email.cc.forEach((p) => participantsMap.set(p.email, p));
           email.bcc.forEach((p) => participantsMap.set(p.email, p));
         });
+
         let participants = Array.from(participantsMap.values());
         participants = participants.filter(
           (p) => !p.email.includes(".geteventpilot.com")
         );
+
+        // Fallback: no participants found, use the oldest email's "to" field
+        if (participants.length === 0) {
+          const allEmails = [...convo.inboundEmails, ...convo.outboundEmails];
+          const oldest = allEmails.reduce(
+            (oldest, email) =>
+              !oldest || email.createdAt < oldest.createdAt ? email : oldest,
+            null
+          );
+          if (!oldest) return null;
+          const fallbackEmail = oldest?.to;
+          if (fallbackEmail) {
+            participants = [
+              {
+                id: fallbackEmail,
+                email: fallbackEmail,
+                name: fallbackEmail,
+              },
+            ];
+          }
+        }
 
         const allEmails = [...convo.inboundEmails, ...convo.outboundEmails];
         const emailCount = allEmails.length;
@@ -70,6 +90,11 @@ export const get = [
             !latest || email.createdAt > latest.createdAt ? email : latest,
           null
         );
+        const mostRecentStatus =
+          mostRecent && convo.inboundEmails.some((e) => e.id === mostRecent.id)
+            ? "RECEIVED"
+            : (mostRecent?.status ?? null);
+
         const bodies = allEmails
           .flatMap((email) => [email.textBody ?? null, email.htmlBody ?? null])
           .filter(Boolean);
@@ -91,10 +116,12 @@ export const get = [
           hasAttachments,
           lastActivityAt,
           bodies,
+          mostRecentStatus,
+          sent: mostRecentStatus !== "RECEIVED",
         };
       });
 
-      res.json({ conversations: result });
+      res.json({ conversations: result.filter(Boolean) });
     } catch (error) {
       console.error("Error in GET /event/:eventId/conversations:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -146,7 +173,7 @@ export const post = [
         conversation.id
       );
 
-      return res.json({ message: "Message sent successfully" });
+      return res.json({ message: "Message sent successfully", conversation });
     } catch (error) {
       console.error("Error in POST /event/:eventId/conversations:", error);
       res.status(500).json({ error: "Internal server error" });

@@ -39,7 +39,7 @@ export const ConversationView = ({ conversationId, onBack }) => {
     setToToDefaultFirstEmail();
   }, [conversation]);
 
-  if (loading) return <Loading gradient={false} />;
+  if (!!loading || !conversation) return <Loading gradient={false} />;
 
   const handleSubmit = async () => {
     if (to === "") toast.error("You must enter a recipient");
@@ -96,7 +96,7 @@ export const ConversationView = ({ conversationId, onBack }) => {
         <span className="text-muted mb-0">Participants</span>
         <Typography.Text className="mb-0">
           {[
-            ...conversation?.participants.map((p) => `${p.name} (${p.email})`),
+            ...conversation?.participants?.map((p) => `${p.name} (${p.email})`),
             "EventPilot",
           ].join(", ")}
         </Typography.Text>

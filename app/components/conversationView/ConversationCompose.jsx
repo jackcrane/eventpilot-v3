@@ -3,7 +3,7 @@ import { Row } from "../../util/Flex";
 import { Icon } from "../../util/Icon";
 import { useState } from "react";
 import { useConversations } from "../../hooks/useConversations";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 export const ConversationCompose = ({ onBack }) => {
   const { eventId } = useParams();
@@ -13,6 +13,7 @@ export const ConversationCompose = ({ onBack }) => {
   const [subject, setSubject] = useState("");
   const [textBody, setTextBody] = useState("");
   const [to, setTo] = useState("");
+  const navigate = useNavigate();
 
   return (
     <div>
@@ -60,11 +61,15 @@ export const ConversationCompose = ({ onBack }) => {
         />
         <Button
           onClick={() =>
-            createConversation({
-              to,
-              subject,
-              text: textBody,
-            })
+            createConversation(
+              {
+                to,
+                subject,
+                text: textBody,
+              },
+              (conversationId) =>
+                navigate(`/events/${eventId}/conversations/${conversationId}`)
+            )
           }
           loading={false}
           variant="primary"

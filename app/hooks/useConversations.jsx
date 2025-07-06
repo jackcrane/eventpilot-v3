@@ -8,7 +8,7 @@ export const useConversations = ({ eventId }) => {
   const { data, error, isLoading } = useSWR(key, fetcher);
   const [mutationLoading, setMutationLoading] = useState(false);
 
-  const createConversation = async (data) => {
+  const createConversation = async (data, onSuccess) => {
     setMutationLoading(true);
     try {
       const promise = authFetch(key, {
@@ -19,11 +19,14 @@ export const useConversations = ({ eventId }) => {
         return r.json();
       });
 
-      await toast.promise(promise, {
+      const result = await toast.promise(promise, {
         loading: "Creating...",
         success: "Created successfully",
         error: "Error",
       });
+
+      if (onSuccess && result.conversation.id)
+        onSuccess(result.conversation.id);
 
       await mutate(key);
       return true;

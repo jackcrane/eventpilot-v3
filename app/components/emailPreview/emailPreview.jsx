@@ -10,6 +10,8 @@ import eventpilotLogo from "../../assets/logo-sharp.png";
 import { useEvent } from "../../hooks/useEvent";
 import { Loading } from "../loading/Loading";
 import { useState } from "react";
+import { Badge } from "tabler-react-2/dist/badge";
+import { STATUS_MAP } from "../conversationView/ConversationPreview";
 
 const extractInitialsFromName = (name) => {
   const parts = name.split(" ");
@@ -97,29 +99,32 @@ const Attachment = ({ attachment }) => {
   const isImage = contentType.includes("image");
 
   return (
-    <Row
-      gap={1}
-      align="center"
-      className="card"
-      style={{ maxWidth: 500, overflow: "hidden" }}
-    >
-      {isImage && (
-        <img src={location} alt={originalname} style={{ maxWidth: 100 }} />
-      )}
-      <Col gap={1} align="flex-start">
-        <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
-          {originalname}
-        </Typography.Text>
-        <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
-          {contentType}, {size} bytes
-        </Typography.Text>
-      </Col>
-    </Row>
+    <a href={location} target="_blank">
+      <Row
+        gap={1}
+        align="center"
+        className="card"
+        style={{ maxWidth: 500, overflow: "hidden" }}
+      >
+        {isImage && (
+          <img src={location} alt={originalname} style={{ maxWidth: 100 }} />
+        )}
+        <Col gap={1} align="flex-start">
+          <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
+            {originalname}
+          </Typography.Text>
+          <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
+            {contentType}, {size} bytes
+          </Typography.Text>
+        </Col>
+      </Row>
+    </a>
   );
 };
 
 export const contactIncludesEPEmail = (input) => {
-  const regex = /response\+([a-z0-9]+)\+([a-z0-9-]+)@geteventpilot\.com/i;
+  const regex =
+    /response\+([a-z0-9]+)\+([a-z0-9-]+)@(event\.geteventpilot\.com|geteventpilot\.com)/i;
   return regex.test(input);
 };
 
@@ -222,6 +227,22 @@ export const EmailPreview = ({ emailId, showIcon = false }) => {
                   "MMM DD, h:mm a"
                 )}
               </Typography.Text>
+              {email.status && (
+                <Row gap={0.5}>
+                  <Typography.Text className="text-muted mb-0">
+                    Status:
+                  </Typography.Text>
+                  <Typography.Text
+                    className="mb-0"
+                    style={{ textAlign: "left" }}
+                  >
+                    <Badge soft color={STATUS_MAP[email.status].color}>
+                      <Icon i={STATUS_MAP[email.status].icon} />{" "}
+                      {STATUS_MAP[email.status].text}
+                    </Badge>
+                  </Typography.Text>
+                </Row>
+              )}
               <Typography.H2 className="mb-0">
                 <span className="text-muted">Subject:</span> {email.subject}
               </Typography.H2>

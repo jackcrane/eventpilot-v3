@@ -87,6 +87,13 @@ export const get = [
         });
       }
 
+      const mostRecentStatus =
+        mostRecent && convo.inboundEmails.some((e) => e.id === mostRecent.id)
+          ? "RECEIVED"
+          : (mostRecent?.status ?? null);
+
+      const sent = mostRecentStatus !== "RECEIVED";
+
       // eslint-disable-next-line
       const { inboundEmails, outboundEmails, ...rest } = convo;
       res.json({
@@ -99,6 +106,8 @@ export const get = [
           hasAttachments,
           lastActivityAt,
           emails,
+          sent,
+          mostRecentStatus,
         },
       });
     } catch (error) {

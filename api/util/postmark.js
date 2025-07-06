@@ -57,6 +57,10 @@ const sendEmail = async (
   }
 
   try {
+    if (!options.HtmlBody) {
+      options.HtmlBody = options.TextBody.replaceAll("\n", "<br />");
+    }
+
     const res = await rawEmailClient.sendEmail(options);
 
     const emailRecord = await prisma.email.create({
