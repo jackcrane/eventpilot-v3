@@ -40,7 +40,7 @@ const sendEmail = async (
         required_error: "HtmlBody is a required field",
       })
       .optional(),
-    TextBody: z.string().optional(),
+    TextBody: z.string().default("You have a new email from EventPilot!"),
     userId: z.string().optional(),
     crmPersonId: z.string().optional(),
     Headers: z
@@ -59,6 +59,9 @@ const sendEmail = async (
   try {
     if (!options.HtmlBody) {
       options.HtmlBody = options.TextBody.replaceAll("\n", "<br />");
+    }
+    if (!options.TextBody) {
+      options.TextBody = "You have a new email from EventPilot!";
     }
 
     const res = await rawEmailClient.sendEmail(options);
