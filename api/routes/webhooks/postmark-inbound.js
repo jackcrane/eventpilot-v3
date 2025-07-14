@@ -192,7 +192,7 @@ export const post = async (req, res) => {
 
       const unescapedBody = body.TextBody.replaceAll("\n", " ");
       const match = unescapedBody.match(
-        /https:\/\/(?:mail-settings|mail)\.google\.com\/mail\/\S+/
+        /https:\/\/(?:mail-settings|mail)\.google\.com\/mail(?:\/u\/\d+)?\/\S+/
       );
       const url = match ? match[0] : null;
       if (!url)
