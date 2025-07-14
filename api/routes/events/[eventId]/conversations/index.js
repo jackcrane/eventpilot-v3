@@ -24,7 +24,7 @@ export const get = [
           deleted: includeDeleted,
           inboundEmails: {
             none: {
-              forwardedForEvent: { not: null },
+              forwardedForEvent: { isNot: null },
             },
           },
         },

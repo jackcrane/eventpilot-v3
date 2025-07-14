@@ -192,9 +192,13 @@ export const post = async (req, res) => {
 
       const unescapedBody = body.TextBody.replaceAll("\n", " ");
       const match = unescapedBody.match(
-        /https:\/\/mail-settings\.google\.com\/mail\/\S+/
+        /https:\/\/(?:mail-settings|mail)\.google\.com\/mail\/\S+/
       );
       const url = match ? match[0] : null;
+      if (!url)
+        console.log(
+          `[${req.id}][WEBHOOK][POSTMARK_INBOUND] no url found in confirmation email`
+        );
 
       await prisma.event.update({
         where: { id: event.id },
