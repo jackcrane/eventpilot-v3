@@ -236,6 +236,10 @@ export const EventCrm = () => {
       {CreateCrmFieldModalElement}
 
       <Row gap={1} justify="flex-end" className="mb-3">
+        <ColumnsPicker
+          columns={columnConfig}
+          onColumnsChange={setColumnConfig}
+        />
         <Dropdown
           prompt="Create/Import Contacts"
           items={[
@@ -266,10 +270,6 @@ export const EventCrm = () => {
 
       {crmPersons?.length > 0 && (
         <Row gap={1} className="mb-3">
-          <ColumnsPicker
-            columns={columnConfig}
-            onColumnsChange={setColumnConfig}
-          />
           <Filters onFilterChange={setFilters} />
         </Row>
       )}
