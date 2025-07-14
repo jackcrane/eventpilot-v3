@@ -31,10 +31,24 @@ export const post = async (req, res) => {
       return res.status(200).json({ success: true });
     }
 
+    const epTo = findEPFromToArray(body.ToFull)?.Email;
     let event = null;
-    const subdomain = subdomainFromEmail(findEPFromToArray(body.ToFull)?.Email);
-    if (subdomain !== "geteventpilot") {
-      event = await prisma.event.findUnique({ where: { slug: subdomain } });
+
+    if (epTo) {
+      const subdomain = subdomainFromEmail(epTo);
+      if (subdomain !== "geteventpilot") {
+        event = await prisma.event.findUnique({
+          where: { slug: subdomain },
+        });
+      }
+    }
+
+    if (!event) {
+      event = await prisma.event.findFirst({
+        where: {
+          externalContactEmail: body.OriginalRecipient,
+        },
+      });
     }
 
     // Find conversation

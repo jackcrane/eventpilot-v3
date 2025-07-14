@@ -12,6 +12,7 @@ import { Loading } from "../loading/Loading";
 import { useState } from "react";
 import { Badge } from "tabler-react-2/dist/badge";
 import { STATUS_MAP } from "../conversationView/ConversationPreview";
+import { escape } from "lodash";
 
 const extractInitialsFromName = (name) => {
   const parts = name.split(" ");
@@ -194,6 +195,14 @@ export const EmailPreview = ({ emailId, showIcon = false }) => {
     );
   }
 
+  const renderHtml = email.htmlBody
+    ? email.htmlBody
+    : `<span>${escape(email.textBody || "").replace(
+        /https?:\/\/[^\s<]+/g,
+        (url) =>
+          `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+      )}</span>`;
+
   return (
     <div>
       <Card
@@ -263,8 +272,12 @@ export const EmailPreview = ({ emailId, showIcon = false }) => {
         }
       >
         <div
-          dangerouslySetInnerHTML={{ __html: email.htmlBody || email.textBody }}
-          style={{ whiteSpace: "pre-wrap" }}
+          dangerouslySetInnerHTML={{ __html: renderHtml }}
+          style={{
+            whiteSpace: "pre-wrap",
+            overflowWrap: "break-word",
+            wordBreak: "break-word",
+          }}
         />
       </Card>
     </div>
