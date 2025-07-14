@@ -11,10 +11,17 @@ export const sendAutoResponseIfNeeded = async (
     (h) => h.Name.toLowerCase() === "message-id"
   )?.Value;
   const [local, domain] = body.OriginalRecipient.split("@");
-  const newRecipient = `${local}+${conversationId}@${domain}`;
+
+  let from = `response+${conversationId}+${event.slug}@event.geteventpilot.com`;
+  let newRecipient = `${local}+${conversationId}+${event.slug}@${domain}`;
+  if (event.externalContactEmail) {
+    let [email, domain] = event.externalContactEmail.split("@")[1];
+    newRecipient = `${email}+${conversationId}+${event.slug}@${domain}`;
+  }
+
   await sendEmail(
     {
-      From: `${event.name} <response+${conversationId}+${event.slug}@geteventpilot.com>`,
+      From: `${event.name} <${from}>`,
       ReplyTo: newRecipient,
       To: body.FromFull.Email,
       Subject: body.Subject,
@@ -36,6 +43,9 @@ export const sendFailureResponse = async (body) => {
   )?.Value;
   const [local, domain] = body.OriginalRecipient.split("@");
   const newRecipient = `${local}@${domain}`;
+
+  if (domain.includes("geteventpilot.com")) return;
+
   await sendEmail(
     {
       From: `EventPilot Notifier <response@event.geteventpilot.com>`,
