@@ -2,6 +2,7 @@ import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { z } from "zod";
 import { serializeError } from "#serializeError";
+import { zerialize } from "zodex";
 
 export const eventSchema = z.object({
   name: z.string().min(2),
@@ -15,17 +16,26 @@ export const eventSchema = z.object({
       message: "Slug can only contain lowercase letters, numbers, and hyphens",
     }),
   defaultTz: z.string(),
-  bannerFileId: z.string().optional().nullable(),
-  contactEmail: z.string().email().optional().nullable(),
+  bannerFileId: z.string(),
+  contactEmail: z.string().email(),
+  // externalContactEmail: z.string().email().optional().nullable(),
+  externalContactEmail: z.union([z.literal(false), z.string().email()]),
+  willForwardEmail: z.boolean(),
+  useHostedEmail: z.boolean(),
   primaryAddress: z.string().optional().nullable(),
   contactPhone: z.string().optional().nullable(),
   website: z.string().url().optional().nullable(),
   organization: z.string().optional().nullable(),
+
   facebook: z.string().optional().nullable(),
   instagram: z.string().optional().nullable(),
   twitter: z.string().optional().nullable(),
   youtube: z.string().optional().nullable(),
   linkedin: z.string().optional().nullable(),
+  tiktok: z.string().optional().nullable(),
+  snapchat: z.string().optional().nullable(),
+  reddit: z.string().optional().nullable(),
+  threads: z.string().optional().nullable(),
 });
 
 export const get = [
@@ -38,6 +48,11 @@ export const get = [
       },
       include: {
         logo: {
+          select: {
+            location: true,
+          },
+        },
+        banner: {
           select: {
             location: true,
           },
@@ -55,7 +70,12 @@ export const get = [
     }
 
     res.json({
-      event,
+      event: {
+        ...event,
+        computedExternalContactEmail: event.useHostedEmail
+          ? `{prefix}@${event.slug}.geteventpilot.com`
+          : event.externalContactEmail,
+      },
     });
   },
 ];
@@ -120,5 +140,11 @@ export const del = [
     res.json({
       event,
     });
+  },
+];
+
+export const query = [
+  (req, res) => {
+    return res.json(zerialize(eventSchema));
   },
 ];

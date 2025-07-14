@@ -8,7 +8,7 @@ export const Consumer = ({ subdomain }) => {
       <Toaster />
       <Router>
         <Routes>
-          <Route path="/" element={<ConsumerIndex />} />
+          <Route path="/volunteer" element={<ConsumerIndex />} />
         </Routes>
       </Router>
     </div>

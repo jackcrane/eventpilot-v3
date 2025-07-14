@@ -11,6 +11,7 @@ export const Page = ({
   sidenavItems,
   allowOverflow = false,
   padding = true,
+  showPicker = true,
 }) => {
   useTitle(title ? `${title} | EventPilot` : "EventPilot");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -19,6 +20,7 @@ export const Page = ({
   return (
     <>
       <Header
+        showPicker={showPicker}
         setMobileNavOpen={setMobileNavOpen}
         mobileNavOpen={mobileNavOpen}
       />

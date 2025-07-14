@@ -7,8 +7,20 @@ import { Dropzone } from "../components/dropzone/Dropzone";
 import { useSlugChecker } from "./useSlugChecker";
 import { TzPicker } from "../components/tzDateTime/tzDateTime";
 import { useNavigate } from "react-router-dom";
+import { dezerialize } from "zodex";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
+
+const fetchSchema = async () => {
+  const res = await authFetch("/api/events", {
+    method: "QUERY",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error("Failed to fetch schema");
+  const raw = await res.json();
+  return dezerialize(raw);
+};
+window.fetchSchema = fetchSchema;
 
 export const useEvents = () => {
   const {
@@ -17,6 +29,12 @@ export const useEvents = () => {
     isLoading,
     mutate: refetch,
   } = useSWR(`/api/events`, fetcher);
+
+  const { data: schema, loading: schemaLoading } = useSWR(
+    ["/api/events", "schema"],
+    fetchSchema
+  );
+
   const navigate = useNavigate();
 
   const createEvent = async (data, redirect = true) => {
@@ -65,6 +83,9 @@ export const useEvents = () => {
     CreateEventModalElement,
     loading: isLoading,
     error,
+    schema,
+    schemaLoading,
+    createEvent,
     refetch,
   };
 };

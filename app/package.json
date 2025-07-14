@@ -35,9 +35,10 @@
     "react-use": "^17.6.0",
     "styled-components": "^6.1.14",
     "swr": "^2.3.0",
-    "tabler-react-2": "0.1.139",
+    "tabler-react-2": "0.1.140",
     "ua-parser-js": "^2.0.3",
-    "zod": "^3.25.67"
+    "zod": "^4.0.5",
+    "zodex": "^0.18.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

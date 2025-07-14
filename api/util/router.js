@@ -83,18 +83,20 @@ async function registerRoutes(app, routesDir) {
         const routeModule = await import("file://" + filePath);
 
         // Supported HTTP methods
-        ["get", "post", "put", "patch", "head", "options"].forEach((method) => {
-          if (routeModule[method]) {
-            // If it's an array, use it as middleware chain
-            const handlers = Array.isArray(routeModule[method])
-              ? routeModule[method]
-              : [routeModule[method]];
-            app[method](routePath, ...handlers);
-            // console.log(
-            //   `Registered route ${method.toUpperCase()} ${routePath}`
-            // );
+        ["get", "post", "put", "patch", "head", "options", "query"].forEach(
+          (method) => {
+            if (routeModule[method]) {
+              // If it's an array, use it as middleware chain
+              const handlers = Array.isArray(routeModule[method])
+                ? routeModule[method]
+                : [routeModule[method]];
+              app[method](routePath, ...handlers);
+              // console.log(
+              //   `Registered route ${method.toUpperCase()} ${routePath}`
+              // );
+            }
           }
-        });
+        );
 
         // Handle `del` for DELETE method
         if (routeModule.del) {

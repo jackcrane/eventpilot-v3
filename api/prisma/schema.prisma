@@ -301,6 +301,9 @@ model Event {
   banner       File?   @relation(name: "EventBanner", fields: [bannerFileId], references: [id], onDelete: Cascade)
 
   contactEmail   String?
+  externalContactEmail   String?
+  willForwardEmail Boolean @default(true)
+  useHostedEmail Boolean @default(false)
   primaryAddress String?
 
   contactPhone String?

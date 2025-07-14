@@ -4,11 +4,12 @@ import { serializeError } from "#serializeError";
 import { LogType } from "@prisma/client";
 import { stripe } from "#stripe";
 import { eventSchema } from "./[eventId]";
+import { zerialize } from "zodex";
 
 export const get = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const events = await prisma.event.findMany({
+    let events = await prisma.event.findMany({
       where: {
         userId: req.user.id,
       },
@@ -18,8 +19,20 @@ export const get = [
             location: true,
           },
         },
+        banner: {
+          select: {
+            location: true,
+          },
+        },
       },
     });
+
+    events = events.map((event) => ({
+      ...event,
+      computedExternalContactEmail: event.useHostedEmail
+        ? `{prefix}@${event.slug}.geteventpilot.com`
+        : event.externalContactEmail,
+    }));
 
     res.json({
       events,
@@ -99,5 +112,11 @@ export const post = [
 
       res.status(500).json({ message: "Error" });
     }
+  },
+];
+
+export const query = [
+  (req, res) => {
+    return res.json(zerialize(eventSchema));
   },
 ];

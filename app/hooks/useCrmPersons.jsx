@@ -11,7 +11,7 @@ const fetcher = (url) =>
 
 export const useCrmPersons = ({ eventId }) => {
   const key = `/api/events/${eventId}/crm/person`;
-  const { data, error, isLoading } = useSWR(key, fetcher);
+  const { data, error, isLoading, mutate } = useSWR(key, fetcher);
   const [mutationLoading, setMutationLoading] = useState(false);
 
   // state for trimmed imports
@@ -34,6 +34,10 @@ export const useCrmPersons = ({ eventId }) => {
               createdAt: job.createdAt,
             }))
           );
+          if (json.imports.length > 0) {
+            mutate();
+          }
+
           // decide next interval
           const running = json.imports.some((job) => !job.finished);
           timerId = setTimeout(fetchImports, running ? 5000 : 30000);
@@ -83,7 +87,11 @@ export const useCrmPersons = ({ eventId }) => {
         method: "POST",
         body: JSON.stringify(payload),
       }).then((r) => {
-        if (!r.ok) throw new Error(r.statusText);
+        if (!r.ok) {
+          // throw new Error(r.statusText);
+          toast.error("Something went wrong scheduling the import.");
+          return false;
+        }
         return r.json();
       });
 
@@ -92,6 +100,7 @@ export const useCrmPersons = ({ eventId }) => {
       );
 
       await mutate(key);
+      fetchImports();
       setTimeout(fetchImports, 1000);
       return true;
     } catch {

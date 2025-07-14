@@ -11,7 +11,7 @@ import {
   ShowWhenSmaller,
 } from "../../../../../components/media/Media";
 import { useWindowSize } from "react-use";
-import { Typography } from "tabler-react-2";
+import { Typography, Alert } from "tabler-react-2";
 import { ConversationCompose } from "../../../../../components/conversationView/ConversationCompose";
 
 export const Conversations = () => {
@@ -39,16 +39,40 @@ export const Conversations = () => {
             address EventPilot manages for your event.
           </Typography.Text>
           <i>
-            Any emails sent to (anything)@{event?.slug}.geteventpilot.com will
-            be visible here.
+            Any emails sent to {event?.computedExternalContactEmail} will be
+            visible here.
           </i>
         </>
       }
     >
+      {event?.useHostedEmail === false && event?.willForwardEmail === false ? (
+        <Alert variant="danger" className="mt-3" title="Emails are disabled">
+          <Typography.Text className="mb-0">
+            Your event is configured to not use EventPilot's email inbox. This
+            is because you have chosen to not use EventPilot's hosted email, and
+            you have not chosen to set up a forwarding rule to forward emails to
+            EventPilot from gmail or outlook.
+          </Typography.Text>
+        </Alert>
+      ) : event?.useHostedEmail === false &&
+        event?.willForwardEmail === true &&
+        conversations?.length === 0 ? (
+        <Alert
+          variant="warning"
+          className="mt-3"
+          title="Emails are not set up yet"
+        >
+          <Typography.Text className="mb-0">
+            Your event is configured to accept automatically forwarded emails
+            from Gmail or Outlook, but we haven't received anything yet.
+          </Typography.Text>
+        </Alert>
+      ) : null}
+
       {conversations?.length === 0 && (
         <Empty
           title="No conversations yet"
-          text={`You haven't had any conversations yet. Any emails sent to (anything)@${event.slug}.geteventpilot.com will be automatically converted into conversations and appear here.`}
+          text={`You haven't had any conversations yet. Any emails sent to ${event?.computedExternalContactEmail} will be automatically converted into conversations and appear here.`}
           ctaText="Start a conversation"
           ctaIcon="message"
         />

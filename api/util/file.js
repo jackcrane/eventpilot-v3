@@ -30,7 +30,7 @@ export const upload =
   ({
     fieldName = "files",
     maxFileSize = 5 * 1024 * 1024, // Default 5MB
-    allowedMimeTypes = ["image/jpeg", "image/png", "application/pdf"],
+    allowedMimeTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"],
   } = {}) =>
   (req, res, next) => {
     const dynamicUpload = multer({

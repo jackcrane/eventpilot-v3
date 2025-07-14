@@ -109,6 +109,7 @@ export const CrmPersonsImport = ({
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     const [data, headers] = await parseCsv(file);
+    setHeaderMap({});
     setCsvData(data);
     setCsvHeaders(headers);
   };
@@ -149,8 +150,8 @@ export const CrmPersonsImport = ({
     }
 
     const persons = mapCsvToPersons(csvData, headerMap);
-    if (await batchCreateCrmPersons(persons)) {
-      toast.success("Imported successfully");
+    if ((await batchCreateCrmPersons(persons)) === true) {
+      toast.success("Import started successfully");
     }
   };
 

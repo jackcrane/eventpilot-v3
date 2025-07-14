@@ -15,7 +15,11 @@ import { useParsedUrl } from "../../hooks/useParsedUrl";
 import { StripeTrigger } from "../stripe/Stripe";
 import { HideWhenSmaller, ShowWhenSmaller } from "../media/Media";
 
-export const Header = ({ setMobileNavOpen, mobileNavOpen }) => {
+export const Header = ({
+  setMobileNavOpen,
+  mobileNavOpen,
+  showPicker = true,
+}) => {
   const { user, loggedIn, login, logout, resendVerificationEmail } = useAuth();
   const { navigate } = useNavigate();
   const url = useParsedUrl(window.location.pathname);
@@ -64,7 +68,7 @@ export const Header = ({ setMobileNavOpen, mobileNavOpen }) => {
             <img src={icon} className={styles.headerLogo} alt="Logo" />
           </Link>
           <HideWhenSmaller w={500}>
-            <Breadcrumbs />
+            <Breadcrumbs showPicker={showPicker} />
           </HideWhenSmaller>
         </div>
         <Dropdown
@@ -103,14 +107,14 @@ export const Header = ({ setMobileNavOpen, mobileNavOpen }) => {
   );
 };
 
-const Breadcrumbs = () => {
+const Breadcrumbs = ({ showPicker = true }) => {
   const { loggedIn } = useAuth();
   const url = useParsedUrl(window.location.pathname);
 
   if (!loggedIn) return null;
 
   const builder = [];
-  if (url.events) {
+  if (url.events && showPicker) {
     builder.push(
       <EventPicker go value={url.events} className="tour__event-picker" />
     );

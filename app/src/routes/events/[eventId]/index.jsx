@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Page } from "../../../../components/page/Page";
 import { useEvent } from "../../../../hooks/useEvent";
 import {
@@ -7,6 +7,7 @@ import {
   Spinner,
   Button,
   EnclosedSelectGroup,
+  Util,
 } from "tabler-react-2";
 import { EventPage } from "../../../../components/eventPage/EventPage";
 import { Row } from "../../../../util/Flex";
@@ -60,6 +61,89 @@ export const Event = () => {
         "This is your event homepage. As more starts to happen in your event, you will see analytics and prompts here to help you keep track of what is happening."
       }
     >
+      <Typography.H2>Getting Started</Typography.H2>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "nowrap",
+          overflowX: "auto",
+          alignItems: "stretch",
+        }}
+      >
+        <Card
+          style={{
+            maxWidth: 300,
+            minWidth: 250,
+            display: "inline-block",
+            marginRight: 10,
+            whiteSpace: "normal",
+          }}
+        >
+          <Typography.H5 className={"mb-1 text-secondary"}>
+            YOUR EVENT HAS ITS OWN INBOX
+          </Typography.H5>
+          <Typography.Text>
+            Receive emails at our hosted inbox! Use any prefix you like (e.g.
+            support@, admin@, volunteer@). All messages go to the same inbox.
+          </Typography.Text>
+          <Typography.Text>
+            <u>
+              <i>anything</i>@{event.slug}.geteventpilot.com
+            </u>
+          </Typography.Text>
+        </Card>
+        <Card
+          style={{
+            maxWidth: 300,
+            minWidth: 250,
+            display: "inline-block",
+            marginRight: 10,
+            whiteSpace: "normal",
+          }}
+        >
+          <Typography.H5 className={"mb-1 text-secondary"}>
+            AN EASY, INSTANT WEBSITE
+          </Typography.H5>
+          <Typography.Text>
+            Your event's website is automatically generated from your event's
+            data. We merge locations & timing, common links, images, and contact
+            information.
+          </Typography.Text>
+          <Typography.Text>
+            <a href={`https://${event.slug}.geteventpilot.com`} target="_blank">
+              https://{event.slug}.geteventpilot.com
+            </a>
+          </Typography.Text>
+        </Card>
+        <Card
+          style={{
+            maxWidth: 350,
+            minWidth: 250,
+            display: "inline-block",
+            marginRight: 10,
+            whiteSpace: "normal",
+          }}
+        >
+          <Typography.H5 className={"mb-1 text-secondary"}>
+            VOLUNTEER REGISTRATIONS
+          </Typography.H5>
+          <Typography.Text>
+            EventPilot combines required fields, event{" "}
+            <Link to="./jobs">timing details</Link>, and your{" "}
+            <Link to="./builder">custom fields</Link> into one simple form.
+            Share it with volunteers to collect signups easily.
+          </Typography.Text>
+          <Typography.Text>
+            <a
+              href={`https://${event.slug}.geteventpilot.com/volunteer`}
+              target="_blank"
+            >
+              https://{event.slug}.geteventpilot.com/volunteer
+            </a>
+          </Typography.Text>
+        </Card>
+      </div>
+      <Util.Hr />
       <div
         style={{
           display: "grid",
@@ -69,35 +153,6 @@ export const Event = () => {
       >
         <Card title="Progress" style={{ gridColumn: "2/4" }}>
           <Row gap={2} align="flex-start">
-            {/* <div>
-              <Typography.H5 className={"mb-1 text-secondary"}>
-                OVERALL PROGRESS
-              </Typography.H5>
-              <Typography.Text>
-                The overall progress of your event is measured by your progress
-                setting up EventPilot to run your event.
-              </Typography.Text>
-              <Row gap={1} align="flex-end">
-                <Typography.Text style={{ fontSize: "2rem" }} className="mb-0">
-                  {progress?.percent ? `${progress?.percent}%` : <Spinner />}
-                </Typography.Text>
-                <span className="text-muted mb-2">
-                  {progress?.completedSteps} of {progress?.totalSteps} steps
-                  completed
-                </span>
-              </Row>
-              <div className="progress mb-3">
-                <div
-                  className="progress-bar"
-                  role="progressbar"
-                  style={{ width: `${progress?.percent || 0}%` }}
-                  aria-valuenow={progress?.percent || 0}
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                ></div>
-              </div>
-            </div>
-            <Divider /> */}
             <div>
               <Typography.H5 className={"mb-1 text-secondary"}>
                 EVENT STARTS

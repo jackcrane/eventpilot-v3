@@ -23,6 +23,7 @@ import { EventSettings } from "./routes/events/[eventId]/settings";
 import { EventCrm } from "./routes/events/[eventId]/crm";
 import { EmailPage } from "./routes/email/[emailId]";
 import { Conversations } from "./routes/events/[eventId]/conversations";
+import { NewEventPage } from "./routes/events/new";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -68,6 +69,8 @@ export default () => {
           <Route path="/verify" element={<Verify />} />
 
           <Route path="/email/:emailId" element={<EmailPage />} />
+
+          <Route path="/events/new" element={<NewEventPage />} />
 
           <Route path="/events/:eventId" element={<Event />} />
           <Route path="/events" element={<Events />} />
