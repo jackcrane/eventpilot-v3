@@ -37,6 +37,16 @@ export const EmailForwardWizard = () => {
         use EventPilot's email inbox to manage your event's emails while still
         using your existing email client.
       </Typography.Text>
+      {event.forwardEmailConfirmed && (
+        <Alert variant="success" className="mt-3" title="Emails are set up">
+          <Typography.Text className="mb-0">
+            Your event is set up to automatically forward emails to EventPilot.
+            You can continue and set up a different email routing, but as long
+            as forwarding is set up in your email client, you will receive
+            emails from your event.
+          </Typography.Text>
+        </Alert>
+      )}
       <Typography.H2>Step 1: Pick your email client</Typography.H2>
       <SegmentedControl
         value={client}
