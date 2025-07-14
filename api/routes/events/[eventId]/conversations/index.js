@@ -19,7 +19,15 @@ export const get = [
 
     try {
       const conversations = await prisma.conversation.findMany({
-        where: { eventId, deleted: includeDeleted },
+        where: {
+          eventId,
+          deleted: includeDeleted,
+          inboundEmails: {
+            none: {
+              forwardedForEvent: { not: null },
+            },
+          },
+        },
         include: {
           inboundEmails: {
             include: {
