@@ -1,0 +1,78 @@
+import { useState } from "react";
+import { Typography, SegmentedControl } from "tabler-react-2";
+import addFwdAddy from "../../assets/add-a-forwarding-address.png";
+import { useEvent } from "../../hooks/useEvent";
+import { useParams } from "react-router-dom";
+import { Loading } from "../loading/Loading";
+
+export const EmailForwardWizard = () => {
+  const [client, setClient] = useState("gmail");
+  const { eventId } = useParams();
+  const { event, loading } = useEvent({ eventId });
+
+  if (loading) return <Loading />;
+
+  return (
+    <>
+      <Typography.H5 className="mb-0 text-secondary">
+        EMAIL FORWARDING
+      </Typography.H5>
+      <Typography.H1>Set up email forwarding</Typography.H1>
+      <Typography.Text>
+        Your email client, like Gmail or Outlook, can automatically forward
+        emails that are sent to you to EventPilot. This is useful if you want to
+        use EventPilot's email inbox to manage your event's emails while still
+        using your existing email client.
+      </Typography.Text>
+      <Typography.H2>Step 1: Pick your email client</Typography.H2>
+      <SegmentedControl
+        value={client}
+        onChange={(e) => setClient(e.id)}
+        items={[
+          { label: "Gmail", id: "gmail" },
+          { label: "Outlook", id: "outlook" },
+        ]}
+      />
+      {client === "gmail" && (
+        <>
+          <Typography.H2 className="mt-3">
+            Step 2: Nagivate to your Gmail settings
+          </Typography.H2>
+          <Typography.Text>
+            Log in to your Google account and visit{" "}
+            <a
+              href="https://mail.google.com/#settings/fwdandpop"
+              target="_blank"
+            >
+              https://mail.google.com/#settings/fwdandpop
+            </a>
+            , or log into your Gmail account and click the gear icon on the top
+            right, then click on "See all settings", then click on "Forwarding
+            and POP/IMAP"
+          </Typography.Text>
+          <Typography.H2 className="mt-3">
+            Step 3: Enable forwarding
+          </Typography.H2>
+          <Typography.Text>
+            You will see a button that says "Add a forwarding address":
+          </Typography.Text>
+          <img src={addFwdAddy} className="mt-3 card shadow-sm" />
+          <Typography.Text className="mt-3">
+            Click on the button, and it will ask you for an email address. Enter
+            the following:
+          </Typography.Text>
+          <pre className="bg-gray-100 text-dark">{`forwarding@${event.slug}.geteventpilot.com`}</pre>
+          <Typography.H2 className="mt-3">
+            Step 4: Authorize the change
+          </Typography.H2>
+          <Typography.Text>
+            You will likely be asked to authorize the change by re-entering your
+            Google password or reciving a verification text message. Once you
+            re-log-in, you will see a very bare-bones webpage with a "Proceed"
+            and "Cancel" button. Click "Proceed".
+          </Typography.Text>
+        </>
+      )}
+    </>
+  );
+};

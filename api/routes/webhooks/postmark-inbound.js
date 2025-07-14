@@ -174,6 +174,40 @@ export const post = async (req, res) => {
       }
     }
 
+    // See if this is a confirmation email for forwarding
+    if (
+      body.Subject.includes("Gmail Forwarding Confirmation") &&
+      body.From === "forwarding-noreply@google.com"
+    ) {
+      console.log(
+        `[${req.id}][WEBHOOK][POSTMARK_INBOUND] email is a forwarding confirmation`
+      );
+
+      if (!event) {
+        console.log(
+          `[${req.id}][WEBHOOK][POSTMARK_INBOUND] no event found for confirmation`
+        );
+        return res.status(200).json({ success: true });
+      }
+
+      const unescapedBody = unescape(body.TextBody).replaceAll("\n", " ");
+      const match = unescapedBody.match(
+        /https:\/\/mail-settings\.google\.com\/mail\/\S+/
+      );
+      const url = match ? match[0] : null;
+
+      await prisma.event.update({
+        where: { id: event.id },
+        data: {
+          forwardEmailConfirmed: true,
+          forwardEmailConfirmationEmailId: createdInboundEmail.id,
+          forwardEmailConfirmationLink: url,
+        },
+      });
+
+      return res.status(200).json({ success: true });
+    }
+
     if (event?.id) {
       // —— CRM person relationships ——
       const emailObjs = extractAllEmails(body);

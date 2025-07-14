@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { Sidenav } from "../sidenav/Sidenav";
 import { Footer } from "../footer/Footer";
 import { useState } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 
 export const Page = ({
   children,
@@ -18,7 +19,7 @@ export const Page = ({
   const { width } = useWindowSize();
 
   return (
-    <>
+    <ErrorBoundary fallback={<div>Error</div>}>
       <Header
         showPicker={showPicker}
         setMobileNavOpen={setMobileNavOpen}
@@ -56,6 +57,6 @@ export const Page = ({
         </div>
       </div>
       <Footer />
-    </>
+    </ErrorBoundary>
   );
 };

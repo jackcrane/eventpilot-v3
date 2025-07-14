@@ -81,7 +81,9 @@ model InboundEmail {
   originalRecipient String?
 
   eventId String?
-  event   Event? @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event   Event? @relation(name: "Event_InboundEmails",fields: [eventId],references: [id],onDelete: Cascade)
+
+  forwardedForEvent Event? @relation(name: "Event_ForwardConfirm")
 
   crmPersons CrmPerson[]
 
@@ -303,7 +305,13 @@ model Event {
   contactEmail   String?
   externalContactEmail   String?
   willForwardEmail Boolean @default(true)
+  forwardEmailConfirmed Boolean @default(false)
+  forwardEmailConfirmationEmailId String? @unique
+  forwardEmailConfirmationEmail InboundEmail? @relation(name: "Event_ForwardConfirm",fields: [forwardEmailConfirmationEmailId],references: [id])
+  forwardEmailConfirmationLink String?
   useHostedEmail Boolean @default(false)
+
+
   primaryAddress String?
 
   contactPhone String?
@@ -328,7 +336,7 @@ model Event {
   crmPersons       CrmPerson[]
   crmFields        CrmField[]
   crmPersonImports CrmPersonsImport[]
-  inboundEmails    InboundEmail[]
+  inboundEmails    InboundEmail[] @relation(name: "Event_InboundEmails")
   conversations    Conversation[]
 }
 

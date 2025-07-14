@@ -11,8 +11,9 @@ import {
   ShowWhenSmaller,
 } from "../../../../../components/media/Media";
 import { useWindowSize } from "react-use";
-import { Typography, Alert } from "tabler-react-2";
+import { Typography, Alert, useOffcanvas, Button } from "tabler-react-2";
 import { ConversationCompose } from "../../../../../components/conversationView/ConversationCompose";
+import { EmailForwardWizard } from "../../../../../components/EmailForwardWizard/EmailForwardWizard";
 
 export const Conversations = () => {
   const { eventId, conversationId } = useParams();
@@ -20,6 +21,9 @@ export const Conversations = () => {
   const { width } = useWindowSize();
   const { event, loading: eventLoading } = useEvent({ eventId });
   const { loading, conversations } = useConversations({ eventId });
+  const { offcanvas, OffcanvasElement } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
+  });
 
   const handleBack = () => {
     navigate(`/events/${eventId}/conversations`);
@@ -45,6 +49,7 @@ export const Conversations = () => {
         </>
       }
     >
+      {OffcanvasElement}
       {event?.useHostedEmail === false && event?.willForwardEmail === false ? (
         <Alert variant="danger" className="mt-3" title="Emails are disabled">
           <Typography.Text className="mb-0">
@@ -66,6 +71,13 @@ export const Conversations = () => {
             Your event is configured to accept automatically forwarded emails
             from Gmail or Outlook, but we haven't received anything yet.
           </Typography.Text>
+          <Button
+            onClick={() => offcanvas({ content: <EmailForwardWizard /> })}
+            variant="yellow"
+            className="mt-3"
+          >
+            Set up forwarding
+          </Button>
         </Alert>
       ) : null}
 
