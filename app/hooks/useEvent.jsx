@@ -6,7 +6,7 @@ import { useConfirm } from "tabler-react-2";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
-export const useEvent = ({ eventId }) => {
+export const useEvent = ({ eventId, refreshInterval = 0 }) => {
   const key = `/api/events/${eventId}`;
   const [mutationLoading, setMutationLoading] = useState(false);
   const { confirm, ConfirmModal } = useConfirm({
@@ -19,7 +19,9 @@ export const useEvent = ({ eventId }) => {
     error,
     isLoading,
     mutate: refetch,
-  } = useSWR(`/api/events/${eventId}`, fetcher);
+  } = useSWR(`/api/events/${eventId}`, fetcher, {
+    refreshInterval,
+  });
 
   const updateEvent = async (data) => {
     setMutationLoading(true);

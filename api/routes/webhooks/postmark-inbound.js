@@ -190,7 +190,7 @@ export const post = async (req, res) => {
         return res.status(200).json({ success: true });
       }
 
-      const unescapedBody = unescape(body.TextBody).replaceAll("\n", " ");
+      const unescapedBody = body.TextBody.replaceAll("\n", " ");
       const match = unescapedBody.match(
         /https:\/\/mail-settings\.google\.com\/mail\/\S+/
       );

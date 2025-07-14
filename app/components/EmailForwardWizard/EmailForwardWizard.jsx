@@ -1,19 +1,29 @@
 import { useState } from "react";
-import { Typography, SegmentedControl } from "tabler-react-2";
+import {
+  Typography,
+  SegmentedControl,
+  Spinner,
+  Card,
+  Button,
+} from "tabler-react-2";
 import addFwdAddy from "../../assets/add-a-forwarding-address.png";
 import { useEvent } from "../../hooks/useEvent";
 import { useParams } from "react-router-dom";
 import { Loading } from "../loading/Loading";
+import { Row } from "../../util/Flex";
 
 export const EmailForwardWizard = () => {
   const [client, setClient] = useState("gmail");
   const { eventId } = useParams();
-  const { event, loading } = useEvent({ eventId });
+  const { event, loading, refetch } = useEvent({
+    eventId,
+    refreshInterval: 5000,
+  });
 
   if (loading) return <Loading />;
 
   return (
-    <>
+    <div style={{ marginBottom: 100 }}>
       <Typography.H5 className="mb-0 text-secondary">
         EMAIL FORWARDING
       </Typography.H5>
@@ -61,7 +71,7 @@ export const EmailForwardWizard = () => {
             Click on the button, and it will ask you for an email address. Enter
             the following:
           </Typography.Text>
-          <pre className="bg-gray-100 text-dark">{`forwarding@${event.slug}.geteventpilot.com`}</pre>
+          <pre className="bg-gray-100 text-dark">{`forwarding@${event?.slug}.geteventpilot.com`}</pre>
           <Typography.H2 className="mt-3">
             Step 4: Authorize the change
           </Typography.H2>
@@ -71,8 +81,48 @@ export const EmailForwardWizard = () => {
             re-log-in, you will see a very bare-bones webpage with a "Proceed"
             and "Cancel" button. Click "Proceed".
           </Typography.Text>
+          <Typography.H2 className="mt-3">
+            Step 5: Confirm the forwarding address
+          </Typography.H2>
+          <Typography.Text>
+            Gmail will send EventPilot a confirmation link. This may take a few
+            seconds to arrive once you have completed step 4. If it takes longer
+            than 5 minutes, please reach out to support@geteventpilot.com.
+          </Typography.Text>
+          <Card
+            variant={
+              event?.forwardEmailConfirmationLink?.length > 1
+                ? "success"
+                : undefined
+            }
+          >
+            {event?.forwardEmailConfirmationLink ? (
+              <>
+                <Typography.Text>
+                  EventPilot has received and processed the confirmation link.
+                  To continue, please click the link below:
+                </Typography.Text>
+                <a href={event?.forwardEmailConfirmationLink} target="_blank">
+                  {event?.forwardEmailConfirmationLink}
+                </a>
+              </>
+            ) : (
+              <>
+                <Row gap={1} align="center">
+                  <Spinner />
+                  <Typography.Text className="mb-0">
+                    We are waiting for the confirmation link
+                  </Typography.Text>
+                  <div style={{ flex: 1 }} />
+                  <Button size="sm" onClick={refetch} loading={loading}>
+                    Check again
+                  </Button>
+                </Row>
+              </>
+            )}
+          </Card>
         </>
       )}
-    </>
+    </div>
   );
 };
