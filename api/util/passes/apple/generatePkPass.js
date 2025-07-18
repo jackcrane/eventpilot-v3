@@ -98,7 +98,7 @@ export const samplePass = {
   foregroundColor: "rgb(255, 255, 255)",
   backgroundColor: "rgb(0, 122, 255)",
   logoText: "DEMO",
-  webServiceURL: "http://bore.pub:11278",
+  webServiceURL: "https://geteventpilot.com",
   authenticationToken: "secret-token",
   generic: {
     primaryFields: [

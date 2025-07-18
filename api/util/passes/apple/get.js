@@ -7,6 +7,7 @@ import { createPass, samplePass } from "./generatePkPass";
 const registeredDevices = new Map(); // In-memory store for demo
 
 export const registerDevice = async (req, res) => {
+  return res.status(201).send(); // Created
   const { deviceLibraryIdentifier, passTypeIdentifier, serialNumber } =
     req.params;
   const { authenticationToken } = req.headers;
@@ -18,6 +19,10 @@ export const registerDevice = async (req, res) => {
 };
 
 export const getUpdatedSerials = async (req, res) => {
+  return res.json({
+    lastUpdated: new Date().toISOString(),
+    serialNumbers: [],
+  });
   const { deviceLibraryIdentifier, passTypeIdentifier } = req.params;
   const passesUpdatedSince = req.query.passesUpdatedSince;
 
