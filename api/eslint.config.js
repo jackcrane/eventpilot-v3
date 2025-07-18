@@ -5,7 +5,7 @@ export default [
   { languageOptions: { globals: globals.node } },
   pluginJs.configs.recommended,
   {
-    ignores: ["**/static/tabler.js"],
+    ignores: ["**/static/tabler.js", "**/passes/**"],
   },
   {
     rules: {

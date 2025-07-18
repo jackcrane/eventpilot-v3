@@ -3,6 +3,11 @@ import cors from "cors";
 import path from "path";
 import registerRoutes from "./util/router.js";
 import { fileURLToPath } from "url";
+import {
+  generateUpdatedPass,
+  getUpdatedSerials,
+  registerDevice,
+} from "./util/passes/apple/get.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,6 +57,16 @@ await registerRoutes(app, path.join(process.cwd(), "routes"));
 
 app.use(express.static("../app/dist"));
 app.use("/static", express.static(path.join(process.cwd(), "static")));
+
+app.post(
+  "/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier/:serialNumber",
+  registerDevice
+);
+app.get(
+  "/v1/devices/:deviceLibraryIdentifier/registrations/:passTypeIdentifier",
+  getUpdatedSerials
+);
+app.get("/v1/passes/:passTypeIdentifier/:serialNumber", generateUpdatedPass);
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../app/dist", "index.html"));
