@@ -83,13 +83,11 @@ export const Event = () => {
             YOUR EVENT HAS ITS OWN INBOX
           </Typography.H5>
           <Typography.Text>
-            Receive emails at our hosted inbox! Use any prefix you like (e.g.
-            support@, admin@, volunteer@). All messages go to the same inbox.
+            Receive emails at our hosted inbox! Any emails sent to this address
+            will be sent into your event's inbox.
           </Typography.Text>
           <Typography.Text>
-            <u>
-              <i>anything</i>@{event.slug}.geteventpilot.com
-            </u>
+            <u>{event.computedExternalContactEmail}</u>
           </Typography.Text>
         </Card>
         <Card

@@ -29,7 +29,8 @@ export const Conversations = () => {
     navigate(`/events/${eventId}/conversations`);
   };
 
-  const showListing = !conversationId || width >= 500;
+  const breakpoint = 950;
+  const showListing = !conversationId || width >= breakpoint;
   const showView = conversationId !== undefined;
 
   return (
@@ -93,11 +94,12 @@ export const Conversations = () => {
       {conversations?.length > 0 && (
         <Row align="flex-start" gap={2} wrap={false}>
           {showListing && (
-            <HideWhenSmaller style={{ width: width < 500 && "100%" }}>
+            <HideWhenSmaller style={{ width: width < breakpoint && "100%" }}>
               <ConversationListing
                 search={true}
                 conversations={conversations}
                 compose={true}
+                fullWidth={width < breakpoint}
               />
             </HideWhenSmaller>
           )}
@@ -106,18 +108,18 @@ export const Conversations = () => {
             <div style={{ width: "100%", flex: 1 }}>
               {conversationId === "compose" ? (
                 <ConversationCompose
-                  onBack={width < 500 ? handleBack : undefined}
+                  onBack={width < breakpoint ? handleBack : undefined}
                 />
               ) : (
                 <ConversationView
                   conversationId={conversationId}
-                  onBack={width < 500 ? handleBack : undefined}
+                  onBack={width < breakpoint ? handleBack : undefined}
                 />
               )}
             </div>
           )}
 
-          {!conversationId && width >= 500 && (
+          {!conversationId && width >= breakpoint && (
             <div style={{ width: "100%", flex: 1 }}>
               <Empty
                 gradient={false}

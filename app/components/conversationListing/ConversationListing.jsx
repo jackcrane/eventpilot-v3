@@ -11,6 +11,7 @@ export const ConversationListing = ({
   conversations,
   search: _allowSearch = false,
   compose: _allowCompose = false,
+  fullWidth = false,
 }) => {
   const { width } = useWindowSize();
   const [query, setQuery] = useState("");
@@ -55,7 +56,7 @@ export const ConversationListing = ({
   return (
     <div style={{ overflowX: "auto" }}>
       <Col
-        style={{ maxWidth: width < 500 ? "100%" : 300 }}
+        style={{ maxWidth: fullWidth || width < 500 ? "100%" : 300 }}
         gap={1}
         align="stretch"
       >

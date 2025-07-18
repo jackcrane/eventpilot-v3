@@ -160,6 +160,7 @@ export const post = [
         select: {
           slug: true,
           name: true,
+          externalContactEmail: true,
         },
       });
 
@@ -171,20 +172,38 @@ export const post = [
         (h) => h.key.toLowerCase() === "message-id"
       )?.value;
 
-      let split = conversation.inboundEmails[0].originalRecipient.split("@");
+      let [local, domain] =
+        conversation.inboundEmails[0].originalRecipient.split("@");
+
+      let from = `response+${conversationId}+${event.slug}@event.geteventpilot.com`;
       let newRecipient;
-      if (split[0].includes("+")) {
-        newRecipient = split[0] + "@" + split[1];
+      let originalRecipient;
+
+      if (event.externalContactEmail) {
+        let [local, domain] = event.externalContactEmail.split("@")[1];
+        newRecipient = `${local}+${conversationId}+${event.slug}@${domain}`;
+        originalRecipient = event.externalContactEmail;
+        console.log(
+          "Using external contact email",
+          event.externalContactEmail,
+          newRecipient
+        );
       } else {
-        newRecipient = split[0] + "+" + conversationId + "@" + split[1];
+        console.log("Using hosted contact email", local, domain, event);
+        if (local.includes("+")) {
+          newRecipient = local + "@" + domain;
+        } else {
+          newRecipient = local + "+" + conversationId + "@" + domain;
+        }
       }
 
       await sendEmail(
         {
-          From: `${event.name} <response+${conversationId}+${event.slug}@event.geteventpilot.com>`,
+          From: `${event.name} <${from}>`,
           ReplyTo: newRecipient,
           To: parseResult.data.to,
           Subject: conversation.inboundEmails[0].subject,
+          Bcc: originalRecipient,
           TextBody:
             parseResult.data.message +
             `\n\n\n---\nThis message was sent from EventPilot by ${req.user.name} on behalf of ${event.name}.`,

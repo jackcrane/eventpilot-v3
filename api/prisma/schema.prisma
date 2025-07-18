@@ -304,6 +304,7 @@ model Event {
 
   contactEmail   String?
   externalContactEmail   String?
+
   willForwardEmail Boolean @default(true)
   forwardEmailConfirmed Boolean @default(false)
   forwardEmailConfirmationEmailId String? @unique

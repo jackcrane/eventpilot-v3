@@ -9,34 +9,39 @@ import { zerialize } from "zodex";
 export const get = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    let events = await prisma.event.findMany({
-      where: {
-        userId: req.user.id,
-      },
-      include: {
-        logo: {
-          select: {
-            location: true,
+    try {
+      let events = await prisma.event.findMany({
+        where: {
+          userId: req.user.id,
+        },
+        include: {
+          logo: {
+            select: {
+              location: true,
+            },
+          },
+          banner: {
+            select: {
+              location: true,
+            },
           },
         },
-        banner: {
-          select: {
-            location: true,
-          },
-        },
-      },
-    });
+      });
 
-    events = events.map((event) => ({
-      ...event,
-      computedExternalContactEmail: event.useHostedEmail
-        ? `{prefix}@${event.slug}.geteventpilot.com`
-        : event.externalContactEmail,
-    }));
+      events = events.map((event) => ({
+        ...event,
+        computedExternalContactEmail: event.useHostedEmail
+          ? `{prefix}@${event.slug}.geteventpilot.com`
+          : event.externalContactEmail,
+      }));
 
-    res.json({
-      events,
-    });
+      res.json({
+        events,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error });
+    }
   },
 ];
 
