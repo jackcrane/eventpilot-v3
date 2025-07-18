@@ -95,11 +95,11 @@ export const samplePass = {
   serialNumber: "XYZ-123",
   organizationName: "John Crane",
   description: "Demo pass",
-  foregroundColor: "rgb(255, 255, 255)",
-  backgroundColor: "rgb(0, 122, 255)",
+  foregroundColor: "rgb(62, 62, 62)",
+  backgroundColor: "rgb(212, 219, 227)",
   logoText: "DEMO",
-  webServiceURL: "https://geteventpilot.com",
-  authenticationToken: "secret-token",
+  webServiceURL: "https://tunnel.geteventpilot.com",
+  authenticationToken: "0a0f2cfa-a08d-4dcb-aa55-2b77d1d7a2b6",
   generic: {
     primaryFields: [
       {
@@ -111,8 +111,8 @@ export const samplePass = {
     secondaryFields: [
       {
         key: "subtitle",
-        label: "Subtitle",
-        value: "Details here",
+        label: "Locations",
+        value: "Schmidt Field",
       },
     ],
   },
