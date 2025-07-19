@@ -1,0 +1,211 @@
+// eslint-disable no-unused-vars
+
+// pkpass-gen/index.js
+import fs, { writeFileSync } from "fs";
+import path, { join } from "path";
+import crypto from "crypto";
+import archiver from "archiver";
+import forge from "node-forge";
+import child_process from "child_process";
+import { fileURLToPath } from "url";
+import { prisma } from "#prisma";
+import { LogType, PassType } from "@prisma/client";
+import { sendUpdateNotification } from "./push";
+
+// 1) __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 2) assets folder next to this file
+const ASSETS_DIR = path.join(__dirname, "assets");
+
+export const PASS_TYPE_ID = "pass.com.geteventpilot";
+export const TEAM_ID = "2LXR6KM7AB";
+export const CERT_PATH = path.join(__dirname, "certs", "pass-cert.pem");
+export const KEY_PATH = path.join(__dirname, "certs", "pass-key.pem");
+export const WWDR_PATH = path.join(__dirname, "certs", "wwdr.pem");
+export const CERTS_DIR = path.join(__dirname, "certs");
+const PASSES_DIR = path.join(__dirname, "passes");
+
+const generateManifest = (files) => {
+  const manifest = {};
+  for (const file of files) {
+    const data = fs.readFileSync(file.fullPath);
+    const hash = crypto.createHash("sha1").update(data).digest("hex");
+    manifest[file.name] = hash;
+  }
+  return manifest;
+};
+
+const signManifest = (manifestPath, outputPath) => {
+  const pkcs7Path = outputPath.replace(/\.pkpass$/, ".sig");
+  child_process.execSync(
+    `openssl smime -binary -sign -certfile ${WWDR_PATH} -signer ${CERT_PATH} -inkey ${KEY_PATH} -in ${manifestPath} -out ${pkcs7Path} -outform DER`
+  );
+  return pkcs7Path;
+};
+
+export const createPass = async (
+  passData,
+  outputPath,
+  { icon, logo, thumbnail }
+) => {
+  if (!outputPath) {
+    outputPath = path.join(PASSES_DIR, `${passData.serialNumber}.pkpass`);
+  }
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  const tmpDir = fs.mkdtempSync("passgen-");
+  const files = [];
+
+  // Write pass.json
+  const passJsonPath = path.join(tmpDir, "pass.json");
+  fs.writeFileSync(passJsonPath, JSON.stringify(passData, null, 2));
+  files.push({ name: "pass.json", fullPath: passJsonPath });
+
+  // Copy images
+  // for (const file of ["icon.png", "logo.png"]) {
+  //   const src = path.join(ASSETS_DIR, file);
+  //   const dest = path.join(tmpDir, file);
+  //   fs.copyFileSync(src, dest);
+  //   files.push({ name: file, fullPath: dest });
+  // }
+
+  fs.writeFileSync(path.join(tmpDir, "icon.png"), icon);
+  fs.writeFileSync(path.join(tmpDir, "logo.png"), logo);
+  fs.writeFileSync(path.join(tmpDir, "thumbnail.png"), thumbnail);
+  files.push({ name: "icon.png", fullPath: path.join(tmpDir, "icon.png") });
+  files.push({ name: "logo.png", fullPath: path.join(tmpDir, "logo.png") });
+  files.push({
+    name: "thumbnail.png",
+    fullPath: path.join(tmpDir, "thumbnail.png"),
+  });
+
+  // Create manifest
+  const manifest = generateManifest(files);
+  const manifestPath = path.join(tmpDir, "manifest.json");
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  files.push({ name: "manifest.json", fullPath: manifestPath });
+
+  // Sign
+  const sigPath = signManifest(manifestPath, outputPath);
+  files.push({ name: "signature", fullPath: sigPath });
+
+  // Create .pkpass
+  await new Promise((resolve, reject) => {
+    const output = fs.createWriteStream(outputPath);
+    const archive = archiver("zip");
+
+    output.on("close", () => resolve(outputPath));
+    archive.on("error", (err) => reject(err));
+
+    archive.pipe(output);
+    files.forEach((f) => archive.file(f.fullPath, { name: f.name }));
+    archive.finalize();
+  });
+
+  // sendUpdateNotification(passData.serialNumber);
+  console.log("Returning pass", outputPath);
+
+  return outputPath;
+};
+
+const fetchToBuffer = async (url) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
+  const arrayBuffer = await res.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+};
+
+export const createPassForCRMPerson = async (
+  _crmPerson,
+  { type = PassType.OTHER } = {}
+) => {
+  // If CRM person is a string, we need to fetch the object from prisma
+  let crmPerson;
+  if (typeof _crmPerson === "string") {
+    crmPerson = await prisma.crmPerson.findUnique({
+      where: { id: _crmPerson },
+      include: { passes: true },
+    });
+  } else {
+    crmPerson = _crmPerson;
+  }
+  const event = await prisma.event.findUnique({
+    where: { id: crmPerson.eventId },
+    include: { logo: true },
+  });
+
+  const passRef = await prisma.pass.create({
+    data: {
+      eventId: crmPerson.eventId,
+      crmPersonId: crmPerson.id,
+      type,
+    },
+  });
+
+  const passToCreate = {
+    ...samplePass,
+    serialNumber: passRef.id,
+    generic: {
+      primaryFields: [
+        {
+          key: "title",
+          label: "Title",
+          value: Math.random().toString(36),
+        },
+      ],
+      ...samplePass.generic,
+    },
+  };
+  const images = {
+    icon: fs.readFileSync(path.join(ASSETS_DIR, "icon.png")),
+    logo: fs.readFileSync(path.join(ASSETS_DIR, "logo.png")),
+    thumbnail: await fetchToBuffer(event.logo.location),
+  };
+  const passPath = await createPass(passToCreate, null, images);
+  console.log("passPath gotten", passPath);
+  return passPath;
+};
+
+export const samplePass = {
+  formatVersion: 1,
+  passTypeIdentifier: PASS_TYPE_ID,
+  teamIdentifier: TEAM_ID,
+  serialNumber: "cmcnspqxo000pqz0nmahl178r",
+  organizationName: "EventPilot",
+  description: "Demo pass",
+  foregroundColor: "rgb(62, 62, 62)",
+  backgroundColor: "rgb(212, 219, 227)",
+  logoText: "EventPilot",
+  webServiceURL: "https://tunnel.geteventpilot.com",
+  authenticationToken: "0a0f2cfa-a08d-4dcb-aa55-2b77d1d7a2b6",
+  generic: {
+    headerFields: [
+      {
+        value: "Volunteer",
+        label: "Pass Type",
+        textAlignment: "PKTextAlignmentRight",
+        key: "passType",
+      },
+    ],
+    primaryFields: [
+      {
+        key: "title",
+        label: "Title",
+        value: Math.random().toString(36),
+      },
+    ],
+    secondaryFields: [
+      {
+        key: "subtitle",
+        label: "Locations",
+        value: "Schmidt Field",
+      },
+    ],
+  },
+};
+
+// Run generator
+// createPass(samplePass, path.join(PASSES_DIR, "demo.pkpass"))
+//   .then(() => console.log("Pass created!"))
+//   .catch(console.error);
