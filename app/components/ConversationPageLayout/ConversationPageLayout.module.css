@@ -1,0 +1,29 @@
+:root {
+  --tblr-border-color: #dadce0;
+}
+
+.container {
+  display: flex;
+  flex-direction: row;
+  border-top: 1px solid var(--tblr-border-color);
+}
+
+.sidebar {
+  border-left: 1px solid var(--tblr-border-color);
+  padding: 8px;
+}
+
+.sidebarLeft {
+  border-right: 1px solid var(--tblr-border-color);
+  border-left: none;
+}
+
+.conversation {
+  padding: 8px;
+}
+
+.title {
+  margin: -8px -8px 8px;
+  padding: 8px;
+  border-bottom: 1px solid var(--tblr-border-color);
+}

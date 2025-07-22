@@ -14,7 +14,7 @@ import { Badge } from "tabler-react-2/dist/badge";
 import { STATUS_MAP } from "../conversationView/ConversationPreview";
 import { escape } from "lodash";
 
-const extractInitialsFromName = (name) => {
+export const extractInitialsFromName = (name) => {
   const parts = name.split(" ");
   if (parts.length === 1) return parts[0].slice(0, 2);
   return parts[0].slice(0, 1) + parts[1].slice(0, 1);
@@ -95,7 +95,7 @@ export const EmailPreviewPrompt = ({ emailId }) => {
   );
 };
 
-const Attachment = ({ attachment }) => {
+export const Attachment = ({ attachment }) => {
   const { originalname, location, contentType, size } = attachment.file;
   const isImage = contentType.includes("image");
 
@@ -107,8 +107,10 @@ const Attachment = ({ attachment }) => {
         className="card"
         style={{ maxWidth: 500, overflow: "hidden" }}
       >
-        {isImage && (
+        {isImage ? (
           <img src={location} alt={originalname} style={{ maxWidth: 100 }} />
+        ) : (
+          <Icon i="file" size={100} />
         )}
         <Col gap={1} align="flex-start">
           <Typography.Text className="mb-0" style={{ textAlign: "left" }}>

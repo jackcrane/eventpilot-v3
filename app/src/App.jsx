@@ -24,6 +24,8 @@ import { EventCrm } from "./routes/events/[eventId]/crm";
 import { EmailPage } from "./routes/email/[emailId]";
 import { Conversations } from "./routes/events/[eventId]/conversations";
 import { NewEventPage } from "./routes/events/new";
+import { ConversationPage } from "./routes/events/[eventId]/conversations/[conversationId].new";
+const useNewConversationPage = true;
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -92,7 +94,9 @@ export default () => {
           />
           <Route
             path="/events/:eventId/conversations/:conversationId"
-            element={<Conversations />}
+            element={
+              !useNewConversationPage ? <Conversations /> : <ConversationPage />
+            }
           />
           {/* 404 error */}
           <Route

@@ -20,6 +20,7 @@ export const post = async (req, res) => {
     }
 
     const event = await resolveEvent(body);
+    console.log(`[${req.id}][WEBHOOK][POSTMARK_INBOUND] resolved event`, event);
 
     if (!event) {
       console.log("Email did not resolve to an event");

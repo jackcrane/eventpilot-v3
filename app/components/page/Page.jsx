@@ -6,6 +6,27 @@ import { Footer } from "../footer/Footer";
 import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
+function Fallback({ error, resetErrorBoundary }) {
+  // Call resetErrorBoundary() to reset the error boundary and retry the render.
+
+  return (
+    <div role="alert">
+      <p>Something went wrong:</p>
+      <pre
+        style={{
+          color: "red",
+          width: "calc(100% - 20px)",
+          wordWrap: "break-word",
+          whiteSpace: "pre-wrap",
+          margin: "10px",
+        }}
+      >
+        {error.message}
+      </pre>
+    </div>
+  );
+}
+
 export const Page = ({
   children,
   title,
@@ -19,7 +40,7 @@ export const Page = ({
   const { width } = useWindowSize();
 
   return (
-    <ErrorBoundary fallback={<div>Error</div>}>
+    <ErrorBoundary fallbackRender={Fallback}>
       <Header
         showPicker={showPicker}
         setMobileNavOpen={setMobileNavOpen}

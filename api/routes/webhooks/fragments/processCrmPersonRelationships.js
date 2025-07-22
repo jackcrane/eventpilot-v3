@@ -10,6 +10,7 @@ export const processCrmPersonRelationships = async (
   const distinctEmails = Array.from(
     new Set(emailObjs.map((e) => e.Email.toLowerCase()))
   );
+  console.log("distinct emails", distinctEmails);
 
   const existingEmailRecs = await prisma.crmPersonEmail.findMany({
     where: {
@@ -20,11 +21,14 @@ export const processCrmPersonRelationships = async (
     },
     include: { crmPerson: true },
   });
+  console.log("existing email records", existingEmailRecs.length);
   const matchedPersonIds = Array.from(
     new Set(existingEmailRecs.map((r) => r.crmPersonId))
   );
+  console.log("matched persons", matchedPersonIds.length);
 
   for (const personId of matchedPersonIds) {
+    console.log("matched persons", personId);
     await prisma.crmPerson.update({
       where: { id: personId },
       data: {
@@ -39,6 +43,7 @@ export const processCrmPersonRelationships = async (
         },
       },
     });
+    console.log("updated person", personId);
   }
 
   const matchedEmailSet = new Set(
@@ -54,7 +59,7 @@ export const processCrmPersonRelationships = async (
   for (const { Email, Name } of newEmailObjs) {
     console.log("New emails", newEmailObjs.length);
     const personName = Name?.trim() || Email;
-    await prisma.crmPerson.create({
+    const created = await prisma.crmPerson.create({
       data: {
         name: personName,
         source: "EMAIL",
@@ -76,5 +81,6 @@ export const processCrmPersonRelationships = async (
         },
       },
     });
+    console.log("created person", created.id);
   }
 };
