@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { sendEmail } from "#postmark";
+import { upsertConversationCrmPerson } from "../../../../util/upsertConversationCrmPerson";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -105,7 +106,7 @@ export const get = [
       const { inboundEmails, outboundEmails, ...rest } = convo;
       // reply to email should be the to the most recent inbound email
       const replyTo = inboundEmails.sort((a, b) => b.createdAt - a.createdAt)[0]
-        .from?.email;
+        ?.from?.email;
 
       res.json({
         conversation: {
@@ -224,6 +225,12 @@ export const post = [
           ],
         },
         conversationId
+      );
+
+      await upsertConversationCrmPerson(
+        parseResult.data.to,
+        conversationId,
+        eventId
       );
 
       return res.json({ message: "Message sent successfully" });

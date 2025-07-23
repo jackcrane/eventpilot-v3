@@ -10,6 +10,10 @@ const switchSource = (source) => {
       return "Imported from CSV";
     case "VOLUNTEER":
       return "Registered as a volunteer";
+    case "SENT_EMAIL":
+      return "You sent this person an email";
+    case "EMAIL":
+      return "This person sent you an email";
     default:
       return "Unknown";
   }

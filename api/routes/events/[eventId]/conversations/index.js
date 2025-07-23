@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { sendEmail } from "#postmark";
+import { upsertConversationCrmPerson } from "../../../../util/upsertConversationCrmPerson";
 
 const sendSchema = z.object({
   to: z.string().email(),
@@ -189,6 +190,13 @@ export const post = [
         },
         conversation.id
       );
+
+      const upsd = await upsertConversationCrmPerson(
+        to,
+        conversation.id,
+        eventId
+      );
+      console.log(upsd);
 
       return res.json({ message: "Message sent successfully", conversation });
     } catch (error) {
