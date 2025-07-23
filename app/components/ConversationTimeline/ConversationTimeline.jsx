@@ -50,7 +50,19 @@ const emailToTimelineItem = (email) => {
 
   return {
     time: moment(email.createdAt).format("M/DD/YY h:mm a"),
-    title: fromToDisplay,
+    title: (
+      <>
+        <Typography.B>{fromToDisplay}</Typography.B>
+        {email.to && email.to.length > 0 && (
+          <Typography.Text className="mb-0">
+            <span className="text-muted">To:</span>
+            {typeof email.to === "string"
+              ? email.to
+              : email?.to?.map?.((t) => t.email)?.join(", ")}
+          </Typography.Text>
+        )}
+      </>
+    ),
     description: (
       <>
         <div

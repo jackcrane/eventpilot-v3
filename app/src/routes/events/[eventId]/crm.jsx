@@ -52,8 +52,8 @@ export const EventCrm = () => {
     loading: personsLoading,
     imports,
   } = useCrmPersons({ eventId });
-  const { offcanvas, OffcanvasElement } = useOffcanvas({
-    offcanvasProps: { position: "end", size: 500 },
+  const { offcanvas, OffcanvasElement, close } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
   });
   const { createCrmFieldModal, CreateCrmFieldModalElement, mutationLoading } =
     useCrmFields({ eventId });
@@ -71,7 +71,9 @@ export const EventCrm = () => {
         <Button
           size="sm"
           onClick={() =>
-            offcanvas({ content: <CrmPersonCRUD crmPersonId={id} /> })
+            offcanvas({
+              content: <CrmPersonCRUD crmPersonId={id} onClose={close} />,
+            })
           }
         >
           <Icon i="info-circle" /> Details

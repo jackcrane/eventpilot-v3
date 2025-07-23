@@ -44,7 +44,7 @@ export const EventLocationJobListing = ({ locationId }) => {
     loading: jobsLoading,
   } = useJobs({ eventId, locationId });
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
-    offcanvasProps: { position: "end", size: 500 },
+    offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
   });
 
   const { confirm, ConfirmModal } = useConfirm({

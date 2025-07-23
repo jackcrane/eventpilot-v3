@@ -32,6 +32,7 @@ export const get = [
             },
           },
           outboundEmails: true,
+          participants: true,
         },
       });
 
@@ -49,10 +50,10 @@ export const get = [
         email.cc.forEach((p) => participantsMap.set(p.email, p));
         email.bcc.forEach((p) => participantsMap.set(p.email, p));
       });
-      let participants = Array.from(participantsMap.values());
-      participants = participants.filter(
-        (p) => !p.email.includes(".geteventpilot.com")
-      );
+      // let participants = Array.from(participantsMap.values());
+      // participants = participants.filter(
+      //   (p) => !p.email.includes(".geteventpilot.com")
+      // );
 
       // Aggregate and sort all emails by createdAt descending
       const inbound = convo.inboundEmails.map((email) => ({
@@ -102,10 +103,13 @@ export const get = [
 
       // eslint-disable-next-line
       const { inboundEmails, outboundEmails, ...rest } = convo;
+      // reply to email should be the to the most recent inbound email
+      const replyTo = inboundEmails.sort((a, b) => b.createdAt - a.createdAt)[0]
+        .from?.email;
+
       res.json({
         conversation: {
           ...rest,
-          participants,
           emailCount,
           subject,
           hasUnread,
@@ -114,6 +118,7 @@ export const get = [
           emails,
           sent,
           mostRecentStatus,
+          replyTo,
         },
       });
     } catch (error) {

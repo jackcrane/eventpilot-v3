@@ -37,7 +37,7 @@
     "react-use": "^17.6.0",
     "styled-components": "^6.1.14",
     "swr": "^2.3.0",
-    "tabler-react-2": "0.1.140",
+    "tabler-react-2": "0.1.141",
     "ua-parser-js": "^2.0.3",
     "zod": "^4.0.5",
     "zodex": "^0.18.2"

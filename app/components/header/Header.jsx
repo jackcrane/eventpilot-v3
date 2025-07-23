@@ -14,6 +14,7 @@ import { EventPicker } from "../eventPicker/EventPicker";
 import { useParsedUrl } from "../../hooks/useParsedUrl";
 import { StripeTrigger } from "../stripe/Stripe";
 import { HideWhenSmaller, ShowWhenSmaller } from "../media/Media";
+import toast from "react-hot-toast";
 
 export const Header = ({
   setMobileNavOpen,
@@ -81,6 +82,16 @@ export const Header = ({
                     href: "/me",
                     type: "item",
                     icon: <IconSettings />,
+                  },
+                  {
+                    text: "Copy token",
+                    onclick: () => {
+                      const token = localStorage.getItem("token");
+                      navigator.clipboard.writeText(token);
+                      toast.success("Copied to clipboard");
+                    },
+                    type: "item",
+                    icon: <Icon i="copy" />,
                   },
                   {
                     type: "divider",

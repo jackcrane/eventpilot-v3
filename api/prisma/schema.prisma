@@ -68,6 +68,7 @@ model Conversation {
   inboundEmails InboundEmail[]
   outboundEmails Email[]
   logs          Logs[]
+  participants  CrmPerson[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -564,6 +565,7 @@ model CrmPerson {
   logs       Logs[]
   sentEmails Email[]
   inboundEmails InboundEmail[]
+  conversations Conversation[]
   deleted    Boolean @default(false)
 
   fieldValues CrmPersonField[]

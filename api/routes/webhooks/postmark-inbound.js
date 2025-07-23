@@ -55,7 +55,8 @@ export const post = async (req, res) => {
       await processCrmPersonRelationships(
         body,
         event.id,
-        createdInboundEmail.id
+        createdInboundEmail.id,
+        conversation.id
       );
       await sendAutoResponseIfNeeded(
         body,

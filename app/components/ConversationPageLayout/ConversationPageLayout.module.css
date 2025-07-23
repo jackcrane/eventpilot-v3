@@ -24,6 +24,49 @@
 
 .title {
   margin: -8px -8px 8px;
-  padding: 8px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--tblr-border-color);
+  position: relative;
+}
+.title.hasCollapsed {
+  padding-left: 32px;
+}
+
+.participants {
+  max-width: 450px;
+}
+.participants .title {
+  padding-left: 24px;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sidebarLeft .title {
+  padding-left: 0px;
+}
+
+.collapseActions {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateX(-70%) translateY(-50%);
+  z-index: 1000;
+}
+
+.collapseActions.collapsed {
+  transform: translateX(0%) translateY(-50%);
+}
+
+.collapseParticipants {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateX(70%) translateY(-50%);
+  z-index: 1000;
+}
+.collapseParticipants.collapsed {
+  transform: translateX(0%) translateY(-50%);
 }

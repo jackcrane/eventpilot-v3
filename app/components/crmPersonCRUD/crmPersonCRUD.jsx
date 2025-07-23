@@ -276,15 +276,24 @@ export const Logs = ({ logs, containerRef }) => {
 };
 
 // Main Component: CrmPersonCRUD
-export const CrmPersonCRUD = ({ crmPersonId }) => {
+export const CrmPersonCRUD = ({
+  crmPersonId,
+  onClose,
+  showDeleteButton = true,
+}) => {
   const { eventId } = useParams();
   const { crmFields, loading: fieldsLoading } = useCrm({ eventId });
-  const { crmPerson, loading, updateCrmPerson, mutationLoading } = useCrmPerson(
-    {
-      eventId,
-      personId: crmPersonId,
-    }
-  );
+  const {
+    crmPerson,
+    loading,
+    updateCrmPerson,
+    mutationLoading,
+    deleteCrmPerson,
+    DeleteConfirmElement,
+  } = useCrmPerson({
+    eventId,
+    personId: crmPersonId,
+  });
   const {
     createCrmPerson,
     loading: createLoading,
@@ -321,6 +330,12 @@ export const CrmPersonCRUD = ({ crmPersonId }) => {
     }
   };
 
+  const handleDelete = async () => {
+    if (await deleteCrmPerson()) {
+      onClose?.();
+    }
+  };
+
   const containerRef = useRef(null);
 
   if (fieldsLoading || loading) {
@@ -329,6 +344,7 @@ export const CrmPersonCRUD = ({ crmPersonId }) => {
 
   return (
     <div style={{ marginBottom: 100 }} ref={containerRef}>
+      {DeleteConfirmElement}
       <Typography.H5 className="mb-0 text-secondary">CONTACT</Typography.H5>
       <Typography.H1>{localCrmPerson?.name || "New Contact"}</Typography.H1>
       <Util.Hr text="Basic Info" />
@@ -344,15 +360,31 @@ export const CrmPersonCRUD = ({ crmPersonId }) => {
         setLocalCrmPerson={setLocalCrmPerson}
       />
 
-      <Util.Hr text="Save" />
-      <Button onClick={handleSubmit} loading={mutationLoading}>
-        Save
-      </Button>
+      <Util.Hr text="Operations" />
+      <Row gap={1} align="center">
+        <Button
+          onClick={handleSubmit}
+          loading={mutationLoading}
+          variant="primary"
+        >
+          Save
+        </Button>
+        {showDeleteButton && (
+          <Button
+            onClick={handleDelete}
+            loading={mutationLoading}
+            outline
+            variant="danger"
+          >
+            Delete
+          </Button>
+        )}
+      </Row>
 
       {localCrmPerson?.id && (
         <>
-          <Util.Hr text="Logs" />
-          <Logs logs={crmPerson.logs} containerRef={containerRef} />
+          {/* <Util.Hr text="Logs" />
+          <Logs logs={crmPerson.logs} containerRef={containerRef} /> */}
           <Util.Hr text="System Info" />
           <SystemInfo crmPerson={crmPerson} />
         </>
