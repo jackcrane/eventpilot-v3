@@ -140,7 +140,7 @@ export const useWhatNextMap = () => {
             negative: `You have not started creating a volunteer registration form.`,
             done,
             negativeCta: "Go to the Registration Builder",
-            negativeHref: `/events/${eventId}/builder`,
+            negativeHref: `/events/${eventId}/volunteers/builder`,
           }),
           ...standard,
         };
@@ -158,7 +158,7 @@ export const useWhatNextMap = () => {
             negative: `You have not created a location for volunteers to work at in the Jobs & Shifts builder.`,
             done,
             negativeCta: "Go to the Jobs & Shifts Builder",
-            negativeHref: `/events/${eventId}/jobs`,
+            negativeHref: `/events/${eventId}/volunteers/jobs`,
           }),
           ...standard,
         };
@@ -172,7 +172,7 @@ export const useWhatNextMap = () => {
             negative: `You have not created a job for volunteers to work at in the Jobs & Shifts builder. Jobs live inside of Locations.`,
             done,
             negativeCta: "Go to the Jobs & Shifts Builder",
-            negativeHref: `/events/${eventId}/jobs`,
+            negativeHref: `/events/${eventId}/volunteers/jobs`,
             extra: locationsLoading
               ? null
               : locations?.length === 0 && (
@@ -194,7 +194,7 @@ export const useWhatNextMap = () => {
             negative: `You have not created a shift for volunteers to work at in the Jobs & Shifts builder. Shifts live inside of Jobs.`,
             done,
             negativeCta: "Go to the Jobs & Shifts Builder",
-            negativeHref: `/events/${eventId}/jobs`,
+            negativeHref: `/events/${eventId}/volunteers/jobs`,
             extra: locationsLoading
               ? null
               : locations?.length === 0 && (

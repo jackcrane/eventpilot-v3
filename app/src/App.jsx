@@ -81,10 +81,13 @@ export default () => {
             element={<EventVolunteers />}
           />
           <Route
-            path="/events/:eventId/builder"
+            path="/events/:eventId/volunteers/builder"
             element={<EventVolRegBuilder />}
           />
-          <Route path="/events/:eventId/jobs" element={<EventJobs />} />
+          <Route
+            path="/events/:eventId/volunteers/jobs"
+            element={<EventJobs />}
+          />
           <Route path="/events/:eventId/settings" element={<EventSettings />} />
           <Route path="/events/:eventId/crm" element={<EventCrm />} />
 

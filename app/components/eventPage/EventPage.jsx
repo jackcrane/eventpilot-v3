@@ -1,7 +1,7 @@
 import { Typography, Util, Button } from "tabler-react-2";
 import { useParsedUrl } from "../../hooks/useParsedUrl";
 import { Row } from "../../util/Flex";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { Page } from "../page/Page";
 import { Icon } from "../../util/Icon";
 import { useEvent } from "../../hooks/useEvent";
@@ -18,16 +18,8 @@ export const EventPage = ({
   docsLink,
 }) => {
   const { eventId } = useParams();
-  const {
-    event,
-    loading: eventLoading,
-    error,
-    refetch,
-  } = useEvent({
-    eventId,
-  });
-  const url = useParsedUrl(window.location.pathname);
-  const {} = useConversations({ eventId });
+  const { event, loading: eventLoading } = useEvent({ eventId });
+  const { pathname } = useLocation();
 
   if (eventLoading)
     return (
@@ -36,80 +28,104 @@ export const EventPage = ({
       </Page>
     );
 
+  // helper to test exact match
+  const isActive = (href) => pathname === href;
+
+  const base = `/events/${eventId}`;
+  const sidenavItems = [
+    {
+      type: "item",
+      href: "/events",
+      text: "Back to events",
+      active: false,
+      icon: <Icon i="arrow-left" size={18} />,
+    },
+    { type: "divider" },
+    {
+      type: "item",
+      href: base,
+      text: "Event Home",
+      active: isActive(base),
+      icon: <Icon i="home" size={18} />,
+    },
+    { type: "divider" },
+    {
+      type: "item",
+      href: `${base}/crm`,
+      text: "Contacts",
+      active: isActive(`${base}/crm`),
+      icon: <Icon i="briefcase-2" size={18} />,
+    },
+    {
+      type: "item",
+      href: `${base}/conversations`,
+      text: "Conversations",
+      active: isActive(`${base}/conversations`),
+      icon: <Icon i="message" size={18} />,
+    },
+    { type: "divider" },
+    {
+      type: "item",
+      href: `${base}/registration/registrations`,
+      text: "Registrations",
+      active: isActive(`${base}/registration/registrations`),
+      icon: <Icon i="ticket" size={18} />,
+    },
+    {
+      type: "item",
+      href: `${base}/registration/teams`,
+      text: "Teams",
+      active: isActive(`${base}/registration/teams`),
+      icon: <Icon i="users" size={18} />,
+    },
+    {
+      type: "item",
+      href: `${base}/registration/builder`,
+      text: "Registration Builder",
+      active: isActive(`${base}/registration/builder`),
+      icon: <Icon i="lego" size={18} />,
+    },
+    {
+      type: "item",
+      href: `${base}/registration/upsells`,
+      text: "Upsells",
+      active: isActive(`${base}/registration/upsells`),
+      icon: <Icon i="gift" size={18} />,
+    },
+    { type: "divider" },
+    {
+      type: "item",
+      href: `${base}/volunteers`,
+      text: "Volunteers",
+      active: isActive(`${base}/volunteers`),
+      icon: <Icon i="heart" size={18} />,
+    },
+    {
+      type: "item",
+      href: `${base}/volunteers/builder`,
+      text: "Registration Builder",
+      active: isActive(`${base}/volunteers/builder`),
+      icon: <Icon i="lego" size={18} />,
+    },
+    {
+      type: "item",
+      href: `${base}/volunteers/jobs`,
+      text: "Jobs & Shift Builder",
+      active: isActive(`${base}/volunteers/jobs`),
+      icon: <Icon i="wall" size={18} />,
+    },
+    { type: "divider" },
+    {
+      type: "item",
+      href: `${base}/settings`,
+      text: "Settings",
+      active: isActive(`${base}/settings`),
+      icon: <Icon i="settings" size={18} />,
+    },
+  ];
+
   return (
-    <Page
-      title={title}
-      sidenavItems={[
-        {
-          type: "item",
-          href: "/events",
-          text: "Back to events",
-          active: false,
-          icon: <Icon i="arrow-left" size={18} />,
-        },
-        {
-          type: "divider",
-        },
-        {
-          type: "item",
-          href: `/events/${eventId}`,
-          text: `Event Home`,
-          active: !Object.values(url).includes(true),
-          icon: <Icon i="home" size={18} />,
-        },
-        {
-          type: "divider",
-        },
-        {
-          type: "item",
-          href: `/events/${eventId}/crm`,
-          text: "Contacts",
-          active: url.crm,
-          icon: <Icon i="briefcase-2" size={18} />,
-        },
-        {
-          type: "item",
-          href: `/events/${eventId}/conversations`,
-          text: `Conversations`,
-          active: url.conversations,
-          icon: <Icon i="message" size={18} />,
-        },
-        {
-          type: "divider",
-        },
-        {
-          type: "item",
-          href: `/events/${eventId}/volunteers`,
-          text: `Volunteers`,
-          active: url.volunteers,
-          icon: <Icon i="heart" size={18} />,
-        },
-        {
-          type: "item",
-          href: `/events/${eventId}/builder`,
-          text: `Registration Builder`,
-          active: url.builder,
-          icon: <Icon i="lego" size={18} />,
-        },
-        {
-          type: "item",
-          href: `/events/${eventId}/jobs`,
-          text: `Jobs & Shift Builder`,
-          active: url.jobs,
-          icon: <Icon i="wall" size={18} />,
-        },
-        {
-          type: "divider",
-        },
-        {
-          type: "item",
-          href: `/events/${eventId}/settings`,
-          text: `Settings`,
-          active: url.settings,
-          icon: <Icon i="settings" size={18} />,
-        },
-      ]}
-    >
+    <Page title={title} sidenavItems={sidenavItems}>
       <div
         style={{
           display: "flex",
@@ -163,107 +179,3 @@ export const EventPage = ({
     </Page>
   );
 };
-
-/*
-
-
-
-
-        {/* <Row gap={1} className={"tour__navbar"}>
-        <Button
-        href={`/events`}
-        ghost
-        variant="secondary"
-        size="sm"
-        className="tour__navbar-back"
-        >
-          <Row gap={1}>
-            <Icon i={"arrow-left"} size="inherit" />
-            Back to Events
-          </Row>
-        </Button>
-        <Button
-          variant={Object.values(url).includes(true) ? "secondary" : "primary"}
-          size="sm"
-          ghost={Object.values(url).includes(true)}
-          href={`/events/${eventId}`}
-          className="tour__navbar-home"
-        >
-          <Row gap={1}>
-            <Icon i={"home"} size="inherit" />
-            Event Home
-          </Row>
-        </Button>
-        <Button
-          variant={url.conversations ? "primary" : "secondary"}
-          ghost={!url.conversations}
-          size="sm"
-          href={`/events/${eventId}/conversations`}
-          className="tour__navbar-conversations"
-        >
-          <Row gap={1}>
-            <Icon i={"message"} size="inherit" />
-            Conversations
-          </Row>
-        </Button>
-        <Button
-          variant={url.volunteers ? "primary" : "secondary"}
-          ghost={!url.volunteers}
-          size="sm"
-          href={`/events/${eventId}/volunteers`}
-          className="tour__navbar-volunteers"
-        >
-          <Row gap={1}>
-            <Icon i={"heart"} size="inherit" />
-            Volunteers
-          </Row>
-        </Button>
-        <Button
-          variant={url.builder ? "primary" : "secondary"}
-          ghost={!url.builder}
-          size="sm"
-          href={`/events/${eventId}/builder`}
-          className="tour__navbar-builder"
-        >
-          <Row gap={1}>
-            <Icon i={"lego"} size="inherit" />
-            Registration Builder
-          </Row>
-        </Button>
-        <Button
-          variant={url.jobs ? "primary" : "secondary"}
-          ghost={!url.jobs}
-          size="sm"
-          href={`/events/${eventId}/jobs`}
-          className="tour__navbar-jobs"
-        >
-          <Row gap={1}>
-            <Icon i={"wall"} size="inherit" />
-            Jobs & Shift Builder
-          </Row>
-        </Button>
-        <Button
-          variant={url.settings ? "primary" : "secondary"}
-          ghost={!url.settings}
-          size="sm"
-          href={`/events/${eventId}/settings`}
-          className="tour__navbar-settings"
-        >
-          <Row gap={1}>
-            <Icon i={"settings"} size="inherit" />
-            Settings
-          </Row>
-        </Button>
-        <Button
-          variant={url.crm ? "primary" : "secondary"}
-          ghost={!url.crm}
-          size="sm"
-          href={`/events/${eventId}/crm`}
-          className="tour__navbar-crm"
-        >
-          <Row gap={1}>
-            <Icon i={"briefcase-2"} size="inherit" />
-            Contacts
-          </Row>
-        </Button>
-        </Row> */

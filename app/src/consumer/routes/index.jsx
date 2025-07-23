@@ -107,7 +107,7 @@ export const ConsumerIndex = () => {
                     to={
                       "https://geteventpilot.com/events/" +
                       event?.id +
-                      "/builder"
+                      "/volunteers/builder"
                     }
                   >
                     volunteer registration builder

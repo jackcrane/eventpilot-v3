@@ -127,9 +127,9 @@ export const Event = () => {
           </Typography.H5>
           <Typography.Text>
             EventPilot combines required fields, event{" "}
-            <Link to="./jobs">timing details</Link>, and your{" "}
-            <Link to="./builder">custom fields</Link> into one simple form.
-            Share it with volunteers to collect signups easily.
+            <Link to="./volunteers/jobs">timing details</Link>, and your{" "}
+            <Link to="./volunteers/builder">custom fields</Link> into one simple
+            form. Share it with volunteers to collect signups easily.
           </Typography.Text>
           <Typography.Text>
             <a
