@@ -25,6 +25,7 @@ import { EmailPage } from "./routes/email/[emailId]";
 import { Conversations } from "./routes/events/[eventId]/conversations";
 import { NewEventPage } from "./routes/events/new";
 import { ConversationPage } from "./routes/events/[eventId]/conversations/[conversationId].new";
+import { RegistrationBuilder } from "./routes/events/[eventId]/registration/builder";
 const useNewConversationPage = true;
 
 export default () => {
@@ -76,6 +77,7 @@ export default () => {
 
           <Route path="/events/:eventId" element={<Event />} />
           <Route path="/events" element={<Events />} />
+
           <Route
             path="/events/:eventId/volunteers"
             element={<EventVolunteers />}
@@ -88,6 +90,12 @@ export default () => {
             path="/events/:eventId/volunteers/jobs"
             element={<EventJobs />}
           />
+
+          <Route
+            path="/events/:eventId/registration/builder"
+            element={<RegistrationBuilder />}
+          />
+
           <Route path="/events/:eventId/settings" element={<EventSettings />} />
           <Route path="/events/:eventId/crm" element={<EventCrm />} />
 

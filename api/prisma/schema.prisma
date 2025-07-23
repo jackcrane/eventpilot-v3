@@ -340,6 +340,11 @@ model Event {
   crmPersonImports CrmPersonsImport[]
   inboundEmails    InboundEmail[] @relation(name: "Event_InboundEmails")
   conversations    Conversation[]
+  registrationTiers RegistrationTier[]
+  registrationUpsells UpsellItem[]
+  registrationFields RegistrationField[]
+  registrations Registration[]
+  teams Team[]
 }
 
 model CrmPersonsImport {
@@ -677,6 +682,147 @@ enum CrmFieldType {
   DATE
   NUMBER
   ADDRESS
+}
+
+model RegistrationTier {
+  id          String              @id @default(cuid())
+  eventId     String
+  event       Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  capacity    Int?
+  order       Int                 @default(0)
+
+  pricingTiers RegistrationPricing[]
+  registrations Registration[]
+
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model RegistrationPricing {
+  id                   String    @id @default(cuid())
+  registrationTierId   String
+  registrationTier     RegistrationTier @relation(fields: [registrationTierId], references: [id], onDelete: Cascade)
+
+  registrations        Registration[]
+
+  name   String   // e.g. "Early Bird"
+  price  Decimal  @db.Decimal(10, 2)
+  start  DateTime
+  end    DateTime
+}
+
+model Team {
+  id            String         @id @default(cuid())
+  eventId       String
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name          String
+  code          String         @unique
+  maxSize       Int?
+  registrations Registration[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model UpsellItem {
+  id            String         @id @default(cuid())
+  eventId       String
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  price         Decimal        @db.Decimal(10, 2)
+  inventory     Int?
+  order         Int            @default(0)
+
+  registrations RegistrationUpsell[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Registration {
+  id                   String                  @id @default(cuid())
+  eventId              String
+  event                Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  registrationTierId   String
+  registrationTier     RegistrationTier        @relation(fields: [registrationTierId], references: [id])
+
+  pricingTierId        String
+  pricingTier          RegistrationPricing     @relation(fields: [pricingTierId], references: [id])
+
+  teamId               String?
+  team                 Team?                   @relation(fields: [teamId], references: [id])
+
+  upsells              RegistrationUpsell[]
+  fieldResponses       RegistrationFieldResponse[]
+
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+}
+
+model RegistrationUpsell {
+  registrationId String
+  upsellItemId   String
+  quantity       Int      @default(1)
+
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  upsellItem     UpsellItem   @relation(fields: [upsellItemId], references: [id], onDelete: Cascade)
+
+  @@id([registrationId, upsellItemId])
+}
+
+model RegistrationField {
+  id          String                     @id @default(cuid())
+  eventId     String
+  event       Event                      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  label       String
+  type        RegistrationFieldType
+  required    Boolean                    @default(false)
+  order       Int                        @default(0)
+
+  options     RegistrationFieldOption[]
+  responses   RegistrationFieldResponse[]
+
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+}
+
+model RegistrationFieldOption {
+  id       String            @id @default(cuid())
+  fieldId  String
+  field    RegistrationField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  label    String
+  value    String
+  order    Int               @default(0)
+  responses RegistrationFieldResponse[]
+}
+
+model RegistrationFieldResponse {
+  id             String            @id @default(cuid())
+  registrationId String
+  fieldId        String
+  optionId       String?
+
+  registration   Registration      @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  field          RegistrationField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  option         RegistrationFieldOption? @relation(fields: [optionId], references: [id])
+  value          String
+
+  @@unique([registrationId, fieldId])
+}
+
+enum RegistrationFieldType {
+  TEXT
+  EMAIL
+  PHONE
+  BOOLEAN
+  SELECT
+  MULTISELECT
+  DATE
+  NUMBER
 }
 
 model Logs {
