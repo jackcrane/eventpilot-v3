@@ -9,7 +9,7 @@ import {
   sendAutoResponseIfNeeded,
   sendFailureResponse,
 } from "./fragments";
-import { getEmitter, sendEmailEvent } from "#sse";
+import { sendEmailEvent } from "#sse";
 
 export const post = async (req, res) => {
   console.log(`[${req.id}][WEBHOOK][POSTMARK_INBOUND] received webhook`);

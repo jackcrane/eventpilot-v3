@@ -1,6 +1,7 @@
 import { useEvents } from "../../hooks/useEvents";
 import { DropdownInput } from "tabler-react-2";
 import { Row } from "../../util/Flex";
+import { useNavigate } from "react-router-dom";
 
 export const EventPicker = ({
   includeCreateOption = true,
@@ -11,6 +12,8 @@ export const EventPicker = ({
 }) => {
   const { events, loading, createEventModal, CreateEventModalElement } =
     useEvents();
+  const navigate = useNavigate();
+
   const items = events?.length
     ? [
         ...events.map((item) => ({
@@ -51,7 +54,8 @@ export const EventPicker = ({
 
   const onInternalChange = (value) => {
     if (value.value === "create") {
-      createEventModal();
+      // createEventModal();
+      navigate("/events/new");
     } else {
       if (go) {
         document.location.href = `/events/${value.value}`;

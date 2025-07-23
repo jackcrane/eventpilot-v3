@@ -1,4 +1,3 @@
-import { verifyAuth } from "#verifyAuth";
 import { getEmitter, sendEmailEvent } from "#sse";
 
 export const get = [
