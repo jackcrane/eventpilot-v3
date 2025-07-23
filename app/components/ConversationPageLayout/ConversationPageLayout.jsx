@@ -7,7 +7,7 @@ import { CrmPersonCRUD } from "../crmPersonCRUD/crmPersonCRUD";
 import { useState } from "react";
 import { ConversationCompose } from "../ConversationCompose/ConversationCompose";
 import { useConversation } from "../../hooks/useConversation";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 export const ConversationPageLayout = ({
   timeline,
@@ -28,6 +28,13 @@ export const ConversationPageLayout = ({
     eventId,
     conversationId,
   });
+  const navigate = useNavigate();
+
+  const handleDelete = async () => {
+    if (await deleteConversation()) {
+      navigate(`/events/${eventId}/conversations`);
+    }
+  };
 
   if (!conversation?.id) {
     return (
@@ -57,7 +64,7 @@ export const ConversationPageLayout = ({
             </Button>
             <Util.Hr style={{ margin: "4px 0" }} />
             <Button
-              onClick={deleteConversation}
+              onClick={handleDelete}
               loading={mutationLoading}
               variant="danger"
               outline

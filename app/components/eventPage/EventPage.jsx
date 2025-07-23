@@ -7,6 +7,7 @@ import { Icon } from "../../util/Icon";
 import { useEvent } from "../../hooks/useEvent";
 import { Loading } from "../loading/Loading";
 import { Sidenav } from "../sidenav/Sidenav";
+import { useConversations } from "../../hooks/useConversations";
 
 export const EventPage = ({
   children,
@@ -26,6 +27,7 @@ export const EventPage = ({
     eventId,
   });
   const url = useParsedUrl(window.location.pathname);
+  const {} = useConversations({ eventId });
 
   if (eventLoading)
     return (

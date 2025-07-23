@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { useConfirm } from "tabler-react-2";
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 export const useConversation = ({ eventId, conversationId }) => {
-  const key = `/api/events/${eventId}/conversations/${conversationId}`;
+  const key = `/api/events/${eventId}/conversations/conversation/${conversationId}`;
   const { data, error, isLoading } = useSWR(key, fetcher);
   const [mutationLoading, setMutationLoading] = useState(false);
   const { confirm, ConfirmModal } = useConfirm({

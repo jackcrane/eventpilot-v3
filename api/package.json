@@ -59,7 +59,8 @@
     "#file": "./util/file.js",
     "#emails/*": "./react-email/emails/*",
     "#stripe": "./util/stripe.js",
-    "#calculateProgress": "./util/calculateProgress.js"
+    "#calculateProgress": "./util/calculateProgress.js",
+    "#sse": "./util/sse.js"
   },
   "devDependencies": {
     "@types/supertest": "^6.0.2",

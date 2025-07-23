@@ -65,5 +65,8 @@ export const createInboundEmail = async (body, eventId, conversationId) => {
         },
       },
     },
+    include: {
+      from: true,
+    },
   });
 };

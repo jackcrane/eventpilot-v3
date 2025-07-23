@@ -54,7 +54,14 @@ const emailToTimelineItem = (email) => {
       <>
         <Typography.B>{fromToDisplay}</Typography.B>
         {email.to && email.to.length > 0 && (
-          <Typography.Text className="mb-0">
+          <Typography.Text
+            className="mb-0"
+            style={{
+              // wrap long lines
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
+            }}
+          >
             <span className="text-muted">To:</span>
             {typeof email.to === "string"
               ? email.to

@@ -3,7 +3,7 @@ import { prisma } from "#prisma";
 import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { sendEmail } from "#postmark";
-import { upsertConversationCrmPerson } from "../../../../util/upsertConversationCrmPerson";
+import { upsertConversationCrmPerson } from "../../../../../util/upsertConversationCrmPerson";
 
 export const get = [
   verifyAuth(["manager"]),

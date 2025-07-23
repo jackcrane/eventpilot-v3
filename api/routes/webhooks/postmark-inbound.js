@@ -9,6 +9,7 @@ import {
   sendAutoResponseIfNeeded,
   sendFailureResponse,
 } from "./fragments";
+import { getEmitter, sendEmailEvent } from "#sse";
 
 export const post = async (req, res) => {
   console.log(`[${req.id}][WEBHOOK][POSTMARK_INBOUND] received webhook`);
@@ -65,6 +66,8 @@ export const post = async (req, res) => {
         shouldSendConfirmation
       );
     }
+
+    sendEmailEvent(event.id, createdInboundEmail);
 
     console.log(`[${req.id}] processed inbound email`, createdInboundEmail.id);
     return res.status(200).json({ success: true });
