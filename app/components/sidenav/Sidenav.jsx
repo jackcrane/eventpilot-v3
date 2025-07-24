@@ -158,6 +158,7 @@ export const Sidenav = ({
                           href={child.href}
                           variant={child.active ? "primary" : "secondary"}
                           outline={child.active}
+                          target={child.target}
                           ghost
                           className={classNames(
                             child.active && "bg-gray-200",
