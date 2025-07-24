@@ -13,6 +13,12 @@
   top: 60px;
 }
 
+.sidenav .btn:hover {
+  background-color: var(--tblr-gray-300);
+  color: var(--tblr-body-color);
+  border-color: var(--tblr-gray-300);
+}
+
 .container {
   position: relative;
 }

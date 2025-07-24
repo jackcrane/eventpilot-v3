@@ -26,8 +26,17 @@ export const sidenavItems = (activeText) => {
       active: activeText === "profile",
       icon: <Icon i="settings" size={18} />,
     },
+    // Example dropdown:
+    // {
+    //   type: "dropdown",
+    //   text: "Settings",
+    //   icon: <Icon i="settings" size={18} />,
+    //   children: [
+    //     { type: "item", href: "/settings/profile", text: "Profile", active: activeText === "profile" },
+    //     { type: "item", href: "/settings/account", text: "Account", active: activeText === "account" },
+    //   ]
+    // },
   ];
-  console.log(items);
   return items;
 };
 
@@ -35,12 +44,29 @@ export const Sidenav = ({
   items,
   mobileNavOpen,
   setMobileNavOpen,
+  showCollapse = true,
   ...props
 }) => {
   const { width } = useWindowSize();
   const [collapsed, setCollapsed] = useState(
     localStorage.getItem("collapsed") === "true" && width > 500
   );
+  const [openDropdowns, setOpenDropdowns] = useState({});
+
+  // auto-open dropdowns containing an active child on mount
+  useEffect(() => {
+    const initial = {};
+    items.forEach((item, idx) => {
+      if (
+        item.type === "dropdown" &&
+        Array.isArray(item.children) &&
+        item.children.some((child) => child.active)
+      ) {
+        initial[idx] = true;
+      }
+    });
+    setOpenDropdowns(initial);
+  }, [items]);
 
   useEffect(() => {
     if (width < 500) {
@@ -53,12 +79,14 @@ export const Sidenav = ({
       setCollapsed(false);
       return;
     }
-    const newCollapsed = !collapsed;
-    localStorage.setItem("collapsed", newCollapsed);
-    setCollapsed(newCollapsed);
+    const next = !collapsed;
+    localStorage.setItem("collapsed", next);
+    setCollapsed(next);
   };
 
-  // return <Link to="/sdf">sdf</Link>;
+  const toggleDropdown = (idx) => {
+    setOpenDropdowns((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  };
 
   return (
     <div className={styles.container}>
@@ -74,35 +102,121 @@ export const Sidenav = ({
           ...props.style,
         }}
       >
-        {items.map((item, index) =>
-          item.type === "divider" ? (
-            <Util.Hr key={index} style={{ margin: "8px 0" }} />
-          ) : (
+        {items.map((item, index) => {
+          if (item.type === "divider") {
+            return <Util.Hr key={index} style={{ margin: 0 }} />;
+          }
+
+          if (item.type === "dropdown" && Array.isArray(item.children)) {
+            const isOpen = openDropdowns[index];
+            const hasActiveChild = item.children.some((c) => c.active);
+
+            return (
+              <React.Fragment key={index}>
+                <Button
+                  onClick={() => toggleDropdown(index)}
+                  ghost
+                  variant={hasActiveChild ? "primary" : "secondary"}
+                  outline={hasActiveChild}
+                  className={classNames(
+                    hasActiveChild && "bg-gray-200",
+                    styles.btn
+                  )}
+                >
+                  <Row
+                    gap={1}
+                    justify="space-between"
+                    style={{ width: "100%" }}
+                  >
+                    <Row gap={1}>
+                      {item.icon}
+                      {!collapsed && item.text}
+                    </Row>
+                    <Icon
+                      i={isOpen ? "chevron-up" : "chevron-down"}
+                      size={18}
+                    />
+                  </Row>
+                </Button>
+                {isOpen && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      marginLeft: collapsed ? 0 : 10,
+                      paddingLeft: collapsed ? 0 : 10,
+                      gap: 4,
+                      borderLeft: "2px solid var(--tblr-gray-200)",
+                    }}
+                  >
+                    {item.children.map((child, cIdx) =>
+                      child.type === "divider" ? (
+                        <Util.Hr key={`${index}-${cIdx}`} />
+                      ) : (
+                        <Button
+                          key={`${index}-${cIdx}`}
+                          href={child.href}
+                          variant={child.active ? "primary" : "secondary"}
+                          outline={child.active}
+                          ghost
+                          className={classNames(
+                            child.active && "bg-gray-200",
+                            styles.btn
+                          )}
+                        >
+                          <Row gap={1} style={{ width: "100%" }}>
+                            {child.icon}
+                            {!collapsed && child.text}
+                          </Row>
+                        </Button>
+                      )
+                    )}
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          }
+
+          // regular item
+          return (
             <Button
-              href={item.href}
-              variant={item.active && "primary"}
-              outline={item.active}
               key={index}
+              href={item.href}
+              target={item.target}
+              variant={item.active ? "primary" : "secondary"}
+              outline={item.active}
+              ghost
+              className={classNames(item.active && "bg-gray-200", styles.btn)}
             >
-              <Row gap={1} justify="space-between">
-                {item.icon && item.icon}
+              <Row gap={1} style={{ width: "100%" }}>
+                {item.icon}
                 {!collapsed && item.text}
+                <div style={{ flex: 1 }} />
+                {item.accessoryIcon}
               </Row>
             </Button>
-          )
-        )}
+          );
+        })}
+
         <div style={{ flex: 1 }} />
+
         {width > 500 ? (
-          <Button onClick={collapse}>
-            <Icon i={collapsed ? "chevron-right" : "chevron-left"} size={18} />
-            {collapsed ? "" : "Collapse"}
-          </Button>
+          showCollapse && (
+            <Button onClick={collapse}>
+              <Icon
+                i={collapsed ? "chevron-right" : "chevron-left"}
+                size={18}
+              />
+              {!collapsed && "Collapse"}
+            </Button>
+          )
         ) : (
           <Button onClick={() => setMobileNavOpen(false)}>
             <Icon i="menu" size={18} />
             Close
           </Button>
         )}
+
         <div style={{ height: 20 }} />
       </nav>
     </div>

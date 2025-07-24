@@ -8,6 +8,7 @@ import { useEvent } from "../../hooks/useEvent";
 import { Loading } from "../loading/Loading";
 import { Sidenav } from "../sidenav/Sidenav";
 import { useConversations } from "../../hooks/useConversations";
+import { useStripeExpress } from "../../hooks/useStripeExpress";
 
 export const EventPage = ({
   children,
@@ -20,6 +21,13 @@ export const EventPage = ({
   const { eventId } = useParams();
   const { event, loading: eventLoading } = useEvent({ eventId });
   const { pathname } = useLocation();
+
+  const {
+    isNew,
+    loginUrl,
+    startOnboarding,
+    loading: stripeLoading,
+  } = useStripeExpress({ eventId });
 
   if (eventLoading)
     return (
@@ -65,62 +73,78 @@ export const EventPage = ({
     },
     { type: "divider" },
     {
-      type: "item",
-      href: `${base}/registration/registrations`,
-      text: "Registrations",
-      active: isActive(`${base}/registration/registrations`),
+      type: "dropdown",
+      text: "Registration",
       icon: <Icon i="ticket" size={18} />,
-    },
-    {
-      type: "item",
-      href: `${base}/registration/teams`,
-      text: "Teams",
-      active: isActive(`${base}/registration/teams`),
-      icon: <Icon i="users" size={18} />,
-    },
-    {
-      type: "item",
-      href: `${base}/registration/builder`,
-      text: "Registration Builder",
-      active: isActive(`${base}/registration/builder`),
-      icon: <Icon i="lego" size={18} />,
-    },
-    {
-      type: "item",
-      href: `${base}/registration/upsells`,
-      text: "Upsells",
-      active: isActive(`${base}/registration/upsells`),
-      icon: <Icon i="gift" size={18} />,
+      children: [
+        {
+          type: "item",
+          href: `${base}/registration/registrations`,
+          text: "Registrations",
+          active: isActive(`${base}/registration/registrations`),
+          icon: <Icon i="ticket" size={18} />,
+        },
+        {
+          type: "item",
+          href: `${base}/registration/teams`,
+          text: "Teams",
+          active: isActive(`${base}/registration/teams`),
+          icon: <Icon i="users" size={18} />,
+        },
+        {
+          type: "item",
+          href: `${base}/registration/builder`,
+          text: "Reg. Builder",
+          active: isActive(`${base}/registration/builder`),
+          icon: <Icon i="lego" size={18} />,
+        },
+        {
+          type: "item",
+          href: `${base}/registration/upsells`,
+          text: "Upsells",
+          active: isActive(`${base}/registration/upsells`),
+          icon: <Icon i="gift" size={18} />,
+        },
+      ],
     },
     { type: "divider" },
     {
-      type: "item",
-      href: `${base}/volunteers`,
-      text: "Volunteers",
-      active: isActive(`${base}/volunteers`),
+      type: "dropdown",
+      text: "Volunteer",
       icon: <Icon i="heart" size={18} />,
-    },
-    {
-      type: "item",
-      href: `${base}/volunteers/builder`,
-      text: "Registration Builder",
-      active: isActive(`${base}/volunteers/builder`),
-      icon: <Icon i="lego" size={18} />,
-    },
-    {
-      type: "item",
-      href: `${base}/volunteers/jobs`,
-      text: "Jobs & Shift Builder",
-      active: isActive(`${base}/volunteers/jobs`),
-      icon: <Icon i="wall" size={18} />,
+      children: [
+        {
+          type: "item",
+          href: `${base}/volunteers`,
+          text: "Volunteers",
+          active: isActive(`${base}/volunteers`),
+          icon: <Icon i="heart" size={18} />,
+        },
+        {
+          type: "item",
+          href: `${base}/volunteers/builder`,
+          text: "Registration",
+          active: isActive(`${base}/volunteers/builder`),
+          icon: <Icon i="lego" size={18} />,
+        },
+        {
+          type: "item",
+          href: `${base}/volunteers/jobs`,
+          text: "Jobs & Shifts",
+          active: isActive(`${base}/volunteers/jobs`),
+          icon: <Icon i="wall" size={18} />,
+        },
+      ],
     },
     { type: "divider" },
     {
       type: "item",
-      href: `${base}/financials`,
+      href: isNew ? () => startOnboarding() : loginUrl,
       text: "Financials",
       active: isActive(`${base}/financials`),
       icon: <Icon i="currency-dollar" size={18} />,
+      accessoryIcon: <Icon i="external-link" size={18} />,
+      target: "_blank",
     },
     {
       type: "item",

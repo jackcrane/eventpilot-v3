@@ -61,6 +61,7 @@ export const Page = ({
       >
         {sidenavItems && (
           <Sidenav
+            showCollapse={false}
             items={sidenavItems}
             mobileNavOpen={mobileNavOpen}
             setMobileNavOpen={setMobileNavOpen}
