@@ -10,6 +10,7 @@ export const registrationBuilderSchema = z.object({
       z.object({
         id: z.union([z.string(), z.number()]).optional(),
         name: z.string().min(2),
+        description: z.string().optional(),
       })
     )
     .min(1),
@@ -57,6 +58,7 @@ export const get = [
       const tiersOut = tiers.map((t) => ({
         id: t.id,
         name: t.name,
+        description: t.description,
       }));
 
       const periodsOut = periodsRaw.map((p) => ({
@@ -105,7 +107,12 @@ export const put = [
         // 1) tiers: create/update
         for (let i = 0; i < tiers.length; i++) {
           const inputId = tiers[i].id ?? `__new_tier_${i}`;
-          const data = { name: tiers[i].name, order: i, eventId };
+          const data = {
+            name: tiers[i].name,
+            order: i,
+            eventId,
+            description: tiers[i].description,
+          };
           if (tiers[i].id && isNaN(Number(tiers[i].id))) {
             await tx.registrationTier.update({
               where: { id: tiers[i].id },

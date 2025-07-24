@@ -88,6 +88,7 @@ export const RegistrationBuilder = () => {
 
   useEffect(() => {
     if (loading) return;
+    console.log(_tiers);
     setTiers(_tiers);
     setPeriods(_periods);
   }, [_tiers, _periods]);
