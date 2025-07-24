@@ -13,6 +13,7 @@ export const TiersEditor = ({
   onAddTier,
   onRemoveTier,
   onChangeTierName,
+  onChangeTierDesc,
   fieldErrors,
 }) => (
   <>
@@ -40,6 +41,12 @@ export const TiersEditor = ({
             <Icon i="trash" />
           </Button>
         </Row>
+        <Input
+          value={tier.description}
+          onChange={(desc) => onChangeTierDesc(tier.id, desc)}
+          useTextarea={true}
+          placeholder={`Description for ${tier.name}`}
+        />
       </div>
     ))}
     {tiers.length === 0 && (
@@ -107,8 +114,13 @@ export const RegistrationBuilder = () => {
   };
 
   const changeTierName = (id, name) => {
-    console.log(id, name);
     setTiers((prev) => prev.map((t) => (t.id === id ? { ...t, name } : t)));
+  };
+
+  const changeTierDesc = (id, desc) => {
+    setTiers((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, description: desc } : t))
+    );
   };
 
   const nextLocalId = useRef(0);
@@ -199,6 +211,7 @@ export const RegistrationBuilder = () => {
         onAddTier={addTier}
         onRemoveTier={removeTier}
         onChangeTierName={changeTierName}
+        onChangeTierDesc={changeTierDesc}
         fieldErrors={fieldErrors}
       />
       <div className="mb-3" />
