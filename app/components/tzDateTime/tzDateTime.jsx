@@ -46,6 +46,8 @@ export const TzDateTime = ({
   className,
   defaultDate,
   defaultTime,
+  dateTimeValid = true,
+  tzValid = true,
 }) => {
   const [dateState, setDateState] = useState(() => {
     if (value) return parseIso(value, tz)[0];
@@ -97,6 +99,7 @@ export const TzDateTime = ({
           prependedText="Date"
           noMargin
           style={{ flex: 1 }}
+          invalid={!dateTimeValid}
         />
         <Input
           type="time"
@@ -105,6 +108,7 @@ export const TzDateTime = ({
           onChange={(e) => setTimeState(e)}
           prependedText="Time"
           noMargin
+          invalid={!dateTimeValid}
         />
         <DropdownInput
           prompt="Select a tz"
@@ -122,6 +126,7 @@ export const TzDateTime = ({
             setTzState(newTz);
           }}
           noMargin
+          invalid={!tzValid}
         />
       </Row>
     </div>

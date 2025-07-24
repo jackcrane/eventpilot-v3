@@ -13,6 +13,7 @@ export const TiersEditor = ({
   onAddTier,
   onRemoveTier,
   onChangeTierName,
+  fieldErrors,
 }) => (
   <>
     {tiers.map((tier) => (
@@ -21,6 +22,9 @@ export const TiersEditor = ({
           <div style={{ textAlign: "left", flex: 1 }}>
             <Input
               value={tier.name}
+              invalid={Boolean(
+                fieldErrors?.tiers?.[tiers.indexOf(tier)]?.name?._errors
+              )}
               onChange={(name) => onChangeTierName(tier.id, name)}
               className="mb-0"
               label="Tier Name"
@@ -59,6 +63,16 @@ export const RegistrationBuilder = () => {
     periods: _periods,
     loading,
   } = useRegistrationBuilder({ eventId });
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const handleSave = async () => {
+    const result = await saveRegistration({ tiers, periods });
+    if (!result.success && result.errors) {
+      setFieldErrors(result.errors);
+    } else {
+      setFieldErrors({});
+    }
+  };
 
   useEffect(() => {
     if (loading) return;
@@ -164,6 +178,7 @@ export const RegistrationBuilder = () => {
         onAddTier={addTier}
         onRemoveTier={removeTier}
         onChangeTierName={changeTierName}
+        fieldErrors={fieldErrors}
       />
       <div className="mb-3" />
       <Typography.H2>Step 2: Set up scheduled pricing</Typography.H2>
@@ -182,7 +197,9 @@ export const RegistrationBuilder = () => {
               <tr>
                 <th>Period</th>
                 {tiers.map((tier) => (
-                  <th key={tier.id}>{tier.name}</th>
+                  <th key={tier.id} style={{ minWidth: 200 }}>
+                    {tier.name}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -193,6 +210,10 @@ export const RegistrationBuilder = () => {
                     <Row gap={1} align="flex-end" className="mb-3">
                       <Input
                         value={row.name}
+                        invalid={Boolean(
+                          fieldErrors?.periods?.[periods.indexOf(row)]?.name
+                            ?._errors
+                        )}
                         label="Period Name"
                         placeholder="E.g. Early Bird, Last Minute, Regular, etc."
                         required
@@ -220,6 +241,14 @@ export const RegistrationBuilder = () => {
                         updatePeriodField(row.id, "startTimeTz", tz);
                       }}
                       defaultTime="00:00"
+                      dateTimeValid={
+                        !fieldErrors?.periods?.[periods.indexOf(row)]?.startTime
+                          ?._errors?.length
+                      }
+                      tzValid={
+                        !fieldErrors?.periods?.[periods.indexOf(row)]
+                          ?.startTimeTz?._errors?.length
+                      }
                     />
                     <TzDateTime
                       value={row.endTime}
@@ -241,6 +270,14 @@ export const RegistrationBuilder = () => {
                         updatePeriodField(row.id, "endTimeTz", tz);
                       }}
                       defaultTime="00:00"
+                      dateTimeValid={
+                        !fieldErrors?.periods?.[periods.indexOf(row)]?.endTime
+                          ?._errors?.length
+                      }
+                      tzValid={
+                        !fieldErrors?.periods?.[periods.indexOf(row)]?.endTimeTz
+                          ?._errors?.length
+                      }
                     />
                   </td>
                   {tiers.map((tier) => {
@@ -255,6 +292,10 @@ export const RegistrationBuilder = () => {
                       >
                         <Input
                           value={entry.price}
+                          invalid={Boolean(
+                            fieldErrors?.periods?.[periods.indexOf(row)]
+                              ?.prices?.[tiers.indexOf(tier)]?.price?._errors
+                          )}
                           label="Price"
                           type="number"
                           required
@@ -321,16 +362,12 @@ export const RegistrationBuilder = () => {
           Set up at least one registration tier before adding price periods.
         </Alert>
       )}
-      <Button
-        onClick={() =>
-          saveRegistration({
-            tiers,
-            periods,
-          })
-        }
-      >
-        Save
-      </Button>
+      {Object.keys(fieldErrors)?.length > 0 && (
+        <Alert variant="danger" title="Errors">
+          You have some errors in the form above. Please fix them and try again.
+        </Alert>
+      )}
+      <Button onClick={handleSave}>Save</Button>
     </EventPage>
   );
 };

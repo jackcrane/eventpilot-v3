@@ -31,7 +31,7 @@ export const useRegistrationBuilder = ({ eventId }) => {
       if (!parsed.success) {
         toast.error("Error saving registration");
         console.log(parsed.error);
-        return false;
+        return { success: false, errors: parsed.error.format() };
       }
       const promise = authFetch(key, {
         method: "PUT",

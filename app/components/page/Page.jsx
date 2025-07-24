@@ -78,6 +78,14 @@ export const Page = ({
           {children}
         </div>
       </div>
+      <div
+        style={{
+          position: "sticky",
+          bottom: 50,
+        }}
+      >
+        hi
+      </div>
       <Footer />
     </ErrorBoundary>
   );

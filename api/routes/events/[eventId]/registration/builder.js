@@ -26,7 +26,7 @@ export const registrationBuilderSchema = z.object({
           z.object({
             id: z.union([z.string(), z.number()]).optional(),
             tierId: z.union([z.string(), z.number()]).optional(),
-            price: z.union([z.string(), z.number()]),
+            price: z.union([z.string().min(1), z.number()]),
             isAvailable: z.boolean(),
           })
         ),
