@@ -8,9 +8,14 @@
   margin-top: -10px;
   padding-left: 0;
   height: calc(100dvh - 60px);
+  overflow-y: auto;
 
   position: sticky;
   top: 60px;
+}
+
+.sidenav > * {
+  flex-shrink: 0;
 }
 
 .sidenav .btn:hover {
