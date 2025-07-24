@@ -44,9 +44,17 @@ export const TzDateTime = ({
   minDate,
   minTime,
   className,
+  defaultDate,
+  defaultTime,
 }) => {
-  const [dateState, setDateState] = useState("");
-  const [timeState, setTimeState] = useState("");
+  const [dateState, setDateState] = useState(() => {
+    if (value) return parseIso(value, tz)[0];
+    return defaultDate;
+  });
+  const [timeState, setTimeState] = useState(() => {
+    if (value) return parseIso(value, tz)[1];
+    return defaultTime;
+  });
   const [tzState, setTzState] = useState(tz);
 
   useEffect(() => {

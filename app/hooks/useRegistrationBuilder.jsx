@@ -2,10 +2,11 @@ import useSWR, { mutate } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
+import z from "zod";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
-const fetchSchema = async (url) => {
+const fetchSchema = async ([url]) => {
   const res = await authFetch(url, {
     method: "QUERY",
     headers: { "Content-Type": "application/json" },
@@ -15,8 +16,8 @@ const fetchSchema = async (url) => {
   return dezerialize(raw);
 };
 
-export const useEmailPreferences = () => {
-  const key = `/api/auth/me/email`;
+export const useRegistrationBuilder = ({ eventId }) => {
+  const key = `/api/events/${eventId}/registration/builder`;
 
   const { data, error, isLoading } = useSWR(key, fetcher);
   const { data: schema, loading: schemaLoading } = useSWR(
@@ -24,10 +25,16 @@ export const useEmailPreferences = () => {
     fetchSchema
   );
 
-  const createEmailPreferences = async (data) => {
+  const saveRegistration = async (data) => {
     try {
+      const parsed = schema.safeParse(data);
+      if (!parsed.success) {
+        toast.error("Error saving registration");
+        console.log(parsed.error);
+        return false;
+      }
       const promise = authFetch(key, {
-        method: "POST",
+        method: "PUT",
         body: JSON.stringify(data),
       }).then(async (r) => {
         if (!r.ok) throw new Error("Request failed");
@@ -35,8 +42,8 @@ export const useEmailPreferences = () => {
       });
 
       await toast.promise(promise, {
-        loading: "Creating...",
-        success: "Created successfully",
+        loading: "Saving...",
+        success: "Saved successfully",
         error: "Error",
       });
 
@@ -48,8 +55,9 @@ export const useEmailPreferences = () => {
   };
 
   return {
-    emailPreferences: data?.emailPreferences,
-    createEmailPreferences,
+    tiers: data?.tiers,
+    periods: data?.periods,
+    saveRegistration,
     schema,
     schemaLoading,
     loading: isLoading,

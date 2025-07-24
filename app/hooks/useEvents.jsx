@@ -20,7 +20,6 @@ const fetchSchema = async () => {
   const raw = await res.json();
   return dezerialize(raw);
 };
-window.fetchSchema = fetchSchema;
 
 export const useEvents = () => {
   const {

@@ -341,6 +341,7 @@ model Event {
   inboundEmails    InboundEmail[] @relation(name: "Event_InboundEmails")
   conversations    Conversation[]
   registrationTiers RegistrationTier[]
+  registrationPeriods RegistrationPeriod[]
   registrationUpsells UpsellItem[]
   registrationFields RegistrationField[]
   registrations Registration[]
@@ -695,24 +696,49 @@ model RegistrationTier {
   capacity    Int?
   order       Int                 @default(0)
 
-  pricingTiers RegistrationPricing[]
+  pricingTiers RegistrationPeriodPricing[]
   registrations Registration[]
 
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 }
 
-model RegistrationPricing {
+model RegistrationPeriodPricing {
+  /// Registration Period Pricing is a join table between RegistrationPeriod and RegistrationTier. It includes the price and availability of a registration period.
+  id String @id @default(cuid())
+
+  registrationPeriodId String
+  registrationPeriod   RegistrationPeriod @relation(fields: [registrationPeriodId], references: [id], onDelete: Cascade)
+
+  registrationTierId String
+  registrationTier    RegistrationTier @relation(fields: [registrationTierId], references: [id], onDelete: Cascade)
+
+  price  Decimal  @db.Decimal(10, 2)
+  available Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RegistrationPeriod {
   id                   String    @id @default(cuid())
-  registrationTierId   String
-  registrationTier     RegistrationTier @relation(fields: [registrationTierId], references: [id], onDelete: Cascade)
+  registrationTiers    RegistrationPeriodPricing[]
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   registrations        Registration[]
 
   name   String   // e.g. "Early Bird"
-  price  Decimal  @db.Decimal(10, 2)
-  start  DateTime
-  end    DateTime
+  startTime  DateTime
+  startTimeTz String
+  endTime    DateTime
+  endTimeTz   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+	@@map("RegistrationPricing")
 }
 
 model Team {
@@ -753,7 +779,7 @@ model Registration {
   registrationTier     RegistrationTier        @relation(fields: [registrationTierId], references: [id])
 
   pricingTierId        String
-  pricingTier          RegistrationPricing     @relation(fields: [pricingTierId], references: [id])
+  pricingTier          RegistrationPeriod     @relation(fields: [pricingTierId], references: [id])
 
   teamId               String?
   team                 Team?                   @relation(fields: [teamId], references: [id])

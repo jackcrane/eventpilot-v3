@@ -1,11 +1,12 @@
 import { Typography, Button, Input, Alert } from "tabler-react-2";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Row } from "../../../../../util/Flex";
 import { Icon } from "../../../../../util/Icon";
 import { TzDateTime } from "../../../../../components/tzDateTime/tzDateTime";
 import { useEvent } from "../../../../../hooks/useEvent";
 import { useParams } from "react-router-dom";
+import { useRegistrationBuilder } from "../../../../../hooks/useRegistrationBuilder";
 
 export const TiersEditor = ({
   tiers,
@@ -52,6 +53,18 @@ export const RegistrationBuilder = () => {
   const [periods, setPeriods] = useState([]);
   const { eventId } = useParams();
   const { event } = useEvent({ eventId });
+  const {
+    saveRegistration,
+    tiers: _tiers,
+    periods: _periods,
+    loading,
+  } = useRegistrationBuilder({ eventId });
+
+  useEffect(() => {
+    if (loading) return;
+    setTiers(_tiers);
+    setPeriods(_periods);
+  }, [_tiers, _periods]);
 
   const addTier = () => {
     const newId = tiers.length ? Math.max(...tiers.map((t) => t.id)) + 1 : 0;
@@ -92,8 +105,10 @@ export const RegistrationBuilder = () => {
     // Find the latest end time among existing periods
     const latestEnd = periods.length
       ? periods.reduce((latest, p) => {
-          if (!p.end) return latest;
-          return !latest || new Date(p.end) > new Date(latest) ? p.end : latest;
+          if (!p.endTime) return latest;
+          return !latest || new Date(p.endTime) > new Date(latest)
+            ? p.endTime
+            : latest;
         }, null)
       : null;
 
@@ -102,10 +117,10 @@ export const RegistrationBuilder = () => {
       {
         id: newId,
         name: "",
-        start: latestEnd,
-        end: null,
-        startTz: event.defaultTz,
-        endTz: event.defaultTz,
+        startTime: latestEnd,
+        endTime: null,
+        startTimeTz: event.defaultTz,
+        endTimeTz: event.defaultTz,
         prices: newPrices,
       },
     ]);
@@ -179,6 +194,7 @@ export const RegistrationBuilder = () => {
                       <Input
                         value={row.name}
                         label="Period Name"
+                        placeholder="E.g. Early Bird, Last Minute, Regular, etc."
                         required
                         style={{ flex: 1 }}
                         className="mb-0"
@@ -195,34 +211,36 @@ export const RegistrationBuilder = () => {
                       </Button>
                     </Row>
                     <TzDateTime
-                      value={row.start}
+                      value={row.startTime}
                       label="Start Date"
                       required
-                      tz={row.startTz}
+                      tz={row.startTimeTz}
                       onChange={([dt, tz]) => {
-                        updatePeriodField(row.id, "start", dt);
-                        updatePeriodField(row.id, "startTz", tz);
+                        updatePeriodField(row.id, "startTime", dt);
+                        updatePeriodField(row.id, "startTimeTz", tz);
                       }}
+                      defaultTime="00:00"
                     />
                     <TzDateTime
-                      value={row.end}
+                      value={row.endTime}
                       label="End Date"
                       required
-                      tz={row.endTz}
+                      tz={row.endTimeTz}
                       minDate={
-                        row.start
-                          ? new Date(row.start).toISOString().slice(0, 10)
+                        row.startTime
+                          ? new Date(row.startTime).toISOString().slice(0, 10)
                           : ""
                       }
                       minTime={
-                        row.start
-                          ? new Date(row.start).toISOString().slice(11, 16)
+                        row.startTime
+                          ? new Date(row.startTime).toISOString().slice(11, 16)
                           : ""
                       }
                       onChange={([dt, tz]) => {
-                        updatePeriodField(row.id, "end", dt);
-                        updatePeriodField(row.id, "endTz", tz);
+                        updatePeriodField(row.id, "endTime", dt);
+                        updatePeriodField(row.id, "endTimeTz", tz);
                       }}
+                      defaultTime="00:00"
                     />
                   </td>
                   {tiers.map((tier) => {
@@ -303,6 +321,16 @@ export const RegistrationBuilder = () => {
           Set up at least one registration tier before adding price periods.
         </Alert>
       )}
+      <Button
+        onClick={() =>
+          saveRegistration({
+            tiers,
+            periods,
+          })
+        }
+      >
+        Save
+      </Button>
     </EventPage>
   );
 };
