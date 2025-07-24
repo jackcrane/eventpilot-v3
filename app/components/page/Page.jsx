@@ -46,6 +46,15 @@ export const Page = ({
         setMobileNavOpen={setMobileNavOpen}
         mobileNavOpen={mobileNavOpen}
       />
+      {/* <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          width: "100%",
+          borderBottom: "2px solid var(--tblr-border-color)",
+          padding: 10,
+        }}
+      ></div> */}
       <div
         style={{
           display: "flex",
@@ -77,14 +86,6 @@ export const Page = ({
         >
           {children}
         </div>
-      </div>
-      <div
-        style={{
-          position: "sticky",
-          bottom: 50,
-        }}
-      >
-        hi
       </div>
       <Footer />
     </ErrorBoundary>
