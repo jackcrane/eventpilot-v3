@@ -345,6 +345,8 @@ model Event {
   registrationFields RegistrationField[]
   registrations Registration[]
   teams Team[]
+
+  stripeConnectedAccountId String?
 }
 
 model CrmPersonsImport {
@@ -938,6 +940,9 @@ enum LogType {
   STRIPE_SETUP_INTENT_SUCCEEDED
   STRIPE_PAYMENT_METHOD_ATTACHED
   STRIPE_SUBSCRIPTION_CREATED
+  STRIPE_CONNECTED_ACCOUNT_CREATED
+  STRIPE_CONNECTED_ACCOUNT_UPDATED
+  STRIPE_CONNECTED_ACCOUNT_DELETED
   CRM_FIELD_CREATED
   CRM_FIELD_MODIFIED
   CRM_FIELD_DELETED

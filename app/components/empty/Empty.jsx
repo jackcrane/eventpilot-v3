@@ -12,6 +12,7 @@ export const Empty = ({
   ctaIcon = "plus",
   ctaProps = {},
   gradient = true,
+  ctaElement,
 }) => {
   return (
     <div
@@ -26,6 +27,7 @@ export const Empty = ({
         <Icon i={icon} size={80} className="text-muted" />
         <Typography.H3>{title}</Typography.H3>
         <Typography.Text>{text}</Typography.Text>
+        {ctaElement}
         {onCtaClick && (
           <Button
             onClick={onCtaClick}

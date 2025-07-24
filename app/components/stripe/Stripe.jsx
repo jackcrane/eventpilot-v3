@@ -11,9 +11,7 @@ import React, { useState } from "react";
 import { useOffcanvas } from "tabler-react-2/dist/offcanvas";
 import { Loading } from "../loading/Loading";
 
-const stripePromise = loadStripe(
-  "pk_test_51M1Dy1IZm3Kzv7N0EoaTOWUyxPLDkS3wT5MRVb6vtuMx5OxAIQPhwVmAi9jZbpvfHQdKxDAR6qI6LgqiYlxxEDSD002yLSE0rV"
-);
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK);
 
 const SetupForm = () => {
   const stripe = useStripe();

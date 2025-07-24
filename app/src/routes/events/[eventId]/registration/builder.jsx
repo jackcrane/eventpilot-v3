@@ -1,4 +1,4 @@
-import { Typography, Button, Input, Card } from "tabler-react-2";
+import { Typography, Button, Input, Alert } from "tabler-react-2";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
 import { useState } from "react";
 import { Row } from "../../../../../util/Flex";
@@ -23,6 +23,7 @@ export const TiersEditor = ({
               onChange={(name) => onChangeTierName(tier.id, name)}
               className="mb-0"
               label="Tier Name"
+              placeholder="E.g. 5k, 10k, Youth, Senior"
               required
             />
           </div>
@@ -293,6 +294,14 @@ export const RegistrationBuilder = () => {
             </tbody>
           </table>
         </div>
+      )}
+      {periods.length === 0 && tiers.length > 0 && (
+        <Button onClick={addPeriod}>Add Price Period</Button>
+      )}
+      {tiers.length === 0 && (
+        <Alert variant="warning" title="No Registration Tiers">
+          Set up at least one registration tier before adding price periods.
+        </Alert>
       )}
     </EventPage>
   );

@@ -2564,6 +2564,16 @@
   resolved "https://registry.yarnpkg.com/@stitches/core/-/core-1.2.8.tgz#dce3b8fdc764fbc6dbea30c83b73bfb52cf96173"
   integrity sha512-Gfkvwk9o9kE9r9XNBmJRfV8zONvXThnm1tcuojL04Uy5uRyqg93DC83lDebl0rocZCfKSjUv+fWYtMQmEDJldg==
 
+"@stripe/connect-js@^3.3.25":
+  version "3.3.25"
+  resolved "https://registry.yarnpkg.com/@stripe/connect-js/-/connect-js-3.3.25.tgz#9fbbd32d21551ec4de5ef6df04b3aa997daa0923"
+  integrity sha512-s7EWnUUrrFFQN9achSurhlNkLJ3BH+oTcT/AyUGd8l16cnpIiejibndnC5M20B/tZ8y0kcDlGgA7p39v4bg5eQ==
+
+"@stripe/react-connect-js@^3.3.24":
+  version "3.3.24"
+  resolved "https://registry.yarnpkg.com/@stripe/react-connect-js/-/react-connect-js-3.3.24.tgz#4ac00623e149988b2f37f0cf2c36e921a046aa60"
+  integrity sha512-xPtHin5cD2yqfOXWFCywzqKk68Y58hpKTiqknzLnP4mMKCjH+v3j7azd/0Vxeb5NFYV9sz1o4FUkrdxgs5K9Bg==
+
 "@stripe/react-stripe-js@^3.7.0":
   version "3.7.0"
   resolved "https://registry.npmjs.org/@stripe/react-stripe-js/-/react-stripe-js-3.7.0.tgz"

@@ -8,6 +8,7 @@ import { useEvent } from "../../hooks/useEvent";
 import { Loading } from "../loading/Loading";
 import { Sidenav } from "../sidenav/Sidenav";
 import { useConversations } from "../../hooks/useConversations";
+import { useStripeConnect } from "../../hooks/useStripeConnect";
 
 export const EventPage = ({
   children,
@@ -20,6 +21,8 @@ export const EventPage = ({
   const { eventId } = useParams();
   const { event, loading: eventLoading } = useEvent({ eventId });
   const { pathname } = useLocation();
+
+  useStripeConnect({ eventId });
 
   if (eventLoading)
     return (
@@ -115,6 +118,13 @@ export const EventPage = ({
       icon: <Icon i="wall" size={18} />,
     },
     { type: "divider" },
+    {
+      type: "item",
+      href: `${base}/financials`,
+      text: "Financials",
+      active: isActive(`${base}/financials`),
+      icon: <Icon i="currency-dollar" size={18} />,
+    },
     {
       type: "item",
       href: `${base}/settings`,
