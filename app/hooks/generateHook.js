@@ -28,10 +28,20 @@ export const generateHookFile = ({
     useMutation ? `import { useState } from "react";` : null,
     useMutation ? `import toast from "react-hot-toast";` : null,
     options.delete ? `import { useConfirm } from "tabler-react-2";` : null,
+    options.includeSchema ? 'import { dezerialize } from "zodex";' : null,
     ``,
   ].filter(Boolean);
 
   const fetcher = `const fetcher = (url) => authFetch(url).then((r) => r.json());`;
+  const schemaFetcher = `const fetchSchema = async ([url]) => {
+  const res = await authFetch(url, {
+    method: "QUERY",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error("Failed to fetch schema");
+  const raw = await res.json();
+  return dezerialize(raw);
+};`;
 
   const confirmSetup = options.delete
     ? `const { confirm, ConfirmModal } = useConfirm({
@@ -139,6 +149,8 @@ export const generateHookFile = ({
     ...(useMutation ? ["mutationLoading"] : []),
     "error",
     "refetch: () => mutate(key)",
+    options.includeSchema ? "schema" : null,
+    options.includeSchema ? "schemaLoading" : null,
     ...(options.create ? [`create${resource}`] : []),
     ...(options.update ? [`update${resource}`] : []),
     ...(options.delete
@@ -146,14 +158,21 @@ export const generateHookFile = ({
       : []),
   ];
 
+  const schemaGetter = `const { data: schema, loading: schemaLoading } = useSWR(
+    [key, "schema"],
+    fetchSchema
+  );`;
+
   const lines = [
     ...imports,
     fetcher,
+    schemaFetcher,
     ``,
     `export const ${hookExportName} = (${paramsStr}) => {`,
     `  const key = ${keyTemplate};`,
     ``,
     `  const { data, error, isLoading } = useSWR(key, fetcher);`,
+    options.includeSchema ? `  ${schemaGetter}` : null,
     ...(useMutation ? [`  ${mutationLoadingState}`] : []),
     ...(options.delete ? [`  ${confirmSetup}`] : []),
     createFn,
@@ -215,7 +234,7 @@ const main = async () => {
     },
   ]);
 
-  const { create, update, del } = await inquirer.prompt([
+  const { create, update, del, includeSchema } = await inquirer.prompt([
     {
       type: "confirm",
       name: "create",
@@ -230,6 +249,11 @@ const main = async () => {
       type: "confirm",
       name: "del",
       message: "Include delete function with confirm?",
+    },
+    {
+      type: "confirm",
+      name: "includeSchema",
+      message: "Include fetching schema?",
     },
   ]);
 
@@ -250,6 +274,7 @@ const main = async () => {
       create,
       update,
       delete: del,
+      includeSchema,
     },
   });
 };

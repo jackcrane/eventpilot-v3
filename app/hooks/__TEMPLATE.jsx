@@ -5,7 +5,7 @@ import { dezerialize } from "zodex";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
-const fetchSchema = async (url) => {
+const fetchSchema = async ([url]) => {
   const res = await authFetch(url, {
     method: "QUERY",
     headers: { "Content-Type": "application/json" },
