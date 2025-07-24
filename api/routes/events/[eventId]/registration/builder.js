@@ -175,9 +175,6 @@ export const put = [
           // process creates/updates
           const seenPricingIds = [];
           for (const price of p.prices) {
-            const inputPriceId =
-              price.id ?? `__new_price_${price.tierId}_${dbPeriodId}`;
-
             const tierDbId = tierIdMap.get(price.tierId);
             const data = {
               registrationPeriodId: dbPeriodId,
