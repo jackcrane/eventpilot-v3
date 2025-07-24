@@ -67,8 +67,8 @@ export const get = [
       // decide link type based on whether it's a new account
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
-        refresh_url: `http://localhost:5173/events/${event.id}/financials`,
-        return_url: `http://localhost:5173/events/${event.id}/financials`,
+        refresh_url: `https://geteventpilot.com/events/${event.id}`,
+        return_url: `https://geteventpilot.com/events/${event.id}`,
         type: "account_onboarding",
         collect: "eventually_due",
       });
@@ -76,7 +76,7 @@ export const get = [
       let loginUrl;
       if (!isNew) {
         const { url } = await stripe.accounts.createLoginLink(accountId, {
-          redirect_url: `http://localhost:5173/events/${event.id}/financials`,
+          redirect_url: `https://geteventpilot.com/events/${event.id}`,
         });
         loginUrl = url;
       }
