@@ -5,6 +5,7 @@ import { Row } from "../../util/Flex";
 import styles from "./ConsumerPage.module.css";
 import classNames from "classnames";
 import { Loading } from "../loading/Loading";
+import { useTitle } from "react-use";
 
 export const ConsumerPage = ({ children, title, loading }) => {
   const eventSlug = useReducedSubdomain();
@@ -14,6 +15,7 @@ export const ConsumerPage = ({ children, title, loading }) => {
     loading: eventLoading,
     error,
   } = useEvent({ eventId: eventSlug });
+  useTitle(title ? `${title} | ${event?.name}` : event?.name);
 
   if (eventLoading) {
     return <div>Loading...</div>;
