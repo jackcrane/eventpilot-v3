@@ -1,26 +1,22 @@
 import { useParams } from "react-router-dom";
 import { EventPage } from "../../../../components/eventPage/EventPage";
-import {
-  StripeConnect,
-  StripeConnectTrigger,
-} from "../../../../components/stripe/Connect";
-import { useStripeConnect } from "../../../../hooks/useStripeConnect";
+import { StripeExpressTrigger } from "../../../../components/stripe/Connect";
+import { useStripeExpress } from "../../../../hooks/useStripeExpress";
 import { Empty } from "../../../../components/empty/Empty";
+import { Button } from "tabler-react-2";
 
 export const FinancialsPage = () => {
   const { eventId } = useParams();
-  const { account, loading } = useStripeConnect({ eventId });
+  const { account, loading, isNew, loginUrl } = useStripeExpress({ eventId });
 
   return (
     <EventPage title="Financials" loading={loading}>
-      {account?.details_submitted ? (
-        <div>Account details submitted</div>
-      ) : (
-        <Empty
-          text="You haven't submitted your legal details yet."
-          ctaElement={<StripeConnectTrigger />}
-          gradient={false}
-        />
+      <StripeExpressTrigger />
+      {isNew ? "true" : "false"}
+      {!isNew && (
+        <Button href={loginUrl} target="_blank">
+          Login to your Stripe account
+        </Button>
       )}
     </EventPage>
   );

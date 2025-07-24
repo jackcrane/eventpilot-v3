@@ -11,36 +11,40 @@ export const get = [
       });
       let accountId = event.stripeConnectedAccountId;
       let account;
+      let isNew = false;
 
-      if (!accountId || accountId === null) {
-        // Create a new Stripe connected account
-
+      console.log("Account ID", accountId);
+      if (!accountId) {
+        // create new Express account
+        console.log("Creating new Stripe account");
         account = await stripe.accounts.create({
-          controller: {
-            fees: { payer: "application" },
-            losses: { payments: "application" },
-            stripe_dashboard: { type: "none" },
-            requirement_collection: "application",
-          },
+          type: "express",
+          country: "US",
+          email: req.user.email,
           capabilities: {
             card_payments: { requested: true },
             transfers: { requested: true },
-            link_payments: { requested: false },
           },
-          country: "US",
-          email: req.user.email,
           business_profile: {
             url: `https://${event.slug}.geteventpilot.com`,
             mcc: "7999",
           },
+          settings: {
+            payments: {
+              statement_descriptor: event.slug.toUpperCase(),
+            },
+            card_payments: {
+              statemet_descriptor: event.slug.toUpperCase(),
+            },
+          },
         });
+
         accountId = account.id;
+        isNew = true;
 
         await prisma.event.update({
           where: { id: req.params.eventId },
-          data: {
-            stripeConnectedAccountId: account.id,
-          },
+          data: { stripeConnectedAccountId: accountId },
         });
 
         await prisma.logs.create({
@@ -52,45 +56,41 @@ export const get = [
           },
         });
       } else {
+        // fetch existing account
         account = await stripe.accounts.retrieve(accountId);
       }
 
-      const accountSession = await stripe.accountSessions.create({
+      if (account.details_submitted === false) {
+        isNew = true;
+      }
+
+      // decide link type based on whether it's a new account
+      const accountLink = await stripe.accountLinks.create({
         account: accountId,
-        components: {
-          account_onboarding: {
-            enabled: true,
-            features: {
-              disable_stripe_user_authentication: true,
-            },
-          },
-          account_management: {
-            enabled: true,
-            features: {
-              disable_stripe_user_authentication: true,
-            },
-          },
-          notification_banner: {
-            enabled: true,
-            features: {
-              disable_stripe_user_authentication: true,
-            },
-          },
-        },
+        refresh_url: `http://localhost:5173/events/${event.id}/financials`,
+        return_url: `http://localhost:5173/events/${event.id}/financials`,
+        type: "account_onboarding",
+        collect: "eventually_due",
       });
 
-      res.json({
-        client_secret: accountSession.client_secret,
+      let loginUrl;
+      if (!isNew) {
+        const { url } = await stripe.accounts.createLoginLink(accountId, {
+          redirect_url: `http://localhost:5173/events/${event.id}/financials`,
+        });
+        loginUrl = url;
+      }
+
+      return res.json({
+        url: accountLink.url,
         accountId,
         account,
+        loginUrl,
+        isNew,
       });
-    } catch (error) {
-      console.error(
-        "An error occurred when calling the Stripe API to create an account",
-        error.message
-      );
-      res.status(500);
-      res.send({ error: error.message });
+    } catch (err) {
+      console.error("Stripe error:", err.message);
+      return res.status(500).json({ error: err.message });
     }
   },
 ];
@@ -98,25 +98,33 @@ export const get = [
 export const del = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    let event = await prisma.event.findUnique({
-      where: { id: req.params.eventId },
-    });
+    try {
+      const event = await prisma.event.findUnique({
+        where: { id: req.params.eventId },
+      });
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      if (!event.stripeConnectedAccountId) {
+        return res.status(400).json({ message: "No connected Stripe account" });
+      }
 
-    if (!event) {
-      return res.status(404).json({ message: "Event not found" });
+      try {
+        await stripe.accounts.del(event.stripeConnectedAccountId);
+        // eslint-disable-next-line
+      } catch (e) {
+        null;
+      }
+
+      const updated = await prisma.event.update({
+        where: { id: req.params.eventId },
+        data: { stripeConnectedAccountId: null },
+      });
+
+      return res.json({ event: updated });
+    } catch (err) {
+      console.error("Error deleting Stripe account:", err.message);
+      return res.status(500).json({ error: err.message });
     }
-
-    await stripe.accounts.del(event.stripeConnectedAccountId);
-
-    event = await prisma.event.update({
-      where: { id: req.params.eventId },
-      data: {
-        stripeConnectedAccountId: null,
-      },
-    });
-
-    res.json({
-      event,
-    });
   },
 ];

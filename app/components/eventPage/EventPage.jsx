@@ -8,7 +8,6 @@ import { useEvent } from "../../hooks/useEvent";
 import { Loading } from "../loading/Loading";
 import { Sidenav } from "../sidenav/Sidenav";
 import { useConversations } from "../../hooks/useConversations";
-import { useStripeConnect } from "../../hooks/useStripeConnect";
 
 export const EventPage = ({
   children,
@@ -21,8 +20,6 @@ export const EventPage = ({
   const { eventId } = useParams();
   const { event, loading: eventLoading } = useEvent({ eventId });
   const { pathname } = useLocation();
-
-  useStripeConnect({ eventId });
 
   if (eventLoading)
     return (
