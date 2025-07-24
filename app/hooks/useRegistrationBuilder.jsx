@@ -25,6 +25,18 @@ export const useRegistrationBuilder = ({ eventId }) => {
     fetchSchema
   );
 
+  const validateOnly = (data) => {
+    try {
+      const parsed = schema.safeParse(data);
+      if (!parsed.success) {
+        return { success: false, errors: parsed.error.format() };
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const saveRegistration = async (data) => {
     try {
       const parsed = schema.safeParse(data);
@@ -59,6 +71,7 @@ export const useRegistrationBuilder = ({ eventId }) => {
     periods: data?.periods,
     saveRegistration,
     schema,
+    validateOnly,
     schemaLoading,
     loading: isLoading,
     error,

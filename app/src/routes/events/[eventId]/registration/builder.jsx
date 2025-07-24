@@ -1,6 +1,6 @@
 import { Typography, Button, Input, Alert } from "tabler-react-2";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Row } from "../../../../../util/Flex";
 import { Icon } from "../../../../../util/Icon";
 import { TzDateTime } from "../../../../../components/tzDateTime/tzDateTime";
@@ -59,18 +59,23 @@ export const RegistrationBuilder = () => {
   const { event } = useEvent({ eventId });
   const {
     saveRegistration,
+    validateOnly,
     tiers: _tiers,
     periods: _periods,
     loading,
   } = useRegistrationBuilder({ eventId });
   const [fieldErrors, setFieldErrors] = useState({});
+  const [shouldReRunValidation, setShouldReRunValidation] = useState(false);
 
   const handleSave = async () => {
+    validateOnly({ tiers, periods });
     const result = await saveRegistration({ tiers, periods });
     if (!result.success && result.errors) {
       setFieldErrors(result.errors);
+      setShouldReRunValidation(true);
     } else {
       setFieldErrors({});
+      setShouldReRunValidation(false);
     }
   };
 
@@ -102,13 +107,14 @@ export const RegistrationBuilder = () => {
   };
 
   const changeTierName = (id, name) => {
+    console.log(id, name);
     setTiers((prev) => prev.map((t) => (t.id === id ? { ...t, name } : t)));
   };
 
+  const nextLocalId = useRef(0);
+
   const addPeriod = () => {
-    const newId = periods.length
-      ? Math.max(...periods.map((p) => p.id)) + 1
-      : 0;
+    const newId = nextLocalId.current++;
 
     const newPrices = tiers.map(({ id }) => ({
       tierId: id,
@@ -144,10 +150,24 @@ export const RegistrationBuilder = () => {
     setPeriods((prev) => prev.filter((p) => p.id !== id));
   };
 
+  const rerunValidation = () => {
+    if (shouldReRunValidation) {
+      console.log("Rerunning validation");
+      const valid = validateOnly({ tiers, periods });
+      console.log(valid);
+      if (valid.success) {
+        setFieldErrors({});
+      } else {
+        setFieldErrors(valid.errors);
+      }
+    }
+  };
+
   const updatePeriodField = (periodId, field, value) => {
     setPeriods((prev) =>
       prev.map((p) => (p.id === periodId ? { ...p, [field]: value } : p))
     );
+    rerunValidation();
   };
 
   const updatePeriodPrice = (periodId, tierId, field, value) => {
@@ -162,6 +182,7 @@ export const RegistrationBuilder = () => {
         };
       })
     );
+    rerunValidation();
   };
 
   return (

@@ -153,11 +153,16 @@ export const TzPicker = ({ value, onChange, ...props }) => {
     onChange?.(tzAbbr);
   }, [tzAbbr]);
 
+  // Remove duplicate timezones by abbr
+  const uniqueTz = timezones.filter(
+    (t, i, a) => a.findIndex((t2) => t2.abbr === t.abbr) === i
+  );
+
   return (
     <DropdownInput
       label="Timezone"
       prompt="Select a tz"
-      items={timezones.map((t) => ({
+      items={uniqueTz.map((t) => ({
         ...t,
         id: t.value,
         label: t.abbr,
