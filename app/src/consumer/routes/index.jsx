@@ -7,15 +7,14 @@ import { Row } from "../../../util/Flex";
 import { useFormBuilder } from "../../../hooks/useFormBuilder";
 import { FormConsumer } from "../../../components/formConsumer/FormConsumer";
 import { usePII } from "../../../hooks/usePII";
-import styles from "./index.module.css";
 import classNames from "classnames";
 import { ThankYou } from "../../../components/formConsumer/ThankYou";
 import { useState } from "react";
 import { Icon } from "../../../util/Icon";
 import { useLocations } from "../../../hooks/useLocations";
+import { ConsumerPage } from "../../../components/ConsumerPage/ConsumerPage";
 
 export const ConsumerIndex = () => {
-  const { campaignSlug } = useParams();
   const eventSlug = useReducedSubdomain();
   const pii = usePII();
 
@@ -58,105 +57,59 @@ export const ConsumerIndex = () => {
   }
 
   return (
-    <div className={styles.page}>
-      <img className={styles.hero} src={event.banner?.location} />
-      <div className={styles.content}>
-        <div className={styles.container}>
-          {" "}
-          <Row gap={1} className={"mb-3"}>
-            <img
-              src={event.logo?.location}
-              alt={event.name}
-              style={{
-                width: "80px",
-                height: "80px",
-                borderRadius: "10px",
-                objectFit: "cover",
-              }}
-            />
-            <div>
-              <Typography.H3 className={"mb-0 text-secondary"}>
-                Volunteer Registration
-              </Typography.H3>
-              <Typography.H1>{event.name}</Typography.H1>
-              <Typography.Text className={"mb-0"}>
-                {event.description}
-              </Typography.Text>
-            </div>
-          </Row>
-          {loadingForm ? (
-            <div>Loading...</div>
-          ) : errorForm ? (
-            <div>Error: {errorForm}</div>
-          ) : thankYou ? (
-            <ThankYou event={event} />
-          ) : fields?.length === 0 ||
-            (locations?.length === 0 && !locationsLoading) ? (
-            <div>
-              <Typography.H2>No fields found</Typography.H2>
-              <Alert
-                variant="danger"
-                className="mt-3"
-                title="This event is not fully configured yet"
-                icon={<Icon i="alert-hexagon" size={24} />}
+    <ConsumerPage title="Volunteer Registration" loading={loadingForm}>
+      {errorForm ? (
+        <div>Error: {errorForm}</div>
+      ) : thankYou ? (
+        <ThankYou event={event} />
+      ) : fields?.length === 0 ||
+        (locations?.length === 0 && !locationsLoading) ? (
+        <div>
+          <Typography.H2>No fields found</Typography.H2>
+          <Alert
+            variant="danger"
+            className="mt-3"
+            title="This event is not fully configured yet"
+            icon={<Icon i="alert-hexagon" size={24} />}
+          >
+            <Typography.Text>
+              This event does not have any fields configured yet. If you are the
+              event organizer, visit the{" "}
+              <Link
+                to={
+                  "https://geteventpilot.com/events/" +
+                  event?.id +
+                  "/volunteers/builder"
+                }
               >
-                <Typography.Text>
-                  This event does not have any fields configured yet. If you are
-                  the event organizer, visit the{" "}
-                  <Link
-                    to={
-                      "https://geteventpilot.com/events/" +
-                      event?.id +
-                      "/volunteers/builder"
-                    }
-                  >
-                    volunteer registration builder
-                  </Link>{" "}
-                  to add fields and configure what information you wish to
-                  collect from your volunteers.
-                </Typography.Text>
-                {!locationsLoading && locations?.length === 0 && (
-                  <Typography.Text>
-                    Additionally, this event has no locations set up.
-                  </Typography.Text>
-                )}
-                <Typography.Text>
-                  Fields and locations are required in order to use EventPilot's
-                  volunteer registration system.
-                </Typography.Text>
-              </Alert>
-            </div>
-          ) : (
-            <div>
-              {mutationLoading && <div>Submitting...</div>}
-              <FormConsumer
-                fields={fields}
-                onSubmit={submitForm}
-                showShifts={true}
-                eventId={event.id}
-                loading={mutationLoading}
-              />
-            </div>
-          )}
+                volunteer registration builder
+              </Link>{" "}
+              to add fields and configure what information you wish to collect
+              from your volunteers.
+            </Typography.Text>
+            {!locationsLoading && locations?.length === 0 && (
+              <Typography.Text>
+                Additionally, this event has no locations set up.
+              </Typography.Text>
+            )}
+            <Typography.Text>
+              Fields and locations are required in order to use EventPilot's
+              volunteer registration system.
+            </Typography.Text>
+          </Alert>
         </div>
-        <Typography.Text
-          className={classNames("text-muted", styles.disclaimer)}
-        >
-          {event.name} uses <a href="https://geteventpilot.com">EventPilot</a>{" "}
-          to manage their event. Your data is managed carefully and will not be
-          sold or distributed to third parties by EventPilot. If you have any
-          questions, please contact your event or EventPilot at{" "}
-          <a href="mailto:support@geteventpilot.com">
-            support@geteventpilot.com
-          </a>
-          . We want to make sure {event.name} is a great event for everyone.
-          <br />
-          <br />
-          Never submit sensitive information like passwords or credit card
-          information in this form.{" "}
-          <a href="mailto:support@geteventpilot.com">Report abuse</a>.
-        </Typography.Text>
-      </div>
-    </div>
+      ) : (
+        <div>
+          {mutationLoading && <div>Submitting...</div>}
+          <FormConsumer
+            fields={fields}
+            onSubmit={submitForm}
+            showShifts={true}
+            eventId={event.id}
+            loading={mutationLoading}
+          />
+        </div>
+      )}
+    </ConsumerPage>
   );
 };
