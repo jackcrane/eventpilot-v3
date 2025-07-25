@@ -15,16 +15,53 @@
   --admonitionDangerBorder: var(--tblr-danger);
   --admonitionNoteBg: #fff;
   --admonitionNoteBorder: var(--tblr-purple);
+  position: relative;
+  margin-top: 26px;
 }
+
 .mde [aria-label="editable markdown"] {
   min-height: 225px;
   max-height: 500px;
   overflow-y: auto;
+  padding-top: 24px;
 }
+
 .mde:focus-within {
   color: inherit;
   background-color: var(--tblr-bg-forms);
   border-color: #90b5e2;
   outline: 0;
   box-shadow: 0 0 0 0.25rem rgba(32, 107, 196, 0.25);
+}
+
+.mde [role="toolbar"] {
+  background-color: var(--tblr-bg-surface);
+  position: absolute;
+  top: 0;
+  right: 10px;
+  transform: translateY(-50%);
+  width: 80%;
+  overflow: auto;
+  border: 1px solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius);
+  padding: 0px;
+}
+
+.mde button[role="combobox"] span {
+  line-height: 0;
+}
+
+.mde button[role="combobox"] {
+  border: 1px solid var(--tblr-border-color);
+  border-radius: 4px;
+  background-color: var(--tblr-bg-surface);
+}
+
+.mde button {
+  border: 1px solid var(--tblr-border-color);
+}
+
+.mde button svg {
+  width: 16px;
+  height: 16px;
 }

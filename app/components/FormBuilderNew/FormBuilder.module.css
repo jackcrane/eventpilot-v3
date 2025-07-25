@@ -29,6 +29,7 @@
   flex-direction: column;
   min-height: 200px;
   min-width: 150px;
+  max-width: 200px;
 }
 
 .paletteItem {
@@ -49,6 +50,7 @@
   display: flex;
   align-items: center;
   flex-direction: row;
+  overflow: hidden;
 }
 
 .fieldItem_dragged {
@@ -56,9 +58,15 @@
   opacity: 0.8;
 }
 
+.fieldItem_selected {
+  /* background-color: var(--tblr-primary-lt); */
+  border: 1px solid var(--tblr-primary);
+}
+
 .fieldItemContent {
   padding: 8px;
   padding-left: 0px;
+  flex: 1;
 }
 
 .fieldItemContent > * {
@@ -80,4 +88,12 @@
 
 .handleSmall:hover {
   background-color: var(--tblr-gray-200);
+}
+
+.fieldItemPreviewContainer {
+  flex: 1;
+}
+
+.fieldItemPreviewContainer > * {
+  text-align: left;
 }

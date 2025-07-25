@@ -5,14 +5,13 @@ import { FieldConsumer } from "../FieldConsumer/FieldConsumer";
 
 export const FieldItemPreview = ({ field, dragHandleProps }) => {
   return (
-    <div>
+    <div className={styles.fieldItemPreviewContainer}>
       <Row gap={1} align="center">
         <div {...dragHandleProps} className={styles.handleSmall}>
           <Icon i="grip-vertical" size={18} />
         </div>
         <div className={styles.fieldItemContent}>
-          <FieldConsumer field={field} />
-          {JSON.stringify(field)}
+          <FieldConsumer field={field} forceNoMargin limitHeight={true} />
         </div>
       </Row>
     </div>

@@ -1,8 +1,16 @@
 // FieldConsumer.jsx
 import React from "react";
-import { Input, DropdownInput } from "tabler-react-2";
+import { Input, DropdownInput, Checkbox } from "tabler-react-2";
+import { MarkdownRender } from "../markdown/MarkdownRenderer";
 
-export const FieldConsumer = ({ field, value, error, onInput }) => {
+export const FieldConsumer = ({
+  field,
+  value,
+  error,
+  onInput,
+  forceNoMargin,
+  limitHeight = false,
+}) => {
   const isError = Boolean(error);
   const commonProps = {
     label: field.label,
@@ -12,6 +20,8 @@ export const FieldConsumer = ({ field, value, error, onInput }) => {
     variant: isError ? "danger" : undefined,
     value,
     autocomplete: field.autocompleteType,
+    className: forceNoMargin && "mb-0",
+    style: limitHeight && { maxHeight: "400px", overflowY: "auto" },
   };
 
   switch (field.type) {
@@ -51,7 +61,35 @@ export const FieldConsumer = ({ field, value, error, onInput }) => {
           className="mb-3"
         />
       );
+    case "markdown":
+      return (
+        <div {...commonProps}>
+          <MarkdownRender markdown={field.markdown} />
+        </div>
+      );
+    case "textarea":
+      return (
+        <Input
+          {...commonProps}
+          rows={field.rows}
+          label={field.label}
+          className="mb-3"
+          useTextarea={true}
+          inputProps={{
+            rows: field.rows,
+          }}
+        />
+      );
+    case "checkbox":
+      return (
+        <Checkbox
+          {...commonProps}
+          label={field.label}
+          checked={value}
+          onChange={(v) => onInput(v)}
+        />
+      );
     default:
-      return null;
+      return `Unsupported field type: ${field.type}`;
   }
 };

@@ -73,7 +73,6 @@ export const MarkdownEditor = ({
               <CreateLink />
               <CodeToggle />
               <BlockTypeSelect />
-              <InsertImage />
 
               <Separator />
               <ConditionalContents
@@ -85,8 +84,6 @@ export const MarkdownEditor = ({
                   { fallback: () => <InsertAdmonition /> },
                 ]}
               />
-
-              {/* <ChangeAdmonitionType /> */}
             </>
           ),
         }),

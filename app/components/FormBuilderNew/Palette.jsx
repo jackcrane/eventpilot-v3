@@ -25,6 +25,8 @@ export const Palette = ({ inputTypes }) => (
                 style={{
                   ...prov.draggableProps.style,
                   opacity: snap.isDragging ? 0.6 : 1,
+                  backgroundColor:
+                    type.implemented === false && "var(--tblr-red-lt)",
                 }}
               >
                 <Row gap={1} align="center">

@@ -8,7 +8,12 @@ import styles from "./FormBuilder.module.css";
 import classNames from "classnames";
 import { FieldItemPreview } from "./FieldPreview";
 
-export const FormPreview = ({ pages, setPages }) => (
+export const FormPreview = ({
+  pages,
+  setPages,
+  setSelectedFieldLocation,
+  selectedField,
+}) => (
   <div className={styles.previewContainer}>
     <Droppable droppableId="PAGE_LIST" type="PAGE">
       {(provided) => (
@@ -29,7 +34,6 @@ export const FormPreview = ({ pages, setPages }) => (
                   )}
                   style={prov.draggableProps.style}
                 >
-                  {/* PAGE HEADER WITH HANDLE */}
                   <Row
                     align="center"
                     className={classNames(styles.pageHeader, "mb-3")}
@@ -57,7 +61,6 @@ export const FormPreview = ({ pages, setPages }) => (
                     </Button>
                   </Row>
 
-                  {/* FIELDS DROPZONE */}
                   <Droppable droppableId={`PAGE-${page.id}`}>
                     {(dropProv, dropSnap) => (
                       <div
@@ -82,9 +85,17 @@ export const FormPreview = ({ pages, setPages }) => (
                                 className={classNames(
                                   styles.fieldItem,
                                   fieldSnap.isDragging &&
-                                    styles.fieldItem_dragged
+                                    styles.fieldItem_dragged,
+                                  selectedField?.id === field.id &&
+                                    styles.fieldItem_selected
                                 )}
                                 style={fieldProv.draggableProps.style}
+                                onClick={() =>
+                                  setSelectedFieldLocation({
+                                    pageIndex,
+                                    fieldIndex: idx,
+                                  })
+                                }
                               >
                                 <FieldItemPreview
                                   field={field}
@@ -112,7 +123,7 @@ export const FormPreview = ({ pages, setPages }) => (
                 onClick={() =>
                   setPages((prev) => [
                     ...prev,
-                    { id: prev.length, name: ``, fields: [] },
+                    { id: prev.length, name: "", fields: [] },
                   ])
                 }
               >
