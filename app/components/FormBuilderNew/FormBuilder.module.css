@@ -16,3 +16,47 @@
 .previewPage:has(.deleteButton:hover) {
   opacity: 0.5;
 }
+
+/* chatgpt */
+
+.paletteContainer {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  border: 2px dashed #a0aec0;
+  border-radius: 4px;
+  background-color: #edf2f7;
+  min-height: 200px;
+}
+
+.paletteItem {
+  padding: 8px;
+  margin-bottom: 8px;
+  background-color: #bee3f8;
+  border: 1px solid #90cdf4;
+  border-radius: 4px;
+  cursor: grab;
+}
+
+.previewContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.previewPage {
+  padding: 16px;
+  border: 2px dashed #cbd5e0;
+  border-radius: 4px;
+  background-color: #f7fafc;
+  margin-bottom: 16px;
+  min-height: 150px;
+}
+
+.fieldItem {
+  padding: 8px;
+  margin-bottom: 8px;
+  background-color: #f0fff4;
+  border: 1px solid #c6f6d5;
+  border-radius: 4px;
+  cursor: grab;
+}

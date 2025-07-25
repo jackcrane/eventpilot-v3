@@ -23,6 +23,17 @@ function Fallback({ error, resetErrorBoundary }) {
       >
         {error.message}
       </pre>
+      <pre
+        style={{
+          color: "red",
+          width: "calc(100% - 20px)",
+          wordWrap: "break-word",
+          whiteSpace: "pre-wrap",
+          margin: "10px",
+        }}
+      >
+        {error.stack}
+      </pre>
     </div>
   );
 }
