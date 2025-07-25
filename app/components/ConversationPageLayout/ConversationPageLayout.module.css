@@ -20,20 +20,20 @@
 
 .conversation {
   padding: 8px;
+  overflow: hidden;
 }
 
 .title {
   margin: -8px -8px 8px;
   padding: 8px 16px;
+  padding-left: 48px;
   border-bottom: 1px solid var(--tblr-border-color);
   position: relative;
-}
-.title.hasCollapsed {
-  padding-left: 32px;
 }
 
 .participants {
   max-width: 450px;
+  min-width: 350px;
 }
 .participants .title {
   padding-left: 24px;
@@ -52,21 +52,14 @@
   position: absolute;
   left: 0;
   top: 50%;
-  transform: translateX(-70%) translateY(-50%);
+  transform: translateX(10px) translateY(-50%);
   z-index: 1000;
-}
-
-.collapseActions.collapsed {
-  transform: translateX(0%) translateY(-50%);
 }
 
 .collapseParticipants {
   position: absolute;
   right: 0;
   top: 50%;
-  transform: translateX(70%) translateY(-50%);
+  transform: translateX(-10px) translateY(-50%);
   z-index: 1000;
-}
-.collapseParticipants.collapsed {
-  transform: translateX(0%) translateY(-50%);
 }

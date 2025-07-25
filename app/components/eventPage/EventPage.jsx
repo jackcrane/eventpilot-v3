@@ -93,6 +93,13 @@ export const EventPage = ({
         },
         {
           type: "item",
+          href: `${base}/registration/form-builder`,
+          text: "Form Builder",
+          active: isActive(`${base}/registration/form-builder`),
+          icon: <Icon i="forms" size={18} color="var(--tblr-purple)" />,
+        },
+        {
+          type: "item",
           href: `${base}/registration/builder`,
           text: "Reg. Builder",
           active: isActive(`${base}/registration/builder`),
