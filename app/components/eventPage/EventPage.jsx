@@ -17,6 +17,7 @@ export const EventPage = ({
   loading,
   description,
   docsLink,
+  showHr = true,
 }) => {
   const { eventId } = useParams();
   const { event, loading: eventLoading } = useEvent({ eventId });
@@ -211,7 +212,11 @@ export const EventPage = ({
               </a>
             </Row>
           )}
-          <hr style={{ margin: "1rem 0" }} />
+          {showHr ? (
+            <hr style={{ margin: "1rem 0" }} />
+          ) : (
+            <div style={{ marginBottom: "1rem" }} />
+          )}
           {loading ? <Loading gradient={false} /> : children}
           {tour && (
             <Button
