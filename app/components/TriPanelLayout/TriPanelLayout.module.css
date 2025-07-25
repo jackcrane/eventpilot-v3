@@ -18,7 +18,7 @@
   border-left: none;
 }
 
-.conversation {
+.center {
   padding: 8px;
   overflow: hidden;
 }
@@ -31,15 +31,15 @@
   position: relative;
 }
 
-.participants {
+.right {
   max-width: 450px;
   min-width: 350px;
 }
-.participants .title {
-  padding-left: 24px;
+.right .title {
+  padding-left: 16px;
 }
 
-.actions {
+.left {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -48,7 +48,7 @@
   padding-left: 0px;
 }
 
-.collapseActions {
+.collapseLeft {
   position: absolute;
   left: 0;
   top: 50%;
@@ -56,7 +56,7 @@
   z-index: 1000;
 }
 
-.collapseParticipants {
+.collapseRight {
   position: absolute;
   right: 0;
   top: 50%;

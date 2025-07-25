@@ -1,22 +1,19 @@
-import { Card, Typography, Button, Util } from "tabler-react-2";
-import styles from "./ConversationPageLayout.module.css";
-import classNames from "classnames";
+import React from "react";
+import { Card, Button, Util, Typography } from "tabler-react-2";
+import { Col, Row } from "../../util/Flex";
 import { Icon } from "../../util/Icon";
-import { Row } from "../../util/Flex";
 import { CrmPersonCRUD } from "../crmPersonCRUD/crmPersonCRUD";
-import { useState } from "react";
 import { ConversationCompose } from "../ConversationCompose/ConversationCompose";
 import { useConversation } from "../../hooks/useConversation";
 import { useNavigate, useParams } from "react-router-dom";
+import { TriPanelLayout } from "../TriPanelLayout/TriPanelLayout";
+import toast from "react-hot-toast";
 
 export const ConversationPageLayout = ({
   timeline,
-  actions,
   participants,
   conversationId,
 }) => {
-  const [participantsCollapsed, setParticipantsCollapsed] = useState(false);
-  const [actionsCollapsed, setActionsCollapsed] = useState(false);
   const { eventId } = useParams();
   const {
     conversation,
@@ -24,10 +21,7 @@ export const ConversationPageLayout = ({
     deleteConversation,
     DeleteConfirmElement,
     sendMessage,
-  } = useConversation({
-    eventId,
-    conversationId,
-  });
+  } = useConversation({ eventId, conversationId });
   const navigate = useNavigate();
 
   const handleDelete = async () => {
@@ -45,18 +39,14 @@ export const ConversationPageLayout = ({
   }
 
   return (
-    <div className={styles.container}>
+    <>
       {DeleteConfirmElement}
-      {!actionsCollapsed && (
-        <div className={classNames(styles.sidebar, styles.sidebarLeft)}>
-          <div className={styles.title}>
-            <Row gap={1}>
-              <Icon i="activity" size={18} />
-              <Typography.H3 className="mb-0">Quick Actions</Typography.H3>
-            </Row>
-          </div>
-          <div className={styles.actions}>
-            <Button>
+      <TriPanelLayout
+        leftIcon="activity"
+        leftTitle="Quick Actions"
+        leftChildren={
+          <Col align="stretch" gap={1}>
+            <Button onClick={() => toast.error("Coming soon!")}>
               <Row gap={1}>
                 <Icon i="clipboard-plus" className="text-green" size={16} />
                 Create a todo item
@@ -74,73 +64,24 @@ export const ConversationPageLayout = ({
                 Delete conversation
               </Row>
             </Button>
-          </div>
-        </div>
-      )}
-      <div style={{ flex: 1 }} className={classNames(styles.conversation)}>
-        <div
-          className={classNames(
-            styles.title,
-            actionsCollapsed && styles.hasCollapsed
-          )}
-        >
-          <Button
-            onClick={() => setActionsCollapsed(!actionsCollapsed)}
-            size="sm"
-            className={classNames(
-              styles.collapseActions,
-              actionsCollapsed && styles.collapsed
-            )}
-          >
-            <Icon
-              i={
-                actionsCollapsed
-                  ? "layout-sidebar-left-expand"
-                  : "layout-sidebar-left-collapse"
-              }
-              size={16}
+          </Col>
+        }
+        centerIcon="messages"
+        centerTitle="Conversation"
+        centerChildren={
+          <>
+            <ConversationCompose
+              sendMessage={sendMessage}
+              mutationLoading={mutationLoading}
+              conversation={conversation}
             />
-          </Button>
-
-          <Row gap={1}>
-            <Icon i="messages" size={18} />
-            <Typography.H3 className="mb-0">Conversation</Typography.H3>
-          </Row>
-
-          <Button
-            onClick={() => setParticipantsCollapsed(!participantsCollapsed)}
-            size="sm"
-            className={classNames(
-              styles.collapseParticipants,
-              participantsCollapsed && styles.collapsed
-            )}
-          >
-            <Icon
-              i={
-                participantsCollapsed
-                  ? "layout-sidebar-right-expand"
-                  : "layout-sidebar-right-collapse"
-              }
-              size={16}
-            />
-          </Button>
-        </div>
-        <ConversationCompose
-          sendMessage={sendMessage}
-          mutationLoading={mutationLoading}
-          conversation={conversation}
-        />
-        <Util.Hr />
-        {timeline}
-      </div>
-      {!participantsCollapsed && (
-        <div className={classNames(styles.sidebar, styles.participants)}>
-          <div className={styles.title}>
-            <Row gap={1}>
-              <Icon i="users" size={18} />
-              <Typography.H3 className="mb-0">Participants</Typography.H3>
-            </Row>
-          </div>
+            <Util.Hr />
+            {timeline}
+          </>
+        }
+        rightIcon="users"
+        rightTitle="Participants"
+        rightChildren={
           <Card
             size="md"
             variantPos="top"
@@ -149,8 +90,8 @@ export const ConversationPageLayout = ({
               content: <CrmPersonCRUD crmPersonId={p.id} key={p.id} />,
             }))}
           />
-        </div>
-      )}
-    </div>
+        }
+      />
+    </>
   );
 };
