@@ -1,72 +1,127 @@
 // FormPreview.jsx
 import React from "react";
 import { Droppable, Draggable } from "react-beautiful-dnd";
-import { Typography, Button, Util } from "tabler-react-2";
+import { Typography, Button, Util, Input } from "tabler-react-2";
 import { Row } from "../../util/Flex";
+import { Icon } from "../../util/Icon";
 import styles from "./FormBuilder.module.css";
+import classNames from "classnames";
+import { FieldItemPreview } from "./FieldPreview";
 
 export const FormPreview = ({ pages, setPages }) => (
   <div className={styles.previewContainer}>
-    {pages.map((page) => (
-      <Droppable droppableId={`PAGE-${page.id}`} key={page.id}>
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            className={styles.previewPage}
-            style={{
-              backgroundColor: snapshot.isDraggingOver ? "#fed7d7" : undefined,
-            }}
-          >
-            <Row justify="space-between" align="center" className="mb-2">
-              <Typography.Text>
-                <strong>{page.name}</strong>
-              </Typography.Text>
-            </Row>
-
-            {page.fields.map((field, idx) => (
-              <Draggable key={field.id} draggableId={field.id} index={idx}>
-                {(prov, snap) => (
-                  <div
-                    ref={prov.innerRef}
-                    {...prov.draggableProps}
-                    {...prov.dragHandleProps}
-                    className={styles.fieldItem}
-                    style={{
-                      ...prov.draggableProps.style,
-                      opacity: snap.isDragging ? 0.6 : 1,
-                    }}
+    <Droppable droppableId="PAGE_LIST" type="PAGE">
+      {(provided) => (
+        <div ref={provided.innerRef} {...provided.droppableProps}>
+          {pages.map((page, pageIndex) => (
+            <Draggable
+              key={page.id}
+              draggableId={`PAGE-${page.id}`}
+              index={pageIndex}
+            >
+              {(prov, snap) => (
+                <div
+                  ref={prov.innerRef}
+                  {...prov.draggableProps}
+                  className={classNames(
+                    styles.previewPage,
+                    snap.isDragging && styles.previewPage_dragged
+                  )}
+                  style={prov.draggableProps.style}
+                >
+                  {/* PAGE HEADER WITH HANDLE */}
+                  <Row
+                    align="center"
+                    className={classNames(styles.pageHeader, "mb-3")}
+                    gap={1}
                   >
-                    {field.label}
-                  </div>
-                )}
-              </Draggable>
-            ))}
+                    <div {...prov.dragHandleProps} className={styles.handle}>
+                      <Icon i="grip-vertical" size={18} />
+                    </div>
+                    <Input
+                      value={page.name}
+                      onChange={() => null}
+                      size="sm"
+                      placeholder="Page Name"
+                      className="mb-0"
+                      style={{ flex: 1 }}
+                    />
+                    <Button
+                      size="sm"
+                      className="mb-0"
+                      onClick={() =>
+                        setPages((prev) => prev.filter((p) => p.id !== page.id))
+                      }
+                    >
+                      Delete Page
+                    </Button>
+                  </Row>
 
-            {provided.placeholder}
-          </div>
-        )}
-      </Droppable>
-    ))}
+                  {/* FIELDS DROPZONE */}
+                  <Droppable droppableId={`PAGE-${page.id}`}>
+                    {(dropProv, dropSnap) => (
+                      <div
+                        ref={dropProv.innerRef}
+                        {...dropProv.droppableProps}
+                        className={classNames(
+                          styles.previewPageDropzone,
+                          dropSnap.isDraggingOver &&
+                            styles.previewPageDropzone_draggedOver
+                        )}
+                      >
+                        {page.fields.map((field, idx) => (
+                          <Draggable
+                            key={field.id}
+                            draggableId={field.id}
+                            index={idx}
+                          >
+                            {(fieldProv, fieldSnap) => (
+                              <div
+                                ref={fieldProv.innerRef}
+                                {...fieldProv.draggableProps}
+                                className={classNames(
+                                  styles.fieldItem,
+                                  fieldSnap.isDragging &&
+                                    styles.fieldItem_dragged
+                                )}
+                                style={fieldProv.draggableProps.style}
+                              >
+                                <FieldItemPreview
+                                  field={field}
+                                  dragHandleProps={fieldProv.dragHandleProps}
+                                />
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
 
-    <Util.Hr
-      text={
-        <Button
-          size="sm"
-          onClick={() =>
-            setPages((prev) => [
-              ...prev,
-              {
-                id: prev.length,
-                name: `Page ${prev.length + 1}`,
-                fields: [],
-              },
-            ])
-          }
-        >
-          Add Page
-        </Button>
-      }
-    />
+                        {dropProv.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </div>
+              )}
+            </Draggable>
+          ))}
+
+          {provided.placeholder}
+          <Util.Hr
+            text={
+              <Button
+                size="sm"
+                onClick={() =>
+                  setPages((prev) => [
+                    ...prev,
+                    { id: prev.length, name: ``, fields: [] },
+                  ])
+                }
+              >
+                Add Page
+              </Button>
+            }
+          />
+        </div>
+      )}
+    </Droppable>
   </div>
 );

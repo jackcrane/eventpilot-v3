@@ -1,8 +1,9 @@
-// Palette.jsx
 import React from "react";
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { Typography } from "tabler-react-2";
 import styles from "./FormBuilder.module.css";
+import { Row } from "../../util/Flex";
+import { Icon } from "../../util/Icon";
 
 export const Palette = ({ inputTypes }) => (
   <Droppable droppableId="PALETTE" isDropDisabled>
@@ -26,7 +27,11 @@ export const Palette = ({ inputTypes }) => (
                   opacity: snap.isDragging ? 0.6 : 1,
                 }}
               >
-                {type.label}
+                <Row gap={1} align="center">
+                  <Icon i={type.icon} size={14} color={type.iconColor} />
+                  <Typography.H4 className="mb-0">{type.label}</Typography.H4>
+                </Row>
+                {type.description}
               </div>
             )}
           </Draggable>

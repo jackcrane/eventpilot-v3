@@ -1,6 +1,8 @@
+// FormConsumer.jsx
 import React, { useState } from "react";
-import { Input, DropdownInput, Button, Util } from "tabler-react-2";
+import { Button, Util } from "tabler-react-2";
 import { ShiftFinder } from "../shiftFinder/ShiftFinder";
+import { FieldConsumer } from "../FieldConsumer/FieldConsumer";
 
 export const FormConsumer = ({
   fields,
@@ -13,22 +15,24 @@ export const FormConsumer = ({
   const [values, setValues] = useState(initialValues);
   const [shifts, setShifts] = useState([]);
   const [errors, setErrors] = useState({});
+
   const handleInput = (id) => (value) => {
     setValues((prev) => ({ ...prev, [id]: value }));
     setErrors((prev) => ({ ...prev, [id]: undefined }));
   };
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phoneRegex = /^\+?[0-9\s\-()]{7,}$/;
 
   const handleSubmit = () => {
     const newErrors = {};
     fields.forEach((field) => {
-      const value = values[field.id] || "";
-      if (field.required && !value) {
+      const val = values[field.id] || "";
+      if (field.required && !val) {
         newErrors[field.id] = true;
-      } else if (field.type === "email" && value && !emailRegex.test(value)) {
+      } else if (field.type === "email" && val && !emailRegex.test(val)) {
         newErrors[field.id] = true;
-      } else if (field.type === "phone" && value && !phoneRegex.test(value)) {
+      } else if (field.type === "phone" && val && !phoneRegex.test(val)) {
         newErrors[field.id] = true;
       }
     });
@@ -41,84 +45,27 @@ export const FormConsumer = ({
 
   return (
     <div>
-      {fields.map((field) => {
-        const value = values[field.id] || "";
-        const isError = !!errors[field.id];
-        const commonProps = {
-          key: field.id,
-          label: field.label,
-          hint: field.description,
-          required: field.required,
-          onInput: handleInput(field.id),
-          variant: isError ? "danger" : undefined,
-          value,
-          autocomplete: field.autocompleteType,
-        };
-        switch (field.type) {
-          case "text":
-            return (
-              <Input
-                {...commonProps}
-                placeholder={field.placeholder}
-                type="text"
-              />
-            );
-          case "email":
-            return (
-              <Input
-                {...commonProps}
-                placeholder={field.placeholder}
-                type="email"
-              />
-            );
-          case "phone":
-            return (
-              <Input
-                {...commonProps}
-                placeholder={field.placeholder}
-                type="tel"
-              />
-            );
-          case "shortAnswer":
-            return (
-              <Input
-                {...commonProps}
-                placeholder={field.placeholder}
-                type="text"
-                useTextarea={true}
-              />
-            );
-          case "boolean":
-            return <Input {...commonProps} type="checkbox" />;
-          case "dropdown":
-            return (
-              <DropdownInput
-                {...commonProps}
-                onChange={(v) => commonProps.onInput(v.id)}
-                prompt={field.prompt}
-                values={field.options}
-                color={isError ? "danger" : undefined}
-                outline={isError}
-                aprops={{
-                  style: { width: "100%", justifyContent: "space-between" },
-                }}
-                className={"mb-3"}
-              />
-            );
-          default:
-            return null;
-        }
-      })}
+      {fields.map((field) => (
+        <FieldConsumer
+          key={field.id}
+          field={field}
+          value={values[field.id] || ""}
+          error={errors[field.id]}
+          onInput={handleInput(field.id)}
+        />
+      ))}
+
       {showShifts && (
-        <div className={"mb-3"}>
+        <div className="mb-3">
           <Util.Hr text="Pick some shifts" />
           <ShiftFinder
             eventId={eventId}
-            onSelectedShiftChange={(shifts) => setShifts(shifts)}
+            onSelectedShiftChange={(s) => setShifts(s)}
             shifts={[]}
           />
         </div>
       )}
+
       <Button onClick={handleSubmit} loading={loading}>
         Submit
       </Button>

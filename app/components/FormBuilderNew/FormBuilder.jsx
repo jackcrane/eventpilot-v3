@@ -1,25 +1,64 @@
-// FormBuilder.jsx
 import React, { useState } from "react";
 import { DragDropContext } from "react-beautiful-dnd";
 import { TriPanelLayout } from "../TriPanelLayout/TriPanelLayout";
-import { Palette } from "./Palette";
-import { FormPreview } from "./FormPreview";
-import styles from "./FormBuilder.module.css";
+import { Palette } from "./Palette.jsx";
+import { FormPreview } from "./FormPreview.jsx";
 
 export const FormBuilder = () => {
   const inputTypes = [
-    { id: "text", label: "Text Input" },
-    { id: "email", label: "Email" },
-    { id: "checkbox", label: "Checkbox" },
-    { id: "textarea", label: "Textarea" },
+    {
+      id: "text",
+      label: "Text Input",
+      description: "Single-line text input",
+      icon: "cursor-text",
+      iconColor: "var(--tblr-green)",
+    },
+    {
+      id: "email",
+      label: "Email",
+      description: "Email address input",
+      icon: "mail",
+      iconColor: "var(--tblr-purple)",
+    },
+    {
+      id: "checkbox",
+      label: "Checkbox",
+      description: "Checkbox (true/false) input",
+      icon: "checkbox",
+      iconColor: "var(--tblr-orange)",
+    },
+    {
+      id: "textarea",
+      label: "Textarea",
+      description: "Multi-line text input",
+      icon: "cursor-text",
+      iconColor: "var(--tblr-yellow)",
+    },
   ];
 
-  const [pages, setPages] = useState([{ id: 0, name: "Page 1", fields: [] }]);
+  const [pages, setPages] = useState([{ id: 0, name: "", fields: [] }]);
+
+  // utility to reorder an array
+  const reorder = (list, startIndex, endIndex) => {
+    const result = Array.from(list);
+    const [removed] = result.splice(startIndex, 1);
+    result.splice(endIndex, 0, removed);
+    return result;
+  };
 
   const onDragEnd = ({ source, destination, draggableId }) => {
     if (!destination) return;
 
-    // palette → page
+    // 1) PAGE reorder
+    if (
+      source.droppableId === "PAGE_LIST" &&
+      destination.droppableId === "PAGE_LIST"
+    ) {
+      setPages((prev) => reorder(prev, source.index, destination.index));
+      return;
+    }
+
+    // 2) palette → page
     if (
       source.droppableId === "PALETTE" &&
       destination.droppableId.startsWith("PAGE-")
@@ -36,40 +75,47 @@ export const FormBuilder = () => {
         type: typeDef.id,
         label: typeDef.label,
       };
-      const newPages = [...pages];
-      const destFields = Array.from(newPages[pageIndex].fields);
-      destFields.splice(destination.index, 0, newField);
-      newPages[pageIndex] = { ...newPages[pageIndex], fields: destFields };
-      setPages(newPages);
 
-      // page ↔ page
-    } else if (
+      setPages((prev) => {
+        const next = Array.from(prev);
+        const destFields = Array.from(next[pageIndex].fields);
+        destFields.splice(destination.index, 0, newField);
+        next[pageIndex] = { ...next[pageIndex], fields: destFields };
+        return next;
+      });
+      return;
+    }
+
+    // 3) field ↔ field (within/between pages)
+    if (
       source.droppableId.startsWith("PAGE-") &&
       destination.droppableId.startsWith("PAGE-")
     ) {
-      const srcIndex = pages.findIndex(
+      const srcIdx = pages.findIndex(
         (p) => `PAGE-${p.id}` === source.droppableId
       );
-      const dstIndex = pages.findIndex(
+      const dstIdx = pages.findIndex(
         (p) => `PAGE-${p.id}` === destination.droppableId
       );
-      if (srcIndex < 0 || dstIndex < 0) return;
+      if (srcIdx < 0 || dstIdx < 0) return;
 
-      const newPages = [...pages];
-      const srcFields = Array.from(newPages[srcIndex].fields);
-      const [moved] = srcFields.splice(source.index, 1);
+      setPages((prev) => {
+        const next = Array.from(prev);
+        const srcFields = Array.from(next[srcIdx].fields);
+        const [moved] = srcFields.splice(source.index, 1);
 
-      if (srcIndex === dstIndex) {
-        srcFields.splice(destination.index, 0, moved);
-        newPages[srcIndex] = { ...newPages[srcIndex], fields: srcFields };
-      } else {
-        const dstFields = Array.from(newPages[dstIndex].fields);
-        dstFields.splice(destination.index, 0, moved);
-        newPages[srcIndex] = { ...newPages[srcIndex], fields: srcFields };
-        newPages[dstIndex] = { ...newPages[dstIndex], fields: dstFields };
-      }
+        if (srcIdx === dstIdx) {
+          srcFields.splice(destination.index, 0, moved);
+          next[srcIdx] = { ...next[srcIdx], fields: srcFields };
+        } else {
+          const dstFields = Array.from(next[dstIdx].fields);
+          dstFields.splice(destination.index, 0, moved);
+          next[srcIdx] = { ...next[srcIdx], fields: srcFields };
+          next[dstIdx] = { ...next[dstIdx], fields: dstFields };
+        }
 
-      setPages(newPages);
+        return next;
+      });
     }
   };
 

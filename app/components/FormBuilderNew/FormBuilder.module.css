@@ -1,62 +1,83 @@
-.previewContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 10px;
-}
-
 .previewPage {
   background-color: var(--tblr-bg-surface);
   border: 1px solid var(--tblr-border-color);
   border-radius: var(--tblr-border-radius);
   padding: 10px;
   transition: opacity 0.2s;
+  margin-bottom: 8px;
+}
+
+.previewPage_dragged {
+  background-color: var(--tblr-gray-50);
+  opacity: 0.8;
 }
 
 .previewPage:has(.deleteButton:hover) {
   opacity: 0.5;
 }
 
-/* chatgpt */
+.previewPageDropzone {
+  min-height: 150px;
+}
+
+.previewPageDropzone_draggedOver {
+  outline: 2px solid var(--tblr-green);
+}
 
 .paletteContainer {
   display: flex;
   flex-direction: column;
-  padding: 8px;
-  border: 2px dashed #a0aec0;
-  border-radius: 4px;
-  background-color: #edf2f7;
   min-height: 200px;
+  min-width: 150px;
 }
 
 .paletteItem {
   padding: 8px;
   margin-bottom: 8px;
-  background-color: #bee3f8;
-  border: 1px solid #90cdf4;
+  border: 1px dashed #ccc;
   border-radius: 4px;
+  background: #fafafa;
   cursor: grab;
-}
-
-.previewContainer {
-  display: flex;
-  flex-direction: column;
-}
-
-.previewPage {
-  padding: 16px;
-  border: 2px dashed #cbd5e0;
-  border-radius: 4px;
-  background-color: #f7fafc;
-  margin-bottom: 16px;
-  min-height: 150px;
 }
 
 .fieldItem {
-  padding: 8px;
+  /* padding: 8px; */
   margin-bottom: 8px;
-  background-color: #f0fff4;
-  border: 1px solid #c6f6d5;
+  border: 1px solid var(--tblr-gray-50);
+  /* background-color: var(--tblr-gray-50); */
   border-radius: 4px;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+}
+
+.fieldItem_dragged {
+  background-color: var(--tblr-gray-100);
+  opacity: 0.8;
+}
+
+.fieldItemContent {
+  padding: 8px;
+  padding-left: 0px;
+}
+
+.fieldItemContent > * {
+  text-align: left;
+}
+
+.handle {
   cursor: grab;
+  display: flex;
+}
+
+.handleSmall {
+  cursor: grab;
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  background-color: var(--tblr-gray-100);
+}
+
+.handleSmall:hover {
+  background-color: var(--tblr-gray-200);
 }

@@ -90,7 +90,7 @@ export const Page = ({
         <div
           style={{
             width: "100%",
-            overflowX: allowOverflow ? "visible" : "hidden",
+            // overflowX: allowOverflow ?  : "hidden",
             padding: padding ? 4 : 0,
             paddingBottom: 100,
           }}

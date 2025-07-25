@@ -67,3 +67,12 @@
   transform: translateX(-10px) translateY(-50%);
   z-index: 1000;
 }
+
+.sidebar,
+.sidebarLeft,
+.right {
+  position: sticky;
+  top: 60px;
+  align-self: flex-start;
+  height: calc(100dvh - 60px);
+}
