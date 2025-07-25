@@ -1,0 +1,18 @@
+.previewContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+}
+
+.previewPage {
+  background-color: var(--tblr-bg-surface);
+  border: 1px solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius);
+  padding: 10px;
+  transition: opacity 0.2s;
+}
+
+.previewPage:has(.deleteButton:hover) {
+  opacity: 0.5;
+}
