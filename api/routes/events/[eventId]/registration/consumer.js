@@ -5,7 +5,7 @@ export const get = [
     const now = new Date();
     const { eventId } = req.params;
 
-    const tiers = await prisma.registrationTier.findMany({
+    let tiers = await prisma.registrationTier.findMany({
       where: { eventId },
       include: {
         pricingTiers: {
@@ -30,6 +30,23 @@ export const get = [
           },
         },
       },
+    });
+
+    tiers = tiers.map((t) => {
+      const tier = t.pricingTiers[0];
+      const disabled = tier === undefined || tier.available === false;
+      return {
+        ...t,
+        period: disabled
+          ? null
+          : {
+              ...tier,
+              ...tier.registrationPeriod,
+              registrationPeriod: undefined,
+            },
+        pricingTiers: undefined,
+        disabled,
+      };
     });
 
     res.json({ tiers, fields: [] });
