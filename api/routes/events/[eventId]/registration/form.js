@@ -2,6 +2,7 @@ import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { serializeError } from "#serializeError";
 import { formSchema } from "../../../../util/formSchema";
+import { zerialize } from "zodex";
 
 // detect new items (stringified integers)
 const isNew = (id) => /^\d+$/.test(id);
@@ -180,5 +181,11 @@ export const put = [
       console.error(error);
       return res.status(500).json({ error });
     }
+  },
+];
+
+export const query = [
+  (req, res) => {
+    return res.json(zerialize(formSchema));
   },
 ];

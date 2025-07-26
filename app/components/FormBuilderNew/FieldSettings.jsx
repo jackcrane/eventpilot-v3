@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Input, Checkbox, EnclosedSelectGroup, Button } from "tabler-react-2";
 import { Row } from "../../util/Flex";
 import { MarkdownEditor } from "../markdown/MarkdownEditor";
@@ -7,6 +7,8 @@ import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { inputTypes } from "./InputTypes";
 
 export const FieldSettings = ({ field, pageName, onChange, onEditPage }) => {
+  const [lastAddedId, setLastAddedId] = useState(null);
+
   const typeDef = inputTypes.find((t) => t.id === field.type);
   const supports = (item) => typeDef.supports.includes(item);
 
@@ -17,20 +19,14 @@ export const FieldSettings = ({ field, pageName, onChange, onEditPage }) => {
     return result;
   };
 
-  const handleDragEnd = (result) => {
-    if (!result.destination) return;
-    // first do your array reorder
+  const handleDragEnd = ({ destination, source }) => {
+    if (!destination) return;
     const reordered = reorder(
       field.options,
-      result.source.index,
-      result.destination.index
-    );
-    // then re-assign order = array index (or +1 if you prefer 1-based)
-    const withOrder = reordered.map((opt, idx) => ({
-      ...opt,
-      order: idx,
-    }));
-    onChange("options", withOrder);
+      source.index,
+      destination.index
+    ).map((opt, idx) => ({ ...opt, order: idx }));
+    onChange("options", reordered);
   };
 
   const handleAddOption = () => {
@@ -38,8 +34,9 @@ export const FieldSettings = ({ field, pageName, onChange, onEditPage }) => {
       (max, o) => Math.max(max, o.order ?? 0),
       0
     );
-    const next = maxOrder + 1;
-    const newOpt = { id: `${Date.now()}`, label: "", order: next };
+    const nextOrder = maxOrder + 1;
+    const newOpt = { id: `${Date.now()}`, label: "", order: nextOrder };
+    setLastAddedId(newOpt.id);
     onChange("options", [...(field.options ?? []), newOpt]);
   };
 
@@ -108,16 +105,16 @@ export const FieldSettings = ({ field, pageName, onChange, onEditPage }) => {
                       draggableId={option.id.toString()}
                       index={index}
                     >
-                      {(provided) => (
+                      {(dragProvided) => (
                         <Row
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
+                          ref={dragProvided.innerRef}
+                          {...dragProvided.draggableProps}
                           gap={1}
                           align="center"
                           className="mb-2"
                         >
                           <span
-                            {...provided.dragHandleProps}
+                            {...dragProvided.dragHandleProps}
                             style={{ cursor: "grab" }}
                           >
                             <Icon i="grip-vertical" size={18} />
@@ -125,12 +122,19 @@ export const FieldSettings = ({ field, pageName, onChange, onEditPage }) => {
                           <Input
                             style={{ flex: 1 }}
                             className="mb-0"
+                            autoFocus={option.id === lastAddedId}
                             value={option.label}
-                            onChange={(e) => {
+                            onRawChange={({ target: { value } }) => {
                               const newOptions = field.options.map((o) =>
-                                o.id === option.id ? { ...o, label: e } : o
+                                o.id === option.id ? { ...o, label: value } : o
                               );
                               onChange("options", newOptions);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddOption();
+                              }
                             }}
                           />
                           <Button
@@ -156,13 +160,7 @@ export const FieldSettings = ({ field, pageName, onChange, onEditPage }) => {
             </Droppable>
           </DragDropContext>
           <Row gap={1} justify="flex-start" className="mt-2">
-            <Button
-              onClick={() => (
-                <Button onClick={handleAddOption}>Add Option</Button>
-              )}
-            >
-              Add Option
-            </Button>
+            <Button onClick={handleAddOption}>Add Option</Button>
           </Row>
         </div>
       )}

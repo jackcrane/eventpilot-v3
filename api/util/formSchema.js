@@ -51,7 +51,6 @@ const dropdownField = z.object({
   label: z.string().default(""),
   prompt: z.string().default(""),
   required: z.boolean().default(false),
-  description: z.string().default(""),
   options: z.array(
     z.object({
       id: z.union([z.string(), z.number()]),

@@ -37,7 +37,7 @@ export const inputTypes = [
     description: "Display a dropdown to collect a single answer.",
     icon: "list",
     iconColor: "var(--tblr-purple)",
-    supports: ["label", "prompt", "required", "options", "description"],
+    supports: ["label", "prompt", "required", "options"],
     defaults: {
       prompt: "Select an option...",
       options: [],
