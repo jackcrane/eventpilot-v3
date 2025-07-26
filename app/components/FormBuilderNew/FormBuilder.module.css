@@ -42,6 +42,13 @@
   max-width: 200px;
 }
 
+@media screen and (max-width: 1100px) {
+  .paletteContainer {
+    min-width: unset;
+    max-width: unset;
+  }
+}
+
 .paletteItem {
   padding: 8px;
   margin-bottom: 8px;
@@ -70,7 +77,7 @@
 
 .fieldItem_selected {
   /* background-color: var(--tblr-primary-lt); */
-  border: 1px solid var(--tblr-primary);
+  border: 1px solid #83b7e8;
 }
 
 .fieldItemContent {

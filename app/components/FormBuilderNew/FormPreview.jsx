@@ -39,6 +39,14 @@ export const FormPreview = ({
       <Droppable droppableId="PAGE_LIST" type="PAGE">
         {(provided) => (
           <div ref={provided.innerRef} {...provided.droppableProps}>
+            {pages.length === 0 && (
+              <Empty
+                title="Oops! No pages yet..."
+                text="No pages yet. Click the add page button below to add your first page."
+                icon="arrow-down"
+                gradient={false}
+              />
+            )}
             {pages.map((page, pageIndex) => (
               <Draggable
                 key={page.id}
@@ -55,8 +63,7 @@ export const FormPreview = ({
                     )}
                     style={{
                       ...prov.draggableProps.style,
-                      borderColor:
-                        selectedPage?.id === page.id && "var(--tblr-primary)",
+                      borderColor: selectedPage?.id === page.id && "#83b7e8",
                     }}
                   >
                     <Row

@@ -21,6 +21,7 @@ export const Empty = ({
         background:
           gradient &&
           `radial-gradient(circle,rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.3) 70%, rgba(255, 255, 255, 1) 100%)`,
+        textAlign: "center",
       }}
     >
       <Col>

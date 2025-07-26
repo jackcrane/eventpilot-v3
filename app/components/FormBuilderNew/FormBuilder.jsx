@@ -10,7 +10,11 @@ import { Empty } from "../empty/Empty";
 import { Icon } from "../../util/Icon";
 import { Button } from "tabler-react-2";
 
-export const FormBuilder = ({ onSave: passedOnSave, initialValues = {} }) => {
+export const FormBuilder = ({
+  onSave: passedOnSave,
+  initialValues = {},
+  loading,
+}) => {
   const [pages, setPages] = useState([{ id: 0, name: "", fields: [] }]);
   const [selectedFieldLocation, setSelectedFieldLocation] = useState(null);
   const [selectedPageIndex, setSelectedPageIndex] = useState(null);
@@ -175,7 +179,9 @@ export const FormBuilder = ({ onSave: passedOnSave, initialValues = {} }) => {
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <Button onClick={onSave}>Save</Button>
+      <Button onClick={onSave} className="mb-3" loading={loading}>
+        Save
+      </Button>
       <TriPanelLayout
         leftIcon="palette"
         leftTitle="Palette"
