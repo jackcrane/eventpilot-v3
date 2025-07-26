@@ -132,11 +132,14 @@ export const get = [
     try {
       const { eventId } = req.params;
       const pages = await prisma.registrationPage.findMany({
-        where: { eventId },
+        where: { eventId, deleted: false },
         include: {
           fields: {
+            where: { deleted: false },
             include: {
-              options: true,
+              options: {
+                where: { deleted: false },
+              },
             },
           },
         },
@@ -163,9 +166,14 @@ export const put = [
       const pages = result.data.fields;
       const { eventId } = req.params;
 
-      await prisma.$transaction(async (tx) => {
-        await syncPages(tx, eventId, pages);
-      });
+      await prisma.$transaction(
+        async (tx) => {
+          await syncPages(tx, eventId, pages);
+        },
+        {
+          timeout: 120_000,
+        }
+      );
 
       return res.json({ message: "Form upserted successfully" });
     } catch (error) {

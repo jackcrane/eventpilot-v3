@@ -170,7 +170,7 @@ export const FormBuilder = ({ onSave: passedOnSave, initialValues = {} }) => {
 
   const onSave = () => {
     console.log("Saving form", pages);
-    passedOnSave?.(pages);
+    passedOnSave?.({ fields: pages });
   };
 
   return (
