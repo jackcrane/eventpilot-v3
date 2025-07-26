@@ -8,7 +8,6 @@ import styles from "./FormBuilder.module.css";
 import classNames from "classnames";
 import { FieldItemPreview } from "./FieldPreview";
 import { Empty } from "../empty/Empty";
-import { inputTypes } from "./InputTypes";
 
 export const FormPreview = ({
   pages,
@@ -17,6 +16,7 @@ export const FormPreview = ({
   setSelectedPageIndex,
   selectedField,
   selectedPage,
+  inputTypes,
 }) => {
   const { confirm, ConfirmModal } = useConfirm({
     title: "Are you sure?",

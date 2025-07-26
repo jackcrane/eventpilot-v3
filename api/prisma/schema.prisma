@@ -811,6 +811,8 @@ model RegistrationPage {
 
   name String
 
+  order Int @default(0)
+
   fields RegistrationField[]
 
   deleted Boolean @default(false)
@@ -825,6 +827,7 @@ model RegistrationField {
 
   label       String?
   type        RegistrationFieldType
+  fieldType   String?
   required    Boolean                    @default(false)
   options     RegistrationFieldOption[]
   placeholder String?

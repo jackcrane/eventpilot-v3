@@ -21,7 +21,20 @@ export const FieldItemPreview = ({
           <Icon i="grip-vertical" size={18} />
         </div>
         <div className={styles.fieldItemContent}>
-          <Row gap={1} justify="flex-end" className="mb-2">
+          <Row gap={1} justify="flex-end" align="center" className="mb-2">
+            {field.fieldType && (
+              <Row
+                gap={0.5}
+                align="center"
+                className={styles.requiredFieldAdmonition}
+              >
+                <Icon i="asterisk" size={12} />
+                <Typography.Text className="mb-0">
+                  This field must be present in your form
+                </Typography.Text>
+              </Row>
+            )}
+            <div style={{ flex: 1 }} />
             <Row gap={0.5} align="center" style={{ opacity: 0.5 }}>
               <Icon i={typeDef.icon} size={14} color={typeDef.iconColor} />
               <Typography.Text className="mb-0">

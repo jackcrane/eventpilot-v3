@@ -9,29 +9,16 @@ import { inputTypes } from "./InputTypes";
 import { Empty } from "../empty/Empty";
 import { Icon } from "../../util/Icon";
 import { Button } from "tabler-react-2";
+import toast from "react-hot-toast";
 
 export const FormBuilder = ({
   onSave: passedOnSave,
-  initialValues = {},
+  initialValues = [],
   loading,
+  customFieldTypes = [],
+  requiredFieldTypes = [],
 }) => {
-  const [pages, setPages] = useState([{ id: 0, name: "", fields: [] }]);
-  const [selectedFieldLocation, setSelectedFieldLocation] = useState(null);
-  const [selectedPageIndex, setSelectedPageIndex] = useState(null);
-
-  useEffect(() => {
-    if (!Array.isArray(initialValues)) return;
-    setPages(
-      initialValues.map((page) => ({
-        ...page,
-        fields: page.fields.map((f) => ({
-          ...f,
-          type: f.type.toLowerCase(),
-        })),
-      }))
-    );
-  }, [initialValues]);
-
+  // helper to reorder arrays
   const reorder = (list, startIndex, endIndex) => {
     const result = Array.from(list);
     const [removed] = result.splice(startIndex, 1);
@@ -39,9 +26,112 @@ export const FormBuilder = ({
     return result;
   };
 
+  // assign `order` to pages and their fields based on array index
+  const updatePageAndFieldOrders = (pagesArr) =>
+    pagesArr.map((page, pIndex) => ({
+      ...page,
+      order: pIndex,
+      fields: page.fields.map((field, fIndex) => ({
+        ...field,
+        pageIndex: pIndex,
+        order: fIndex,
+      })),
+    }));
+
+  // initialize pages with order & field.order
+  const [pages, setPages] = useState(
+    updatePageAndFieldOrders(
+      Array.isArray(initialValues) && initialValues.length
+        ? initialValues.map((page, pIndex) => ({
+            ...page,
+            fields: Array.isArray(page.fields)
+              ? page.fields.map((f, fIndex) => ({
+                  ...f,
+                  type: f.type.toLowerCase(),
+                  pageIndex: pIndex,
+                  order: fIndex,
+                }))
+              : [],
+          }))
+        : [{ id: Date.now().toString(), name: "", fields: [] }]
+    )
+  );
+  const [selectedFieldLocation, setSelectedFieldLocation] = useState(null);
+  const [selectedPageIndex, setSelectedPageIndex] = useState(null);
+
+  useEffect(() => {
+    if (!Array.isArray(initialValues)) return;
+    setPages(
+      updatePageAndFieldOrders(
+        initialValues.map((page, pIndex) => ({
+          ...page,
+          fields: Array.isArray(page.fields)
+            ? page.fields.map((f, fIndex) => ({
+                ...f,
+                type: f.type.toLowerCase(),
+                pageIndex: pIndex,
+                order: fIndex,
+              }))
+            : [],
+        }))
+      )
+    );
+  }, [initialValues]);
+
+  // Merge any custom types that specify a baseType:
+  const mergedCustomFieldTypes = customFieldTypes.map((ct) => {
+    if (ct.baseType) {
+      const base = inputTypes.find((t) => t.id === ct.baseType);
+      return {
+        ...base,
+        ...ct,
+        supports: ct.supports ?? base.supports,
+        defaults: ct.defaults ?? base.defaults,
+      };
+    }
+    return ct;
+  });
+
+  const mergedRequiredTypes = requiredFieldTypes.map((rt) => {
+    if (!rt.baseType) return rt;
+    const base = inputTypes.find((t) => t.id === rt.baseType);
+    return {
+      ...base,
+      ...rt,
+      supports: rt.supports ?? base.supports,
+      fromRequiredFieldType: true,
+      defaults: {
+        ...base.defaults,
+        label: rt.label,
+        required: true,
+        placeholder: rt.placeholder ?? "",
+        description: rt.description ?? "",
+        prompt: base.defaults?.prompt ?? null,
+        rows: base.defaults?.rows ?? null,
+        markdown: null,
+        options: base.defaults?.options ?? [],
+        ...rt.defaults,
+      },
+    };
+  });
+
+  const allInputTypes = [
+    ...inputTypes,
+    ...mergedCustomFieldTypes,
+    ...mergedRequiredTypes,
+  ];
+
+  const missingRequired = requiredFieldTypes.filter(
+    (req) => !pages.some((p) => p.fields.some((f) => f.fieldType === req.id))
+  );
+
+  const paletteRequiredTypes = missingRequired;
+  const paletteOptionalTypes = allInputTypes.filter(
+    (t) => !requiredFieldTypes.some((req) => req.id === t.id)
+  );
+
   const onDragEnd = ({ source, destination, draggableId }) => {
     if (!destination) return;
-
     setSelectedFieldLocation(null);
     setSelectedPageIndex(null);
 
@@ -50,18 +140,9 @@ export const FormBuilder = ({
       source.droppableId === "PAGE_LIST" &&
       destination.droppableId === "PAGE_LIST"
     ) {
-      setPages((prev) => {
-        const reordered = reorder(prev, source.index, destination.index);
-        return reordered.map((page, pageIndex) => ({
-          ...page,
-          // update every field’s pageIndex to its new pageIndex
-          fields: page.fields.map((field) => ({
-            ...field,
-            pageIndex,
-          })),
-        }));
-      });
-
+      setPages((prev) =>
+        updatePageAndFieldOrders(reorder(prev, source.index, destination.index))
+      );
       return;
     }
 
@@ -74,28 +155,27 @@ export const FormBuilder = ({
         (p) => `PAGE-${p.id}` === destination.droppableId
       );
       if (pageIndex < 0) return;
-      const typeDef = inputTypes.find((t) => t.id === draggableId);
+      const typeDef = allInputTypes.find((t) => t.id === draggableId);
       if (!typeDef) return;
 
       const newField = {
-        id: `${Date.now()}`,
-        type: typeDef.id,
+        id: Date.now().toString(),
+        type: typeDef.baseType ?? typeDef.id,
+        fieldType: typeDef.fromRequiredFieldType ? typeDef.id : null,
         ...typeDef.defaults,
-        pageIndex,
       };
 
       setPages((prev) => {
-        const next = Array.from(prev);
-        const destFields = Array.from(next[pageIndex].fields);
+        const next = [...prev];
+        const destFields = [...next[pageIndex].fields];
         destFields.splice(destination.index, 0, newField);
         next[pageIndex] = { ...next[pageIndex], fields: destFields };
-        return next;
+        return updatePageAndFieldOrders(next);
       });
       setSelectedFieldLocation({
-        pageIndex: pageIndex,
+        pageIndex,
         fieldIndex: destination.index,
       });
-
       return;
     }
 
@@ -114,23 +194,17 @@ export const FormBuilder = ({
 
       setPages((prev) => {
         const next = [...prev];
-
         // remove from source
-        const srcFields = [...next[srcIdx].fields];
+        const srcFields = Array.from(next[srcIdx].fields);
         const [moved] = srcFields.splice(source.index, 1);
-
-        // update its pageIndex
-        const updatedField = { ...moved, pageIndex: dstIdx };
-
-        // write back source
         next[srcIdx] = { ...next[srcIdx], fields: srcFields };
 
-        // insert into dest
-        const dstFields = [...next[dstIdx].fields];
-        dstFields.splice(destination.index, 0, updatedField);
+        // insert into destination
+        const dstFields = Array.from(next[dstIdx].fields);
+        dstFields.splice(destination.index, 0, moved);
         next[dstIdx] = { ...next[dstIdx], fields: dstFields };
 
-        return next;
+        return updatePageAndFieldOrders(next);
       });
       return;
     }
@@ -153,10 +227,9 @@ export const FormBuilder = ({
       const next = [...prev];
       const page = { ...next[pageIndex] };
       const fields = [...page.fields];
-      const field = { ...fields[fieldIndex], [key]: value };
-      fields[fieldIndex] = field;
+      fields[fieldIndex] = { ...fields[fieldIndex], [key]: value };
       next[pageIndex] = { ...page, fields };
-      return next;
+      return updatePageAndFieldOrders(next);
     });
   };
 
@@ -168,13 +241,20 @@ export const FormBuilder = ({
         ...next[selectedPageIndex],
         [key]: value,
       };
-      return next;
+      return updatePageAndFieldOrders(next);
     });
   };
 
   const onSave = () => {
-    console.log("Saving form", pages);
-    passedOnSave?.({ fields: pages });
+    if (missingRequired.length) {
+      toast.error(
+        `Missing required fields: ${missingRequired
+          .map((f) => f.label)
+          .join(", ")}`
+      );
+      return;
+    }
+    passedOnSave?.({ pages });
   };
 
   return (
@@ -185,7 +265,12 @@ export const FormBuilder = ({
       <TriPanelLayout
         leftIcon="palette"
         leftTitle="Palette"
-        leftChildren={<Palette inputTypes={inputTypes} />}
+        leftChildren={
+          <Palette
+            requiredTypes={paletteRequiredTypes}
+            inputTypes={paletteOptionalTypes}
+          />
+        }
         centerIcon="forms"
         centerTitle="Form Preview"
         centerChildren={
@@ -203,6 +288,7 @@ export const FormBuilder = ({
             selectedPageIndex={selectedPageIndex}
             selectedField={selectedField}
             selectedPage={selectedPage}
+            inputTypes={allInputTypes}
           />
         }
         centerContentClassName="bg-gray-100 polka"
@@ -230,9 +316,8 @@ export const FormBuilder = ({
                 title="Select a field or page to configure"
                 text={
                   <span>
-                    Click on the edit (
-                    <Icon i="pencil" size={16} />) button to configure a field
-                    or page.
+                    Click on the edit (<Icon i="pencil" size={16} />) button to
+                    configure a field or page.
                   </span>
                 }
                 gradient={false}

@@ -2,6 +2,8 @@ import { z } from "zod";
 
 const baseField = {
   id: z.union([z.string(), z.number()]),
+  fieldType: z.string().optional().nullable(),
+  order: z.number(),
 };
 
 const textField = z.object({
@@ -70,11 +72,12 @@ const fieldSchema = z.discriminatedUnion("type", [
 ]);
 
 export const formSchema = z.object({
-  fields: z.array(
+  pages: z.array(
     z.object({
       id: z.union([z.string(), z.number()]),
       name: z.string(),
       fields: z.array(fieldSchema),
+      order: z.number(),
     })
   ),
 });

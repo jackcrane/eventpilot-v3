@@ -69,8 +69,9 @@ const syncFields = async (tx, eventId, pageId, fieldsData = []) => {
       rows: field.rows ?? null,
       markdown: field.markdown ?? null,
       required: field.required,
-      order: field.order ?? 0,
+      order: field.order ?? -1,
       deleted: false,
+      fieldType: field.fieldType ?? null,
       event: { connect: { id: eventId } },
       page: { connect: { id: pageId } },
     };
@@ -112,6 +113,7 @@ const syncPages = async (tx, eventId, pagesData = []) => {
             connect: { id: eventId },
           },
           name: page.name,
+          order: page.order,
           deleted: false,
         },
       });
@@ -121,7 +123,7 @@ const syncPages = async (tx, eventId, pagesData = []) => {
         where: {
           id: page.id,
         },
-        data: { name: page.name, deleted: false },
+        data: { name: page.name, deleted: false, order: page.order },
       });
       await syncFields(tx, eventId, page.id, page.fields);
     }
@@ -134,12 +136,15 @@ export const get = [
       const { eventId } = req.params;
       const pages = await prisma.registrationPage.findMany({
         where: { eventId, deleted: false },
+        orderBy: { order: "asc" },
         include: {
           fields: {
             where: { deleted: false },
+            orderBy: { order: "asc" },
             include: {
               options: {
                 where: { deleted: false },
+                orderBy: { order: "asc" },
               },
             },
           },
@@ -164,7 +169,7 @@ export const put = [
         return res.status(400).json({ message: serializeError(result) });
       }
 
-      const pages = result.data.fields;
+      const pages = result.data.pages;
       const { eventId } = req.params;
 
       await prisma.$transaction(

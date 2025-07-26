@@ -114,3 +114,19 @@
 .fieldItemPreviewContainer > * {
   text-align: left;
 }
+
+.requiredFieldAdmonition {
+  /* background-color: var(--tblr-red-lt); */
+  background: linear-gradient(
+    to right,
+    var(--tblr-red-lt),
+    var(--tblr-yellow-lt)
+  );
+  border: 1px solid var(--tblr-red);
+  color: var(--tblr-red);
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: left;
+}

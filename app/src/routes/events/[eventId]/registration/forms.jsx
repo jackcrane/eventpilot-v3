@@ -22,6 +22,24 @@ export const RegistrationFormBuilderPage = () => {
         initialValues={fields}
         loading={mutationLoading}
         error={error}
+        requiredFieldTypes={[
+          {
+            id: "participantName",
+            baseType: "text",
+            label: "Participant Name",
+            description: "The name of the participant",
+            icon: "id-badge-2",
+            iconColor: "var(--tblr-blue)",
+          },
+          {
+            id: "participantEmail",
+            baseType: "email",
+            label: "Participant Email",
+            description: "The email of the participant",
+            icon: "mail",
+            iconColor: "var(--tblr-purple)",
+          },
+        ]}
       />
     </EventPage>
   );

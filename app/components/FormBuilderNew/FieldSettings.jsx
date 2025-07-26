@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Input, Checkbox, EnclosedSelectGroup, Button } from "tabler-react-2";
+import { Input, Checkbox, Typography, Button, Util } from "tabler-react-2";
 import { Row } from "../../util/Flex";
 import { MarkdownEditor } from "../markdown/MarkdownEditor";
 import { Icon } from "../../util/Icon";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { inputTypes } from "./InputTypes";
+import styles from "./FormBuilder.module.css";
 
 export const FieldSettings = ({ field, pageName, onChange, onEditPage }) => {
   const [lastAddedId, setLastAddedId] = useState(null);
@@ -181,6 +182,33 @@ export const FieldSettings = ({ field, pageName, onChange, onEditPage }) => {
           value={field.markdown || ""}
           onChange={(v) => onChange("markdown", v)}
         />
+      )}
+
+      {field.fieldType && (
+        <>
+          <Util.Hr />
+          <div style={{ display: "inline-block" }} className="mb-2">
+            <Row
+              gap={0.5}
+              align="center"
+              className={styles.requiredFieldAdmonition}
+            >
+              <Icon i="asterisk" size={12} />
+              <Typography.Text className="mb-0">
+                This field must be present in your form
+              </Typography.Text>
+            </Row>
+          </div>
+          <br />
+          <Typography.B>
+            This field is required to be present in your form.
+          </Typography.B>
+          <Typography.Text>
+            This means that EventPilot requires this field to be present in your
+            form. We do this to ensure that our system is able to collect the
+            required information so we can do what we need to do on your behalf.
+          </Typography.Text>
+        </>
       )}
     </div>
   );
