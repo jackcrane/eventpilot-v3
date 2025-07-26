@@ -36,8 +36,7 @@
 }
 
 .right {
-  max-width: 450px;
-  min-width: 350px;
+  flex-basis: 350px;
 }
 .right .title {
   padding-left: 16px;

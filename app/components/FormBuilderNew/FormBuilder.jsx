@@ -4,46 +4,15 @@ import { TriPanelLayout } from "../TriPanelLayout/TriPanelLayout";
 import { Palette } from "./Palette.jsx";
 import { FormPreview } from "./FormPreview.jsx";
 import { FieldSettings } from "./FieldSettings";
+import { PageSettings } from "./PageSettings";
+import { inputTypes } from "./InputTypes";
+import { Empty } from "../empty/Empty";
+import { Icon } from "../../util/Icon";
 
 export const FormBuilder = () => {
-  const inputTypes = [
-    {
-      id: "text",
-      label: "Text Input",
-      description: "Single-line text input",
-      icon: "cursor-text",
-      iconColor: "var(--tblr-green)",
-      defaults: { placeholder: "Yah name" },
-      supports: ["label", "placeholder", "description", "required"],
-    },
-    {
-      id: "email",
-      label: "Email",
-      description: "Email address input",
-      icon: "mail",
-      iconColor: "var(--tblr-purple)",
-      supports: ["label", "placeholder", "description", "required"],
-    },
-    {
-      id: "textarea",
-      label: "Textarea",
-      description: "Multi-line text input",
-      icon: "cursor-text",
-      iconColor: "var(--tblr-yellow)",
-      supports: ["label", "description", "required", "rows"],
-    },
-    {
-      id: "markdown",
-      label: "Markdown",
-      description: "Display rich text. Does not accept input.",
-      icon: "markdown",
-      iconColor: "var(--tblr-cyan)",
-      supports: ["label", "markdown"],
-    },
-  ];
-
   const [pages, setPages] = useState([{ id: 0, name: "", fields: [] }]);
   const [selectedFieldLocation, setSelectedFieldLocation] = useState(null);
+  const [selectedPageIndex, setSelectedPageIndex] = useState(null);
 
   const reorder = (list, startIndex, endIndex) => {
     const result = Array.from(list);
@@ -56,13 +25,25 @@ export const FormBuilder = () => {
     if (!destination) return;
 
     setSelectedFieldLocation(null);
+    setSelectedPageIndex(null);
 
     // 1) PAGE reorder
     if (
       source.droppableId === "PAGE_LIST" &&
       destination.droppableId === "PAGE_LIST"
     ) {
-      setPages((prev) => reorder(prev, source.index, destination.index));
+      setPages((prev) => {
+        const reordered = reorder(prev, source.index, destination.index);
+        return reordered.map((page, pageIndex) => ({
+          ...page,
+          // update every field’s pageIndex to its new pageIndex
+          fields: page.fields.map((field) => ({
+            ...field,
+            pageIndex,
+          })),
+        }));
+      });
+
       return;
     }
 
@@ -83,6 +64,7 @@ export const FormBuilder = () => {
         type: typeDef.id,
         ...typeDef.defaults,
         typeDef,
+        pageIndex,
       };
 
       setPages((prev) => {
@@ -114,19 +96,22 @@ export const FormBuilder = () => {
       if (srcIdx < 0 || dstIdx < 0) return;
 
       setPages((prev) => {
-        const next = Array.from(prev);
-        const srcFields = Array.from(next[srcIdx].fields);
+        const next = [...prev];
+
+        // remove from source
+        const srcFields = [...next[srcIdx].fields];
         const [moved] = srcFields.splice(source.index, 1);
 
-        if (srcIdx === dstIdx) {
-          srcFields.splice(destination.index, 0, moved);
-          next[srcIdx] = { ...next[srcIdx], fields: srcFields };
-        } else {
-          const dstFields = Array.from(next[dstIdx].fields);
-          dstFields.splice(destination.index, 0, moved);
-          next[srcIdx] = { ...next[srcIdx], fields: srcFields };
-          next[dstIdx] = { ...next[dstIdx], fields: dstFields };
-        }
+        // update its pageIndex
+        const updatedField = { ...moved, pageIndex: dstIdx };
+
+        // write back source
+        next[srcIdx] = { ...next[srcIdx], fields: srcFields };
+
+        // insert into dest
+        const dstFields = [...next[dstIdx].fields];
+        dstFields.splice(destination.index, 0, updatedField);
+        next[dstIdx] = { ...next[dstIdx], fields: dstFields };
 
         return next;
       });
@@ -141,6 +126,9 @@ export const FormBuilder = () => {
         ]
       : null;
 
+  const selectedPage =
+    selectedPageIndex != null ? pages[selectedPageIndex] : null;
+
   const handleFieldChange = (key, value) => {
     if (!selectedFieldLocation) return;
     const { pageIndex, fieldIndex } = selectedFieldLocation;
@@ -151,6 +139,18 @@ export const FormBuilder = () => {
       const field = { ...fields[fieldIndex], [key]: value };
       fields[fieldIndex] = field;
       next[pageIndex] = { ...page, fields };
+      return next;
+    });
+  };
+
+  const handlePageChange = (key, value) => {
+    if (selectedPageIndex == null) return;
+    setPages((prev) => {
+      const next = [...prev];
+      next[selectedPageIndex] = {
+        ...next[selectedPageIndex],
+        [key]: value,
+      };
       return next;
     });
   };
@@ -167,8 +167,17 @@ export const FormBuilder = () => {
           <FormPreview
             pages={pages}
             setPages={setPages}
-            setSelectedFieldLocation={setSelectedFieldLocation}
+            setSelectedFieldLocation={(v) => {
+              setSelectedFieldLocation(v);
+              setSelectedPageIndex(null);
+            }}
+            setSelectedPageIndex={(v) => {
+              setSelectedPageIndex(v);
+              setSelectedFieldLocation(null);
+            }}
+            selectedPageIndex={selectedPageIndex}
             selectedField={selectedField}
+            selectedPage={selectedPage}
           />
         }
         centerContentClassName="bg-gray-100 polka"
@@ -178,11 +187,33 @@ export const FormBuilder = () => {
         rightIcon="adjustments-alt"
         rightTitle="Field Settings"
         rightChildren={
-          selectedField ? (
-            <FieldSettings field={selectedField} onChange={handleFieldChange} />
-          ) : (
-            <div>Select a field to configure</div>
-          )
+          <>
+            {selectedPage ? (
+              <PageSettings page={selectedPage} onChange={handlePageChange} />
+            ) : selectedField ? (
+              <FieldSettings
+                field={selectedField}
+                onChange={handleFieldChange}
+                pageName={pages[selectedField.pageIndex]?.name}
+                onEditPage={() => {
+                  setSelectedPageIndex(selectedField.pageIndex);
+                  setSelectedFieldLocation(null);
+                }}
+              />
+            ) : (
+              <Empty
+                title="Select a field or page to configure"
+                text={
+                  <span>
+                    Click on the edit (
+                    <Icon i="pencil" size={16} />) button to configure a field
+                    or page.
+                  </span>
+                }
+                gradient={false}
+              />
+            )}
+          </>
         }
       />
     </DragDropContext>

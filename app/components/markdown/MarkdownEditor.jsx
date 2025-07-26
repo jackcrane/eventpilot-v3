@@ -69,7 +69,7 @@ export const MarkdownEditor = ({
             <>
               <UndoRedo />
               <Separator />
-              <BoldItalicUnderlineToggles />
+              <BoldItalicUnderlineToggles options={["Bold", "Italic"]} />
               <CreateLink />
               <CodeToggle />
               <BlockTypeSelect />

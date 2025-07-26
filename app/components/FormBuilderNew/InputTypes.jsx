@@ -1,0 +1,53 @@
+export const inputTypes = [
+  {
+    id: "text",
+    label: "Text Input",
+    description: "Single-line text input",
+    icon: "cursor-text",
+    iconColor: "var(--tblr-green)",
+    supports: ["label", "placeholder", "description", "required"],
+  },
+  {
+    id: "email",
+    label: "Email",
+    description: "Email address input",
+    icon: "mail",
+    iconColor: "var(--tblr-purple)",
+    supports: ["label", "placeholder", "description", "required"],
+  },
+  {
+    id: "textarea",
+    label: "Textarea",
+    description: "Multi-line text input",
+    icon: "cursor-text",
+    iconColor: "var(--tblr-yellow)",
+    supports: ["label", "description", "required", "rows"],
+  },
+  {
+    id: "checkbox",
+    label: "Checkbox",
+    description: "Display a checkbox to collect a yes or no answer.",
+    icon: "checkbox",
+    iconColor: "var(--tblr-blue)",
+    supports: ["label", "required"],
+  },
+  {
+    id: "dropdown",
+    label: "Dropdown",
+    description: "Display a dropdown to collect a single answer.",
+    icon: "list",
+    iconColor: "var(--tblr-purple)",
+    supports: ["label", "prompt", "required", "options", "description"],
+    defaults: {
+      prompt: "Select an option...",
+    },
+  },
+  {
+    id: "richText",
+    label: "Rich Text",
+    description: "Display rich text. Does not accept input.",
+    icon: "markdown",
+    iconColor: "var(--tblr-cyan)",
+    supports: ["markdown"],
+  },
+];

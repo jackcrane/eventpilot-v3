@@ -16,12 +16,22 @@
   opacity: 0.5;
 }
 
+.previewContainer {
+  margin-bottom: 300px;
+}
+
 .previewPageDropzone {
   min-height: 150px;
 }
 
 .previewPageDropzone_draggedOver {
   outline: 2px solid var(--tblr-green);
+}
+
+.previewPageDropzone_empty {
+  border: 2px dashed var(--tblr-gray-200);
+  border-radius: 4px;
+  background-color: var(--tblr-gray-100);
 }
 
 .paletteContainer {
@@ -44,7 +54,7 @@
 .fieldItem {
   /* padding: 8px; */
   margin-bottom: 8px;
-  border: 1px solid var(--tblr-gray-50);
+  border: 1px solid var(--tblr-gray-100);
   /* background-color: var(--tblr-gray-50); */
   border-radius: 4px;
   display: flex;
