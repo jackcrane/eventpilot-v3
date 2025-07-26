@@ -8,6 +8,7 @@ import { PageSettings } from "./PageSettings";
 import { inputTypes } from "./InputTypes";
 import { Empty } from "../empty/Empty";
 import { Icon } from "../../util/Icon";
+import { Button } from "tabler-react-2";
 
 export const FormBuilder = () => {
   const [pages, setPages] = useState([{ id: 0, name: "", fields: [] }]);
@@ -60,7 +61,7 @@ export const FormBuilder = () => {
       if (!typeDef) return;
 
       const newField = {
-        id: `${draggableId}-${Date.now()}`,
+        id: `${Date.now()}`,
         type: typeDef.id,
         ...typeDef.defaults,
         typeDef,
@@ -155,8 +156,13 @@ export const FormBuilder = () => {
     });
   };
 
+  const onSave = () => {
+    console.log("Saving form", pages);
+  };
+
   return (
     <DragDropContext onDragEnd={onDragEnd}>
+      <Button onClick={onSave}>Save</Button>
       <TriPanelLayout
         leftIcon="palette"
         leftTitle="Palette"

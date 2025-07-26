@@ -346,6 +346,7 @@ model Event {
   registrationFields RegistrationField[]
   registrations Registration[]
   teams Team[]
+  registrationPages RegistrationPage[]
 
   stripeConnectedAccountId String?
 }
@@ -802,17 +803,39 @@ model RegistrationUpsell {
   @@id([registrationId, upsellItemId])
 }
 
+model RegistrationPage {
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  name String
+
+  fields RegistrationField[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model RegistrationField {
   id          String                     @id @default(cuid())
   eventId     String
   event       Event                      @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  label       String
+
+  label       String?
   type        RegistrationFieldType
   required    Boolean                    @default(false)
-  order       Int                        @default(0)
-
   options     RegistrationFieldOption[]
+  placeholder String?
+  description String?
+  prompt      String?
+  rows        Int?
+  markdown    String?
+
+  order       Int                        @default(0)
   responses   RegistrationFieldResponse[]
+  pageId      String
+  page        RegistrationPage          @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   createdAt   DateTime                   @default(now())
   updatedAt   DateTime                   @updatedAt
@@ -845,12 +868,10 @@ model RegistrationFieldResponse {
 enum RegistrationFieldType {
   TEXT
   EMAIL
-  PHONE
-  BOOLEAN
-  SELECT
-  MULTISELECT
-  DATE
-  NUMBER
+  TEXTAREA
+  RICHTEXT
+  CHECKBOX
+  DROPDOWN
 }
 
 model Logs {

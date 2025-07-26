@@ -16,6 +16,7 @@ export const FieldConsumer = ({
     label: field.label,
     hint: field.description,
     required: field.required,
+    placeholder: field.placeholder,
     onInput,
     variant: isError ? "danger" : undefined,
     value,

@@ -21,7 +21,7 @@ export const inputTypes = [
     description: "Multi-line text input",
     icon: "cursor-text",
     iconColor: "var(--tblr-yellow)",
-    supports: ["label", "description", "required", "rows"],
+    supports: ["label", "description", "required", "rows", "placeholder"],
   },
   {
     id: "checkbox",
@@ -40,6 +40,7 @@ export const inputTypes = [
     supports: ["label", "prompt", "required", "options", "description"],
     defaults: {
       prompt: "Select an option...",
+      options: [],
     },
   },
   {
