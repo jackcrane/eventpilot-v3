@@ -8,6 +8,7 @@ import styles from "./FormBuilder.module.css";
 import classNames from "classnames";
 import { FieldItemPreview } from "./FieldPreview";
 import { Empty } from "../empty/Empty";
+import { inputTypes } from "./InputTypes";
 
 export const FormPreview = ({
   pages,

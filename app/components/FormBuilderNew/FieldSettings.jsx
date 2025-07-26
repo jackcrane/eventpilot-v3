@@ -4,9 +4,11 @@ import { Row } from "../../util/Flex";
 import { MarkdownEditor } from "../markdown/MarkdownEditor";
 import { Icon } from "../../util/Icon";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { inputTypes } from "./InputTypes";
 
 export const FieldSettings = ({ field, pageName, onChange, onEditPage }) => {
-  const supports = (item) => field.typeDef.supports.includes(item);
+  const typeDef = inputTypes.find((t) => t.id === field.type);
+  const supports = (item) => typeDef.supports.includes(item);
 
   const reorder = (list, startIndex, endIndex) => {
     const result = Array.from(list);
@@ -52,12 +54,8 @@ export const FieldSettings = ({ field, pageName, onChange, onEditPage }) => {
           {pageName || <i className="text-muted">Untitled Page</i>}
         </span>
         <Icon i="chevron-right" size={12} />
-        <Icon
-          i={field.typeDef.icon}
-          size={14}
-          color={field.typeDef.iconColor}
-        />
-        {field.typeDef.label}
+        <Icon i={typeDef.icon} size={14} color={typeDef.iconColor} />
+        {typeDef.label}
       </Row>
 
       {supports("label") && (

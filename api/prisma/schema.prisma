@@ -813,6 +813,7 @@ model RegistrationPage {
 
   fields RegistrationField[]
 
+  deleted Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -837,6 +838,7 @@ model RegistrationField {
   pageId      String
   page        RegistrationPage          @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
+  deleted Boolean @default(false)
   createdAt   DateTime                   @default(now())
   updatedAt   DateTime                   @updatedAt
 }
@@ -848,6 +850,8 @@ model RegistrationFieldOption {
   label    String
   value    String
   order    Int               @default(0)
+
+  deleted Boolean @default(false)
   responses RegistrationFieldResponse[]
 }
 

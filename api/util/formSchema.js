@@ -32,9 +32,9 @@ const textareaField = z.object({
   rows: z.number().default(2),
 });
 
-const richTextField = z.object({
+const richtextField = z.object({
   ...baseField,
-  type: z.literal("richText"),
+  type: z.literal("richtext"),
   markdown: z.string().default(""),
 });
 
@@ -56,6 +56,7 @@ const dropdownField = z.object({
     z.object({
       id: z.union([z.string(), z.number()]),
       label: z.string(),
+      order: z.number(),
     })
   ),
 });
@@ -64,7 +65,7 @@ const fieldSchema = z.discriminatedUnion("type", [
   textField,
   emailField,
   textareaField,
-  richTextField,
+  richtextField,
   checkboxField,
   dropdownField,
 ]);

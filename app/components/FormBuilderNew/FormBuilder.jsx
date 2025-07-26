@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { DragDropContext } from "react-beautiful-dnd";
 import { TriPanelLayout } from "../TriPanelLayout/TriPanelLayout";
 import { Palette } from "./Palette.jsx";
@@ -10,10 +10,23 @@ import { Empty } from "../empty/Empty";
 import { Icon } from "../../util/Icon";
 import { Button } from "tabler-react-2";
 
-export const FormBuilder = () => {
+export const FormBuilder = ({ onSave: passedOnSave, initialValues = {} }) => {
   const [pages, setPages] = useState([{ id: 0, name: "", fields: [] }]);
   const [selectedFieldLocation, setSelectedFieldLocation] = useState(null);
   const [selectedPageIndex, setSelectedPageIndex] = useState(null);
+
+  useEffect(() => {
+    if (!Array.isArray(initialValues)) return;
+    setPages(
+      initialValues.map((page) => ({
+        ...page,
+        fields: page.fields.map((f) => ({
+          ...f,
+          type: f.type.toLowerCase(),
+        })),
+      }))
+    );
+  }, [initialValues]);
 
   const reorder = (list, startIndex, endIndex) => {
     const result = Array.from(list);
@@ -64,7 +77,6 @@ export const FormBuilder = () => {
         id: `${Date.now()}`,
         type: typeDef.id,
         ...typeDef.defaults,
-        typeDef,
         pageIndex,
       };
 
@@ -158,6 +170,7 @@ export const FormBuilder = () => {
 
   const onSave = () => {
     console.log("Saving form", pages);
+    passedOnSave?.(pages);
   };
 
   return (

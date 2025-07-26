@@ -62,7 +62,7 @@ export const FieldConsumer = ({
           className="mb-3"
         />
       );
-    case "richText":
+    case "richtext":
       return (
         <div {...commonProps}>
           <MarkdownRender markdown={field.markdown} />

@@ -44,7 +44,7 @@ export const inputTypes = [
     },
   },
   {
-    id: "richText",
+    id: "richtext",
     label: "Rich Text",
     description: "Display rich text. Does not accept input.",
     icon: "markdown",
