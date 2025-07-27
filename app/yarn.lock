@@ -5545,10 +5545,10 @@ tabbable@^6.0.0:
   resolved "https://registry.yarnpkg.com/tabbable/-/tabbable-6.2.0.tgz#732fb62bc0175cfcec257330be187dcfba1f3b97"
   integrity sha512-Cat63mxsVJlzYvN51JmVXIgNoUokrIaT2zLclCXjRd8boZ0004U4KCs/sToJ75C6sdlByWxpYnb5Boif1VSFew==
 
-tabler-react-2@0.1.150:
-  version "0.1.150"
-  resolved "https://registry.yarnpkg.com/tabler-react-2/-/tabler-react-2-0.1.150.tgz#c639dfba4f47e950c1664f073e3ed1148150763a"
-  integrity sha512-gUSNG2KvWm0WrGKelhkEJQ5gZgADyabvlbnMKlOi7WKG8NkWoB6BBrtbxZIOYHc35Fwa45ElwtaCti+JfXbLCA==
+tabler-react-2@0.1.152:
+  version "0.1.152"
+  resolved "https://registry.yarnpkg.com/tabler-react-2/-/tabler-react-2-0.1.152.tgz#2805d0708da3ff9bd37f00a3feef5c7785c7553a"
+  integrity sha512-KMoqUjs4cEWneg3ahxz/reTAcSUF61EaIeP/eVav84n1nrMGPS71w7ZlwS46dvxFYE8kA1Sy5+wgw4G60U1GjQ==
   dependencies:
     "@babel/cli" "^7.24.8"
     "@babel/core" "^7.24.8"

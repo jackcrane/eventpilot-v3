@@ -54,11 +54,28 @@ export const generateHookFile = ({
     ? `const [mutationLoading, setMutationLoading] = useState(false);`
     : null;
 
+  const validationErrorState = options.includeSchema
+    ? `const [validationError, setValidationError] = useState(null);`
+    : null;
+
   const createFn = options.create
     ? `
-  const create${resource} = async (data) => {
+  const create${resource} = async (_data) => {
     setMutationLoading(true);
     try {
+      ${
+        options.includeSchema
+          ? `const parsed = schema.safeParse(_data);
+          let data;
+          if (!parsed.success) {
+        toast.error("Error");
+        setValidationError(parsed.error.format());
+        return false;
+      } else {
+          data = parsed.data;
+        }`
+          : `const data = _data;`
+      }
       const promise = authFetch(key, {
         method: "POST",
         body: JSON.stringify(data),
@@ -85,9 +102,22 @@ export const generateHookFile = ({
 
   const updateFn = options.update
     ? `
-  const update${resource} = async (data) => {
+  const update${resource} = async (_data) => {
     setMutationLoading(true);
     try {
+    ${
+      options.includeSchema
+        ? `const parsed = schema.safeParse(_data);
+          let data;
+          if (!parsed.success) {
+        toast.error("Error");
+        setValidationError(parsed.error.format());
+        return false;
+      } else {
+          data = parsed.data;
+        }`
+        : `const data = _data;`
+    }
       const promise = authFetch(key, {
         method: "PUT",
         body: JSON.stringify(data),
@@ -151,6 +181,7 @@ export const generateHookFile = ({
     "refetch: () => mutate(key)",
     options.includeSchema ? "schema" : null,
     options.includeSchema ? "schemaLoading" : null,
+    options.includeSchema ? "validationError" : null,
     ...(options.create ? [`create${resource}`] : []),
     ...(options.update ? [`update${resource}`] : []),
     ...(options.delete
@@ -165,7 +196,9 @@ export const generateHookFile = ({
 
   const lines = [
     ...imports,
+    ``,
     fetcher,
+
     schemaFetcher,
     ``,
     `export const ${hookExportName} = (${paramsStr}) => {`,
@@ -173,8 +206,11 @@ export const generateHookFile = ({
     ``,
     `  const { data, error, isLoading } = useSWR(key, fetcher);`,
     options.includeSchema ? `  ${schemaGetter}` : null,
+    ``,
     ...(useMutation ? [`  ${mutationLoadingState}`] : []),
+    options.includeSchema ? `  ${validationErrorState}` : null,
     ...(options.delete ? [`  ${confirmSetup}`] : []),
+    ``,
     createFn,
     updateFn,
     deleteFn,

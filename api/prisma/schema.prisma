@@ -716,8 +716,9 @@ model RegistrationPeriodPricing {
   registrationTierId String
   registrationTier   RegistrationTier @relation(fields: [registrationTierId], references: [id], onDelete: Cascade)
 
-  price          Decimal @db.Decimal(10, 2)
+  price          Float
   available      Boolean @default(true)
+  stripe_productId String?
   stripe_priceId String?
 
   createdAt DateTime @default(now())
@@ -764,14 +765,17 @@ model UpsellItem {
   event       Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
   name        String
   description String?
-  price       Decimal @db.Decimal(10, 2)
+  price       Float
   inventory   Int?
   order       Int     @default(0)
 
+  stripe_productId String?
   stripe_priceId String?
 
   registrations RegistrationUpsell[]
   images        File[]               @relation(name: "UpsellItemImage")
+  deleted       Boolean              @default(false)
+  logs          Logs[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -948,6 +952,9 @@ model Logs {
   conversationId String?
   conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
+  upsellItemId String?
+  upsellItem   UpsellItem? @relation(fields: [upsellItemId], references: [id], onDelete: Cascade)
+
   type LogType
 
   ip   String?
@@ -1004,6 +1011,9 @@ enum LogType {
   STRIPE_CONNECTED_ACCOUNT_CREATED
   STRIPE_CONNECTED_ACCOUNT_UPDATED
   STRIPE_CONNECTED_ACCOUNT_DELETED
+  STRIPE_PRICE_CREATED
+  STRIPE_PRICE_UPDATED
+  STRIPE_PRICE_DELETED
   CRM_FIELD_CREATED
   CRM_FIELD_MODIFIED
   CRM_FIELD_DELETED
@@ -1013,4 +1023,11 @@ enum LogType {
   CRM_PERSONS_IMPORT_STARTED
   CRM_PERSONS_IMPORT_COMPLETED
   CONVERSATION_DELETED
+  UPSELL_ITEM_CREATED
+  UPSELL_ITEM_MODIFIED
+  UPSELL_ITEM_DELETED
+  UPSELL_ITEM_STRIPE_PRICE_CREATED
+  UPSELL_ITEM_STRIPE_PRICE_MODIFIED
+  UPSELL_ITEM_STRIPE_PRICE_DELETED
+  UPSELL_ITEM_PRICE_CHANGED
 }

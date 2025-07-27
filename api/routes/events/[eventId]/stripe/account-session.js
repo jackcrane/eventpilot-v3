@@ -33,6 +33,9 @@ export const get = [
             payments: {
               statement_descriptor: event.slug.toUpperCase(),
             },
+            payouts: {
+              statement_descriptor: event.slug.toUpperCase(),
+            },
           },
         });
 

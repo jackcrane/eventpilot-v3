@@ -1,0 +1,70 @@
+.container {
+  max-width: 200px;
+  padding: 2px;
+  border-radius: 5px;
+  background-color: var(--tblr-bg-surface);
+  box-shadow: var(--tblr-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--tblr-border-color);
+}
+
+.image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-size: cover;
+  background-position: center;
+  border-radius: 3px 3px 0 0;
+}
+
+.image.gradient1 {
+  background: linear-gradient(to right, #ee0979, #ff6a00);
+}
+
+.image.gradient2 {
+  background: linear-gradient(to right, #f4c4f3, #fc67fa);
+}
+
+.image.gradient3 {
+  background: linear-gradient(to right, #00c3ff, #ffff1c);
+}
+
+.image.gradient4 {
+  background: linear-gradient(to right, #a1ffce, #faffd1);
+}
+
+.image.gradient5 {
+  background: linear-gradient(to right, #ffd89b, #19547b);
+}
+
+.image.gradient6 {
+  background: linear-gradient(to right, #fceabb, #f8b500);
+}
+
+.image.gradient7 {
+  background: linear-gradient(to right, #00d2ff, #3a7bd5);
+}
+
+.image.gradient8 {
+  background: linear-gradient(to right, #ff00ff, #ff6600);
+}
+
+.image.gradient9 {
+  background: linear-gradient(to right, #b3ffb3, #ff00ff);
+}
+
+.image.gradient10 {
+  background: linear-gradient(to right, #00b3ff, #66ff00);
+}
+
+.content {
+  margin-top: -30px;
+  padding-top: 15px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.75) 10px,
+    rgba(255, 255, 255, 1) 20px
+  );
+}
