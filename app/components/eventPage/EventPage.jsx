@@ -102,7 +102,7 @@ export const EventPage = ({
         {
           type: "item",
           href: `${base}/registration/builder`,
-          text: "Reg. Builder",
+          text: "Tiers & Periods",
           active: isActive(`${base}/registration/builder`),
           icon: <Icon i="lego" size={18} color="var(--tblr-yellow)" />,
         },
