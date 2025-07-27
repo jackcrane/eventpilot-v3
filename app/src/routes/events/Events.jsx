@@ -4,13 +4,15 @@ import { useEvents } from "../../../hooks/useEvents";
 import { EventCard } from "../../../components/eventCard/EventCard";
 import { Row } from "../../../util/Flex";
 import { WhatNext } from "../../../components/whatNext/WhatNext";
+import { useNavigate } from "react-router-dom";
 
 export const Events = () => {
-  const { events, loading, createEventModal, CreateEventModalElement } =
-    useEvents();
+  const { events, loading } = useEvents();
+
+  const navigate = useNavigate();
+
   return (
     <Page title="Home">
-      {CreateEventModalElement}
       <Typography.H5 className={"mb-0 text-secondary"}>
         EVENTPILOT
       </Typography.H5>
@@ -18,7 +20,7 @@ export const Events = () => {
       {loading && <Typography.Text>Loading...</Typography.Text>}
       <Row gap={2} align="flex-start" justify="space-between">
         <div style={{ flex: 1 }}>
-          <Button onClick={() => createEventModal()} className={"mb-3"}>
+          <Button onClick={() => navigate("/events/new")} className="mb-3">
             Create Event
           </Button>
           {events?.length === 0 ? (
