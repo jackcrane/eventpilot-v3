@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
-import { FormBuilder } from "../../../../../components/FormBuilderNew/FormBuilder";
+import { FormBuilder } from "../../../../../components/FormBuilder.v2/FormBuilder";
 import { useParticipantRegistrationForm } from "../../../../../hooks/useParticipantRegistrationForm";
 
 export const RegistrationFormBuilderPage = () => {
