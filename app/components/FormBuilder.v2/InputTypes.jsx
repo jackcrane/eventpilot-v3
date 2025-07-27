@@ -1,3 +1,5 @@
+import z from "zod";
+
 export const inputTypes = [
   {
     id: "text",
@@ -6,6 +8,7 @@ export const inputTypes = [
     icon: "cursor-text",
     iconColor: "var(--tblr-green)",
     supports: ["label", "placeholder", "description", "required"],
+    schema: z.string().min(1).max(255),
   },
   {
     id: "email",
@@ -14,6 +17,7 @@ export const inputTypes = [
     icon: "mail",
     iconColor: "var(--tblr-purple)",
     supports: ["label", "placeholder", "description", "required"],
+    schema: z.email(),
   },
   {
     id: "textarea",
@@ -22,6 +26,7 @@ export const inputTypes = [
     icon: "cursor-text",
     iconColor: "var(--tblr-yellow)",
     supports: ["label", "description", "required", "rows", "placeholder"],
+    schema: z.string().min(1),
   },
   {
     id: "checkbox",
@@ -30,6 +35,7 @@ export const inputTypes = [
     icon: "checkbox",
     iconColor: "var(--tblr-blue)",
     supports: ["label", "required"],
+    schema: z.boolean(),
   },
   {
     id: "dropdown",
@@ -42,6 +48,7 @@ export const inputTypes = [
       prompt: "Select an option...",
       options: [],
     },
+    schema: z.string().length(25),
   },
   {
     id: "richtext",

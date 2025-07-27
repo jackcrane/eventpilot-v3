@@ -13,6 +13,8 @@ import { useRegistrationConsumer } from "../../../hooks/useRegistrationConsumer"
 import { Icon } from "../../../util/Icon";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { FormConsumer } from "../../../components/FormConsumer.v2/FormConsumer";
+import { useParticipantRegistrationForm } from "../../../hooks/useParticipantRegistrationForm";
 
 export const RegisterPage = () => {
   const eventSlug = useReducedSubdomain();
@@ -22,55 +24,16 @@ export const RegisterPage = () => {
     error,
   } = useEvent({ eventId: eventSlug });
   const { loading, tiers } = useRegistrationConsumer({ eventId: event?.id });
+  const { pages } = useParticipantRegistrationForm({ eventId: event?.id });
 
   const [tier, setTier] = useState(null);
 
   return (
     <ConsumerPage title="Register" loading={loading || eventLoading}>
-      {tiers?.length > 0 ? (
-        <>
-          <Typography.H2>Step 1: Your Information</Typography.H2>
-          <Typography.H2>Step 2: Pick your Tier</Typography.H2>
-          <Typography.Text>
-            It is time to pick out what tier you want to register for.
-          </Typography.Text>
-          <EnclosedSelectGroup
-            value={tier}
-            items={tiers.map((t) => ({
-              label: (
-                <>
-                  <Typography.H3 className="mb-0">{t.name}</Typography.H3>
-                  <Typography.Text className="mb-3">
-                    {t.description}
-                  </Typography.Text>
-                  {t.disabled ? (
-                    <>
-                      <Typography.Text className="text-muted mb-0">
-                        This tier is not available at this time.
-                      </Typography.Text>
-                    </>
-                  ) : (
-                    <>
-                      <Badge color="green-lt">
-                        <span
-                          className="text-green"
-                          style={{ fontSize: "0.8rem" }}
-                        >
-                          ${parseInt(t.period.price)?.toFixed(2)}
-                        </span>
-                      </Badge>
-                    </>
-                  )}
-                </>
-              ),
-              value: t.id,
-              id: t.id,
-              disabled: t.disabled,
-            }))}
-            onChange={setTier}
-            direction="column"
-          />
-        </>
+      {tiers?.length > 0 && pages?.length > 0 ? (
+        <div className="mt-4">
+          <FormConsumer pages={pages} />
+        </div>
       ) : (
         <div>
           <Alert

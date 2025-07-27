@@ -24,7 +24,7 @@ export const useParticipantRegistrationForm = ({ eventId }) => {
   );
   const [mutationLoading, setMutationLoading] = useState(false);
 
-  const updateFields = async (data) => {
+  const updatePages = async (data) => {
     setMutationLoading(true);
     try {
       const promise = authFetch(key, {
@@ -51,13 +51,13 @@ export const useParticipantRegistrationForm = ({ eventId }) => {
   };
 
   return {
-    fields: data?.fields,
+    pages: data?.pages,
     loading: isLoading,
     mutationLoading,
     error,
     refetch: () => mutate(key),
     schema,
     schemaLoading,
-    updateFields,
+    updatePages,
   };
 };

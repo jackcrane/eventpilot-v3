@@ -5,7 +5,7 @@ import { useParticipantRegistrationForm } from "../../../../../hooks/useParticip
 
 export const RegistrationFormBuilderPage = () => {
   const { eventId } = useParams();
-  const { fields, loading, error, updateFields, mutationLoading } =
+  const { pages, loading, error, updatePages, mutationLoading } =
     useParticipantRegistrationForm({
       eventId,
     });
@@ -18,8 +18,8 @@ export const RegistrationFormBuilderPage = () => {
       loading={loading}
     >
       <FormBuilder
-        onSave={updateFields}
-        initialValues={fields}
+        onSave={updatePages}
+        initialValues={pages}
         loading={mutationLoading}
         error={error}
         requiredFieldTypes={[

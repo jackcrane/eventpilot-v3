@@ -9,6 +9,7 @@ export const FieldConsumer = ({
   error,
   onInput,
   forceNoMargin,
+  invalid,
   limitHeight = false,
 }) => {
   const isError = Boolean(error);
@@ -17,12 +18,13 @@ export const FieldConsumer = ({
     hint: field.description,
     required: field.required,
     placeholder: field.placeholder,
-    onInput,
+    onChange: onInput,
     variant: isError ? "danger" : undefined,
     value,
     autocomplete: field.autocompleteType,
-    className: forceNoMargin && "mb-0",
-    style: limitHeight && { maxHeight: "400px", overflowY: "auto" },
+    invalid,
+    className: forceNoMargin ? "mb-0" : "mb-3",
+    style: limitHeight ? { maxHeight: "400px", overflowY: "auto" } : undefined,
   };
 
   switch (field.type) {

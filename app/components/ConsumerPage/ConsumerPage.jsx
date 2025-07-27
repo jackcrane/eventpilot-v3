@@ -69,12 +69,8 @@ export const ConsumerPage = ({ children, title, loading }) => {
             support@geteventpilot.com
           </a>
           . We want to make sure {event.name} is a great event for everyone.
-          <br />
-          <br />
-          Never submit sensitive information like passwords or credit card
-          information in this form.{" "}
-          <a href="mailto:support@geteventpilot.com">Report abuse</a>.
         </Typography.Text>
+        <a href="mailto:support@geteventpilot.com">Report abuse</a>.
       </div>
     </div>
   );
