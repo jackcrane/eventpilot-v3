@@ -4,10 +4,15 @@ import { Row } from "../../util/Flex";
 import { MarkdownEditor } from "../markdown/MarkdownEditor";
 import { Icon } from "../../util/Icon";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import { inputTypes } from "./InputTypes";
 import styles from "./FormBuilder.module.css";
 
-export const FieldSettings = ({ field, pageName, onChange, onEditPage }) => {
+export const FieldSettings = ({
+  field,
+  pageName,
+  onChange,
+  onEditPage,
+  inputTypes,
+}) => {
   const [lastAddedId, setLastAddedId] = useState(null);
 
   const typeDef = inputTypes.find((t) => t.id === field.type);
@@ -166,7 +171,7 @@ export const FieldSettings = ({ field, pageName, onChange, onEditPage }) => {
         </div>
       )}
 
-      {supports("required") && (
+      {supports("required") && !field.fieldType && (
         <div>
           <label className="form-label">Field Required</label>
           <Checkbox

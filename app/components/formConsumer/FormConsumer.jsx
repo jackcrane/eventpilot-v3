@@ -52,6 +52,7 @@ export const FormConsumer = ({
           value={values[field.id] || ""}
           error={errors[field.id]}
           onInput={handleInput(field.id)}
+          eventId={eventId}
         />
       ))}
 

@@ -26,13 +26,11 @@ export const RegisterPage = () => {
   const { loading, tiers } = useRegistrationConsumer({ eventId: event?.id });
   const { pages } = useParticipantRegistrationForm({ eventId: event?.id });
 
-  const [tier, setTier] = useState(null);
-
   return (
     <ConsumerPage title="Register" loading={loading || eventLoading}>
       {tiers?.length > 0 && pages?.length > 0 ? (
         <div className="mt-4">
-          <FormConsumer pages={pages} />
+          <FormConsumer pages={pages} eventId={event?.id} />
         </div>
       ) : (
         <div>

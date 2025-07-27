@@ -3,19 +3,22 @@ import { Icon } from "../../util/Icon";
 import { Row } from "../../util/Flex";
 import { FieldConsumer } from "../FieldConsumer/FieldConsumer";
 import { Typography, Button } from "tabler-react-2";
-import { inputTypes } from "./InputTypes";
 
 export const FieldItemPreview = ({
   field,
   dragHandleProps,
   onDelete,
   onEdit,
+  inputTypes,
 }) => {
   // return JSON.stringify({ type: field.type });
   const typeDef = inputTypes.find((t) => t.id === field.type);
 
   return (
-    <div className={styles.fieldItemPreviewContainer}>
+    <div
+      className={styles.fieldItemPreviewContainer}
+      data-inputTypes={JSON.stringify(inputTypes)}
+    >
       <Row gap={1} align="center">
         <div {...dragHandleProps} className={styles.handleSmall}>
           <Icon i="grip-vertical" size={18} />
@@ -48,7 +51,12 @@ export const FieldItemPreview = ({
               <Icon i="pencil" />
             </Button>
           </Row>
-          <FieldConsumer field={field} forceNoMargin limitHeight={true} />
+          <FieldConsumer
+            field={field}
+            forceNoMargin
+            limitHeight={true}
+            inBuilder={true}
+          />
         </div>
       </Row>
     </div>

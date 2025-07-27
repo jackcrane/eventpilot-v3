@@ -92,7 +92,8 @@ export const FormBuilder = ({
     return ct;
   });
 
-  const mergedRequiredTypes = requiredFieldTypes.map((rt) => {
+  const mergedRequiredTypes = requiredFieldTypes.map((_rt) => {
+    let rt = { ..._rt, forced: true, required: true };
     if (!rt.baseType) return rt;
     const base = inputTypes.find((t) => t.id === rt.baseType);
     return {
@@ -161,7 +162,8 @@ export const FormBuilder = ({
       const newField = {
         id: Date.now().toString(),
         type: typeDef.baseType ?? typeDef.id,
-        fieldType: typeDef.fromRequiredFieldType ? typeDef.id : null,
+        fieldType:
+          typeDef.fromRequiredFieldType || typeDef.forced ? typeDef.id : null,
         ...typeDef.defaults,
       };
 
@@ -303,6 +305,7 @@ export const FormBuilder = ({
               <PageSettings page={selectedPage} onChange={handlePageChange} />
             ) : selectedField ? (
               <FieldSettings
+                inputTypes={allInputTypes}
                 field={selectedField}
                 onChange={handleFieldChange}
                 pageName={pages[selectedField.pageIndex]?.name}

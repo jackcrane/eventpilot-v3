@@ -5,7 +5,7 @@ import { Icon } from "../../util/Icon";
 import { FieldConsumer } from "../FieldConsumer/FieldConsumer";
 import { inputTypes } from "../FormBuilder.v2/InputTypes";
 
-export const FormConsumer = ({ pages, showSteps = true }) => {
+export const FormConsumer = ({ pages, showSteps = true, eventId }) => {
   const [step, setStep] = useState(0);
   const [responses, setResponses] = useState({});
   const [touched, setTouched] = useState({});
@@ -55,6 +55,7 @@ export const FormConsumer = ({ pages, showSteps = true }) => {
               value={responses[field.id]}
               invalid={invalid}
               onInput={(v) => handleInput(field.id, v)}
+              eventId={eventId}
             />
           </div>
         );

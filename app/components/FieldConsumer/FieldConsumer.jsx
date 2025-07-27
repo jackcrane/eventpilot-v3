@@ -2,6 +2,7 @@
 import React from "react";
 import { Input, DropdownInput, Checkbox } from "tabler-react-2";
 import { MarkdownRender } from "../markdown/MarkdownRenderer";
+import { RegistrationTierListing } from "../RegistrationTierListing/RegistrationTierListing";
 
 export const FieldConsumer = ({
   field,
@@ -11,6 +12,8 @@ export const FieldConsumer = ({
   forceNoMargin,
   invalid,
   limitHeight = false,
+  inBuilder = false,
+  eventId,
 }) => {
   const isError = Boolean(error);
   const commonProps = {
@@ -90,6 +93,24 @@ export const FieldConsumer = ({
           label={field.label}
           checked={value}
           onChange={(v) => onInput(v)}
+        />
+      );
+    case "registrationtier":
+    case "registrationTier":
+      return inBuilder ? (
+        <>
+          <label className="form-label">Registration Tier</label>
+          <div className="mb-3 p-2 bg-gray-200">
+            A listing of the registration tiers you have set up will appear
+            here. A preview is not shown in the form builder, but will be
+            present when the form is viewed.
+          </div>
+        </>
+      ) : (
+        <RegistrationTierListing
+          value={value}
+          setTier={(v) => onInput(v.id)}
+          eventId={eventId}
         />
       );
     default:

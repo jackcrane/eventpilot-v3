@@ -148,6 +148,7 @@ export const FormPreview = ({
                                   >
                                     <FieldItemPreview
                                       field={field}
+                                      inputTypes={inputTypes}
                                       dragHandleProps={
                                         fieldProv.dragHandleProps
                                       }

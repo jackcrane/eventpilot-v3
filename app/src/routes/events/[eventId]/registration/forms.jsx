@@ -39,6 +39,18 @@ export const RegistrationFormBuilderPage = () => {
             icon: "mail",
             iconColor: "var(--tblr-purple)",
           },
+          {
+            id: "registrationtier",
+            label: "Registration Tier",
+            description: "Display a dropdown to collect a single answer.",
+            icon: "ticket",
+            iconColor: "var(--tblr-orange)",
+            supports: [],
+            defaults: {
+              prompt: "Select an option...",
+              options: [],
+            },
+          },
         ]}
       />
     </EventPage>
