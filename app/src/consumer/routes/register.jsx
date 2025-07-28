@@ -40,7 +40,10 @@ export const RegisterPage = () => {
     <ConsumerPage title="Register" loading={loading || eventLoading}>
       {requiresPayment ? (
         <>
-          <PaymentElement paymentIntentClientSecret={stripePIClientSecret} />
+          <PaymentElement
+            paymentIntentClientSecret={stripePIClientSecret}
+            eventStripeConnectedAccountId={event.stripeConnectedAccountId}
+          />
         </>
       ) : tiers?.length > 0 && pages?.length > 0 ? (
         <div className="mt-4">

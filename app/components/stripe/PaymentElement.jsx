@@ -15,9 +15,12 @@ export const PaymentElement = ({
   onFinish = () => {},
   onError = () => {},
   total,
+  eventStripeConnectedAccountId,
 }) => (
   <Elements
-    stripe={loadStripe(import.meta.env.VITE_STRIPE_PK)}
+    stripe={loadStripe(import.meta.env.VITE_STRIPE_PK, {
+      stripeAccount: eventStripeConnectedAccountId,
+    })}
     options={{ clientSecret: paymentIntentClientSecret }}
   >
     <_PaymentElement
@@ -92,7 +95,6 @@ const _PaymentElement = ({
   if (success) {
     return (
       <div>
-        <Confetti width={800} recycle={false} numberOfPieces={1000} />
         <Alert variant="success" title="Success">
           Your payment has been successfully processed. You will receive an
           email with your receipt and details on your registration shortly.

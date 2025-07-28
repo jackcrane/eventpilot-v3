@@ -1,5 +1,5 @@
 name: CI
-run-name: Deploy commmit ${{ github.event.head_commit.message }} by ${{ github.actor }}
+run-name: Deploy run \#${{ github.run_number }} - commit "${{ github.event.head_commit.message }}" by ${{ github.actor }}
 
 on:
   push:

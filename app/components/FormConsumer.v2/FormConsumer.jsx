@@ -1,6 +1,4 @@
-// app/components/FormConsumer.v2/FormConsumer.jsx
-
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Steps, Typography, Button } from "tabler-react-2";
 import { Row } from "../../util/Flex";
 import { Icon } from "../../util/Icon";
@@ -17,11 +15,14 @@ export const FormConsumer = ({
   const [step, setStep] = useState(0);
   const [responses, setResponses] = useState({});
   const [touched, setTouched] = useState({});
-
-  // NEW: separate state for tier and upsells
   const [selectedRegistrationTier, setSelectedRegistrationTier] =
     useState(null);
   const [selectedUpsells, setSelectedUpsells] = useState([]);
+
+  // Scroll to top on page change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
 
   const validateField = (field) => {
     const def = inputTypes.find((t) => t.id === field.type.toLowerCase());
@@ -35,17 +36,17 @@ export const FormConsumer = ({
     return schema.safeParse(value).success;
   };
 
-  // Updated to require a tier if there’s a registrationtier field
-  const isPageValid = useMemo(() => {
-    return pages[step].fields.every((field) => {
-      const type = field.type.toLowerCase();
-      if (type === "registrationtier") {
-        return field.required ? selectedRegistrationTier !== null : true;
-      }
-      // upsells aren’t required by default
-      return validateField(field);
-    });
-  }, [pages, step, responses, selectedRegistrationTier]);
+  const isPageValid = useMemo(
+    () =>
+      pages[step].fields.every((field) => {
+        const type = field.type.toLowerCase();
+        if (type === "registrationtier") {
+          return field.required ? selectedRegistrationTier !== null : true;
+        }
+        return validateField(field);
+      }),
+    [pages, step, responses, selectedRegistrationTier]
+  );
 
   const handleInput = (fieldId, value) => {
     setResponses((prev) => ({ ...prev, [fieldId]: value }));
@@ -82,7 +83,6 @@ export const FormConsumer = ({
             ? selectedRegistrationTier !== null || !field.required
             : validateField(field));
 
-        // decide where to keep this field’s state
         const type = field.type.toLowerCase();
         const value =
           type === "registrationtier"
@@ -137,7 +137,10 @@ export const FormConsumer = ({
           <Button
             variant="primary"
             disabled={!isPageValid}
-            onClick={handleSubmit}
+            onClick={() => {
+              handleSubmit();
+              window.scrollTo(0, 0);
+            }}
             loading={mutationLoading}
           >
             <Row gap={1} align="center">

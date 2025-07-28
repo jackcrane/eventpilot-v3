@@ -141,9 +141,15 @@ export const post = [
             skipDuplicates: true, // optional: avoids error if already exists
           });
 
+          const event = await tx.event.findUnique({ where: { id: eventId } });
+
           // 4) Figure out if payment is required
           const [requiresPayment, stripePIClientSecret, price] =
-            await registrationRequiresPayment(upsells, selectedPeriodPricing);
+            await registrationRequiresPayment(
+              upsells,
+              selectedPeriodPricing,
+              event
+            );
 
           const fullRegistration = await tx.registration.findUnique({
             where: { id: registration.id },
