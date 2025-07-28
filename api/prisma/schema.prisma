@@ -349,8 +349,33 @@ model Event {
   registrations       Registration[]
   teams               Team[]
   registrationPages   RegistrationPage[]
+  ledgerItems         LedgerItem[]
 
   stripeConnectedAccountId String?
+}
+
+model LedgerItem {
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  amount Float
+
+  source LedgerItemSource
+
+  stripe_paymentIntentId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  logs      Logs[]
+}
+
+enum LedgerItemSource {
+  REGISTRATION
+  DONATION
+  PAYMENT
+  REFUND
 }
 
 model CrmPersonsImport {
@@ -975,6 +1000,9 @@ model Logs {
   registrationPeriodPricingId String?
   registrationPeriodPricing   RegistrationPeriodPricing? @relation(fields: [registrationPeriodPricingId], references: [id], onDelete: Cascade)
 
+  ledgerItemId String?
+  ledgerItem   LedgerItem? @relation(fields: [ledgerItemId], references: [id], onDelete: Cascade)
+
   type LogType
 
   ip   String?
@@ -1034,6 +1062,8 @@ enum LogType {
   STRIPE_PRICE_CREATED
   STRIPE_PRICE_UPDATED
   STRIPE_PRICE_DELETED
+  STRIPE_WEBHOOK_RECEIVED
+  STRIPE_PAYMENT_INTENT_SUCCEEDED
   CRM_FIELD_CREATED
   CRM_FIELD_MODIFIED
   CRM_FIELD_DELETED
@@ -1055,4 +1085,8 @@ enum LogType {
   REGISTRATION_CREATED
   REGISTRATION_UPDATED
   REGISTRATION_DELETED
+  REGISTRATION_CONFIRMED
+  LEDGER_ITEM_CREATED
+  LEDGER_ITEM_UPDATED
+  LEDGER_ITEM_DELETED
 }

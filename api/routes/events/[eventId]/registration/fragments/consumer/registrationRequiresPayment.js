@@ -3,7 +3,8 @@ import { stripe } from "#stripe";
 export const registrationRequiresPayment = async (
   upsells,
   selectedPeriodPricing,
-  event
+  event,
+  registrationId
 ) => {
   let total = upsells.reduce((sum, u) => sum + u.price, 0);
   total += selectedPeriodPricing.price;
@@ -11,14 +12,18 @@ export const registrationRequiresPayment = async (
   const requiresPayment = total > 0;
 
   if (requiresPayment) {
-    const stripePIClientSecret = await setupStripePI(total, event);
+    const stripePIClientSecret = await setupStripePI(
+      total,
+      event,
+      registrationId
+    );
     return [true, stripePIClientSecret, total];
   }
 
   return [false, null, null];
 };
 
-export const setupStripePI = async (price, event) => {
+export const setupStripePI = async (price, event, registrationId) => {
   const pi = await stripe.paymentIntents.create(
     {
       amount: price * 100,
@@ -30,6 +35,7 @@ export const setupStripePI = async (price, event) => {
       metadata: {
         eventId: event.id,
         scope: "EVENTPILOT:REGISTRATION",
+        registrationId,
       },
     },
     {

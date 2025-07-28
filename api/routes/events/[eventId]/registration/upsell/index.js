@@ -96,6 +96,11 @@ export const get = [
       include: {
         images: true,
         registrations: {
+          where: {
+            registration: {
+              finalized: true,
+            },
+          },
           select: {
             quantity: true,
           },

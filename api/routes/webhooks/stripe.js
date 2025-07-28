@@ -12,6 +12,14 @@ export const post = [
   async (request, response) => {
     const event = request.body;
 
+    await prisma.logs.create({
+      data: {
+        type: "STRIPE_WEBHOOK_RECEIVED",
+        data: event,
+        eventId: event.data?.object?.metadata?.eventId,
+      },
+    });
+
     try {
       switch (event.type) {
         case "payment_method.attached": {
@@ -94,6 +102,50 @@ export const post = [
           break;
         }
 
+        case "payment_intent.succeeded": {
+          const paymentIntent = event.data.object;
+          const metadata = paymentIntent.metadata;
+          const { scope } = metadata;
+
+          await prisma.logs.create({
+            data: {
+              type: LogType.STRIPE_PAYMENT_INTENT_SUCCEEDED,
+              data: paymentIntent,
+            },
+          });
+
+          if (scope === "EVENTPILOT:REGISTRATION") {
+            const { eventId, registrationId } = metadata;
+            const registration = await prisma.registration.update({
+              where: {
+                id: registrationId,
+              },
+              data: {
+                finalized: true,
+              },
+            });
+
+            await prisma.logs.create({
+              data: {
+                type: LogType.REGISTRATION_CONFIRMED,
+                data: {
+                  registration,
+                  paymentIntent,
+                },
+                eventId,
+                registrationId,
+              },
+            });
+          } else {
+            console.warn(
+              `[STRIPE] PaymentIntent ${paymentIntent.id} succeeded but scope is not EVENTPILOT:REGISTRATION`
+            );
+            break;
+          }
+
+          break;
+        }
+
         default:
           console.log(`[STRIPE] Unhandled event type ${event.type}`);
       }
@@ -105,3 +157,5 @@ export const post = [
     }
   },
 ];
+
+// payment_intent.succeeded, charge.succeeded, charge.updated

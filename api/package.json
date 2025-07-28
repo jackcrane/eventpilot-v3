@@ -13,7 +13,8 @@
     "email:dev": "cd ./react-email && yarn dev",
     "coverage": "yarn test --coverage",
     "lint": "eslint .",
-    "tunnel": "cloudflared tunnel run --token eyJhIjoiNjUzYzAyZjY5YjQzYWE4YmU1ZjRhY2U3Y2FjMDJkYmQiLCJ0IjoiZTIxOTg4OWUtNGMzOS00OWZiLWJlOTItYWU2MDc3NGE3Mzc2IiwicyI6IlpqVTFZVGN6TVdFdE56SmlaQzAwT1RWa0xXRTJOalV0WldZMVltTXpOR0ZtTXpabSJ9"
+    "tunnel": "cloudflared tunnel run --token eyJhIjoiNjUzYzAyZjY5YjQzYWE4YmU1ZjRhY2U3Y2FjMDJkYmQiLCJ0IjoiZTIxOTg4OWUtNGMzOS00OWZiLWJlOTItYWU2MDc3NGE3Mzc2IiwicyI6IlpqVTFZVGN6TVdFdE56SmlaQzAwT1RWa0xXRTJOalV0WldZMVltTXpOR0ZtTXpabSJ9",
+    "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
   },
   "keywords": [],
   "author": "",

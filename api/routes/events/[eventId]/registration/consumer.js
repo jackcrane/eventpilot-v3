@@ -148,7 +148,8 @@ export const post = [
             await registrationRequiresPayment(
               upsells,
               selectedPeriodPricing,
-              event
+              event,
+              registration.id
             );
 
           const fullRegistration = await tx.registration.findUnique({
