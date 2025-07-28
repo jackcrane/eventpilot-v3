@@ -893,6 +893,7 @@ enum RegistrationFieldType {
   CHECKBOX
   DROPDOWN
   REGISTRATIONTIER
+  UPSELLS
 }
 
 model Logs {

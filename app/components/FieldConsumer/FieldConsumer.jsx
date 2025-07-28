@@ -3,6 +3,7 @@ import React from "react";
 import { Input, DropdownInput, Checkbox } from "tabler-react-2";
 import { MarkdownRender } from "../markdown/MarkdownRenderer";
 import { RegistrationTierListing } from "../RegistrationTierListing/RegistrationTierListing";
+import { RegistrationUpsellListing } from "../RegistrationUpsellListing/RegistrationUpsellListing";
 
 export const FieldConsumer = ({
   field,
@@ -111,6 +112,23 @@ export const FieldConsumer = ({
           value={value}
           setTier={(v) => onInput(v.id)}
           eventId={eventId}
+        />
+      );
+    case "upsells":
+      return inBuilder ? (
+        <>
+          <label className="form-label">Upsells</label>
+          <div className="mb-3 p-2 bg-gray-200">
+            A listing of the upsells you have set up will appear here. A preview
+            is not shown in the form builder, but will be present when the form
+            is viewed.
+          </div>
+        </>
+      ) : (
+        <RegistrationUpsellListing
+          eventId={eventId}
+          value={value}
+          setUpsell={(v) => onInput(v)}
         />
       );
     default:

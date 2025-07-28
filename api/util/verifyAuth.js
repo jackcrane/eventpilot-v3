@@ -59,11 +59,9 @@ export const verifyAuth =
             const minRequiredRoleLevel = Math.min(...requiredRoleLevels);
 
             if (userRoleLevel < minRequiredRoleLevel && !allowUnauthenticated) {
-              return res
-                .status(403)
-                .json({
-                  message: "Access forbidden: insufficient permissions",
-                });
+              return res.status(403).json({
+                message: "Access forbidden: insufficient permissions",
+              });
             }
 
             next();

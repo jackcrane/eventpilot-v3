@@ -40,7 +40,7 @@ export const FormConsumer = ({ pages, showSteps = true, eventId }) => {
             text: p.name || `Page ${i + 1}`,
             active: step === i,
           }))}
-          className="mb-1"
+          className="mb-3"
         />
       )}
 

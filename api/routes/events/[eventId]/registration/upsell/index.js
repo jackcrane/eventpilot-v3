@@ -88,7 +88,7 @@ export const post = [
 ];
 
 export const get = [
-  verifyAuth(["manager"]),
+  verifyAuth(["manager"], true),
   async (req, res) => {
     const { eventId } = req.params;
     const upsells = await prisma.upsellItem.findMany({
@@ -103,18 +103,28 @@ export const get = [
       },
     });
 
-    const upsellsWithCount = upsells.map((item) => {
+    let upsellsToReturn = upsells.map((item) => {
       const sold = item.registrations.reduce((sum, r) => sum + r.quantity, 0);
       return {
         ...item,
-        registrations: undefined,
         sold,
+        available: item.inventory > sold,
       };
     });
 
-    //upsells[0].registrations[0].quantity
+    if (!req.hasUser || req.user.accountType !== "MANAGER") {
+      upsellsToReturn = upsellsToReturn.map((item) => ({
+        ...item,
+        sold: undefined,
+        registrations: undefined,
+        inventory: undefined,
+        stripe_priceId: undefined,
+        stripe_productId: undefined,
+      }));
+    }
+
     return res.json({
-      upsells: upsellsWithCount,
+      upsells: upsellsToReturn,
     });
   },
 ];
