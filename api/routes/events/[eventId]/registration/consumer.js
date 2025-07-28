@@ -80,10 +80,6 @@ export const post = [
       const { responses, selectedRegistrationTier, selectedUpsells } =
         parsed.data;
 
-      const { event } = await prisma.event.findUnique({
-        where: { id: eventId },
-      });
-
       const fieldIds = Object.keys(responses);
       const fieldTypes = await prisma.registrationField.findMany({
         where: { id: { in: fieldIds } },

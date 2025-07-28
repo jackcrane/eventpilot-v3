@@ -1,6 +1,5 @@
 import { prisma } from "#prisma";
 import { stripe } from "#stripe";
-import { LogType } from "@prisma/client";
 
 export const deleteMissingPeriods = async (
   tx,
