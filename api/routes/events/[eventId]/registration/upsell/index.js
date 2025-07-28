@@ -93,9 +93,29 @@ export const get = [
     const { eventId } = req.params;
     const upsells = await prisma.upsellItem.findMany({
       where: { eventId, deleted: false },
-      include: { images: true },
+      include: {
+        images: true,
+        registrations: {
+          select: {
+            quantity: true,
+          },
+        },
+      },
     });
-    return res.json({ upsells });
+
+    const upsellsWithCount = upsells.map((item) => {
+      const sold = item.registrations.reduce((sum, r) => sum + r.quantity, 0);
+      return {
+        ...item,
+        registrations: undefined,
+        sold,
+      };
+    });
+
+    //upsells[0].registrations[0].quantity
+    return res.json({
+      upsells: upsellsWithCount,
+    });
   },
 ];
 

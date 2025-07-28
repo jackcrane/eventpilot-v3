@@ -55,6 +55,11 @@ export const UpsellsPage = () => {
               accessor: "inventory",
               render: (v) => (v === -1 ? "Unlimited" : v),
             },
+            {
+              label: "Sold",
+              accessor: "sold",
+              render: (v) => v,
+            },
           ]}
           data={upsells}
         />
