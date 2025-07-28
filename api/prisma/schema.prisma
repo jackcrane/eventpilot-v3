@@ -702,6 +702,7 @@ model RegistrationTier {
   pricingTiers  RegistrationPeriodPricing[]
   registrations Registration[]
 
+  deleted Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -721,6 +722,7 @@ model RegistrationPeriodPricing {
   stripe_productId String?
   stripe_priceId String?
 
+  deleted Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -740,6 +742,7 @@ model RegistrationPeriod {
   endTime     DateTime
   endTimeTz   String
 
+  deleted Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

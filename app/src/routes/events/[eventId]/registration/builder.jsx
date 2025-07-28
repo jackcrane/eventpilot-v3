@@ -397,7 +397,7 @@ export const RegistrationBuilder = () => {
           Set up at least one registration tier before adding price periods.
         </Alert>
       )}
-      {Object.keys(fieldErrors)?.length > 0 && (
+      {Object.keys(fieldErrors || {})?.length > 0 && (
         <Alert variant="danger" title="Errors">
           You have some errors in the form above. Please fix them and try again.
         </Alert>
