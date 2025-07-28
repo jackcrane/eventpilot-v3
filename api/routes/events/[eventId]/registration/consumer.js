@@ -3,6 +3,7 @@ import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { mapInputToInsert } from "./fragments/consumer/mapInputToInsert";
 import { LogType } from "@prisma/client";
+import { registrationRequiresPayment } from "./fragments/consumer/registrationRequiresPayment";
 
 const registrationSubmissionSchema = z.object({
   responses: z.record(z.string(), z.any()),
@@ -131,6 +132,9 @@ export const post = [
 
           // 3) Connect upsells
           // TODO: Make sure upsells are available before connecting
+          const upsells = await tx.upsellItem.findMany({
+            where: { id: { in: selectedUpsells } },
+          });
 
           await tx.registrationUpsell.createMany({
             data: selectedUpsells.map((upsellItemId) => ({
@@ -140,6 +144,10 @@ export const post = [
             })),
             skipDuplicates: true, // optional: avoids error if already exists
           });
+
+          // 4) Figure out if payment is required
+          const [requiresPayment, stripePIClientSecret, price] =
+            await registrationRequiresPayment(upsells, selectedPeriodPricing);
 
           const fullRegistration = await tx.registration.findUnique({
             where: { id: registration.id },
@@ -176,7 +184,12 @@ export const post = [
             ],
           });
 
-          return fullRegistration;
+          return {
+            registration: fullRegistration,
+            stripePIClientSecret,
+            requiresPayment,
+            price,
+          };
         },
         {
           timeout: 120_000,

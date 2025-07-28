@@ -7,7 +7,13 @@ import { Icon } from "../../util/Icon";
 import { FieldConsumer } from "../FieldConsumer/FieldConsumer";
 import { inputTypes } from "../FormBuilder.v2/InputTypes";
 
-export const FormConsumer = ({ pages, showSteps = true, eventId }) => {
+export const FormConsumer = ({
+  pages,
+  showSteps = true,
+  eventId,
+  onSubmit,
+  mutationLoading,
+}) => {
   const [step, setStep] = useState(0);
   const [responses, setResponses] = useState({});
   const [touched, setTouched] = useState({});
@@ -52,7 +58,7 @@ export const FormConsumer = ({ pages, showSteps = true, eventId }) => {
       selectedRegistrationTier,
       selectedUpsells: selectedUpsells.map((u) => u.value),
     };
-    console.log(data);
+    onSubmit?.(data);
   };
 
   return (
@@ -132,6 +138,7 @@ export const FormConsumer = ({ pages, showSteps = true, eventId }) => {
             variant="primary"
             disabled={!isPageValid}
             onClick={handleSubmit}
+            loading={mutationLoading}
           >
             <Row gap={1} align="center">
               Submit
@@ -140,11 +147,6 @@ export const FormConsumer = ({ pages, showSteps = true, eventId }) => {
           </Button>
         )}
       </Row>
-      {JSON.stringify({
-        responses,
-        selectedRegistrationTier,
-        selectedUpsells: selectedUpsells.map((u) => u.value),
-      })}
     </>
   );
 };

@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { FormConsumer } from "../../../components/FormConsumer.v2/FormConsumer";
 import { useParticipantRegistrationForm } from "../../../hooks/useParticipantRegistrationForm";
+import { PaymentElement } from "../../../components/stripe/PaymentElement";
 
 export const RegisterPage = () => {
   const eventSlug = useReducedSubdomain();
@@ -23,14 +24,32 @@ export const RegisterPage = () => {
     loading: eventLoading,
     error,
   } = useEvent({ eventId: eventSlug });
-  const { loading, tiers } = useRegistrationConsumer({ eventId: event?.id });
+  const {
+    loading,
+    tiers,
+    submit,
+    mutationLoading,
+    requiresPayment,
+    stripePIClientSecret,
+  } = useRegistrationConsumer({
+    eventId: event?.id,
+  });
   const { pages } = useParticipantRegistrationForm({ eventId: event?.id });
 
   return (
     <ConsumerPage title="Register" loading={loading || eventLoading}>
-      {tiers?.length > 0 && pages?.length > 0 ? (
+      {requiresPayment ? (
+        <>
+          <PaymentElement paymentIntentClientSecret={stripePIClientSecret} />
+        </>
+      ) : tiers?.length > 0 && pages?.length > 0 ? (
         <div className="mt-4">
-          <FormConsumer pages={pages} eventId={event?.id} />
+          <FormConsumer
+            pages={pages}
+            eventId={event?.id}
+            onSubmit={submit}
+            mutationLoading={mutationLoading}
+          />
         </div>
       ) : (
         <div>
