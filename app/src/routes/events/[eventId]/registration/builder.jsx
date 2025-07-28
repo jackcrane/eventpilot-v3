@@ -60,6 +60,7 @@ export const TiersEditor = ({
 );
 
 export const RegistrationBuilder = () => {
+  const nextLocalTierId = useRef(0);
   const [tiers, setTiers] = useState([]);
   const [periods, setPeriods] = useState([]);
   const { eventId } = useParams();
@@ -94,8 +95,8 @@ export const RegistrationBuilder = () => {
   }, [_tiers, _periods]);
 
   const addTier = () => {
-    const newId = tiers.length ? Math.max(...tiers.map((t) => t.id)) + 1 : 0;
-    setTiers((prev) => [...prev, { id: newId, name: "" }]);
+    const newId = nextLocalTierId.current++;
+    setTiers((prev) => [...prev, { id: newId, name: "", description: "" }]);
     setPeriods((prev) =>
       prev.map((p) => ({
         ...p,
@@ -226,8 +227,15 @@ export const RegistrationBuilder = () => {
       </Typography.Text>
 
       {periods.length > 0 && tiers.length > 0 && (
-        <div className="table-responsive mb-3">
-          <table className="table table-bordered table-responsive">
+        <div style={{ width: "100%", overflowX: "auto" }}>
+          <table
+            className="table table-bordered"
+            style={{
+              display: "inline-table",
+              minWidth: "max-content",
+              tableLayout: "auto",
+            }}
+          >
             <thead>
               <tr>
                 <th>Period</th>

@@ -89,7 +89,9 @@ export const Page = ({
         )}
         <div
           style={{
-            width: "100%",
+            // width: "100%",
+            flex: 1,
+            minWidth: 0,
             // overflowX: allowOverflow ?  : "hidden",
             padding: padding ? 4 : 0,
             paddingBottom: 100,
