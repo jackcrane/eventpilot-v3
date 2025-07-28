@@ -47,6 +47,7 @@ export const verifyAuth =
 
             // Attach the user to the request object
             req.user = user;
+            req.hasUser = true;
 
             // Get user's role level
             const userRoleLevel =

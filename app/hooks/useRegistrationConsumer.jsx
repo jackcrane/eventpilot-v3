@@ -9,7 +9,6 @@ export const useRegistrationConsumer = ({ eventId }) => {
 
   return {
     tiers: data?.tiers,
-    fields: data?.fields,
     loading: isLoading,
     error,
     refetch: () => mutate(key),

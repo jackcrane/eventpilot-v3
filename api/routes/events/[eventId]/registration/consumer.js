@@ -1,4 +1,14 @@
 import { prisma } from "#prisma";
+import { serializeError } from "#serializeError";
+import { z } from "zod";
+import { mapInputToInsert } from "./fragments/consumer/mapInputToInsert";
+import { LogType } from "@prisma/client";
+
+const registrationSubmissionSchema = z.object({
+  responses: z.record(z.string(), z.any()),
+  selectedRegistrationTier: z.string(),
+  selectedUpsells: z.array(z.string()),
+});
 
 export const get = [
   async (req, res) => {
@@ -53,6 +63,131 @@ export const get = [
       };
     });
 
-    res.json({ tiers, fields: [] });
+    res.json({ tiers });
+  },
+];
+
+export const post = [
+  async (req, res) => {
+    try {
+      const { eventId } = req.params;
+      const parsed = registrationSubmissionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: serializeError(parsed) });
+      }
+
+      const { responses, selectedRegistrationTier, selectedUpsells } =
+        parsed.data;
+
+      const { event } = await prisma.event.findUnique({
+        where: { id: eventId },
+      });
+
+      const fieldIds = Object.keys(responses);
+      const fieldTypes = await prisma.registrationField.findMany({
+        where: { id: { in: fieldIds } },
+      });
+
+      // TODO: Right now we are just going to trust the data is valid and nothing required is missing.
+
+      // Create a transaction
+      const transaction = await prisma.$transaction(
+        async (tx) => {
+          // 1) Create a new registration
+          const registration = await tx.registration.create({
+            data: {
+              eventId,
+            },
+          });
+
+          const inserts = mapInputToInsert(
+            responses,
+            fieldTypes,
+            registration.id
+          );
+
+          await tx.registrationFieldResponse.createMany({
+            data: inserts,
+          });
+
+          // 2) Update the registration tier
+          const selectedPeriodPricing =
+            await tx.registrationPeriodPricing.findUnique({
+              where: { id: selectedRegistrationTier },
+            });
+
+          if (!selectedPeriodPricing) {
+            throw new Error("Invalid registration tier");
+          }
+
+          await tx.registration.update({
+            where: { id: registration.id },
+            data: {
+              registrationPeriodPricingId: selectedPeriodPricing.id,
+              registrationTierId: selectedPeriodPricing.registrationTierId,
+              pricingTierId: selectedPeriodPricing.pricingTierId,
+            },
+          });
+
+          // 3) Connect upsells
+          // TODO: Make sure upsells are available before connecting
+
+          await tx.registrationUpsell.createMany({
+            data: selectedUpsells.map((upsellItemId) => ({
+              registrationId: registration.id,
+              upsellItemId,
+              quantity: 1,
+            })),
+            skipDuplicates: true, // optional: avoids error if already exists
+          });
+
+          const fullRegistration = await tx.registration.findUnique({
+            where: { id: registration.id },
+            include: {
+              registrationTier: true,
+              upsells: true,
+              fieldResponses: true,
+            },
+          });
+
+          await tx.logs.createMany({
+            data: [
+              {
+                type: LogType.REGISTRATION_CREATED,
+                eventId,
+                ip: req.ip,
+                data: JSON.stringify(fullRegistration),
+                registrationId: registration.id,
+              },
+              {
+                type: LogType.REGISTRATION_PERIOD_PRICING_SOLD,
+                eventId,
+                ip: req.ip,
+                registrationPeriodPricingId: selectedPeriodPricing.id,
+                registrationId: registration.id,
+              },
+              ...selectedUpsells.map((u) => ({
+                type: LogType.UPSELL_SOLD,
+                eventId,
+                ip: req.ip,
+                upsellItemId: u,
+                registrationId: registration.id,
+              })),
+            ],
+          });
+
+          return fullRegistration;
+        },
+        {
+          timeout: 120_000,
+          maxWait: 30_000,
+        }
+      );
+
+      return res.json({ registration: transaction });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error });
+    }
   },
 ];

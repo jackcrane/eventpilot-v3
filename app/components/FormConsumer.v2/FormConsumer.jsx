@@ -1,3 +1,5 @@
+// app/components/FormConsumer.v2/FormConsumer.jsx
+
 import { useState, useMemo } from "react";
 import { Steps, Typography, Button } from "tabler-react-2";
 import { Row } from "../../util/Flex";
@@ -9,6 +11,11 @@ export const FormConsumer = ({ pages, showSteps = true, eventId }) => {
   const [step, setStep] = useState(0);
   const [responses, setResponses] = useState({});
   const [touched, setTouched] = useState({});
+
+  // NEW: separate state for tier and upsells
+  const [selectedRegistrationTier, setSelectedRegistrationTier] =
+    useState(null);
+  const [selectedUpsells, setSelectedUpsells] = useState([]);
 
   const validateField = (field) => {
     const def = inputTypes.find((t) => t.id === field.type.toLowerCase());
@@ -22,14 +29,30 @@ export const FormConsumer = ({ pages, showSteps = true, eventId }) => {
     return schema.safeParse(value).success;
   };
 
-  const isPageValid = useMemo(
-    () => pages[step].fields.every(validateField),
-    [pages, step, responses]
-  );
+  // Updated to require a tier if there’s a registrationtier field
+  const isPageValid = useMemo(() => {
+    return pages[step].fields.every((field) => {
+      const type = field.type.toLowerCase();
+      if (type === "registrationtier") {
+        return field.required ? selectedRegistrationTier !== null : true;
+      }
+      // upsells aren’t required by default
+      return validateField(field);
+    });
+  }, [pages, step, responses, selectedRegistrationTier]);
 
   const handleInput = (fieldId, value) => {
     setResponses((prev) => ({ ...prev, [fieldId]: value }));
     setTouched((prev) => ({ ...prev, [fieldId]: true }));
+  };
+
+  const handleSubmit = () => {
+    const data = {
+      responses,
+      selectedRegistrationTier,
+      selectedUpsells: selectedUpsells.map((u) => u.value),
+    };
+    console.log(data);
   };
 
   return (
@@ -47,14 +70,34 @@ export const FormConsumer = ({ pages, showSteps = true, eventId }) => {
       <Typography.H1>{pages[step]?.name || `Page ${step + 1}`}</Typography.H1>
 
       {pages[step]?.fields.map((field) => {
-        const invalid = touched[field.id] && !validateField(field);
+        const invalid =
+          touched[field.id] &&
+          !(field.type.toLowerCase() === "registrationtier"
+            ? selectedRegistrationTier !== null || !field.required
+            : validateField(field));
+
+        // decide where to keep this field’s state
+        const type = field.type.toLowerCase();
+        const value =
+          type === "registrationtier"
+            ? selectedRegistrationTier
+            : type === "upsells"
+            ? selectedUpsells
+            : responses[field.id];
+        const onInput =
+          type === "registrationtier"
+            ? (v) => setSelectedRegistrationTier(v)
+            : type === "upsells"
+            ? (v) => setSelectedUpsells(v)
+            : (v) => handleInput(field.id, v);
+
         return (
           <div key={field.id} className="mb-4">
             <FieldConsumer
-              field={{ ...field, type: field.type.toLowerCase() }}
-              value={responses[field.id]}
+              field={{ ...field, type }}
+              value={value}
               invalid={invalid}
-              onInput={(v) => handleInput(field.id, v)}
+              onInput={onInput}
               eventId={eventId}
             />
           </div>
@@ -88,7 +131,7 @@ export const FormConsumer = ({ pages, showSteps = true, eventId }) => {
           <Button
             variant="primary"
             disabled={!isPageValid}
-            onClick={() => null}
+            onClick={handleSubmit}
           >
             <Row gap={1} align="center">
               Submit
@@ -97,6 +140,11 @@ export const FormConsumer = ({ pages, showSteps = true, eventId }) => {
           </Button>
         )}
       </Row>
+      {JSON.stringify({
+        responses,
+        selectedRegistrationTier,
+        selectedUpsells: selectedUpsells.map((u) => u.value),
+      })}
     </>
   );
 };

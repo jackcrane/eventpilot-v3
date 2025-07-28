@@ -35,8 +35,8 @@ export const RegistrationTierListing = ({ eventId, value, setTier }) => {
               )}
             </>
           ),
-          value: t.id,
-          id: t.id,
+          value: t.period.id,
+          id: t.period.id,
           disabled: t.disabled,
         }))}
         onChange={setTier}

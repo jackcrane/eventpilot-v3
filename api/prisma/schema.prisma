@@ -722,9 +722,12 @@ model RegistrationPeriodPricing {
   stripe_productId String?
   stripe_priceId String?
 
+  registrations Registration[]
+
   deleted Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  logs      Logs[]
 }
 
 model RegistrationPeriod {
@@ -789,11 +792,14 @@ model Registration {
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  registrationTierId String
-  registrationTier   RegistrationTier @relation(fields: [registrationTierId], references: [id])
+  registrationTierId String?
+  registrationTier   RegistrationTier? @relation(fields: [registrationTierId], references: [id])
 
-  pricingTierId String
-  pricingTier   RegistrationPeriod @relation(fields: [pricingTierId], references: [id])
+  pricingTierId String?
+  pricingTier   RegistrationPeriod? @relation(fields: [pricingTierId], references: [id])
+
+  registrationPeriodPricingId String?
+  registrationPeriodPricing   RegistrationPeriodPricing? @relation(fields: [registrationPeriodPricingId], references: [id])
 
   teamId String?
   team   Team?   @relation(fields: [teamId], references: [id])
@@ -801,8 +807,12 @@ model Registration {
   upsells        RegistrationUpsell[]
   fieldResponses RegistrationFieldResponse[]
 
+  finalized Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  logs      Logs[]
+  deleted   Boolean @default(false)
 }
 
 model RegistrationUpsell {
@@ -880,7 +890,7 @@ model RegistrationFieldResponse {
   registration Registration             @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   field        RegistrationField        @relation(fields: [fieldId], references: [id], onDelete: Cascade)
   option       RegistrationFieldOption? @relation(fields: [optionId], references: [id])
-  value        String
+  value        String?
 
   @@unique([registrationId, fieldId])
 }
@@ -959,6 +969,12 @@ model Logs {
   upsellItemId String?
   upsellItem   UpsellItem? @relation(fields: [upsellItemId], references: [id], onDelete: Cascade)
 
+  registrationId String?
+  registration   Registration? @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  registrationPeriodPricingId String?
+  registrationPeriodPricing   RegistrationPeriodPricing? @relation(fields: [registrationPeriodPricingId], references: [id], onDelete: Cascade)
+
   type LogType
 
   ip   String?
@@ -1034,4 +1050,9 @@ enum LogType {
   UPSELL_ITEM_STRIPE_PRICE_MODIFIED
   UPSELL_ITEM_STRIPE_PRICE_DELETED
   UPSELL_ITEM_PRICE_CHANGED
+  UPSELL_SOLD
+  REGISTRATION_PERIOD_PRICING_SOLD
+  REGISTRATION_CREATED
+  REGISTRATION_UPDATED
+  REGISTRATION_DELETED
 }

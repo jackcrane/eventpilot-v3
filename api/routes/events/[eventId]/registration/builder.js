@@ -9,7 +9,7 @@ import {
   syncPricingForPeriods,
   upsertPeriods,
   upsertTiers,
-} from "./fragments";
+} from "./fragments/builder";
 
 export const registrationBuilderSchema = z.object({
   tiers: z
