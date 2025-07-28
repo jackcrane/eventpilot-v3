@@ -71,7 +71,7 @@ export const Page = ({
           display: "flex",
           flexDirection: "row",
           width: "100%",
-          minHeight: "calc(100dvh - 70px)",
+          // minHeight: "calc(100dvh - 70px)",
           gap: width < 500 ? 0 : 10,
           padding: padding ? 10 : 0,
           paddingBottom: 0,
