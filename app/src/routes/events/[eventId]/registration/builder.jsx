@@ -398,7 +398,9 @@ export const RegistrationBuilder = () => {
         </div>
       )}
       {periods.length === 0 && tiers.length > 0 && (
-        <Button onClick={addPeriod}>Add Price Period</Button>
+        <Button onClick={addPeriod} style={{ display: "block" }}>
+          Add Price Period
+        </Button>
       )}
       {tiers.length === 0 && (
         <Alert variant="warning" title="No Registration Tiers">
@@ -410,7 +412,9 @@ export const RegistrationBuilder = () => {
           You have some errors in the form above. Please fix them and try again.
         </Alert>
       )}
-      <Button onClick={handleSave}>Save</Button>
+      <Button onClick={handleSave} variant="primary">
+        Save
+      </Button>
     </EventPage>
   );
 };
