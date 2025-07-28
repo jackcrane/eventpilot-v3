@@ -1,7 +1,13 @@
 import express from "express";
 import Stripe from "stripe";
 import { prisma } from "#prisma";
-import { LogType } from "@prisma/client";
+import { LedgerItemSource, LogType } from "@prisma/client";
+import { sendEmail } from "#postmark";
+import { getNameAndEmailFromRegistration } from "../../util/getNameAndEmailFromRegistration";
+import { render } from "@react-email/render";
+import RegistrationConfirmationEmail from "#emails/registration-confirmation.jsx";
+import { getCrmPersonByEmail } from "../../util/getCrmPersonByEmail";
+import { finalizeRegistration } from "../../util/finalizeRegistration";
 
 const stripe = new Stripe(process.env.STRIPE_SK, {
   apiVersion: "2024-04-10",
@@ -116,25 +122,30 @@ export const post = [
 
           if (scope === "EVENTPILOT:REGISTRATION") {
             const { eventId, registrationId } = metadata;
-            const registration = await prisma.registration.update({
-              where: {
-                id: registrationId,
-              },
+            const receiptUrl = paymentIntent.charges.data[0].receipt_url;
+
+            await prisma.ledgerItem.create({
               data: {
-                finalized: true,
+                eventId,
+                amount: paymentIntent.amount / 100,
+                source: LedgerItemSource.REGISTRATION,
+                stripe_paymentIntentId: paymentIntent.id,
+                logs: {
+                  create: {
+                    type: LogType.LEDGER_ITEM_CREATED,
+                    data: paymentIntent,
+                    eventId,
+                    registrationId,
+                  },
+                },
               },
             });
 
-            await prisma.logs.create({
-              data: {
-                type: LogType.REGISTRATION_CONFIRMED,
-                data: {
-                  registration,
-                  paymentIntent,
-                },
-                eventId,
-                registrationId,
-              },
+            await finalizeRegistration({
+              registrationId,
+              eventId,
+              receiptUrl,
+              paymentIntent,
             });
           } else {
             console.warn(

@@ -31,6 +31,7 @@ export const RegisterPage = () => {
     mutationLoading,
     requiresPayment,
     stripePIClientSecret,
+    finalized,
   } = useRegistrationConsumer({
     eventId: event?.id,
   });
@@ -38,7 +39,15 @@ export const RegisterPage = () => {
 
   return (
     <ConsumerPage title="Register" loading={loading || eventLoading}>
-      {requiresPayment ? (
+      {finalized ? (
+        <>
+          <Alert variant="success" className="mt-3" title="Thank you!">
+            <Typography.Text className="mb-0">
+              Thank you for registering! Your registration has been confirmed.
+            </Typography.Text>
+          </Alert>
+        </>
+      ) : requiresPayment ? (
         <>
           <PaymentElement
             paymentIntentClientSecret={stripePIClientSecret}

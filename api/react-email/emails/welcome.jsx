@@ -75,7 +75,10 @@ export const WelcomeEmail = ({ name, token }) => (
     <Preview>Welcome to EventPilot, {name}!</Preview>
     <Body style={styles.main}>
       <Container style={styles.container}>
-        <Img src={`https://cdn.jackcrane.rocks/ski.jpg`} width="100%" />
+        <Img
+          src={"https://geteventpilot.com/static/email-header.png"}
+          width="100%"
+        />
         <div style={styles.content}>
           <Heading mt={0} as={"h1"} style={styles.heading}>
             Welcome to EventPilot, <b style={{ fontWeight: 600 }}>{name}</b>!
@@ -91,7 +94,7 @@ export const WelcomeEmail = ({ name, token }) => (
           </Text>
           <Button
             as="a"
-            href={`https://EventPilot.jackcrane.rocks/verify?verificationtoken=${token}`}
+            href={`https://geteventpilot.com/verify?verificationtoken=${token}`}
             style={styles.button}
           >
             Confirm Email

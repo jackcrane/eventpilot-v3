@@ -12,6 +12,7 @@ export const useRegistrationConsumer = ({ eventId }) => {
 
   const [requiresPayment, setRequiresPayment] = useState(false);
   const [stripePIClientSecret, setStripePIClientSecret] = useState(null);
+  const [finalized, setFinalized] = useState(false);
   const [price, setPrice] = useState(null);
 
   const submit = async (data) => {
@@ -28,6 +29,7 @@ export const useRegistrationConsumer = ({ eventId }) => {
         setRequiresPayment(requiresPayment);
         setStripePIClientSecret(stripePIClientSecret);
         setPrice(price);
+        setFinalized(data.registration.finalized);
         setMutationLoading(false);
         return true;
       })
@@ -49,6 +51,7 @@ export const useRegistrationConsumer = ({ eventId }) => {
     mutationLoading,
     requiresPayment,
     stripePIClientSecret,
+    finalized,
     submit,
     error,
     refetch: () => mutate(key),

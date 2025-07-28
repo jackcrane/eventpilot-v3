@@ -602,6 +602,7 @@ model CrmPerson {
   sentEmails    Email[]
   inboundEmails InboundEmail[]
   conversations Conversation[]
+  registrations Registration[]
   deleted       Boolean        @default(false)
 
   fieldValues CrmPersonField[]
@@ -822,9 +823,13 @@ model Registration {
 
   pricingTierId String?
   pricingTier   RegistrationPeriod? @relation(fields: [pricingTierId], references: [id])
+  priceSnapshot Float /// The price of the registration tier at the time of registration
 
   registrationPeriodPricingId String?
   registrationPeriodPricing   RegistrationPeriodPricing? @relation(fields: [registrationPeriodPricingId], references: [id])
+
+  crmPersonId String?
+  crmPerson   CrmPerson? @relation(fields: [crmPersonId], references: [id])
 
   teamId String?
   team   Team?   @relation(fields: [teamId], references: [id])
@@ -844,6 +849,7 @@ model RegistrationUpsell {
   registrationId String
   upsellItemId   String
   quantity       Int    @default(1)
+  priceSnapshot  Float /// The price of the upsell item at the time of registration
 
   registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   upsellItem   UpsellItem   @relation(fields: [upsellItemId], references: [id], onDelete: Cascade)

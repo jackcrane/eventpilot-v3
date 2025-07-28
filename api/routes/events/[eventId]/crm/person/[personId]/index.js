@@ -56,6 +56,7 @@ export const get = [
           inboundEmails: true,
           phones: true,
           fieldValues: true,
+          registrations: true,
           logs: {
             orderBy: { createdAt: "desc" },
           },

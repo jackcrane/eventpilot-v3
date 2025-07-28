@@ -4,6 +4,7 @@ import { z } from "zod";
 import { mapInputToInsert } from "./fragments/consumer/mapInputToInsert";
 import { LogType } from "@prisma/client";
 import { registrationRequiresPayment } from "./fragments/consumer/registrationRequiresPayment";
+import { finalizeRegistration } from "../../../../util/finalizeRegistration";
 
 const registrationSubmissionSchema = z.object({
   responses: z.record(z.string(), z.any()),
@@ -91,9 +92,22 @@ export const post = [
       const transaction = await prisma.$transaction(
         async (tx) => {
           // 1) Create a new registration
+          const selectedPeriodPricing =
+            await tx.registrationPeriodPricing.findUnique({
+              where: { id: selectedRegistrationTier },
+            });
+
+          if (!selectedPeriodPricing) {
+            throw new Error("Invalid registration tier");
+          }
+
           const registration = await tx.registration.create({
             data: {
               eventId,
+              registrationPeriodPricingId: selectedPeriodPricing.id,
+              registrationTierId: selectedPeriodPricing.registrationTierId,
+              pricingTierId: selectedPeriodPricing.pricingTierId,
+              priceSnapshot: selectedPeriodPricing.price,
             },
           });
 
@@ -107,36 +121,22 @@ export const post = [
             data: inserts,
           });
 
-          // 2) Update the registration tier
-          const selectedPeriodPricing =
-            await tx.registrationPeriodPricing.findUnique({
-              where: { id: selectedRegistrationTier },
-            });
-
-          if (!selectedPeriodPricing) {
-            throw new Error("Invalid registration tier");
-          }
-
-          await tx.registration.update({
-            where: { id: registration.id },
-            data: {
-              registrationPeriodPricingId: selectedPeriodPricing.id,
-              registrationTierId: selectedPeriodPricing.registrationTierId,
-              pricingTierId: selectedPeriodPricing.pricingTierId,
-            },
-          });
-
           // 3) Connect upsells
           // TODO: Make sure upsells are available before connecting
           const upsells = await tx.upsellItem.findMany({
             where: { id: { in: selectedUpsells } },
           });
 
+          if (upsells.length !== selectedUpsells.length) {
+            throw new Error("Invalid upsells");
+          }
+
           await tx.registrationUpsell.createMany({
             data: selectedUpsells.map((upsellItemId) => ({
               registrationId: registration.id,
               upsellItemId,
               quantity: 1,
+              priceSnapshot: upsells.find((u) => u.id === upsellItemId).price,
             })),
             skipDuplicates: true, // optional: avoids error if already exists
           });
@@ -151,6 +151,10 @@ export const post = [
               event,
               registration.id
             );
+
+          if (!requiresPayment) {
+            return { requiresPayment: false, registrationId: registration.id };
+          }
 
           const fullRegistration = await tx.registration.findUnique({
             where: { id: registration.id },
@@ -200,7 +204,33 @@ export const post = [
         }
       );
 
-      return res.json({ registration: transaction });
+      const { requiresPayment, registrationId } = transaction;
+
+      if (!requiresPayment) {
+        await finalizeRegistration({
+          registrationId: registrationId,
+          eventId,
+        });
+        const registration = await prisma.registration.findUnique({
+          where: { id: registrationId },
+          include: {
+            registrationTier: true,
+            upsells: true,
+            fieldResponses: true,
+          },
+        });
+
+        return res.json({
+          registration: {
+            ...registration,
+            ...transaction,
+          },
+        });
+      }
+
+      return res.json({
+        registration: transaction,
+      });
     } catch (error) {
       console.error(error);
       return res.status(500).json({ error });
