@@ -106,7 +106,7 @@ export const post = [
               eventId,
               registrationPeriodPricingId: selectedPeriodPricing.id,
               registrationTierId: selectedPeriodPricing.registrationTierId,
-              pricingTierId: selectedPeriodPricing.pricingTierId,
+              registrationPeriodId: selectedPeriodPricing.registrationPeriodId,
               priceSnapshot: selectedPeriodPricing.price,
             },
           });

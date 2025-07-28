@@ -821,8 +821,8 @@ model Registration {
   registrationTierId String?
   registrationTier   RegistrationTier? @relation(fields: [registrationTierId], references: [id])
 
-  pricingTierId String?
-  pricingTier   RegistrationPeriod? @relation(fields: [pricingTierId], references: [id])
+  registrationPeriodId String?
+  registrationPeriod   RegistrationPeriod? @relation(fields: [registrationPeriodId], references: [id])
   priceSnapshot Float /// The price of the registration tier at the time of registration
 
   registrationPeriodPricingId String?

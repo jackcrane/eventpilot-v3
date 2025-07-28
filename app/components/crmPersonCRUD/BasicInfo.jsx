@@ -14,6 +14,8 @@ const switchSource = (source) => {
       return "You sent this person an email";
     case "EMAIL":
       return "This person sent you an email";
+    case "REGISTRATION":
+      return "Registered for an event";
     default:
       return "Unknown";
   }

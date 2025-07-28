@@ -192,7 +192,7 @@ export const EventPage = ({
           display: "flex",
           flexDirection: "row",
           width: "100%",
-          minHeight: "calc(100dvh - 70px)",
+          minHeight: "calc(100dvh - 173px)",
           gap: 10,
           alignItems: "flex-start",
         }}

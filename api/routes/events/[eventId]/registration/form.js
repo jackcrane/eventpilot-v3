@@ -100,7 +100,15 @@ const syncPages = async (tx, eventId, pagesData = []) => {
           where: {
             id: p.id,
           },
-          data: { deleted: true },
+          data: {
+            deleted: true,
+            fields: {
+              updateMany: {
+                where: { pageId: p.id },
+                data: { deleted: true },
+              },
+            },
+          },
         })
       )
   );

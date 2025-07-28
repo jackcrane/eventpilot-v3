@@ -29,6 +29,7 @@ import { RegistrationBuilder } from "./routes/events/[eventId]/registration/buil
 import { FinancialsPage } from "./routes/events/[eventId]/financials";
 import { RegistrationFormBuilderPage } from "./routes/events/[eventId]/registration/forms";
 import { UpsellsPage } from "./routes/events/[eventId]/registration/upsells";
+import { RegistrationsPage } from "./routes/events/[eventId]/registration/registrations";
 const useNewConversationPage = true;
 
 export default () => {
@@ -110,6 +111,10 @@ export default () => {
           <Route
             path="/events/:eventId/registration/upsells"
             element={<UpsellsPage />}
+          />
+          <Route
+            path="/events/:eventId/registration/registrations"
+            element={<RegistrationsPage />}
           />
 
           <Route path="/events/:eventId/settings" element={<EventSettings />} />
