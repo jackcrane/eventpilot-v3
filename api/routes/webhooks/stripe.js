@@ -2,11 +2,6 @@ import express from "express";
 import Stripe from "stripe";
 import { prisma } from "#prisma";
 import { LedgerItemSource, LogType } from "@prisma/client";
-import { sendEmail } from "#postmark";
-import { getNameAndEmailFromRegistration } from "../../util/getNameAndEmailFromRegistration";
-import { render } from "@react-email/render";
-import RegistrationConfirmationEmail from "#emails/registration-confirmation.jsx";
-import { getCrmPersonByEmail } from "../../util/getCrmPersonByEmail";
 import { finalizeRegistration } from "../../util/finalizeRegistration";
 
 const stripe = new Stripe(process.env.STRIPE_SK, {
