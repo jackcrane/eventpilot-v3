@@ -74,6 +74,7 @@ export const post = [
   async (req, res) => {
     try {
       const { eventId } = req.params;
+      const instanceId = req.instanceId;
       const parsed = registrationSubmissionSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ message: serializeError(parsed) });
@@ -84,7 +85,7 @@ export const post = [
 
       const fieldIds = Object.keys(responses);
       const fieldTypes = await prisma.registrationField.findMany({
-        where: { id: { in: fieldIds } },
+        where: { id: { in: fieldIds }, instanceId },
       });
 
       // TODO: Right now we are just going to trust the data is valid and nothing required is missing.
@@ -95,7 +96,7 @@ export const post = [
           // 1) Create a new registration
           const selectedPeriodPricing =
             await tx.registrationPeriodPricing.findUnique({
-              where: { id: selectedRegistrationTier },
+              where: { id: selectedRegistrationTier, instanceId },
             });
 
           if (!selectedPeriodPricing) {
@@ -105,6 +106,7 @@ export const post = [
           const registration = await tx.registration.create({
             data: {
               eventId,
+              instanceId,
               registrationPeriodPricingId: selectedPeriodPricing.id,
               registrationTierId: selectedPeriodPricing.registrationTierId,
               registrationPeriodId: selectedPeriodPricing.registrationPeriodId,
@@ -115,7 +117,8 @@ export const post = [
           const inserts = mapInputToInsert(
             responses,
             fieldTypes,
-            registration.id
+            registration.id,
+            instanceId
           );
 
           await tx.registrationFieldResponse.createMany({
@@ -125,7 +128,7 @@ export const post = [
           // 3) Connect upsells
           // TODO: Make sure upsells are available before connecting
           const upsells = await tx.upsellItem.findMany({
-            where: { id: { in: selectedUpsells } },
+            where: { id: { in: selectedUpsells }, instanceId },
           });
 
           if (upsells.length !== selectedUpsells.length) {
@@ -138,6 +141,7 @@ export const post = [
               upsellItemId,
               quantity: 1,
               priceSnapshot: upsells.find((u) => u.id === upsellItemId).price,
+              instanceId,
             })),
             skipDuplicates: true, // optional: avoids error if already exists
           });
