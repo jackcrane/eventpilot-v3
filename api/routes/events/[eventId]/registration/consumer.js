@@ -141,7 +141,6 @@ export const post = [
               upsellItemId,
               quantity: 1,
               priceSnapshot: upsells.find((u) => u.id === upsellItemId).price,
-              instanceId,
             })),
             skipDuplicates: true, // optional: avoids error if already exists
           });
@@ -182,6 +181,7 @@ export const post = [
                 ip: req.ip,
                 data: JSON.stringify(fullRegistration),
                 registrationId: registration.id,
+                instanceId,
               },
               {
                 type: LogType.REGISTRATION_PERIOD_PRICING_SOLD,
@@ -189,6 +189,7 @@ export const post = [
                 ip: req.ip,
                 registrationPeriodPricingId: selectedPeriodPricing.id,
                 registrationId: registration.id,
+                instanceId,
               },
               ...selectedUpsells.map((u) => ({
                 type: LogType.UPSELL_SOLD,
@@ -196,6 +197,7 @@ export const post = [
                 ip: req.ip,
                 upsellItemId: u,
                 registrationId: registration.id,
+                instanceId,
               })),
             ],
           });
