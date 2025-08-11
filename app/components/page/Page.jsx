@@ -4,8 +4,9 @@ import { Sidenav } from "../sidenav/Sidenav";
 import { Footer } from "../footer/Footer";
 import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
+import { useSelectedInstance } from "../../contexts/SelectedInstanceContext";
 
-function Fallback({ error, resetErrorBoundary }) {
+function Fallback({ error }) {
   // Call resetErrorBoundary() to reset the error boundary and retry the render.
 
   return (
@@ -48,55 +49,71 @@ export const Page = ({
   useTitle(title ? `${title} | EventPilot` : "EventPilot");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { width } = useWindowSize();
+  const { instance } = useSelectedInstance();
+
+  const instanceIsInPast = new Date(instance?.endTime) < new Date();
 
   return (
     <ErrorBoundary fallbackRender={Fallback}>
-      <Header
-        showPicker={showPicker}
-        setMobileNavOpen={setMobileNavOpen}
-        mobileNavOpen={mobileNavOpen}
-      />
-      {/* <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          width: "100%",
-          borderBottom: "2px solid var(--tblr-border-color)",
-          padding: 10,
-        }}
-      ></div> */}
       <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          width: "100%",
-          minHeight: "calc(100dvh - 70px)",
-          gap: width < 500 ? 0 : 10,
-          padding: padding ? 10 : 0,
-          paddingBottom: 0,
-          maxWidth: 1400,
-          margin: "auto",
-        }}
+        style={
+          instanceIsInPast
+            ? {
+                border: "10px solid var(--tblr-orange)",
+                height: "100dvh",
+                overflow: "auto",
+              }
+            : {}
+        }
       >
-        {sidenavItems && (
-          <Sidenav
-            showCollapse={false}
-            items={sidenavItems}
-            mobileNavOpen={mobileNavOpen}
-            setMobileNavOpen={setMobileNavOpen}
-          />
+        {instanceIsInPast && (
+          <div
+            className={"bg-orange text-white"}
+            style={{ padding: "5px 10px", paddingTop: 0, fontWeight: "bold" }}
+          >
+            You are looking at historical data. You can still view the event,
+            but you cannot make any changes.
+          </div>
         )}
+        <Header
+          showPicker={showPicker}
+          setMobileNavOpen={setMobileNavOpen}
+          mobileNavOpen={mobileNavOpen}
+        />
+
         <div
           style={{
-            // width: "100%",
-            flex: 1,
-            minWidth: 0,
-            // overflowX: allowOverflow ?  : "hidden",
-            padding: padding ? 4 : 0,
-            paddingBottom: 100,
+            display: "flex",
+            flexDirection: "row",
+            width: "100%",
+            minHeight: "calc(100dvh - 70px)",
+            gap: width < 500 ? 0 : 10,
+            padding: padding ? 10 : 0,
+            paddingBottom: 0,
+            maxWidth: 1400,
+            margin: "auto",
           }}
         >
-          {children}
+          {sidenavItems && (
+            <Sidenav
+              showCollapse={false}
+              items={sidenavItems}
+              mobileNavOpen={mobileNavOpen}
+              setMobileNavOpen={setMobileNavOpen}
+            />
+          )}
+          <div
+            style={{
+              // width: "100%",
+              flex: 1,
+              minWidth: 0,
+              // overflowX: allowOverflow ?  : "hidden",
+              padding: padding ? 4 : 0,
+              paddingBottom: 100,
+            }}
+          >
+            {children}
+          </div>
         </div>
       </div>
       <Footer />

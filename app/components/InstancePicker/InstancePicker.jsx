@@ -36,7 +36,7 @@ export const InstancePicker = ({ eventId, onChange }) => {
             )}
             {new Date(i.endTime) < new Date() && (
               <Badge
-                color="danger"
+                color="orange"
                 style={{
                   color: "white",
                 }}
