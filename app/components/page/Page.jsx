@@ -55,65 +55,53 @@ export const Page = ({
 
   return (
     <ErrorBoundary fallbackRender={Fallback}>
-      <div
-        style={
-          instanceIsInPast
-            ? {
-                border: "10px solid var(--tblr-orange)",
-                height: "100dvh",
-                overflow: "auto",
-              }
-            : {}
-        }
-      >
-        {instanceIsInPast && (
-          <div
-            className={"bg-orange text-white"}
-            style={{ padding: "5px 10px", paddingTop: 0, fontWeight: "bold" }}
-          >
-            You are looking at historical data. You can still view the event,
-            but you cannot make any changes.
-          </div>
-        )}
-        <Header
-          showPicker={showPicker}
-          setMobileNavOpen={setMobileNavOpen}
-          mobileNavOpen={mobileNavOpen}
-        />
+      {instanceIsInPast && (
+        <div
+          className={"bg-orange text-white"}
+          style={{ padding: "5px 10px", fontWeight: "bold" }}
+        >
+          You are looking at historical data. You can still view and modify your
+          event, but you will be making changes to past events.
+        </div>
+      )}
+      <Header
+        showPicker={showPicker}
+        setMobileNavOpen={setMobileNavOpen}
+        mobileNavOpen={mobileNavOpen}
+      />
 
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          width: "100%",
+          minHeight: "calc(100dvh - 70px)",
+          gap: width < 500 ? 0 : 10,
+          padding: padding ? 10 : 0,
+          paddingBottom: 0,
+          maxWidth: 1400,
+          margin: "auto",
+        }}
+      >
+        {sidenavItems && (
+          <Sidenav
+            showCollapse={false}
+            items={sidenavItems}
+            mobileNavOpen={mobileNavOpen}
+            setMobileNavOpen={setMobileNavOpen}
+          />
+        )}
         <div
           style={{
-            display: "flex",
-            flexDirection: "row",
-            width: "100%",
-            minHeight: "calc(100dvh - 70px)",
-            gap: width < 500 ? 0 : 10,
-            padding: padding ? 10 : 0,
-            paddingBottom: 0,
-            maxWidth: 1400,
-            margin: "auto",
+            // width: "100%",
+            flex: 1,
+            minWidth: 0,
+            // overflowX: allowOverflow ?  : "hidden",
+            padding: padding ? 4 : 0,
+            paddingBottom: 100,
           }}
         >
-          {sidenavItems && (
-            <Sidenav
-              showCollapse={false}
-              items={sidenavItems}
-              mobileNavOpen={mobileNavOpen}
-              setMobileNavOpen={setMobileNavOpen}
-            />
-          )}
-          <div
-            style={{
-              // width: "100%",
-              flex: 1,
-              minWidth: 0,
-              // overflowX: allowOverflow ?  : "hidden",
-              padding: padding ? 4 : 0,
-              paddingBottom: 100,
-            }}
-          >
-            {children}
-          </div>
+          {children}
         </div>
       </div>
       <Footer />
