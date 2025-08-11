@@ -2,6 +2,10 @@ import { Typography } from "tabler-react-2";
 import { Row } from "../../util/Flex";
 import { Icon } from "../../util/Icon";
 import { isEmail } from "../../util/isEmail";
+const getNested = (obj, path) =>
+  path
+    .split(".")
+    .reduce((acc, key) => (acc != null ? acc[key] : undefined), obj);
 
 export const generateSections = (event) => {
   return [
@@ -24,6 +28,28 @@ export const generateSections = (event) => {
         {
           key: "defaultTz",
           label: "Default Timezone",
+          validate: (val) => !!val,
+        },
+      ],
+    },
+    {
+      title: "Instance",
+      stage: 1,
+      optional: false,
+      items: [
+        {
+          key: "instance.name",
+          label: "Instance Name",
+          validate: (val) => !!val,
+        },
+        {
+          key: "instance.startTime",
+          label: "Start Date",
+          validate: (val) => !!val,
+        },
+        {
+          key: "instance.endTime",
+          label: "End Date",
           validate: (val) => !!val,
         },
       ],
@@ -99,7 +125,7 @@ export const EventChecklist = ({ event, setStage }) => {
           )}
 
           {section.items.map((item) => {
-            const value = event[item.key];
+            const value = getNested(event, item.key);
             const valid = item.validate ? item.validate(value, event) : !!value;
             const iconName = valid
               ? "check"

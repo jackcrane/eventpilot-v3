@@ -39,7 +39,7 @@ export const eventSchema = z.object({
 
   instance: z
     .object({
-      name: z.string().min(2).max(50),
+      name: z.string().min(1).max(50),
       startTime: z.string().datetime(),
       endTime: z.string().datetime(),
       startTimeTz: z.string(),
@@ -67,6 +67,7 @@ export const get = [
             location: true,
           },
         },
+        instances: true,
         formFields: req.query.includeFields,
       },
     });

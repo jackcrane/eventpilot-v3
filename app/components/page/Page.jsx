@@ -1,6 +1,5 @@
 import { Header } from "../header/Header";
 import { useTitle, useWindowSize } from "react-use";
-import styled from "styled-components";
 import { Sidenav } from "../sidenav/Sidenav";
 import { Footer } from "../footer/Footer";
 import { useState } from "react";

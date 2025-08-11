@@ -30,6 +30,7 @@ import { FinancialsPage } from "./routes/events/[eventId]/financials";
 import { RegistrationFormBuilderPage } from "./routes/events/[eventId]/registration/forms";
 import { UpsellsPage } from "./routes/events/[eventId]/registration/upsells";
 import { RegistrationsPage } from "./routes/events/[eventId]/registration/registrations";
+import { SelectedInstanceProvider } from "../contexts/SelectedInstanceContext";
 const useNewConversationPage = true;
 
 export default () => {
@@ -59,99 +60,109 @@ export default () => {
   return (
     <div>
       <Toaster />
-      <Router>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          {loggedIn ? (
-            <>
-              <Route path="/me" element={<UserProfile />} />
-            </>
-          ) : (
-            <>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-            </>
-          )}
-          <Route path="/verify" element={<Verify />} />
 
-          <Route path="/email/:emailId" element={<EmailPage />} />
+      <SelectedInstanceProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            {loggedIn ? (
+              <>
+                <Route path="/me" element={<UserProfile />} />
+              </>
+            ) : (
+              <>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+              </>
+            )}
+            <Route path="/verify" element={<Verify />} />
 
-          <Route path="/events/new" element={<NewEventPage />} />
+            <Route path="/email/:emailId" element={<EmailPage />} />
 
-          <Route path="/events/:eventId" element={<Event />} />
-          <Route path="/events" element={<Events />} />
+            <Route path="/events/new" element={<NewEventPage />} />
 
-          <Route
-            path="/events/:eventId/financials"
-            element={<FinancialsPage />}
-          />
+            <Route path="/events/:eventId" element={<Event />} />
+            <Route path="/events" element={<Events />} />
 
-          <Route
-            path="/events/:eventId/volunteers"
-            element={<EventVolunteers />}
-          />
-          <Route
-            path="/events/:eventId/volunteers/builder"
-            element={<EventVolRegBuilder />}
-          />
-          <Route
-            path="/events/:eventId/volunteers/jobs"
-            element={<EventJobs />}
-          />
+            <Route
+              path="/events/:eventId/financials"
+              element={<FinancialsPage />}
+            />
 
-          <Route
-            path="/events/:eventId/registration/builder"
-            element={<RegistrationBuilder />}
-          />
-          <Route
-            path="/events/:eventId/registration/form-builder"
-            element={<RegistrationFormBuilderPage />}
-          />
-          <Route
-            path="/events/:eventId/registration/upsells"
-            element={<UpsellsPage />}
-          />
-          <Route
-            path="/events/:eventId/registration/registrations"
-            element={<RegistrationsPage />}
-          />
+            <Route
+              path="/events/:eventId/volunteers"
+              element={<EventVolunteers />}
+            />
+            <Route
+              path="/events/:eventId/volunteers/builder"
+              element={<EventVolRegBuilder />}
+            />
+            <Route
+              path="/events/:eventId/volunteers/jobs"
+              element={<EventJobs />}
+            />
 
-          <Route path="/events/:eventId/settings" element={<EventSettings />} />
-          <Route path="/events/:eventId/crm" element={<EventCrm />} />
+            <Route
+              path="/events/:eventId/registration/builder"
+              element={<RegistrationBuilder />}
+            />
+            <Route
+              path="/events/:eventId/registration/form-builder"
+              element={<RegistrationFormBuilderPage />}
+            />
+            <Route
+              path="/events/:eventId/registration/upsells"
+              element={<UpsellsPage />}
+            />
+            <Route
+              path="/events/:eventId/registration/registrations"
+              element={<RegistrationsPage />}
+            />
 
-          <Route
-            path="/events/:eventId/conversations"
-            element={<Conversations />}
-          />
-          <Route
-            path="/events/:eventId/conversations/:conversationId"
-            element={
-              !useNewConversationPage ? <Conversations /> : <ConversationPage />
-            }
-          />
-          {/* 404 error */}
-          <Route
-            path="*"
-            element={
-              <Page>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    height: "70vh",
-                  }}
-                >
-                  <h1>Error 404</h1>
-                  <p>Page not found</p>
-                </div>
-              </Page>
-            }
-          />
-        </Routes>
-      </Router>
+            <Route
+              path="/events/:eventId/settings"
+              element={<EventSettings />}
+            />
+            <Route path="/events/:eventId/crm" element={<EventCrm />} />
+
+            <Route
+              path="/events/:eventId/conversations"
+              element={<Conversations />}
+            />
+            <Route
+              path="/events/:eventId/conversations/:conversationId"
+              element={
+                !useNewConversationPage ? (
+                  <Conversations />
+                ) : (
+                  <ConversationPage />
+                )
+              }
+            />
+            {/* 404 error */}
+            <Route
+              path="*"
+              element={
+                <Page>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      height: "70vh",
+                    }}
+                  >
+                    <h1>Error 404</h1>
+                    <p>Page not found</p>
+                  </div>
+                </Page>
+              }
+            />
+          </Routes>
+        </Router>
+      </SelectedInstanceProvider>
     </div>
   );
 };
