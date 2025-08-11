@@ -37,7 +37,7 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const instance = req.headers["x-instance"] || req.headers["X-Instance"];
   if (instance) {
-    req.instance = instance;
+    req.instanceId = instance;
   }
   next();
 });

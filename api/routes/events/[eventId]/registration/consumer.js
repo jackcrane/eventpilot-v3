@@ -5,6 +5,7 @@ import { mapInputToInsert } from "./fragments/consumer/mapInputToInsert";
 import { LogType } from "@prisma/client";
 import { registrationRequiresPayment } from "./fragments/consumer/registrationRequiresPayment";
 import { finalizeRegistration } from "../../../../util/finalizeRegistration";
+import { getNextInstance } from "#util/getNextInstance.js";
 
 const registrationSubmissionSchema = z.object({
   responses: z.record(z.string(), z.any()),
@@ -143,13 +144,17 @@ export const post = [
 
           const event = await tx.event.findUnique({ where: { id: eventId } });
 
+          const instance = await getNextInstance(eventId);
+          const instanceId = instance.id;
+
           // 4) Figure out if payment is required
           const [requiresPayment, stripePIClientSecret, price] =
             await registrationRequiresPayment(
               upsells,
               selectedPeriodPricing,
               event,
-              registration.id
+              registration.id,
+              instanceId
             );
 
           if (!requiresPayment) {
