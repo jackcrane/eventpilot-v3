@@ -35,6 +35,14 @@ app.use((req, res, next) => {
 });
 
 app.use((req, res, next) => {
+  const instance = req.headers["x-instance"] || req.headers["X-Instance"];
+  if (instance) {
+    req.instance = instance;
+  }
+  next();
+});
+
+app.use((req, res, next) => {
   if (process.env.NODE_ENV !== "test") {
     console.log(`[${req.id}][REQUEST]`, req.method, req.url);
   }
