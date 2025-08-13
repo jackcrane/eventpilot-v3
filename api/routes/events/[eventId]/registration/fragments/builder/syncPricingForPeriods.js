@@ -26,7 +26,7 @@ export const syncPricingForPeriods = async (
       if (price.id && isNaN(Number(price.id))) {
         // update existing
         const pr = await tx.registrationPeriodPricing.findUnique({
-          where: { id: price.id, deleted: false },
+          where: { id: price.id, deleted: false, instanceId },
         });
         await stripe.products.update(
           pr.stripe_productId,
@@ -53,7 +53,7 @@ export const syncPricingForPeriods = async (
             { stripeAccount: event.stripeConnectedAccountId }
           );
           await tx.registrationPeriodPricing.update({
-            where: { id: price.id },
+            where: { id: price.id, instanceId },
             data: {
               price: parseFloat(price.price),
               available: price.isAvailable,
@@ -62,7 +62,7 @@ export const syncPricingForPeriods = async (
           });
         } else {
           await tx.registrationPeriodPricing.update({
-            where: { id: price.id },
+            where: { id: price.id, instanceId },
             data: { available: price.isAvailable },
           });
           await stripe.prices.update(

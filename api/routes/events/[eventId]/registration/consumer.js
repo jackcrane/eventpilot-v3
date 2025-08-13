@@ -74,7 +74,10 @@ export const post = [
   async (req, res) => {
     try {
       const { eventId } = req.params;
-      const instanceId = req.instanceId;
+      const event = await prisma.event.findUnique({ where: { id: eventId } });
+      const instance = await getNextInstance(eventId);
+      const instanceId = instance.id;
+
       const parsed = registrationSubmissionSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ message: serializeError(parsed) });
@@ -96,7 +99,11 @@ export const post = [
           // 1) Create a new registration
           const selectedPeriodPricing =
             await tx.registrationPeriodPricing.findUnique({
-              where: { id: selectedRegistrationTier, instanceId },
+              where: {
+                id: selectedRegistrationTier,
+                instanceId,
+                deleted: false,
+              },
             });
 
           if (!selectedPeriodPricing) {
@@ -128,7 +135,7 @@ export const post = [
           // 3) Connect upsells
           // TODO: Make sure upsells are available before connecting
           const upsells = await tx.upsellItem.findMany({
-            where: { id: { in: selectedUpsells }, instanceId },
+            where: { id: { in: selectedUpsells }, instanceId, deleted: false },
           });
 
           if (upsells.length !== selectedUpsells.length) {
@@ -144,11 +151,6 @@ export const post = [
             })),
             skipDuplicates: true, // optional: avoids error if already exists
           });
-
-          const event = await tx.event.findUnique({ where: { id: eventId } });
-
-          const instance = await getNextInstance(eventId);
-          const instanceId = instance.id;
 
           // 4) Figure out if payment is required
           const [requiresPayment, stripePIClientSecret, price] =
