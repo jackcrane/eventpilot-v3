@@ -43,7 +43,7 @@ const syncOptions = async (tx, fieldId, optionsData = []) => {
 };
 
 // sync fields for one page
-const syncFields = async (tx, eventId, pageId, fieldsData = []) => {
+const syncFields = async (tx, eventId, pageId, fieldsData = [], instanceId) => {
   const existing = await tx.registrationField.findMany({ where: { pageId } });
   const incomingIds = fieldsData.filter((f) => !isNew(f.id)).map((f) => f.id);
 
@@ -74,6 +74,7 @@ const syncFields = async (tx, eventId, pageId, fieldsData = []) => {
       fieldType: field.fieldType ?? null,
       event: { connect: { id: eventId } },
       page: { connect: { id: pageId } },
+      instance: { connect: { id: instanceId } },
     };
 
     if (isNew(field.id)) {
