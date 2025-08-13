@@ -7,7 +7,8 @@ export const syncPricingForPeriods = async (
   tierMap,
   periodMap,
   existingPeriods,
-  event
+  event,
+  instanceId
 ) => {
   for (const p of periods) {
     const periodKey = p.id ?? `__new_period_${periods.indexOf(p)}`;
@@ -25,7 +26,7 @@ export const syncPricingForPeriods = async (
       if (price.id && isNaN(Number(price.id))) {
         // update existing
         const pr = await tx.registrationPeriodPricing.findUnique({
-          where: { id: price.id },
+          where: { id: price.id, deleted: false },
         });
         await stripe.products.update(
           pr.stripe_productId,
@@ -94,6 +95,8 @@ export const syncPricingForPeriods = async (
             available: price.isAvailable,
             stripe_productId: product.id,
             stripe_priceId: newStripePrice.id,
+            eventId: event.id,
+            instanceId,
           },
         });
         seen.push(created.id);

@@ -1,9 +1,9 @@
-export const upsertTiers = async (tx, tiers, eventId) => {
+export const upsertTiers = async (tx, tiers, eventId, instanceId) => {
   const map = new Map();
   for (let i = 0; i < tiers.length; i++) {
     const { id, name, description } = tiers[i];
     const inputKey = id ?? `__new_tier_${i}`;
-    const data = { name, description, order: i, eventId };
+    const data = { name, description, order: i, eventId, instanceId };
     if (id && isNaN(Number(id))) {
       await tx.registrationTier.update({ where: { id }, data });
       map.set(inputKey, id);
