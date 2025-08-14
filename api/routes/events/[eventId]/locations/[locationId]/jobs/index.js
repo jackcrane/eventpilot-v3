@@ -32,6 +32,7 @@ export const post = [
   verifyAuth(["manager"]),
   async (req, res) => {
     const { eventId, locationId } = req.params;
+    const instanceId = req.instanceId;
 
     try {
       req.body.shifts = req.body.shifts.map((s) => {
@@ -58,6 +59,7 @@ export const post = [
           description,
           capacity,
           restrictions,
+          instance: { connect: { id: instanceId } },
           event: { connect: { id: eventId } },
           location: { connect: { id: locationId } },
           shifts: {
@@ -70,6 +72,7 @@ export const post = [
                 endTimeTz: endTimeTz,
                 event: { connect: { id: eventId } },
                 location: { connect: { id: locationId } },
+                instance: { connect: { id: instanceId } },
               })
             ),
           },
@@ -83,6 +86,7 @@ export const post = [
           userId: req.user.id,
           ip: req.ip,
           eventId: req.params.eventId,
+          instanceId: req.instanceId,
           locationId: req.params.locationId,
           jobId: job.id,
           data: job,
@@ -101,11 +105,14 @@ export const get = [
   verifyAuth(["manager"], true),
   async (req, res) => {
     const { locationId } = req.params;
+    const instanceId = req.instanceId;
+
     try {
       const jobs = await prisma.job.findMany({
         where: {
           locationId,
           deleted: false,
+          instanceId,
         },
         include: {
           shifts: { orderBy: { startTime: "asc" }, where: { deleted: false } },

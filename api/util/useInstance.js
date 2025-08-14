@@ -18,6 +18,7 @@ export const useInstance =
     }
 
     req.instance = instance;
+    req.instanceId = instanceId;
 
     next();
   };
