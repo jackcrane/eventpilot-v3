@@ -166,7 +166,7 @@ export const get = [
 
     try {
       const fields = await prisma.formField.findMany({
-        where: { eventId },
+        where: { eventId, instanceId },
         orderBy: { order: "asc" },
         select: {
           id: true,

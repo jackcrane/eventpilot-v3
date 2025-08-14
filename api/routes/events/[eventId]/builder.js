@@ -75,12 +75,15 @@ export const get = [
   verifyAuth(["manager"], true),
   async (req, res) => {
     const { eventId } = req.params;
+    const instanceId = req.instanceId;
+
     const fields = await prisma.formField.findMany({
       where: {
         AND: [
           { OR: [{ eventId }, { event: { slug: eventId } }] },
           { deleted: false },
         ],
+        instanceId,
       },
       orderBy: { order: "asc" },
       include: {
@@ -157,6 +160,8 @@ export const post = [
   verifyAuth(["manager"]),
   async (req, res) => {
     const { eventId } = req.params;
+    const instanceId = req.instanceId;
+
     const parsed = bodySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ message: serializeError(parsed) });
@@ -165,7 +170,7 @@ export const post = [
 
     // 0,2: snapshot before-change
     const before = await prisma.formField.findMany({
-      where: { eventId, deleted: false },
+      where: { eventId, deleted: false, instanceId },
       orderBy: { order: "asc" },
       include: {
         options: { where: { deleted: false }, orderBy: { order: "asc" } },
@@ -179,7 +184,11 @@ export const post = [
     if (newFields.length > 0) {
       await prisma.formField.createMany({
         // eslint-disable-next-line
-        data: newFields.map(({ options, ...rest }) => ({ ...rest, eventId })),
+        data: newFields.map(({ options, ...rest }) => ({
+          ...rest,
+          eventId,
+          instanceId,
+        })),
       });
     }
 
@@ -267,7 +276,7 @@ export const post = [
     }
 
     const updatedRecordedFields = await prisma.formField.findMany({
-      where: { eventId, deleted: false },
+      where: { eventId, deleted: false, instanceId },
       orderBy: { order: "asc" },
       include: {
         options: { where: { deleted: false }, orderBy: { order: "asc" } },
