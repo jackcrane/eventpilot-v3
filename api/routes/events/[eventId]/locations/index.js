@@ -20,6 +20,7 @@ export const post = [
   verifyAuth(["manager"]),
   async (req, res) => {
     const { eventId } = req.params;
+    const instanceId = req.instanceId;
 
     try {
       req.body.startTime = new Date(req.body.startTime);
@@ -41,6 +42,7 @@ export const post = [
           name,
           description,
           eventId,
+          instanceId,
           ...result.data,
         },
       });
@@ -51,6 +53,7 @@ export const post = [
           userId: req.user.id,
           ip: req.ip,
           eventId: req.params.eventId,
+          instanceId,
           locationId: location.id,
           data: location,
         },
@@ -68,10 +71,13 @@ export const get = [
   verifyAuth(["manager"], true),
   async (req, res) => {
     const { eventId } = req.params;
+    const instanceId = req.instanceId;
+
     const locations = await prisma.location.findMany({
       where: {
         eventId,
         deleted: false,
+        instanceId,
       },
       orderBy: {
         startTime: "asc",
