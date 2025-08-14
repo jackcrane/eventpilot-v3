@@ -53,6 +53,7 @@ export const get = [
           where: {
             eventId,
             deleted: false,
+            instanceId,
           },
           orderBy: { order: "asc" },
         }),

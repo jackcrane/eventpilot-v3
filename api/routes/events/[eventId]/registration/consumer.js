@@ -18,10 +18,14 @@ export const get = [
     const now = new Date();
     const { eventId } = req.params;
 
+    const instance = await getNextInstance(eventId);
+    const instanceId = instance.id;
+
     let tiers = await prisma.registrationTier.findMany({
       where: {
         eventId,
         deleted: false,
+        instanceId,
       },
       include: {
         pricingTiers: {
