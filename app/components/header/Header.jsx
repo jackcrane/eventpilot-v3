@@ -15,6 +15,8 @@ import { useParsedUrl } from "../../hooks/useParsedUrl";
 import { StripeTrigger } from "../stripe/Stripe";
 import { HideWhenSmaller, ShowWhenSmaller } from "../media/Media";
 import toast from "react-hot-toast";
+import { InstancePicker } from "../InstancePicker/InstancePicker";
+import { Row } from "../../util/Flex";
 
 export const Header = ({
   setMobileNavOpen,
@@ -130,12 +132,17 @@ const Breadcrumbs = ({ showPicker = true }) => {
       <EventPicker go value={url.events} className="tour__event-picker" />
     );
   }
+  if (url.events && typeof url.events === "string") {
+    builder.push(
+      <InstancePicker eventId={url.events} className="tour__instance-picker" />
+    );
+  }
 
   return (
-    <>
+    <Row gap={1} align="center">
       {builder.map((item, index) => (
         <>{item}</>
       ))}
-    </>
+    </Row>
   );
 };

@@ -1,12 +1,12 @@
 import { Header } from "../header/Header";
 import { useTitle, useWindowSize } from "react-use";
-import styled from "styled-components";
 import { Sidenav } from "../sidenav/Sidenav";
 import { Footer } from "../footer/Footer";
 import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
+import { useSelectedInstance } from "../../contexts/SelectedInstanceContext";
 
-function Fallback({ error, resetErrorBoundary }) {
+function Fallback({ error }) {
   // Call resetErrorBoundary() to reset the error boundary and retry the render.
 
   return (
@@ -49,23 +49,27 @@ export const Page = ({
   useTitle(title ? `${title} | EventPilot` : "EventPilot");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { width } = useWindowSize();
+  const { instance } = useSelectedInstance();
+
+  const instanceIsInPast = new Date(instance?.endTime) < new Date();
 
   return (
     <ErrorBoundary fallbackRender={Fallback}>
+      {instanceIsInPast && (
+        <div
+          className={"bg-orange text-white"}
+          style={{ padding: "5px 10px", fontWeight: "bold" }}
+        >
+          You are looking at historical data. You can still view and modify your
+          event, but you will be making changes to past events.
+        </div>
+      )}
       <Header
         showPicker={showPicker}
         setMobileNavOpen={setMobileNavOpen}
         mobileNavOpen={mobileNavOpen}
       />
-      {/* <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          width: "100%",
-          borderBottom: "2px solid var(--tblr-border-color)",
-          padding: 10,
-        }}
-      ></div> */}
+
       <div
         style={{
           display: "flex",

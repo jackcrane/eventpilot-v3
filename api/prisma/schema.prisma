@@ -275,12 +275,12 @@ model File {
   event_banner Event? @relation(name: "EventBanner")
 
   upsellItemId String?
-  upsellItem UpsellItem? @relation(name: "UpsellItemImage", fields: [upsellItemId], references: [id])
+  upsellItem   UpsellItem? @relation(name: "UpsellItemImage", fields: [upsellItemId], references: [id])
 
   inboundEmailAttachment   InboundEmailAttachment? @relation("FileAttachment")
   inboundEmailAttachmentId String?                 @unique
 
-  logs         Logs[]
+  logs Logs[]
 }
 
 model Event {
@@ -334,6 +334,7 @@ model Event {
   reddit    String?
   threads   String?
 
+  instances           EventInstance[]
   formFields          FormField[]
   formResponses       FormResponse[]
   logs                Logs[]
@@ -351,7 +352,44 @@ model Event {
   registrationPages   RegistrationPage[]
   ledgerItems         LedgerItem[]
 
-  stripeConnectedAccountId String?
+  stripeConnectedAccountId  String?
+  RegistrationPeriodPricing RegistrationPeriodPricing[]
+  RegistrationFieldResponse RegistrationFieldResponse[]
+}
+
+model EventInstance {
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  name String
+
+  startTime   DateTime
+  endTime     DateTime
+  startTimeTz String
+  endTimeTz   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  logs                      Logs[]
+  LedgerItem                LedgerItem[]
+  FormField                 FormField[]
+  FormResponse              FormResponse[]
+  Location                  Location[]
+  Job                       Job[]
+  Shift                     Shift[]
+  RegistrationTier          RegistrationTier[]
+  RegistrationPeriodPricing RegistrationPeriodPricing[]
+  RegistrationPeriod        RegistrationPeriod[]
+  Team                      Team[]
+  UpsellItem                UpsellItem[]
+  Registration              Registration[]
+  RegistrationPage          RegistrationPage[]
+  RegistrationField         RegistrationField[]
+  RegistrationFieldResponse RegistrationFieldResponse[]
 }
 
 model LedgerItem {
@@ -359,6 +397,9 @@ model LedgerItem {
 
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   amount Float
 
@@ -420,6 +461,9 @@ model FormField {
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
   logs Logs[]
 }
 
@@ -447,6 +491,9 @@ model FormResponse {
 
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   logs   Logs[]
   shifts FormResponseShift[]
@@ -493,6 +540,9 @@ model Location {
   eventId     String
   event       Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
   address String?
   city    String?
   state   String?
@@ -528,6 +578,9 @@ model Job {
 
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   locationId String
   location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
@@ -571,6 +624,9 @@ model Shift {
 
   locationId String
   location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   jobId String
   job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
@@ -717,9 +773,14 @@ enum CrmFieldType {
 }
 
 model RegistrationTier {
-  id          String  @id @default(cuid())
-  eventId     String
-  event       Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
   name        String
   description String?
   capacity    Int?
@@ -728,7 +789,7 @@ model RegistrationTier {
   pricingTiers  RegistrationPeriodPricing[]
   registrations Registration[]
 
-  deleted Boolean @default(false)
+  deleted   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -743,14 +804,20 @@ model RegistrationPeriodPricing {
   registrationTierId String
   registrationTier   RegistrationTier @relation(fields: [registrationTierId], references: [id], onDelete: Cascade)
 
-  price          Float
-  available      Boolean @default(true)
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  price            Float
+  available        Boolean @default(true)
   stripe_productId String?
-  stripe_priceId String?
+  stripe_priceId   String?
 
   registrations Registration[]
 
-  deleted Boolean @default(false)
+  deleted   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   logs      Logs[]
@@ -763,6 +830,9 @@ model RegistrationPeriod {
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
   registrations Registration[]
 
   name        String // e.g. "Early Bird"
@@ -771,7 +841,7 @@ model RegistrationPeriod {
   endTime     DateTime
   endTimeTz   String
 
-  deleted Boolean @default(false)
+  deleted   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -779,9 +849,14 @@ model RegistrationPeriod {
 }
 
 model Team {
-  id            String         @id @default(cuid())
-  eventId       String
-  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
   name          String
   code          String         @unique
   maxSize       Int?
@@ -792,9 +867,14 @@ model Team {
 }
 
 model UpsellItem {
-  id          String  @id @default(cuid())
-  eventId     String
-  event       Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
   name        String
   description String?
   price       Float
@@ -802,7 +882,7 @@ model UpsellItem {
   order       Int     @default(0)
 
   stripe_productId String?
-  stripe_priceId String?
+  stripe_priceId   String?
 
   registrations RegistrationUpsell[]
   images        File[]               @relation(name: "UpsellItemImage")
@@ -818,12 +898,15 @@ model Registration {
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
   registrationTierId String?
   registrationTier   RegistrationTier? @relation(fields: [registrationTierId], references: [id])
 
   registrationPeriodId String?
   registrationPeriod   RegistrationPeriod? @relation(fields: [registrationPeriodId], references: [id])
-  priceSnapshot Float /// The price of the registration tier at the time of registration
+  priceSnapshot        Float /// The price of the registration tier at the time of registration
 
   registrationPeriodPricingId String?
   registrationPeriodPricing   RegistrationPeriodPricing? @relation(fields: [registrationPeriodPricingId], references: [id])
@@ -842,7 +925,7 @@ model Registration {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   logs      Logs[]
-  deleted   Boolean @default(false)
+  deleted   Boolean  @default(false)
 }
 
 model RegistrationUpsell {
@@ -863,6 +946,9 @@ model RegistrationPage {
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
   name String
 
   order Int @default(0)
@@ -875,9 +961,13 @@ model RegistrationPage {
 }
 
 model RegistrationField {
-  id      String @id @default(cuid())
+  id String @id @default(cuid())
+
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   label       String?
   type        RegistrationFieldType
@@ -923,6 +1013,12 @@ model RegistrationFieldResponse {
   option       RegistrationFieldOption? @relation(fields: [optionId], references: [id])
   value        String?
 
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
   @@unique([registrationId, fieldId])
 }
 
@@ -966,6 +1062,9 @@ model Logs {
 
   eventId String?
   event   Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  instanceId String?
+  instance   EventInstance? @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   formFieldId String?
   formField   FormField? @relation(fields: [formFieldId], references: [id], onDelete: Cascade)
@@ -1095,4 +1194,7 @@ enum LogType {
   LEDGER_ITEM_CREATED
   LEDGER_ITEM_UPDATED
   LEDGER_ITEM_DELETED
+  INSTANCE_CREATED
+  INSTANCE_UPDATED
+  INSTANCE_DELETED
 }

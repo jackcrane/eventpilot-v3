@@ -12,7 +12,10 @@ import { useState } from "react";
 import { SlugInput } from "../../../components/slugInput/SlugInput";
 import { Dropzone } from "../../../components/dropzone/Dropzone";
 import { Icon } from "../../../util/Icon";
-import { TzPicker } from "../../../components/tzDateTime/tzDateTime";
+import {
+  TzDateTime,
+  TzPicker,
+} from "../../../components/tzDateTime/tzDateTime";
 import React from "react";
 import ReactConfetti from "react-confetti";
 import { isEmail } from "../../../util/isEmail";
@@ -34,6 +37,13 @@ export const NewEventPage = () => {
     useUserEmailAsContact: null,
     useHostedEmail: null,
     willForwardEmail: true,
+    instance: {
+      name: null,
+      startTime: null,
+      endTime: null,
+      startTimeTz: null,
+      endTimeTz: null,
+    },
   });
   window.setEvent = setEvent;
   const [stage, setStage] = useState(0);
@@ -73,19 +83,22 @@ export const NewEventPage = () => {
               <EventBasicInfo event={event} onChangeEvent={onChangeEvent} />
             )}
             {stage === 1 && (
-              <EventContact event={event} onChangeEvent={onChangeEvent} />
+              <InstanceInfo event={event} onChangeEvent={onChangeEvent} />
             )}
             {stage === 2 && (
-              <EventAssets event={event} onChangeEvent={onChangeEvent} />
+              <EventContact event={event} onChangeEvent={onChangeEvent} />
             )}
             {stage === 3 && (
+              <EventAssets event={event} onChangeEvent={onChangeEvent} />
+            )}
+            {stage === 4 && (
               <EventSocials
                 event={event}
                 onChangeEvent={onChangeEvent}
                 setStage={setStage}
               />
             )}
-            {stage === 4 && (
+            {stage === 5 && (
               <Submit
                 event={event}
                 onChangeEvent={onChangeEvent}
@@ -94,7 +107,7 @@ export const NewEventPage = () => {
                 loading={mutationLoading}
               />
             )}
-            {stage === 5 && (
+            {stage === 6 && (
               <Finished event={event} onChangeEvent={onChangeEvent} />
             )}
             <Util.Hr className="mt-4" />
@@ -107,7 +120,7 @@ export const NewEventPage = () => {
                   </Util.Row>
                 </Button>
               )}
-              {stage < 4 && (
+              {stage < 5 && (
                 <Button onClick={() => setStage(stage + 1)} className="mt-3">
                   <Util.Row align="center" gap={1}>
                     Next
@@ -172,6 +185,78 @@ const EventBasicInfo = ({ event = {}, onChangeEvent }) => {
         prompt={"Select a default timezone"}
         onChange={(d) => onChangeEvent({ defaultTz: d })}
         value={event.defaultTz}
+      />
+    </>
+  );
+};
+
+const InstanceInfo = ({ event = {}, onChangeEvent }) => {
+  const updateInstance = (changes) =>
+    onChangeEvent({ instance: { ...event.instance, ...changes } });
+
+  return (
+    <>
+      <Typography.H2>Instance</Typography.H2>
+      <Typography.Text>
+        Most events occur multiple times, whether that is a yearly occurrence,
+        monthly, or on some other basis. EventPilot uses Instances to track
+        different occurrences of your event. We will create your first instance
+        for you, but once your event is over, you can add a new instance to
+        track the next occurrence without having to create a new event or delete
+        old data.
+      </Typography.Text>
+      <Input
+        value={event.instance.name || ""}
+        onChange={(e) => updateInstance({ name: e })}
+        label="Instance Name"
+        required
+        placeholder="Instance Name (ideas: year, theme…)"
+        hint="Required; at least 2 characters."
+        labelDescription={
+          event.instance?.name?.length < 2
+            ? `${2 - event.instance?.name?.length} characters left`
+            : event.instance?.name?.length > 50
+            ? `${event.instance?.name?.length - 50} characters too long`
+            : null
+        }
+      />
+      <TzDateTime
+        value={event.instance.startTime}
+        onChange={([dt, tz]) =>
+          updateInstance({ startTime: dt, startTimeTz: tz })
+        }
+        label="Start Date"
+        required
+        tz={event.instance.startTimeTz || event.defaultTz}
+        minDate={
+          event.instance?.startTime
+            ? new Date(event.instance?.startTime).toISOString().slice(0, 10)
+            : ""
+        }
+        minTime={
+          event.instance?.startTime
+            ? new Date(event.instance?.startTime).toISOString().slice(11, 16)
+            : ""
+        }
+        defaultTime="00:00"
+      />
+      <TzDateTime
+        value={event.instance.endTime}
+        onChange={([dt, tz]) => updateInstance({ endTime: dt, endTimeTz: tz })}
+        label="End Date"
+        required
+        tz={event.instance.endTimeTz || event.defaultTz}
+        minDate={
+          event.instance?.endTime
+            ? new Date(event.instance?.endTime).toISOString().slice(0, 10)
+            : ""
+        }
+        minTime={
+          event.instance?.endTime
+            ? new Date(event.instance?.endTime).toISOString().slice(11, 16)
+            : ""
+        }
+        defaultTime="00:00"
       />
     </>
   );
@@ -406,7 +491,7 @@ const EventSocials = ({ event = {}, onChangeEvent, setStage }) => {
         <Typography.Text className="mb-0">
           This section is optional, and you can fill this out later.
         </Typography.Text>
-        <Button onClick={() => setStage(4)} className="mt-3" variant="primary">
+        <Button onClick={() => setStage(5)} className="mt-3" variant="primary">
           Skip to the next step
         </Button>
       </Alert>

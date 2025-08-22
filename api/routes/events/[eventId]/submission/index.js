@@ -22,6 +22,7 @@ export const post = async (req, res) => {
   }
   const { values, pii, shifts } = parseResult.data;
   const { eventId } = req.params;
+  const instanceId = req.instanceId;
 
   try {
     const formResponse = await prisma.formResponse.create({
@@ -41,6 +42,7 @@ export const post = async (req, res) => {
               req.headers["x-forwarded-for"] || req.connection.remoteAddress,
           },
         },
+        instanceId,
       },
     });
 
@@ -160,9 +162,11 @@ export const get = [
   verifyAuth(["manager"], true),
   async (req, res) => {
     const { eventId } = req.params;
+    const instanceId = req.instanceId;
+
     try {
       const fields = await prisma.formField.findMany({
-        where: { eventId },
+        where: { eventId, instanceId },
         orderBy: { order: "asc" },
         select: {
           id: true,
@@ -174,7 +178,7 @@ export const get = [
       });
 
       const rawResponses = await prisma.formResponse.findMany({
-        where: { eventId, deleted: false },
+        where: { eventId, deleted: false, instanceId },
         include: {
           fieldResponses: {
             select: { fieldId: true, value: true },

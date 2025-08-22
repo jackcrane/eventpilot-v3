@@ -1,4 +1,4 @@
-export const upsertPeriods = async (tx, periods, eventId) => {
+export const upsertPeriods = async (tx, periods, eventId, instanceId) => {
   const map = new Map();
   for (let i = 0; i < periods.length; i++) {
     const { id, name, startTime, endTime, startTimeTz, endTimeTz } = periods[i];
@@ -15,7 +15,11 @@ export const upsertPeriods = async (tx, periods, eventId) => {
       map.set(inputKey, id);
     } else {
       const created = await tx.registrationPeriod.create({
-        data: { ...data, event: { connect: { id: eventId } } },
+        data: {
+          ...data,
+          event: { connect: { id: eventId } },
+          instance: { connect: { id: instanceId } },
+        },
       });
       map.set(inputKey, created.id);
     }

@@ -43,7 +43,7 @@ const syncOptions = async (tx, fieldId, optionsData = []) => {
 };
 
 // sync fields for one page
-const syncFields = async (tx, eventId, pageId, fieldsData = []) => {
+const syncFields = async (tx, eventId, pageId, fieldsData = [], instanceId) => {
   const existing = await tx.registrationField.findMany({ where: { pageId } });
   const incomingIds = fieldsData.filter((f) => !isNew(f.id)).map((f) => f.id);
 
@@ -74,6 +74,7 @@ const syncFields = async (tx, eventId, pageId, fieldsData = []) => {
       fieldType: field.fieldType ?? null,
       event: { connect: { id: eventId } },
       page: { connect: { id: pageId } },
+      instance: { connect: { id: instanceId } },
     };
 
     if (isNew(field.id)) {
@@ -87,8 +88,10 @@ const syncFields = async (tx, eventId, pageId, fieldsData = []) => {
 };
 
 // sync pages for the event
-const syncPages = async (tx, eventId, pagesData = []) => {
-  const existing = await tx.registrationPage.findMany({ where: { eventId } });
+const syncPages = async (tx, eventId, pagesData = [], instanceId) => {
+  const existing = await tx.registrationPage.findMany({
+    where: { eventId, instanceId },
+  });
   const incomingIds = pagesData.filter((p) => !isNew(p.id)).map((p) => p.id);
 
   // soft-delete removed
@@ -99,6 +102,7 @@ const syncPages = async (tx, eventId, pagesData = []) => {
         tx.registrationPage.update({
           where: {
             id: p.id,
+            instanceId,
           },
           data: {
             deleted: true,
@@ -120,20 +124,24 @@ const syncPages = async (tx, eventId, pagesData = []) => {
           event: {
             connect: { id: eventId },
           },
+          instance: {
+            connect: { id: instanceId },
+          },
           name: page.name,
           order: page.order,
           deleted: false,
         },
       });
-      await syncFields(tx, eventId, created.id, page.fields);
+      await syncFields(tx, eventId, created.id, page.fields, instanceId);
     } else {
       await tx.registrationPage.update({
         where: {
           id: page.id,
+          instanceId,
         },
         data: { name: page.name, deleted: false, order: page.order },
       });
-      await syncFields(tx, eventId, page.id, page.fields);
+      await syncFields(tx, eventId, page.id, page.fields, instanceId);
     }
   }
 };
@@ -182,7 +190,7 @@ export const put = [
 
       await prisma.$transaction(
         async (tx) => {
-          await syncPages(tx, eventId, pages);
+          await syncPages(tx, eventId, pages, req.instanceId);
         },
         {
           timeout: 120_000,

@@ -20,6 +20,7 @@ import { useLocations } from "../../../../hooks/useLocations";
 import { TodoList } from "../../../../components/todoList/TodoList";
 import { WhatNext } from "../../../../components/whatNext/WhatNext";
 import { useTourManager } from "../../../../components/tourManager/TourManager";
+import { useSelectedInstance } from "../../../../contexts/SelectedInstanceContext";
 
 const Divider = styled.div`
   background-color: var(--tblr-card-border-color);

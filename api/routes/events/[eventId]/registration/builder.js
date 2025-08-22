@@ -46,12 +46,14 @@ export const get = [
   async (req, res) => {
     try {
       const { eventId } = req.params;
+      const instanceId = req.instance.id;
 
       const [tiers, periodsRaw] = await Promise.all([
         prisma.registrationTier.findMany({
           where: {
             eventId,
             deleted: false,
+            instanceId,
           },
           orderBy: { order: "asc" },
         }),
@@ -59,6 +61,7 @@ export const get = [
           where: {
             eventId,
             deleted: false,
+            instanceId,
           },
           orderBy: { startTime: "asc" },
           include: { registrationTiers: true },
@@ -94,6 +97,8 @@ export const put = [
   verifyAuth(["manager"]),
   async (req, res) => {
     try {
+      const instanceId = req.instance.id;
+
       const parsed = registrationBuilderSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ message: serializeError(parsed) });
@@ -104,23 +109,28 @@ export const put = [
       const event = await prisma.event.findUnique({ where: { id: eventId } });
 
       const existingTiers = await prisma.registrationTier.findMany({
-        where: { eventId },
+        where: { eventId, instanceId, deleted: false },
       });
       const existingPeriods = await prisma.registrationPeriod.findMany({
-        where: { eventId },
+        where: { eventId, instanceId, deleted: false },
         include: { registrationTiers: true },
       });
 
       await prisma.$transaction(
         async (tx) => {
-          const tierMap = await upsertTiers(tx, tiers, eventId);
+          const tierMap = await upsertTiers(tx, tiers, eventId, instanceId);
           await deleteMissingTiers(
             tx,
             existingTiers,
             Array.from(tierMap.values())
           );
 
-          const periodMap = await upsertPeriods(tx, periods, eventId);
+          const periodMap = await upsertPeriods(
+            tx,
+            periods,
+            eventId,
+            instanceId
+          );
           await deleteMissingPeriods(
             tx,
             existingPeriods,
@@ -135,7 +145,8 @@ export const put = [
             tierMap,
             periodMap,
             existingPeriods,
-            event
+            event,
+            instanceId
           );
         },
         {

@@ -57,9 +57,17 @@ export const post = [
         return res.status(400).json({ message: serializeError(result) });
       }
 
+      if (!result.data.instance) {
+        return res.status(400).json({ message: "Instance is required" });
+      }
+
       event = await prisma.event.create({
         data: {
           ...result.data,
+          externalContactEmail: result.data.externalContactEmail
+            ? result.data.externalContactEmail
+            : req.user.email,
+          instance: undefined,
           userId: req.user.id,
           logs: {
             create: {
@@ -67,6 +75,15 @@ export const post = [
               userId: req.user.id,
               ip: req.ip || req.headers["x-forwarded-for"],
               data: result.data,
+            },
+          },
+          instances: {
+            create: {
+              name: result.data.instance?.name,
+              startTime: result.data.instance?.startTime,
+              endTime: result.data.instance?.endTime,
+              startTimeTz: result.data.instance?.startTimeTz,
+              endTimeTz: result.data.instance?.endTimeTz,
             },
           },
         },
@@ -87,17 +104,19 @@ export const post = [
       await prisma.logs.createMany({
         data: [
           {
-            type: LogType.EVENT_CREATED,
-            userId: req.user.id,
-            ip: req.ip || req.headers["x-forwarded-for"],
-            data: event,
-          },
-          {
             type: LogType.STRIPE_SUBSCRIPTION_CREATED,
             userId: req.user.id,
             ip: req.ip || req.headers["x-forwarded-for"],
             data: subscription,
           },
+          // {
+          //   type: LogType.INSTANCE_CREATED,
+          //   userId: req.user.id,
+          //   ip: req.ip || req.headers["x-forwarded-for"],
+          //   data: event.instances[0],
+          //   instanceId: event.instances[0].id,
+          //   eventId: event.id,
+          // },
         ],
       });
 
@@ -113,7 +132,7 @@ export const post = [
         },
       });
 
-      await stripe.subscriptions.del(subscription.id);
+      await stripe.subscriptions.cancel(subscription.id);
 
       res.status(500).json({ message: "Error" });
     }

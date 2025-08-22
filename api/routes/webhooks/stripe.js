@@ -116,8 +116,15 @@ export const post = [
           });
 
           if (scope === "EVENTPILOT:REGISTRATION") {
-            const { eventId, registrationId } = metadata;
+            const { eventId, registrationId, instanceId } = metadata;
             const receiptUrl = paymentIntent.charges.data[0].receipt_url;
+
+            const instance = await prisma.eventInstance.findUnique({
+              where: {
+                eventId,
+                id: instanceId,
+              },
+            });
 
             await prisma.ledgerItem.create({
               data: {
@@ -125,11 +132,13 @@ export const post = [
                 amount: paymentIntent.amount / 100,
                 source: LedgerItemSource.REGISTRATION,
                 stripe_paymentIntentId: paymentIntent.id,
+                instanceId: instance.id,
                 logs: {
                   create: {
                     type: LogType.LEDGER_ITEM_CREATED,
                     data: paymentIntent,
                     eventId,
+                    instanceId: instance.id,
                     registrationId,
                   },
                 },

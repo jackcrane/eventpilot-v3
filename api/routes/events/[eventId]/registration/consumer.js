@@ -5,6 +5,7 @@ import { mapInputToInsert } from "./fragments/consumer/mapInputToInsert";
 import { LogType } from "@prisma/client";
 import { registrationRequiresPayment } from "./fragments/consumer/registrationRequiresPayment";
 import { finalizeRegistration } from "../../../../util/finalizeRegistration";
+import { getNextInstance } from "#util/getNextInstance.js";
 
 const registrationSubmissionSchema = z.object({
   responses: z.record(z.string(), z.any()),
@@ -17,10 +18,14 @@ export const get = [
     const now = new Date();
     const { eventId } = req.params;
 
+    const instance = await getNextInstance(eventId);
+    const instanceId = instance.id;
+
     let tiers = await prisma.registrationTier.findMany({
       where: {
         eventId,
         deleted: false,
+        instanceId,
       },
       include: {
         pricingTiers: {
@@ -73,6 +78,10 @@ export const post = [
   async (req, res) => {
     try {
       const { eventId } = req.params;
+      const event = await prisma.event.findUnique({ where: { id: eventId } });
+      const instance = await getNextInstance(eventId);
+      const instanceId = instance.id;
+
       const parsed = registrationSubmissionSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ message: serializeError(parsed) });
@@ -83,7 +92,7 @@ export const post = [
 
       const fieldIds = Object.keys(responses);
       const fieldTypes = await prisma.registrationField.findMany({
-        where: { id: { in: fieldIds } },
+        where: { id: { in: fieldIds }, instanceId },
       });
 
       // TODO: Right now we are just going to trust the data is valid and nothing required is missing.
@@ -94,7 +103,11 @@ export const post = [
           // 1) Create a new registration
           const selectedPeriodPricing =
             await tx.registrationPeriodPricing.findUnique({
-              where: { id: selectedRegistrationTier },
+              where: {
+                id: selectedRegistrationTier,
+                instanceId,
+                deleted: false,
+              },
             });
 
           if (!selectedPeriodPricing) {
@@ -104,6 +117,7 @@ export const post = [
           const registration = await tx.registration.create({
             data: {
               eventId,
+              instanceId,
               registrationPeriodPricingId: selectedPeriodPricing.id,
               registrationTierId: selectedPeriodPricing.registrationTierId,
               registrationPeriodId: selectedPeriodPricing.registrationPeriodId,
@@ -114,7 +128,8 @@ export const post = [
           const inserts = mapInputToInsert(
             responses,
             fieldTypes,
-            registration.id
+            registration.id,
+            instanceId
           );
 
           await tx.registrationFieldResponse.createMany({
@@ -124,7 +139,7 @@ export const post = [
           // 3) Connect upsells
           // TODO: Make sure upsells are available before connecting
           const upsells = await tx.upsellItem.findMany({
-            where: { id: { in: selectedUpsells } },
+            where: { id: { in: selectedUpsells }, instanceId, deleted: false },
           });
 
           if (upsells.length !== selectedUpsells.length) {
@@ -141,15 +156,14 @@ export const post = [
             skipDuplicates: true, // optional: avoids error if already exists
           });
 
-          const event = await tx.event.findUnique({ where: { id: eventId } });
-
           // 4) Figure out if payment is required
           const [requiresPayment, stripePIClientSecret, price] =
             await registrationRequiresPayment(
               upsells,
               selectedPeriodPricing,
               event,
-              registration.id
+              registration.id,
+              instanceId
             );
 
           if (!requiresPayment) {
@@ -173,6 +187,7 @@ export const post = [
                 ip: req.ip,
                 data: JSON.stringify(fullRegistration),
                 registrationId: registration.id,
+                instanceId,
               },
               {
                 type: LogType.REGISTRATION_PERIOD_PRICING_SOLD,
@@ -180,6 +195,7 @@ export const post = [
                 ip: req.ip,
                 registrationPeriodPricingId: selectedPeriodPricing.id,
                 registrationId: registration.id,
+                instanceId,
               },
               ...selectedUpsells.map((u) => ({
                 type: LogType.UPSELL_SOLD,
@@ -187,6 +203,7 @@ export const post = [
                 ip: req.ip,
                 upsellItemId: u,
                 registrationId: registration.id,
+                instanceId,
               })),
             ],
           });

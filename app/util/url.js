@@ -7,17 +7,19 @@ export const u = (path) =>
     ? `http://localhost:3000${path}`
     : path;
 
-export const authFetch = async (url, options) => {
+export const authFetch = async (url, options, redirect = true) => {
   const token = localStorage.getItem("token");
+  const instance = localStorage.getItem("instance");
   const res = await fetch(u(url), {
     ...options,
     headers: {
       "Content-Type": "application/json",
       ...options?.headers,
       Authorization: `Bearer ${token}`,
+      "X-Instance": instance,
     },
   });
-  if (res.status === 401) {
+  if (res.status === 401 && redirect) {
     localStorage.removeItem("token");
     window.logout && window.logout();
     emitter.emit("logout");
