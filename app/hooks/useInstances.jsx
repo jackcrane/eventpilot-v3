@@ -3,6 +3,10 @@ import { authFetch } from "../util/url";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
+import React from "react";
+import { useOffcanvas } from "tabler-react-2";
+import { InstanceMaker } from "../components/InstanceMaker/InstanceMaker";
+
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 const fetchSchema = async ([url]) => {
   const res = await authFetch(url, {
@@ -13,6 +17,7 @@ const fetchSchema = async ([url]) => {
   const raw = await res.json();
   return dezerialize(raw);
 };
+
 export const useInstances = ({ eventId }) => {
   const key = `/api/events/${eventId}/instances`;
   const { data, error, isLoading } = useSWR(key, fetcher);
@@ -31,6 +36,7 @@ export const useInstances = ({ eventId }) => {
       if (!parsed.success) {
         toast.error("Error");
         setValidationError(parsed.error.format());
+        console.log(parsed.error.format());
         return false;
       } else {
         data = parsed.data;
@@ -57,6 +63,15 @@ export const useInstances = ({ eventId }) => {
       setMutationLoading(false);
     }
   };
+
+  const {
+    offcanvas: createInstanceInteraction,
+    OffcanvasElement: CreateInstanceElement,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 470, zIndex: 1051 },
+    content: <InstanceMaker eventId={eventId} />,
+  });
+
   return {
     instances: data?.instances,
     loading: isLoading,
@@ -67,5 +82,7 @@ export const useInstances = ({ eventId }) => {
     schemaLoading,
     validationError,
     createInstance,
+    createInstanceInteraction,
+    CreateInstanceElement,
   };
 };

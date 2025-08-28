@@ -3,6 +3,7 @@ import { verifyAuth } from "#verifyAuth";
 import { getNextInstance } from "#util/getNextInstance";
 import { z } from "zod";
 import { serializeError } from "#serializeError";
+import { zerialize } from "zodex";
 
 export const instanceSchema = z.object({
   name: z.string().min(2).max(50),
@@ -10,6 +11,7 @@ export const instanceSchema = z.object({
   endTime: z.string().datetime(),
   startTimeTz: z.string(),
   endTimeTz: z.string(),
+  templateInstanceId: z.string(),
 });
 
 export const get = [
@@ -50,5 +52,11 @@ export const post = [
     });
 
     res.json({ instance });
+  },
+];
+
+export const query = [
+  (req, res) => {
+    return res.json(zerialize(instanceSchema));
   },
 ];

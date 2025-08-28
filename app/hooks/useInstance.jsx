@@ -18,12 +18,15 @@ const fetchSchema = async ([url]) => {
 };
 
 export const useInstance = ({ eventId, instanceId }) => {
-  const key = `/api/events/${eventId}/instances/${instanceId}`;
+  const skip = instanceId === "eventpilot__create";
+  const key = skip ? null : `/api/events/${eventId}/instances/${instanceId}`;
+
   const { data, error, isLoading } = useSWR(key, fetcher);
-  const { data: schema, loading: schemaLoading } = useSWR(
-    [key, "schema"],
+  const { data: schema, isLoading: schemaLoading } = useSWR(
+    skip ? null : [key, "schema"],
     fetchSchema
   );
+
   const [mutationLoading, setMutationLoading] = useState(false);
   const [validationError, setValidationError] = useState(null);
   const { confirm, ConfirmModal } = useConfirm({
@@ -32,6 +35,7 @@ export const useInstance = ({ eventId, instanceId }) => {
   });
 
   const updateInstance = async (_data) => {
+    if (skip) return false;
     setMutationLoading(true);
     try {
       const parsed = schema.safeParse(_data);
@@ -67,6 +71,7 @@ export const useInstance = ({ eventId, instanceId }) => {
   };
 
   const deleteInstance = async (onDelete) => {
+    if (skip) return false;
     if (await confirm()) {
       setMutationLoading(true);
       try {
@@ -93,12 +98,13 @@ export const useInstance = ({ eventId, instanceId }) => {
       }
     }
   };
+
   return {
     instance: data?.instance,
-    loading: isLoading,
+    loading: skip ? false : isLoading,
     mutationLoading,
     error,
-    refetch: () => mutate(key),
+    refetch: () => (skip ? null : mutate(key)),
     schema,
     schemaLoading,
     validationError,
