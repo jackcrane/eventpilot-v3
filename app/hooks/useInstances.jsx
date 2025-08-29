@@ -6,6 +6,7 @@ import { dezerialize } from "zodex";
 import React from "react";
 import { useOffcanvas } from "tabler-react-2";
 import { InstanceMaker } from "../components/InstanceMaker/InstanceMaker";
+import { useSelectedInstance } from "../contexts/SelectedInstanceContext";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 const fetchSchema = async ([url]) => {
@@ -27,8 +28,9 @@ export const useInstances = ({ eventId }) => {
   );
   const [mutationLoading, setMutationLoading] = useState(false);
   const [validationError, setValidationError] = useState(null);
+  const { setInstance } = useSelectedInstance();
 
-  const createInstance = async (_data) => {
+  const createInstance = async (_data, setGlobalInstance = true) => {
     setMutationLoading(true);
     try {
       const parsed = schema.safeParse(_data);
@@ -49,11 +51,16 @@ export const useInstances = ({ eventId }) => {
         return r.json();
       });
 
-      await toast.promise(promise, {
+      const result = await toast.promise(promise, {
         loading: "Creating...",
         success: "Created successfully",
         error: "Error",
       });
+
+      if (result.instance?.id && setGlobalInstance) {
+        setInstance(result.instance.id);
+        toast.success("A new instance has been created & selected");
+      }
 
       await mutate(key);
       return true;

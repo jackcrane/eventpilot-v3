@@ -10,8 +10,10 @@ import {
 import { TzDateTime } from "../tzDateTime/tzDateTime";
 import { InstancePicker } from "../InstancePicker/InstancePicker";
 import { useInstances } from "../../hooks/useInstances";
+import { useSelectedInstance } from "../../contexts/SelectedInstanceContext";
+import toast from "react-hot-toast";
 
-export const InstanceMaker = ({ eventId }) => {
+export const InstanceMaker = ({ eventId, close }) => {
   const [state, setState] = useState({
     name: null,
     startTime: null,
@@ -26,11 +28,27 @@ export const InstanceMaker = ({ eventId }) => {
     upsellItem: false,
     registration: false,
   });
-  const { loading, createInstance, validationError } = useInstances({
+  const { mutationLoading, createInstance, validationError } = useInstances({
     eventId,
   });
+  const { setInstance } = useSelectedInstance();
 
   const err = (k) => validationError?.[k]?._errors?.[0];
+
+  const handleSubmit = async (e) => {
+    e?.preventDefault();
+
+    if (state.startTime > state.endTime) {
+      toast.error("Start time must be before end time");
+      return;
+    }
+
+    const success = await createInstance(state);
+
+    if (success) {
+      document.location.reload();
+    }
+  };
 
   return (
     <div>
@@ -114,7 +132,7 @@ export const InstanceMaker = ({ eventId }) => {
         You may want to keep some data from an existing instance.
       </Typography.Text>
 
-      <label className="form-label required">Template Instance</label>
+      <label className="form-label">Template Instance</label>
       <InstancePicker
         eventId={eventId}
         onChange={(instance) =>
@@ -182,8 +200,8 @@ export const InstanceMaker = ({ eventId }) => {
       )}
 
       <Button
-        loading={loading}
-        onClick={() => createInstance(state)}
+        loading={mutationLoading}
+        onClick={handleSubmit}
         variant="primary"
       >
         Create Instance
