@@ -3,6 +3,11 @@ import { authFetch } from "../util/url";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
+import React from "react";
+import { useOffcanvas } from "tabler-react-2";
+import { InstanceMaker } from "../components/InstanceMaker/InstanceMaker";
+import { useSelectedInstance } from "../contexts/SelectedInstanceContext";
+
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 const fetchSchema = async ([url]) => {
   const res = await authFetch(url, {
@@ -13,6 +18,7 @@ const fetchSchema = async ([url]) => {
   const raw = await res.json();
   return dezerialize(raw);
 };
+
 export const useInstances = ({ eventId }) => {
   const key = `/api/events/${eventId}/instances`;
   const { data, error, isLoading } = useSWR(key, fetcher);
@@ -22,8 +28,9 @@ export const useInstances = ({ eventId }) => {
   );
   const [mutationLoading, setMutationLoading] = useState(false);
   const [validationError, setValidationError] = useState(null);
+  const { setInstance } = useSelectedInstance();
 
-  const createInstance = async (_data) => {
+  const createInstance = async (_data, setGlobalInstance = true) => {
     setMutationLoading(true);
     try {
       const parsed = schema.safeParse(_data);
@@ -31,6 +38,7 @@ export const useInstances = ({ eventId }) => {
       if (!parsed.success) {
         toast.error("Error");
         setValidationError(parsed.error.format());
+        console.log(parsed.error.format());
         return false;
       } else {
         data = parsed.data;
@@ -43,11 +51,16 @@ export const useInstances = ({ eventId }) => {
         return r.json();
       });
 
-      await toast.promise(promise, {
+      const result = await toast.promise(promise, {
         loading: "Creating...",
         success: "Created successfully",
         error: "Error",
       });
+
+      if (result.instance?.id && setGlobalInstance) {
+        setInstance(result.instance.id);
+        toast.success("A new instance has been created & selected");
+      }
 
       await mutate(key);
       return true;
@@ -57,6 +70,15 @@ export const useInstances = ({ eventId }) => {
       setMutationLoading(false);
     }
   };
+
+  const {
+    offcanvas: createInstanceInteraction,
+    OffcanvasElement: CreateInstanceElement,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 470, zIndex: 1051 },
+    content: <InstanceMaker eventId={eventId} />,
+  });
+
   return {
     instances: data?.instances,
     loading: isLoading,
@@ -67,5 +89,7 @@ export const useInstances = ({ eventId }) => {
     schemaLoading,
     validationError,
     createInstance,
+    createInstanceInteraction,
+    CreateInstanceElement,
   };
 };

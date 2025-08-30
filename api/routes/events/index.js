@@ -31,12 +31,18 @@ export const get = [
         },
       });
 
-      events = events.map((event) => ({
-        ...event,
-        computedExternalContactEmail: event.useHostedEmail
-          ? `{prefix}@${event.slug}.geteventpilot.com`
-          : event.externalContactEmail,
-      }));
+      events = events.map((event) => {
+        const computed = event.useHostedEmail
+          ? `prefix@${event.slug}.geteventpilot.com`
+          : event.externalContactEmail;
+
+        return {
+          ...event,
+          computedExternalContactEmail: computed,
+          contactEmail: event.contactEmail || computed,
+          externalContactEmail: event.externalContactEmail || computed,
+        };
+      });
 
       res.json({
         events,

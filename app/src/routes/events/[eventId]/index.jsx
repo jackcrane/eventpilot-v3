@@ -21,6 +21,7 @@ import { TodoList } from "../../../../components/todoList/TodoList";
 import { WhatNext } from "../../../../components/whatNext/WhatNext";
 import { useTourManager } from "../../../../components/tourManager/TourManager";
 import { useSelectedInstance } from "../../../../contexts/SelectedInstanceContext";
+import { SelectedInstanceCard } from "../../../../components/InstanceCard/InstanceCard";
 
 const Divider = styled.div`
   background-color: var(--tblr-card-border-color);
@@ -143,7 +144,8 @@ export const Event = () => {
         </Card>
       </div>
       <Util.Hr />
-      <div
+      <SelectedInstanceCard />
+      {/* <div
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr 1fr",
@@ -257,10 +259,7 @@ export const Event = () => {
             <DataBox title="Shifts" value={shiftCount} />
           </Row>
         </Card>
-        {/* <Card title="To-Do List">
-          <TodoList />
-        </Card> */}
-      </div>
+      </div> */}
     </EventPage>
   );
 };

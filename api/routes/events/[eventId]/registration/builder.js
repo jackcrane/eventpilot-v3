@@ -46,7 +46,8 @@ export const get = [
   async (req, res) => {
     try {
       const { eventId } = req.params;
-      const instanceId = req.instance.id;
+      const instanceId = req.instanceId;
+      console.log(instanceId);
 
       const [tiers, periodsRaw] = await Promise.all([
         prisma.registrationTier.findMany({
@@ -97,7 +98,7 @@ export const put = [
   verifyAuth(["manager"]),
   async (req, res) => {
     try {
-      const instanceId = req.instance.id;
+      const instanceId = req.instanceId;
 
       const parsed = registrationBuilderSchema.safeParse(req.body);
       if (!parsed.success) {

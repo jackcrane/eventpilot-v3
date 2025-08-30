@@ -87,7 +87,7 @@ export const EventSettings = () => {
               {localEvent.banner && (
                 <a href={localEvent.banner.location} target="_blank">
                   <img
-                    src={localEvent.logo.location}
+                    src={localEvent.banner.location}
                     alt="Event Logo"
                     style={{ maxWidth: 40, maxHeight: 40 }}
                     className={"mb-3"}
@@ -96,7 +96,7 @@ export const EventSettings = () => {
               )}
               <Dropzone
                 onSuccessfulUpload={(d) =>
-                  setLocalEvent({ ...localEvent, logoFileId: d.fileId })
+                  setLocalEvent({ ...localEvent, bannerFileId: d.fileId })
                 }
                 style={{ flex: 1 }}
               />
@@ -144,10 +144,12 @@ export const EventSettings = () => {
           />
           <div className="mt-3" />
           <Input
-            label="Contact Email"
-            value={localEvent.contactEmail}
+            label="External Contact Email"
+            value={localEvent.externalContactEmail}
             hint="The email address of your event's primary point-to-contact. This value will be shown publicly. EventPilot will not use this value to send you any emails, but it should be used to contact you."
-            onChange={(e) => setLocalEvent({ ...localEvent, contactEmail: e })}
+            onChange={(e) =>
+              setLocalEvent({ ...localEvent, externalContactEmail: e })
+            }
           />
           <Input
             useTextarea={true}

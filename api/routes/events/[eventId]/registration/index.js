@@ -37,7 +37,7 @@ export const get = [
   async (req, res) => {
     const { eventId } = req.params;
     let registrations = await prisma.registration.findMany({
-      where: { eventId },
+      where: { eventId, instanceId: req.instanceId, deleted: false },
       include: {
         registrationTier: true,
         upsells: true,

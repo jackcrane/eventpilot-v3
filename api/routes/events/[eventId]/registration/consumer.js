@@ -18,7 +18,11 @@ export const get = [
     const now = new Date();
     const { eventId } = req.params;
 
+    if (!eventId || eventId === "undefined")
+      return res.status(400).json({ message: "No event ID provided" });
+
     const instance = await getNextInstance(eventId);
+    console.log("instance", instance);
     const instanceId = instance.id;
 
     let tiers = await prisma.registrationTier.findMany({

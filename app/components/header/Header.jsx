@@ -85,7 +85,7 @@ export const Header = ({
                     type: "item",
                     icon: <IconSettings />,
                   },
-                  {
+                  import.meta.env.MODE === "development" && {
                     text: "Copy token",
                     onclick: () => {
                       const token = localStorage.getItem("token");
@@ -104,7 +104,7 @@ export const Header = ({
                     type: "item",
                     icon: <IconLogout />,
                   },
-                ]
+                ].filter(Boolean)
               : [
                   {
                     text: "Log In",

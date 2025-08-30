@@ -18,7 +18,6 @@ export const eventSchema = z.object({
   defaultTz: z.string(),
   bannerFileId: z.string(),
   contactEmail: z.string().email(),
-  // externalContactEmail: z.string().email().optional().nullable(),
   externalContactEmail: z.union([z.literal(false), z.string().email()]),
   willForwardEmail: z.boolean(),
   useHostedEmail: z.boolean(),
@@ -45,7 +44,8 @@ export const eventSchema = z.object({
       startTimeTz: z.string(),
       endTimeTz: z.string(),
     })
-    .nullable(),
+    .nullable()
+    .optional(),
 });
 
 export const get = [
@@ -80,12 +80,16 @@ export const get = [
       delete event.userId;
     }
 
+    const computed = event.useHostedEmail
+      ? `prefix@${event.slug}.geteventpilot.com`
+      : event.externalContactEmail;
+
     res.json({
       event: {
         ...event,
-        computedExternalContactEmail: event.useHostedEmail
-          ? `{prefix}@${event.slug}.geteventpilot.com`
-          : event.externalContactEmail,
+        computedExternalContactEmail: computed,
+        contactEmail: event.contactEmail || computed,
+        externalContactEmail: event.externalContactEmail || computed,
       },
     });
   },

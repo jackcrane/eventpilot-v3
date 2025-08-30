@@ -18,7 +18,7 @@ export const put = [
 
     // load existing
     const before = await prisma.upsellItem.findFirst({
-      where: { id: upsellItemId, eventId },
+      where: { id: upsellItemId, eventId, instanceId: req.instanceId },
     });
     if (!before) return res.status(404).json({ message: "Upsell not found" });
 
@@ -164,7 +164,11 @@ export const get = [
   async (req, res) => {
     const { eventId, upsellItemId } = req.params;
     const upsell = await prisma.upsellItem.findFirst({
-      where: { id: upsellItemId, eventId, deleted: false },
+      where: {
+        id: upsellItemId,
+        eventId,
+        deleted: false,
+      },
     });
     if (!upsell) return res.status(404).json({ message: "Upsell not found" });
     return res.json({ upsell });

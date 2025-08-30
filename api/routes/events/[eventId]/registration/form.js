@@ -8,9 +8,16 @@ import { zerialize } from "zodex";
 const isNew = (id) => /^\d+$/.test(id);
 
 // sync options for one field
-const syncOptions = async (tx, fieldId, optionsData = []) => {
+const syncOptions = async (tx, fieldId, optionsData = [], instanceId) => {
   const existing = await tx.registrationFieldOption.findMany({
-    where: { fieldId },
+    where: {
+      field: {
+        is: {
+          id: fieldId,
+          instanceId,
+        },
+      },
+    },
   });
   const incomingIds = optionsData.filter((o) => !isNew(o.id)).map((o) => o.id);
 
@@ -44,7 +51,9 @@ const syncOptions = async (tx, fieldId, optionsData = []) => {
 
 // sync fields for one page
 const syncFields = async (tx, eventId, pageId, fieldsData = [], instanceId) => {
-  const existing = await tx.registrationField.findMany({ where: { pageId } });
+  const existing = await tx.registrationField.findMany({
+    where: { pageId, instanceId },
+  });
   const incomingIds = fieldsData.filter((f) => !isNew(f.id)).map((f) => f.id);
 
   // soft-delete removed
@@ -79,10 +88,10 @@ const syncFields = async (tx, eventId, pageId, fieldsData = [], instanceId) => {
 
     if (isNew(field.id)) {
       const created = await tx.registrationField.create({ data });
-      await syncOptions(tx, created.id, field.options);
+      await syncOptions(tx, created.id, field.options, instanceId);
     } else {
       await tx.registrationField.update({ where: { id: field.id }, data });
-      await syncOptions(tx, field.id, field.options);
+      await syncOptions(tx, field.id, field.options, instanceId);
     }
   }
 };
@@ -151,7 +160,7 @@ export const get = [
     try {
       const { eventId } = req.params;
       const pages = await prisma.registrationPage.findMany({
-        where: { eventId, deleted: false },
+        where: { eventId, deleted: false, instanceId: req.instanceId },
         orderBy: { order: "asc" },
         include: {
           fields: {
