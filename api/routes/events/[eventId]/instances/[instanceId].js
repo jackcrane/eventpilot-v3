@@ -76,3 +76,9 @@ export const del = [
     }
   },
 ];
+
+export const query = [
+  (req, res) => {
+    return res.json(instanceSchema);
+  },
+];

@@ -92,7 +92,7 @@ export const FieldConsumer = ({
         <Checkbox
           {...commonProps}
           label={field.label}
-          checked={value}
+          value={value}
           onChange={(v) => onInput(v)}
         />
       );

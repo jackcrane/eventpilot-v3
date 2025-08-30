@@ -21,6 +21,7 @@ export const RegistrationUpsellListing = ({ eventId, value, setUpsell }) => {
         onChange={onSetUpsell}
         items={upsells?.map((u) => ({
           value: u.id,
+          disabled: !u.available,
           label: (
             <>
               <Typography.H3 className="mb-0">{u.name}</Typography.H3>

@@ -56,9 +56,10 @@ const _UpsellItemCRUD = ({
   validationError,
   onFinish,
 }) => {
-  const [item, setItem] = useState(upsellItem || {});
+  // Default new upsell items to unlimited inventory (-1)
+  const [item, setItem] = useState(upsellItem || { inventory: -1 });
   useEffect(() => {
-    setItem(upsellItem || {});
+    setItem(upsellItem || { inventory: -1 });
   }, [upsellItem]);
 
   const handleSubmit = async () => {

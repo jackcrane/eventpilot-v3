@@ -1,5 +1,6 @@
 // src/contexts/SelectedInstanceContext.js
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useSWRConfig } from "swr";
 import { useInstance } from "../hooks/useInstance";
 import { useParams } from "react-router-dom";
 import { useParsedUrl } from "../hooks/useParsedUrl";
@@ -9,6 +10,7 @@ const SelectedInstanceContext = createContext();
 /** Wrap your app in this to provide `useSelectedInstance()` everywhere */
 export const SelectedInstanceProvider = ({ children }) => {
   const [instanceDropdownValue, setInstanceDropdownValue] = useState(null);
+  const { mutate } = useSWRConfig();
   const url = useParsedUrl(window.location.pathname);
   const eventId = url.events;
   const { instance, loading } = useInstance({
@@ -19,6 +21,9 @@ export const SelectedInstanceProvider = ({ children }) => {
   useEffect(() => {
     if (!instanceDropdownValue) return;
     localStorage.setItem("instance", instanceDropdownValue?.id);
+    // Invalidate all SWR cache entries when the selected instance changes
+    // This revalidates every key in the cache (SWR v2 API)
+    mutate(() => true, undefined, { revalidate: true });
   }, [instanceDropdownValue]);
 
   useEffect(() => {

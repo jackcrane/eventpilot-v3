@@ -49,7 +49,8 @@ export const post = [
     // 3) persist both IDs
     const upsell = await prisma.upsellItem.create({
       data: {
-        eventId,
+        event: { connect: { id: eventId } },
+        instance: { connect: { id: req.instanceId } },
         name,
         description,
         price,
@@ -80,7 +81,7 @@ export const post = [
     });
 
     const upsells = await prisma.upsellItem.findMany({
-      where: { eventId, deleted: false },
+      where: { eventId, deleted: false, instanceId: req.instanceId },
       include: { images: true },
     });
     return res.json({ upsells });
@@ -92,7 +93,7 @@ export const get = [
   async (req, res) => {
     const { eventId } = req.params;
     const upsells = await prisma.upsellItem.findMany({
-      where: { eventId, deleted: false },
+      where: { eventId, deleted: false, instanceId: req.instanceId },
       include: {
         images: true,
         registrations: {
@@ -113,7 +114,7 @@ export const get = [
       return {
         ...item,
         sold,
-        available: item.inventory > sold,
+        available: item.inventory > sold || item.inventory === -1,
       };
     });
 

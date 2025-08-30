@@ -56,7 +56,7 @@ export const generateSections = (event) => {
     },
     {
       title: "Contact Information",
-      stage: 1,
+      stage: 2,
       optional: false,
       items: [
         {
@@ -78,7 +78,7 @@ export const generateSections = (event) => {
     },
     {
       title: "Assets",
-      stage: 2,
+      stage: 3,
       optional: false,
       items: [
         { key: "logoFileId", label: "Logo Image", validate: (val) => !!val },
@@ -91,7 +91,7 @@ export const generateSections = (event) => {
     },
     {
       title: "Social Media",
-      stage: 3,
+      stage: 4,
       optional: true,
       items: [
         { key: "facebook", label: "Facebook" },
