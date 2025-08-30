@@ -24,6 +24,7 @@ export const RegisterPage = () => {
     loading: eventLoading,
     error,
   } = useEvent({ eventId: eventSlug });
+
   const {
     loading,
     tiers,
@@ -84,7 +85,7 @@ export const RegisterPage = () => {
                 participant registration builder
               </Link>{" "}
               to add fields, set up pricing tiers, and configure what
-              information you wish to collect from your volunteers.
+              information you wish to collect from your participants.
             </Typography.Text>
           </Alert>
         </div>
