@@ -57,7 +57,6 @@ export const EventPage = ({
       active: isActive(base),
       icon: <Icon i="home" size={18} color="var(--tblr-cyan)" />,
     },
-    { type: "divider" },
     {
       type: "item",
       href: `${base}/crm`,
@@ -65,14 +64,13 @@ export const EventPage = ({
       active: isActive(`${base}/crm`),
       icon: <Icon i="briefcase-2" size={18} color="var(--tblr-purple)" />,
     },
-    {
-      type: "item",
-      href: `${base}/conversations`,
-      text: "Conversations",
-      active: isActive(`${base}/conversations`),
-      icon: <Icon i="message" size={18} color="var(--tblr-green)" />,
-    },
-    { type: "divider" },
+    // {
+    //   type: "item",
+    //   href: `${base}/conversations`,
+    //   text: "Conversations",
+    //   active: isActive(`${base}/conversations`),
+    //   icon: <Icon i="message" size={18} color="var(--tblr-green)" />,
+    // },
     {
       type: "dropdown",
       text: "Registration",
@@ -115,7 +113,6 @@ export const EventPage = ({
         },
       ],
     },
-    { type: "divider" },
     {
       type: "dropdown",
       text: "Volunteer",

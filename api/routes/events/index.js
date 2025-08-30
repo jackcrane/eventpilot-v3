@@ -26,6 +26,9 @@ export const get = [
             },
           },
         },
+        orderBy: {
+          updatedAt: "desc",
+        },
       });
 
       events = events.map((event) => ({
