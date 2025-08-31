@@ -19,6 +19,8 @@ export const useDashboardData = (eventId) => {
     volunteerRegistrationCount: data?.volunteerRegistrationCount,
     volunteerRegistrationByDay: data?.volunteerRegistrationByDay,
     eventStart: data?.eventStart,
+    volunteerRegistrationEnabled: data?.volunteerRegistrationEnabled,
+    registrationEnabled: data?.registrationEnabled,
     loading: isLoading,
     error,
     refetch,

@@ -60,8 +60,10 @@ export const get = [
       const registrationCountPromise = prisma.formResponse.count({
         where: { eventId, instanceId, deleted: false },
       });
-      const volunteerRegistrationByDayPromise =
-        volunteerRegistrationByDay(eventId, instanceId);
+      const volunteerRegistrationByDayPromise = volunteerRegistrationByDay(
+        eventId,
+        instanceId
+      );
 
       // Await all at once
       const [
@@ -89,6 +91,12 @@ export const get = [
           completedSteps: Object.values(steps).filter((v) => v).length,
           totalSteps: Object.values(steps).length,
         },
+        volunteerRegistrationEnabled:
+          steps.volunteerRegistrationForm &&
+          steps.location &&
+          steps.job &&
+          steps.shift,
+        registrationEnabled: steps.registrationForm && steps.tiersPeriods,
         eventStart: eventStart_,
         shiftCount,
         locationCount,

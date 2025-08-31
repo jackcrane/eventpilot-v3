@@ -8,6 +8,7 @@ import {
   Button,
   EnclosedSelectGroup,
   Util,
+  Alert,
 } from "tabler-react-2";
 import { EventPage } from "../../../../components/eventPage/EventPage";
 import { Row } from "../../../../util/Flex";
@@ -23,6 +24,7 @@ import { useTourManager } from "../../../../components/tourManager/TourManager";
 import { useSelectedInstance } from "../../../../contexts/SelectedInstanceContext";
 import { SelectedInstanceCard } from "../../../../components/InstanceCard/InstanceCard";
 import { ProgressRow } from "../../../../components/Progress/ProgressRow";
+import { Icon } from "../../../../util/Icon";
 
 const Divider = styled.div`
   background-color: var(--tblr-card-border-color);
@@ -44,6 +46,8 @@ export const Event = () => {
     jobCount,
     locationCount,
     shiftCount,
+    volunteerRegistrationEnabled,
+    registrationEnabled,
     loading: loadingDash,
   } = useDashboardData(eventId);
 
@@ -136,6 +140,28 @@ export const Event = () => {
           <ProgressRow />
         )}
       </div>
+      {!volunteerRegistrationEnabled && (
+        <Alert
+          variant="danger"
+          className="mt-3"
+          title="Volunteer Registration is not enabled"
+        >
+          Volunteers are not able to register for this event because you have
+          not fully configured the required sections. Please see the steps above
+          to set up your event.
+        </Alert>
+      )}
+      {!registrationEnabled && (
+        <Alert
+          variant="danger"
+          className="mt-3"
+          title="Participant Registration is not enabled"
+        >
+          Participants are not able to register for this event because you have
+          not fully configured the required sections. Please see the steps above
+          to set up your event.
+        </Alert>
+      )}
       <Util.Hr />
       <SelectedInstanceCard />
     </EventPage>
