@@ -3,10 +3,10 @@ import React, { useState, useRef } from "react";
 import PropTypes from "prop-types";
 import styles from "./calendarView.module.css";
 import classNames from "classnames";
-import moment from "moment";
 import { Icon } from "../../util/Icon";
+import { formatDate } from "../tzDateTime/tzDateTime";
 
-export const Calendar = ({ start, end, rows, className }) => {
+export const Calendar = ({ start, end, rows, className, tz }) => {
   // dimensions
   const SLOT_WIDTH_PX = 80;
   const MINUTE_WIDTH_PX = SLOT_WIDTH_PX / 30;
@@ -62,7 +62,7 @@ export const Calendar = ({ start, end, rows, className }) => {
     const time = calcTimeAt(contentX);
     setHoverLeft(contentX);
     setRelativeX(relX);
-    setHoverTime(moment(time).format("h:mm a"));
+    setHoverTime(formatDate(time, tz, "h:mm a"));
   };
 
   const handleMouseLeave = () => {
@@ -87,7 +87,7 @@ export const Calendar = ({ start, end, rows, className }) => {
 
     const time = calcTimeAt(contentX);
     setHoverLeft(contentX);
-    setHoverTime(moment(time).format("h:mm a"));
+    setHoverTime(formatDate(time, tz, "h:mm a"));
   };
 
   return (
@@ -114,7 +114,7 @@ export const Calendar = ({ start, end, rows, className }) => {
                 i="corner-left-down"
                 style={{ marginLeft: -10, display: "inline" }}
               />
-              {moment(dt).format("h:mm a")}
+              {formatDate(dt, tz, "h:mm a")}
             </div>
           ))}
         </div>
@@ -163,8 +163,10 @@ export const Calendar = ({ start, end, rows, className }) => {
                     style={{ left: `${leftPx}px`, width: `${widthPx}px` }}
                   >
                     <span className={styles.calendarItemText}>
-                      <Icon i="clock" /> {moment(item.start).format("h:mm")} -{" "}
-                      {moment(item.end).format("h:mm")}
+                      <Icon i="clock" />
+                      {formatDate(item.start, item.startTimeTz || tz, "h:mm")} -
+                      {" "}
+                      {formatDate(item.end, item.endTimeTz || tz, "h:mm")}
                       <div style={{ marginLeft: "10px", display: "inline" }} />
                       <Icon i="hash" />
                       {item.capacity === 0 ? (
@@ -205,4 +207,5 @@ Calendar.propTypes = {
       ),
     })
   ).isRequired,
+  tz: PropTypes.string,
 };

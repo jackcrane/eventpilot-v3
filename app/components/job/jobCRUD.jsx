@@ -219,7 +219,7 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
           onChange={(item) => handleChange("location")(item.id)}
           required
           aprops={{ style: { width: "100%", justifyContent: "space-between" } }}
-          className="mb-3"
+          className="mb-2"
         />
 
         <Input
@@ -294,7 +294,7 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
                   : ""
               }
               required
-              className="mb-0"
+              className="mb-2"
             />
 
             <TzDateTime

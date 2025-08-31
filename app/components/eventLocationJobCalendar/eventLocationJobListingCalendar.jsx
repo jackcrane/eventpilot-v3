@@ -32,6 +32,7 @@ export const EventLocationJobCalendar = ({ locationId }) => {
       <Calendar
         start={new Date(location.startTime)}
         end={new Date(location.endTime)}
+        tz={location.startTimeTz}
         rows={location.jobs.map((j) => ({
           ...j,
           label: j.name,

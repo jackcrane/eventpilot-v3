@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { Typography, Util, Input, Button } from "tabler-react-2";
+import { Typography, Util, Input, Button, Alert } from "tabler-react-2";
 import { Row } from "../../util/Flex";
-import { TzDateTime } from "../tzDateTime/tzDateTime";
+import { TzDateTime, parseIso } from "../tzDateTime/tzDateTime";
 import { useParams } from "react-router-dom";
 import { useEvent } from "../../hooks/useEvent";
 import { useLocations } from "../../hooks/useLocations";
+import { useSelectedInstance } from "../../contexts/SelectedInstanceContext";
 import moment from "moment";
+import { Icon } from "../../util/Icon";
 
 export const LocationCRUD = ({ value, close }) => {
   const { eventId } = useParams();
   const { event } = useEvent({ eventId });
   const { createLocation, editLocation, loading } = useLocations({ eventId });
+  const { instance } = useSelectedInstance();
 
   const isEdit = Boolean(value?.id);
 
-  const initStart = value?.startTime || null;
-  const initStartTz = value?.startTimeTz || event?.defaultTz || "";
+  // Default new location start time to the selected instance's start time
+  const initStart = value?.startTime || instance?.startTime || null;
+  const initStartTz =
+    value?.startTimeTz || instance?.startTimeTz || event?.defaultTz || "";
   const initEnd = value?.endTime || null;
   const initEndTz = value?.endTimeTz || event?.defaultTz || "";
 
@@ -45,6 +50,19 @@ export const LocationCRUD = ({ value, close }) => {
       endTimeTz: value.endTimeTz,
     });
   }, [isEdit, value]);
+
+  // If creating (not editing), populate start time from selected instance when available
+  useEffect(() => {
+    if (isEdit) return;
+    if (!formState.startTime && instance?.startTime) {
+      setFormState((prev) => ({
+        ...prev,
+        startTime: instance.startTime,
+        startTimeTz:
+          instance.startTimeTz || prev.startTimeTz || event?.defaultTz || "",
+      }));
+    }
+  }, [isEdit, instance?.startTime, instance?.startTimeTz, formState.startTime]);
 
   const handleSubmit = async () => {
     const payload = { ...formState };
@@ -80,6 +98,16 @@ export const LocationCRUD = ({ value, close }) => {
     };
     window.EVENTPILOT__INTERNAL_CLOSE_LOCATION_CRUD = close;
   }, []);
+
+  // Compute end-field min date/time in the end timezone
+  const [minEndDate, minEndTime] =
+    formState.startTime && formState.endTimeTz
+      ? parseIso(formState.startTime, formState.endTimeTz)
+      : ["", ""];
+  const [endDateForCompare] =
+    formState.endTime && formState.endTimeTz
+      ? parseIso(formState.endTime, formState.endTimeTz)
+      : [""];
 
   return (
     <div style={{ marginBottom: 100 }} className="tour__location-crud">
@@ -183,6 +211,8 @@ export const LocationCRUD = ({ value, close }) => {
         value={formState.endTime}
         tz={formState.endTimeTz}
         required
+        minDate={minEndDate}
+        minTime={endDateForCompare === minEndDate ? minEndTime : ""}
         onChange={([dt, tz]) =>
           setFormState((prev) => ({
             ...prev,
@@ -191,6 +221,20 @@ export const LocationCRUD = ({ value, close }) => {
           }))
         }
       />
+
+      {formState.startTime && formState.endTime && (
+        <>
+          {moment(formState.startTime).isAfter(moment(formState.endTime)) && (
+            <Alert
+              variant="danger"
+              title={"Error"}
+              icon={<Icon size="24px" i="clock-exclamation" />}
+            >
+              End time must be after start time
+            </Alert>
+          )}
+        </>
+      )}
 
       <Util.Hr text="Finish" />
       <Button onClick={handleSubmit} loading={loading}>
