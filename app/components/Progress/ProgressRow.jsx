@@ -7,6 +7,9 @@ import { VolunteerRegistrationProgressCard } from "./VolunteerRegistrationProgre
 import { LocationProgressCard } from "./LocationProgressCard";
 import { JobProgressCard } from "./JobProgressCard";
 import { ShiftProgressCard } from "./ShiftProgressCard";
+import { RegistrationFormProgressCard } from "./RegistrationFormProgressCard";
+import { RegistrationUpsellsProgressCard } from "./RegistrationUpsellsProgressCard";
+import { RegistrationPricingProgressCard } from "./RegistrationPricingProgressCard";
 
 export const ProgressRow = () => {
   const { eventId } = useParams();
@@ -23,6 +26,9 @@ export const ProgressRow = () => {
       {!steps.location && <LocationProgressCard />}
       {!steps.job && <JobProgressCard />}
       {!steps.shift && <ShiftProgressCard />}
+      {!steps.registrationForm && <RegistrationFormProgressCard />}
+      {!steps.tiersPeriods && <RegistrationPricingProgressCard />}
+      {!steps.upsells && <RegistrationUpsellsProgressCard />}
     </>
   );
 };

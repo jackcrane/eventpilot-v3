@@ -15,10 +15,14 @@
 .content {
   z-index: 2;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .outerCard {
   overflow: hidden;
   width: 300px;
   flex: 0 0 auto;
+  min-height: 320px;
 }

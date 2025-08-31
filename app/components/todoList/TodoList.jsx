@@ -9,6 +9,9 @@ const humanize = (str) => {
     goodPaymentStanding: "In good payment standing",
     volunteerRegistrationForm:
       "Started building the volunteer registration form",
+    registrationForm: "Started building the participant registration form",
+    upsells: "Added at least one upsell",
+    tiersPeriods: "Configured tiers and price periods",
     location: "Created a location",
     job: "Created a job",
     shift: "Created a shift",

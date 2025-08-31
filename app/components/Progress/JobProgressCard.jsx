@@ -18,17 +18,19 @@ export const JobProgressCard = () => {
         attendees find their seats, a job to help speakers get ready for their
         talk, and a job to help make sure the food table is stocked.
       </Typography.Text>
-      <Button href={`/events/${eventId}/volunteers/jobs`} outline>
-        Set up jobs
-      </Button>
-      <Typography.Text
-        className="mt-3 mb-0"
-        style={{
-          fontStyle: "italic",
-        }}
-      >
-        Volunteer registration is disabled until you have jobs set up.
-      </Typography.Text>
+      <div style={{ marginTop: "auto" }}>
+        <Button href={`/events/${eventId}/volunteers/jobs`} outline>
+          Set up jobs
+        </Button>
+        <Typography.Text
+          className="mt-3 mb-0"
+          style={{
+            fontStyle: "italic",
+          }}
+        >
+          Volunteer registration is disabled until you have jobs set up.
+        </Typography.Text>
+      </div>
     </ProgressCard>
   );
 };
