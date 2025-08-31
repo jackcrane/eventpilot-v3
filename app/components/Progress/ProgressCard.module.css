@@ -1,0 +1,24 @@
+.container {
+  position: relative;
+  height: 100%;
+}
+
+.icon {
+  position: absolute;
+  color: #ececec;
+  fill: #ececec;
+  z-index: 1;
+  bottom: -100px;
+  right: -100px;
+}
+
+.content {
+  z-index: 2;
+  position: relative;
+}
+
+.outerCard {
+  overflow: hidden;
+  width: 300px;
+  flex: 0 0 auto;
+}

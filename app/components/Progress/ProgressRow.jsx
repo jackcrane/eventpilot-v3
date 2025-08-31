@@ -1,0 +1,34 @@
+import { useParams } from "react-router-dom";
+import { useDashboardData } from "../../hooks/useDashboardData";
+import { Button, Typography } from "tabler-react-2";
+import { useEvent } from "../../hooks/useEvent";
+import { ProgressCard } from "./ProgressCard";
+import { VolunteerRegistrationProgressCard } from "./VolunteerRegistrationProgressCard";
+import { LocationProgressCard } from "./LocationProgressCard";
+import { JobProgressCard } from "./JobProgressCard";
+import { ShiftProgressCard } from "./ShiftProgressCard";
+
+export const ProgressRow = () => {
+  const { eventId } = useParams();
+  const { loading, progress } = useDashboardData(eventId);
+  // const steps = progress?.steps;
+  const steps = {
+    volunteerRegistrationForm: false,
+    location: false,
+    job: false,
+    shift: false,
+  };
+
+  if (loading) return null;
+
+  return (
+    <>
+      {!steps.volunteerRegistrationForm && (
+        <VolunteerRegistrationProgressCard />
+      )}
+      {!steps.location && <LocationProgressCard />}
+      {!steps.job && <JobProgressCard />}
+      {!steps.shift && <ShiftProgressCard />}
+    </>
+  );
+};
