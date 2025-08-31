@@ -2,15 +2,15 @@ import { verifyAuth } from "#verifyAuth";
 import { calculateProgress } from "#calculateProgress";
 import { prisma } from "#prisma";
 
-const eventStart = async (eventId) => {
+const eventStart = async (eventId, instanceId) => {
   const shift = await prisma.shift.findFirst({
-    where: { eventId },
+    where: { eventId, instanceId },
     orderBy: { startTime: "asc" },
   });
 
   if (!shift) {
     const location = await prisma.location.findFirst({
-      where: { eventId },
+      where: { eventId, instanceId },
       orderBy: { startTime: "asc" },
     });
     if (!location) return null;
@@ -20,9 +20,9 @@ const eventStart = async (eventId) => {
   return shift.startTime;
 };
 
-const volunteerRegistrationByDay = async (eventId) => {
+const volunteerRegistrationByDay = async (eventId, instanceId) => {
   const responses = await prisma.formResponse.findMany({
-    where: { eventId, deleted: false },
+    where: { eventId, instanceId, deleted: false },
   });
 
   const countMap = {};
@@ -42,25 +42,26 @@ export const get = [
   async (req, res) => {
     const eventId = req.params.eventId;
     const userId = req.user.id;
+    const instanceId = req.instanceId;
 
     try {
       // Kick off all promises in parallel
-      const progressPromise = calculateProgress(eventId, userId);
-      const eventStartPromise = eventStart(eventId);
+      const progressPromise = calculateProgress(eventId, instanceId);
+      const eventStartPromise = eventStart(eventId, instanceId);
       const shiftCountPromise = prisma.shift.count({
-        where: { eventId, deleted: false },
+        where: { eventId, instanceId, deleted: false },
       });
       const locationCountPromise = prisma.location.count({
-        where: { eventId, deleted: false },
+        where: { eventId, instanceId, deleted: false },
       });
       const jobCountPromise = prisma.job.count({
-        where: { eventId, deleted: false },
+        where: { eventId, instanceId, deleted: false },
       });
       const registrationCountPromise = prisma.formResponse.count({
-        where: { eventId, deleted: false },
+        where: { eventId, instanceId, deleted: false },
       });
       const volunteerRegistrationByDayPromise =
-        volunteerRegistrationByDay(eventId);
+        volunteerRegistrationByDay(eventId, instanceId);
 
       // Await all at once
       const [

@@ -22,6 +22,7 @@ import { WhatNext } from "../../../../components/whatNext/WhatNext";
 import { useTourManager } from "../../../../components/tourManager/TourManager";
 import { useSelectedInstance } from "../../../../contexts/SelectedInstanceContext";
 import { SelectedInstanceCard } from "../../../../components/InstanceCard/InstanceCard";
+import { ProgressRow } from "../../../../components/Progress/ProgressRow";
 
 const Divider = styled.div`
   background-color: var(--tblr-card-border-color);
@@ -63,203 +64,80 @@ export const Event = () => {
         "This is your event homepage. As more starts to happen in your event, you will see analytics and prompts here to help you keep track of what is happening."
       }
     >
-      <Typography.H2>Getting Started</Typography.H2>
+      <Typography.H2>
+        {progress?.percent === 100 ? "Getting Started" : "Remaining Steps"}
+      </Typography.H2>
       <div
         style={{
           display: "flex",
           flexWrap: "nowrap",
           overflowX: "auto",
           alignItems: "stretch",
+          gap: 10,
         }}
       >
-        <Card
-          style={{
-            maxWidth: 300,
-            minWidth: 250,
-            display: "inline-block",
-            marginRight: 10,
-            whiteSpace: "normal",
-          }}
-        >
-          <Typography.H5 className={"mb-1 text-secondary"}>
-            YOUR EVENT HAS ITS OWN INBOX
-          </Typography.H5>
-          <Typography.Text>
-            Receive emails at our hosted inbox! Any emails sent to this address
-            will be sent into your event's inbox.
-          </Typography.Text>
-          <Typography.Text>
-            <u>{event.computedExternalContactEmail}</u>
-          </Typography.Text>
-        </Card>
-        <Card
-          style={{
-            maxWidth: 300,
-            minWidth: 250,
-            display: "inline-block",
-            marginRight: 10,
-            whiteSpace: "normal",
-          }}
-        >
-          <Typography.H5 className={"mb-1 text-secondary"}>
-            AN EASY, INSTANT WEBSITE
-          </Typography.H5>
-          <Typography.Text>
-            Your event's website is automatically generated from your event's
-            data. We merge locations & timing, common links, images, and contact
-            information.
-          </Typography.Text>
-          <Typography.Text>
-            <a href={`https://${event.slug}.geteventpilot.com`} target="_blank">
-              https://{event.slug}.geteventpilot.com
-            </a>
-          </Typography.Text>
-        </Card>
-        <Card
-          style={{
-            maxWidth: 350,
-            minWidth: 250,
-            display: "inline-block",
-            marginRight: 10,
-            whiteSpace: "normal",
-          }}
-        >
-          <Typography.H5 className={"mb-1 text-secondary"}>
-            VOLUNTEER REGISTRATIONS
-          </Typography.H5>
-          <Typography.Text>
-            EventPilot combines required fields, event{" "}
-            <Link to="./volunteers/jobs">timing details</Link>, and your{" "}
-            <Link to="./volunteers/builder">custom fields</Link> into one simple
-            form. Share it with volunteers to collect signups easily.
-          </Typography.Text>
-          <Typography.Text>
-            <a
-              href={`https://${event.slug}.geteventpilot.com/volunteer`}
-              target="_blank"
+        {progress?.percent === 100 ? (
+          <>
+            <Card
+              style={{
+                maxWidth: 300,
+                minWidth: 250,
+                display: "inline-block",
+                marginRight: 10,
+                whiteSpace: "normal",
+              }}
             >
-              https://{event.slug}.geteventpilot.com/volunteer
-            </a>
-          </Typography.Text>
-        </Card>
+              <Typography.H5 className={"mb-1 text-secondary"}>
+                AN EASY, INSTANT WEBSITE
+              </Typography.H5>
+              <Typography.Text>
+                Your event's website is automatically generated from your
+                event's data. We merge locations & timing, common links, images,
+                and contact information.
+              </Typography.Text>
+              <Typography.Text>
+                <a
+                  href={`https://${event.slug}.geteventpilot.com`}
+                  target="_blank"
+                >
+                  https://{event.slug}.geteventpilot.com
+                </a>
+              </Typography.Text>
+            </Card>
+            <Card
+              style={{
+                maxWidth: 350,
+                minWidth: 250,
+                display: "inline-block",
+                marginRight: 10,
+                whiteSpace: "normal",
+              }}
+            >
+              <Typography.H5 className={"mb-1 text-secondary"}>
+                VOLUNTEER REGISTRATIONS
+              </Typography.H5>
+              <Typography.Text>
+                EventPilot combines required fields, event{" "}
+                <Link to="./volunteers/jobs">timing details</Link>, and your{" "}
+                <Link to="./volunteers/builder">custom fields</Link> into one
+                simple form. Share it with volunteers to collect signups easily.
+              </Typography.Text>
+              <Typography.Text>
+                <a
+                  href={`https://${event.slug}.geteventpilot.com/volunteer`}
+                  target="_blank"
+                >
+                  https://{event.slug}.geteventpilot.com/volunteer
+                </a>
+              </Typography.Text>
+            </Card>
+          </>
+        ) : (
+          <ProgressRow />
+        )}
       </div>
       <Util.Hr />
       <SelectedInstanceCard />
-      {/* <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          gridGap: "1rem",
-        }}
-      >
-        <Card title="Progress" style={{ gridColumn: "2/4" }}>
-          <Row gap={2} align="flex-start">
-            <div>
-              <Typography.H5 className={"mb-1 text-secondary"}>
-                EVENT STARTS
-              </Typography.H5>
-              <Typography.Text>
-                We know you are excited for your event, so we are counting down
-                the days for you!
-              </Typography.Text>
-              <Typography.Text style={{ fontSize: "2rem" }} className="mb-0">
-                {eventStart === null ? (
-                  <>
-                    <Typography.Text
-                      className="text-secondary"
-                      style={{ fontSize: "initial" }}
-                    >
-                      You haven't set an event start date yet. We pull the start
-                      date from the start of the first location.
-                    </Typography.Text>
-                  </>
-                ) : (
-                  <>
-                    {days > 0 && (
-                      <span
-                        className={"text-secondary"}
-                        style={{ fontSize: "1rem", marginRight: 8 }}
-                      >
-                        T-minus
-                      </span>
-                    )}
-                    {days > 1
-                      ? `${days} days`
-                      : days === 1
-                      ? "1 day"
-                      : "Today!"}
-                  </>
-                )}
-              </Typography.Text>
-            </div>
-            <Divider />
-            <div>
-              <Typography.H5 className={"mb-1 text-secondary"}>
-                VOLUNTEERS
-              </Typography.H5>
-              <Typography.Text>
-                Every good event needs good volunteers. We are tracking the
-                number of volunteers who have registered for your event for you.
-              </Typography.Text>
-              <Row gap={1} justify="space-between">
-                <div>
-                  <Typography.Text
-                    style={{ fontSize: "2rem" }}
-                    className="mb-0"
-                  >
-                    {volunteerRegistrationCount}
-                    <span className="text-secondary">
-                      {" "}
-                      volunteer
-                      {volunteerRegistrationCount !== 1 && "s"}
-                    </span>
-                  </Typography.Text>
-                  <Button
-                    size="sm"
-                    href={`http://${event.slug}.geteventpilot.com`}
-                    target="_blank"
-                  >
-                    Open Registration Page
-                  </Button>
-                </div>
-              </Row>
-            </div>
-          </Row>
-        </Card>
-
-        <Card
-          title="What to do next"
-          style={{ gridRow: "1/3" }}
-          variant="primary"
-          className="tour__todo-list"
-        >
-          <WhatNext />
-        </Card>
-
-        <Card title="Volunteer Registrations">
-          {volunteerRegistrationByDay?.length === 0 && (
-            <Typography.Text>
-              You don't have any volunteers registered yet.
-            </Typography.Text>
-          )}
-          <TimeLineChart
-            ghost
-            data={volunteerRegistrationByDay?.map((d) => ({
-              ...d,
-              date: new Date(d.date),
-            }))}
-            width={400}
-            height={200}
-          />
-        </Card>
-        <Card title="Event Setup">
-          <Row gap={1} wrap>
-            <DataBox title="Locations" value={locationCount} />
-            <DataBox title="Jobs" value={jobCount} />
-            <DataBox title="Shifts" value={shiftCount} />
-          </Row>
-        </Card>
-      </div> */}
     </EventPage>
   );
 };
