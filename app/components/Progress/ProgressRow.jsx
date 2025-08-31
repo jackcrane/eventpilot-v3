@@ -11,13 +11,7 @@ import { ShiftProgressCard } from "./ShiftProgressCard";
 export const ProgressRow = () => {
   const { eventId } = useParams();
   const { loading, progress } = useDashboardData(eventId);
-  // const steps = progress?.steps;
-  const steps = {
-    volunteerRegistrationForm: false,
-    location: false,
-    job: false,
-    shift: false,
-  };
+  const steps = progress?.steps;
 
   if (loading) return null;
 
