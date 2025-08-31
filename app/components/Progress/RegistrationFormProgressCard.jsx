@@ -16,12 +16,12 @@ export const RegistrationFormProgressCard = () => {
         name, email, and any custom questions you need.
       </Typography.Text>
       <div style={{ marginTop: "auto" }}>
+        <Typography.Text style={{ fontStyle: "italic" }}>
+          Participant registration is disabled until you have forms set up.
+        </Typography.Text>
         <Button href={`/events/${eventId}/registration/form-builder`} outline>
           Build the form
         </Button>
-        <Typography.Text className="mt-3 mb-0" style={{ fontStyle: "italic" }}>
-          Participant registration is disabled until you have forms set up.
-        </Typography.Text>
       </div>
     </ProgressCard>
   );

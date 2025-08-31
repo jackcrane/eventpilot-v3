@@ -30,17 +30,16 @@ export const VolunteerRegistrationProgressCard = () => {
         to sign up to help with your event.
       </Typography.Text>
       <div style={{ marginTop: "auto" }}>
-        <Button href={`/events/${eventId}/volunteers/builder`} outline>
-          Build the form
-        </Button>
         <Typography.Text
-          className="mt-3 mb-0"
           style={{
             fontStyle: "italic",
           }}
         >
           Volunteer registration is disabled until you have shifts set up.
         </Typography.Text>
+        <Button href={`/events/${eventId}/volunteers/builder`} outline>
+          Build the form
+        </Button>
       </div>
     </ProgressCard>
   );

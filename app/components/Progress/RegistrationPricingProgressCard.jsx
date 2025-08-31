@@ -16,12 +16,13 @@ export const RegistrationPricingProgressCard = () => {
         you offer and how much it costs over time.
       </Typography.Text>
       <div style={{ marginTop: "auto" }}>
+        <Typography.Text style={{ fontStyle: "italic" }}>
+          Participant registration is disabled until you have tiers & periods
+          set up.
+        </Typography.Text>
         <Button href={`/events/${eventId}/registration/builder`} outline>
           Configure pricing
         </Button>
-        <Typography.Text className="mt-3 mb-0" style={{ fontStyle: "italic" }}>
-          Participant registration is disabled until you have forms set up.
-        </Typography.Text>
       </div>
     </ProgressCard>
   );

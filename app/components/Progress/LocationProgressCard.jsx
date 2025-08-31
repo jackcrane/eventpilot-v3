@@ -18,17 +18,16 @@ export const LocationProgressCard = () => {
         great way to communicate seperate units of work to your volunteers.
       </Typography.Text>
       <div style={{ marginTop: "auto" }}>
-        <Button href={`/events/${eventId}/volunteers/jobs`} outline>
-          Set up locations
-        </Button>
         <Typography.Text
-          className="mt-3 mb-0"
           style={{
             fontStyle: "italic",
           }}
         >
           Volunteer registration is disabled until you have locations set up.
         </Typography.Text>
+        <Button href={`/events/${eventId}/volunteers/jobs`} outline>
+          Set up locations
+        </Button>
       </div>
     </ProgressCard>
   );

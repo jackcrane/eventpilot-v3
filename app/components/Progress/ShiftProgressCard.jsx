@@ -19,17 +19,16 @@ export const ShiftProgressCard = () => {
         time.
       </Typography.Text>
       <div style={{ marginTop: "auto" }}>
-        <Button href={`/events/${eventId}/volunteers/jobs`} outline>
-          Set up shifts
-        </Button>
         <Typography.Text
-          className="mt-3 mb-0"
           style={{
             fontStyle: "italic",
           }}
         >
           Volunteer registration is disabled until you have shifts set up.
         </Typography.Text>
+        <Button href={`/events/${eventId}/volunteers/jobs`} outline>
+          Set up shifts
+        </Button>
       </div>
     </ProgressCard>
   );
