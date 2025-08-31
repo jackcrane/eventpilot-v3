@@ -114,7 +114,7 @@ export const StripeTrigger = ({
   ...props
 }) => {
   const { offcanvas, OffcanvasElement } = useOffcanvas({
-    offcanvasProps: { position: "end", size: 500 },
+    offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
   });
 
   return (

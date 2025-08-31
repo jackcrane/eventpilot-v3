@@ -21,7 +21,7 @@ export const EventLocationJobCalendar = ({ locationId }) => {
     includeShifts: true,
   });
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
-    offcanvasProps: { position: "end", size: 500 },
+    offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
   });
 
   if (loading) return null;

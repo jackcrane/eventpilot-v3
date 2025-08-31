@@ -11,7 +11,7 @@ import { useTourManager } from "../../../../components/tourManager/TourManager";
 
 export const EventJobs = () => {
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
-    offcanvasProps: { position: "end", size: 500 },
+    offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
   });
   const { eventId } = useParams();
   const { locations, loading } = useLocations({ eventId });
