@@ -34,7 +34,7 @@ const SetupForm = () => {
       //`Elements` instance that was used to create the Payment Element
       elements,
       confirmParams: {
-        return_url: "https://example.com/account/payments/setup-complete",
+        return_url: "https://geteventpilot.com/events",
       },
     });
 

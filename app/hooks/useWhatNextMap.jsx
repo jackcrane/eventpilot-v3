@@ -4,7 +4,7 @@ import React from "react";
 import { useAuth } from ".";
 import { StripeTrigger } from "../components/stripe/Stripe";
 import { useEvents } from "./useEvents";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useLocations } from "./useLocations";
 import { useTourManager } from "../components/tourManager/TourManager";
 
@@ -64,10 +64,10 @@ const description = ({
 
 export const useWhatNextMap = () => {
   const { user, resendVerificationEmail, mutationLoading } = useAuth();
-  const { createEventModal, CreateEventModalElement } = useEvents();
   const { eventId } = useParams();
   const { locations, loading: locationsLoading } = useLocations({ eventId });
   const { startTour } = useTourManager();
+  const navigate = useNavigate();
 
   const whatNextMap = (item, done) => {
     const standard = {
@@ -120,9 +120,8 @@ export const useWhatNextMap = () => {
             positive: `You have created at least one event.`,
             negative: `You have not created any events yet. EventPilot sorts everything into events, so you need to create at least one event.`,
             done,
-            negativeOnClick: () => createEventModal(),
+            negativeOnClick: () => navigate("/events/new"),
             negativeCta: "Create an Event",
-            extra: CreateEventModalElement,
           }),
           ...standard,
         };
