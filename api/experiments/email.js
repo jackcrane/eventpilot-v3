@@ -7,7 +7,7 @@ const html = await render(WelcomeEmail.WelcomeEmail({ name: "Jack Crane" }));
 console.log(html);
 
 // await sendEmail({
-//   From: "EventPilot Support <EventPilotgeteventpilot.com>",
+//   From: "EventPilot Support <EventPilot@geteventpilot.com>",
 //   To: "jackgeteventpilot.com",
 //   Subject: "New login to EventPilot",
 //   HtmlBody: "<h1>Hello</h1>",

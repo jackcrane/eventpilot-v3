@@ -179,7 +179,7 @@ export const post = [
         });
 
         await sendEmail({
-          From: "EventPilot Support <EventPilotgeteventpilot.com>",
+          From: "EventPilot Support <EventPilot@geteventpilot.com>",
           To: req.user.email,
           Subject: "Import finished",
           HtmlBody: await render(

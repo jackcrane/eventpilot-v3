@@ -138,7 +138,7 @@ export const post = async (req, res) => {
     });
 
     await sendEmail({
-      From: "EventPilot Support <EventPilotgeteventpilot.com>",
+      From: "EventPilot Support <EventPilot@geteventpilot.com>",
       To: fullSubmission.response.flat.email,
       Subject: "Form Response Submitted",
       TextBody: `Form Response Submitted`,

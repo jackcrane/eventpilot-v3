@@ -43,7 +43,7 @@ export const put = async (req, res) => {
     });
 
     await sendEmail({
-      From: "EventPilot Support <EventPilotgeteventpilot.com>",
+      From: "EventPilot Support <EventPilot@geteventpilot.com>",
       To: email,
       Subject: "Password Reset",
       HtmlBody: await render(
