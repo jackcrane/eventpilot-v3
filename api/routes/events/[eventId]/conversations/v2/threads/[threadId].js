@@ -29,7 +29,15 @@ export const get = [
     try {
       const { gmail } = await getGmailClientForEvent(eventId);
       const result = await getThreadWithMessages(gmail, threadId);
-      return res.status(200).json(result);
+      // Attach download URLs for attachments per message
+      const messages = (result.messages || []).map((m) => ({
+        ...m,
+        attachments: (m.attachments || []).map((a) => ({
+          ...a,
+          downloadUrl: `/api/events/${eventId}/conversations/v2/messages/${m.id}/attachments/${encodeURIComponent(a.attachmentId)}`,
+        })),
+      }));
+      return res.status(200).json({ ...result, messages });
     } catch (e) {
       if (e?.code === "NO_GMAIL_CONNECTION") {
         return res

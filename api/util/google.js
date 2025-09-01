@@ -169,6 +169,15 @@ export const summarizeThreadFromMessages = (data) => {
     ? new Date(Number(last.internalDate))
     : null;
   const isUnread = messages.some((m) => (m.labelIds || []).includes("UNREAD"));
+  const hasAttachments = (messages || []).some((m) => {
+    const dig = (part) => {
+      if (!part) return false;
+      const filename = part.filename || "";
+      if (filename && part.body?.attachmentId) return true;
+      return (part.parts || []).some(dig);
+    };
+    return dig(m.payload);
+  });
   return {
     id: data.id,
     historyId: data.historyId,
@@ -186,6 +195,7 @@ export const summarizeThreadFromMessages = (data) => {
     },
     firstMessageId: first?.id || null,
     isUnread,
+    hasAttachments,
   };
 };
 
@@ -205,8 +215,7 @@ export const fetchThreadsSummaries = async (gmail, ids) => {
       gmail.users.threads.get({
         userId: "me",
         id,
-        format: "metadata",
-        metadataHeaders: ["Subject", "From", "To", "Cc", "Date"],
+        format: "full",
       })
     )
   );
