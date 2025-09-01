@@ -77,7 +77,7 @@ export const get = [
     const { eventId } = req.params;
     const instanceId = req.instanceId;
 
-    const fields = await prisma.formField.findMany({
+    const fields = await prisma.volunteerRegistrationField.findMany({
       where: {
         AND: [
           { OR: [{ eventId }, { event: { slug: eventId } }] },
@@ -169,7 +169,7 @@ export const post = [
     const { fields } = parsed.data;
 
     // 0,2: snapshot before-change
-    const before = await prisma.formField.findMany({
+    const before = await prisma.volunteerRegistrationField.findMany({
       where: { eventId, deleted: false, instanceId },
       orderBy: { order: "asc" },
       include: {
@@ -180,21 +180,31 @@ export const post = [
     const [newFields, updatedFields, unchangedFields, deletedFields] =
       prepareCUD(fields, before);
 
-    // 3: Create new fields
+    // 3: Create new fields (including any provided options)
     if (newFields.length > 0) {
-      await prisma.formField.createMany({
-        // eslint-disable-next-line
-        data: newFields.map(({ options, ...rest }) => ({
-          ...rest,
-          eventId,
-          instanceId,
-        })),
-      });
+      for (const nf of newFields) {
+        const { options = [], ...rest } = nf;
+        await prisma.volunteerRegistrationField.create({
+          data: {
+            ...rest,
+            eventId,
+            instanceId,
+            // Only create options if provided (e.g., dropdowns)
+            ...(options && options.length
+              ? {
+                  options: {
+                    create: options.map((o) => ({ label: o.label, order: o.order })),
+                  },
+                }
+              : {}),
+          },
+        });
+      }
     }
 
     // 4: Soft-delete removed fields
     if (deletedFields.length > 0) {
-      await prisma.formField.updateMany({
+      await prisma.volunteerRegistrationField.updateMany({
         where: { id: { in: deletedFields.map((f) => f.id) } },
         data: { deleted: true },
       });
@@ -223,59 +233,54 @@ export const post = [
         }
       }
       if (Object.keys(fieldDiff).length) {
-        await prisma.formField.update({
+        await prisma.volunteerRegistrationField.update({
           where: { id: incoming.id },
           data: fieldDiff,
         });
       }
 
-      // b) option‐level CUD
-      // only if this field actually has options in the DB
-      if (original.options && original.options.length > 0) {
-        // incoming.options might be undefined for text/email fields
-        const incomingOpts = incoming.options || [];
-        const [newOpts, updOpts, , delOpts] = prepareCUD(
-          incomingOpts,
-          original.options
-        );
+      // b) option‐level CUD (run regardless of current DB state)
+      // incoming.options might be undefined for non-option fields
+      const incomingOpts = incoming.options || [];
+      const originalOpts = original.options || [];
+      const [newOpts, updOpts, , delOpts] = prepareCUD(incomingOpts, originalOpts);
 
-        // create new options
-        if (newOpts.length > 0) {
-          await prisma.formFieldOption.createMany({
-            data: newOpts.map((o) => ({ ...o, fieldId: incoming.id })),
-          });
-        }
+      // create new options
+      if (newOpts.length > 0) {
+        await prisma.volunteerRegistrationFieldOption.createMany({
+          data: newOpts.map((o) => ({ label: o.label, order: o.order, fieldId: incoming.id })),
+        });
+      }
 
-        // soft-delete removed options
-        if (delOpts.length > 0) {
-          await prisma.formFieldOption.updateMany({
-            where: { id: { in: delOpts.map((o) => o.id) } },
-            data: { deleted: true },
-          });
-        }
+      // soft-delete removed options
+      if (delOpts.length > 0) {
+        await prisma.volunteerRegistrationFieldOption.updateMany({
+          where: { id: { in: delOpts.map((o) => o.id) } },
+          data: { deleted: true },
+        });
+      }
 
-        // update changed options
-        for (const optIn of updOpts) {
-          const optOrig = original.options.find((o) => o.id === optIn.id);
-          if (!optOrig) continue;
+      // update changed options
+      for (const optIn of updOpts) {
+        const optOrig = originalOpts.find((o) => o.id === optIn.id);
+        if (!optOrig) continue;
 
-          const optDiff = {};
-          for (const key of ["label", "order"]) {
-            if (optIn[key] !== optOrig[key]) {
-              optDiff[key] = optIn[key];
-            }
+        const optDiff = {};
+        for (const key of ["label", "order"]) {
+          if (optIn[key] !== optOrig[key]) {
+            optDiff[key] = optIn[key];
           }
-          if (Object.keys(optDiff).length) {
-            await prisma.formFieldOption.update({
-              where: { id: optIn.id },
-              data: optDiff,
-            });
-          }
+        }
+        if (Object.keys(optDiff).length) {
+          await prisma.volunteerRegistrationFieldOption.update({
+            where: { id: optIn.id },
+            data: optDiff,
+          });
         }
       }
     }
 
-    const updatedRecordedFields = await prisma.formField.findMany({
+    const updatedRecordedFields = await prisma.volunteerRegistrationField.findMany({
       where: { eventId, deleted: false, instanceId },
       orderBy: { order: "asc" },
       include: {

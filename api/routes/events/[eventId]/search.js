@@ -43,7 +43,7 @@ export const get = [
           deleted: false,
         },
       }),
-      prisma.formResponse.findMany({
+      prisma.volunteerRegistration.findMany({
         where: { eventId, deleted: false },
         include: {
           fieldResponses: {
@@ -59,7 +59,7 @@ export const get = [
       ...shifts.map((r) => ({ model: "Shift", data: r })),
       ...formResponses
         .filter((r) => r.fieldResponses.length > 0)
-        .map((r) => ({ model: "FormResponse", data: r })),
+        .map((r) => ({ model: "VolunteerRegistration", data: r })),
     ];
 
     return res.json(results);

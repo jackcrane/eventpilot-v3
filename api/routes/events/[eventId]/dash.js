@@ -21,7 +21,7 @@ const eventStart = async (eventId, instanceId) => {
 };
 
 const volunteerRegistrationByDay = async (eventId, instanceId) => {
-  const responses = await prisma.formResponse.findMany({
+  const responses = await prisma.volunteerRegistration.findMany({
     where: { eventId, instanceId, deleted: false },
   });
 
@@ -57,7 +57,7 @@ export const get = [
       const jobCountPromise = prisma.job.count({
         where: { eventId, instanceId, deleted: false },
       });
-      const registrationCountPromise = prisma.formResponse.count({
+      const registrationCountPromise = prisma.volunteerRegistration.count({
         where: { eventId, instanceId, deleted: false },
       });
       const volunteerRegistrationByDayPromise = volunteerRegistrationByDay(

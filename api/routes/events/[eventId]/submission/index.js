@@ -25,7 +25,7 @@ export const post = async (req, res) => {
   const instanceId = req.instanceId;
 
   try {
-    const formResponse = await prisma.formResponse.create({
+    const formResponse = await prisma.volunteerRegistration.create({
       data: {
         event: { connect: { slug: eventId } },
         instance: { connect: { id: instanceId } },
@@ -46,7 +46,7 @@ export const post = async (req, res) => {
       },
     });
 
-    await prisma.formResponseShift.createMany({
+    await prisma.volunteerShiftSignup.createMany({
       data: shifts.map((s) => ({
         formResponseId: formResponse.id,
         shiftId: s.id,
@@ -165,7 +165,7 @@ export const get = [
     const instanceId = req.instanceId;
 
     try {
-      const fields = await prisma.formField.findMany({
+      const fields = await prisma.volunteerRegistrationField.findMany({
         where: { eventId, instanceId },
         orderBy: { order: "asc" },
         select: {
@@ -177,11 +177,21 @@ export const get = [
         },
       });
 
-      const rawResponses = await prisma.formResponse.findMany({
+      const rawResponses = await prisma.volunteerRegistration.findMany({
         where: { eventId, deleted: false, instanceId },
         include: {
           fieldResponses: {
-            select: { fieldId: true, value: true },
+            select: {
+              fieldId: true,
+              value: true,
+              field: {
+                select: {
+                  id: true,
+                  type: true,
+                  options: { select: { id: true, label: true, deleted: true } },
+                },
+              },
+            },
           },
         },
       });

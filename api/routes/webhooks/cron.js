@@ -15,7 +15,7 @@ export const post = async (req, res) => {
       });
 
       for (const event of events) {
-        const newFormResponses = await prisma.formResponse.count({
+        const newFormResponses = await prisma.volunteerRegistration.count({
           where: {
             createdAt: { gt: new Date(Date.now() - 3600000) },
             eventId: event.id,
