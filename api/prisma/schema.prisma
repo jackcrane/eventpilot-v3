@@ -292,6 +292,7 @@ model Event {
   locations   Location[]
   jobs        Job[]
   shifts      Shift[]
+  coupons     Coupon[]
 
   defaultTz String?
 
@@ -390,6 +391,7 @@ model EventInstance {
   RegistrationPage          RegistrationPage[]
   RegistrationField         RegistrationField[]
   RegistrationFieldResponse RegistrationFieldResponse[]
+  coupons                   Coupon[]
 }
 
 model LedgerItem {
@@ -900,6 +902,45 @@ model UpsellItem {
   updatedAt DateTime @updatedAt
 }
 
+// New: Coupons for registration/upsells discounts
+enum CouponDiscountType {
+  FLAT
+  PERCENT
+}
+
+enum CouponAppliesTo {
+  REGISTRATION
+  UPSELLS
+  BOTH
+}
+
+model Coupon {
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  instanceId String
+  instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  title        String
+  code         String @unique
+  discountType CouponDiscountType
+  amount       Float
+  appliesTo    CouponAppliesTo
+
+  maxRedemptions Int @default(-1)
+
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  registrations Registration[]
+}
+
 model Registration {
   id      String @id @default(cuid())
   eventId String
@@ -933,6 +974,10 @@ model Registration {
   updatedAt DateTime @updatedAt
   logs      Logs[]
   deleted   Boolean  @default(false)
+
+  // Coupon applied to this registration (if any)
+  couponId String?
+  coupon   Coupon? @relation(fields: [couponId], references: [id])
 }
 
 model RegistrationUpsell {

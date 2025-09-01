@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Steps, Typography, Button } from "tabler-react-2";
+import { Steps, Typography, Button, Input } from "tabler-react-2";
 import { Row } from "../../util/Flex";
 import { Icon } from "../../util/Icon";
 import { FieldConsumer } from "../FieldConsumer/FieldConsumer";
@@ -20,6 +20,7 @@ export const FormConsumer = ({
   const [selectedUpsells, setSelectedUpsells] = useState([]);
   const [selectedShifts, setSelectedShifts] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState({ id: null, code: "" });
+  const [couponCode, setCouponCode] = useState("");
 
   // Scroll to top on page change
   useEffect(() => {
@@ -69,6 +70,7 @@ export const FormConsumer = ({
       selectedTeamId: selectedTeam?.id || null,
       enteredTeamCode: selectedTeam?.code || null,
       selectedShifts,
+      couponCode: couponCode?.trim() || null,
     };
     onSubmit?.(data);
   };
@@ -153,20 +155,29 @@ export const FormConsumer = ({
             </Row>
           </Button>
         ) : (
-          <Button
-            variant="primary"
-            disabled={!isPageValid}
-            onClick={() => {
-              handleSubmit();
-              window.scrollTo(0, 0);
-            }}
-            loading={mutationLoading}
-          >
-            <Row gap={1} align="center">
-              Submit
-              <Icon i="arrow-right" size={18} />
-            </Row>
-          </Button>
+          <Row gap={1} align="center" style={{ width: "100%" }}>
+            <Input
+              label="Coupon Code"
+              placeholder="Optional"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e?.toUpperCase ? e.toUpperCase() : e)}
+              style={{ flex: 1 }}
+            />
+            <Button
+              variant="primary"
+              disabled={!isPageValid}
+              onClick={() => {
+                handleSubmit();
+                window.scrollTo(0, 0);
+              }}
+              loading={mutationLoading}
+            >
+              <Row gap={1} align="center">
+                Submit
+                <Icon i="arrow-right" size={18} />
+              </Row>
+            </Button>
+          </Row>
         )}
       </Row>
     </>

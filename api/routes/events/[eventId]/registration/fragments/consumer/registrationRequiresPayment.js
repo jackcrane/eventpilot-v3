@@ -5,12 +5,34 @@ export const registrationRequiresPayment = async (
   selectedPeriodPricing,
   event,
   registrationId,
-  instanceId
+  instanceId,
+  coupon // optional coupon object
 ) => {
-  let total = upsells.reduce((sum, u) => sum + u.price, 0);
-  total += selectedPeriodPricing.price;
+  const upsellsTotal = upsells.reduce((sum, u) => sum + u.price, 0);
+  const registrationTotal = selectedPeriodPricing.price;
+  const totalBefore = upsellsTotal + registrationTotal;
 
-  const requiresPayment = total > 0;
+  let discount = 0;
+  if (coupon) {
+    let eligible = 0;
+    if (coupon.appliesTo === "BOTH") eligible = totalBefore;
+    else if (coupon.appliesTo === "REGISTRATION") eligible = registrationTotal;
+    else if (coupon.appliesTo === "UPSELLS") eligible = upsellsTotal;
+
+    if (eligible > 0) {
+      if (coupon.discountType === "FLAT") discount = coupon.amount;
+      else if (coupon.discountType === "PERCENT")
+        discount = (eligible * coupon.amount) / 100;
+
+      if (discount > eligible) discount = eligible; // floor at zero
+    }
+  }
+
+  let total = totalBefore - discount;
+  if (total < 0) total = 0;
+
+  // Treat totals under 30 cents as free
+  const requiresPayment = total >= 0.3;
 
   if (requiresPayment) {
     const stripePIClientSecret = await setupStripePI(
@@ -22,7 +44,7 @@ export const registrationRequiresPayment = async (
     return [true, stripePIClientSecret, total];
   }
 
-  return [false, null, null];
+  return [false, null, total];
 };
 
 export const setupStripePI = async (
