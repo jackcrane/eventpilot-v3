@@ -1,4 +1,5 @@
 import { Typography, Alert, Input, Button } from "tabler-react-2";
+import toast from "react-hot-toast";
 import { ConsumerPage } from "../../../components/ConsumerPage/ConsumerPage";
 import { useEvent } from "../../../hooks/useEvent";
 import { useReducedSubdomain } from "../../../hooks/useReducedSubdomain";
@@ -108,6 +109,8 @@ export const RegisterPage = () => {
   });
   const { lookup: lookupCoupon, loading: couponLookupLoading, reset: resetCouponLookup } =
     useCouponCodeLookup({ eventId: instanceReady ? event?.id : null });
+
+  // Remove auto-apply behavior; apply happens on button click
   const { pages } = useParticipantRegistrationForm({
     eventId: instanceReady ? event?.id : null,
   });
@@ -136,63 +139,41 @@ export const RegisterPage = () => {
         <>
           <div className="card card-body mb-3">
             <Typography.H3 className="mb-2">Have a coupon?</Typography.H3>
-            {!couponApplied && !couponPreview && (
+            {!couponApplied && (
               <Row gap={1} align="center">
                 <Input
                   placeholder="Enter coupon code"
                   value={couponInput}
-                  onChange={(v) => setCouponInput(v)}
+                  onChange={(v) => {
+                    setCouponInput(v);
+                    setCouponPreview(null);
+                  }}
                   style={{ flex: 1 }}
                   className="mb-0"
                 />
                 <Button
                   onClick={async () => {
-                    const res = await lookupCoupon(couponInput);
-                    if (res?.coupon) setCouponPreview(res.coupon);
+                    const code = (couponInput || "").trim();
+                    if (!code) return;
+                    const res = await lookupCoupon(code);
+                    if (!res?.coupon) {
+                      toast.error("Invalid coupon");
+                      return;
+                    }
+                    const ok = await applyCoupon(res.coupon.code);
+                    if (ok) {
+                      setCouponPreview(res.coupon);
+                      setCouponApplied(true);
+                    }
                   }}
-                  loading={couponLookupLoading}
+                  loading={couponLookupLoading || applyLoading}
                 >
-                  Lookup
+                  Apply
                 </Button>
               </Row>
             )}
 
-            {couponPreview && !couponApplied && (
-              <Alert variant="secondary" title="Coupon found" className="mt-2">
-                <Row gap={1} align="center" justify="space-between">
-                  <Typography.Text className="mb-0">
-                    <b>{couponPreview.title}</b> —
-                    {" "}
-                    {couponPreview.discountType === "FLAT"
-                      ? `$${Number(couponPreview.amount).toFixed(2)} off`
-                      : `${Number(couponPreview.amount).toFixed(0)}% off`}
-                  </Typography.Text>
-                  <Row gap={1} align="center">
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        const ok = await applyCoupon(couponPreview.code);
-                        if (ok) setCouponApplied(true);
-                      }}
-                      loading={applyLoading}
-                    >
-                      Use Coupon
-                    </Button>
-                    <Button
-                      size="sm"
-                      outline
-                      onClick={() => {
-                        setCouponPreview(null);
-                        setCouponInput("");
-                        resetCouponLookup();
-                      }}
-                    >
-                      Undo
-                    </Button>
-                  </Row>
-                </Row>
-              </Alert>
-            )}
+            {/* No separate preview state; apply happens on button click */}
 
             {couponApplied && (
               <Alert variant="success" title="Coupon applied" className="mt-2">
@@ -207,7 +188,6 @@ export const RegisterPage = () => {
                   <Button
                     size="sm"
                     outline
-                    variant="danger"
                     onClick={async () => {
                       const ok = await removeCoupon();
                       if (ok) {
