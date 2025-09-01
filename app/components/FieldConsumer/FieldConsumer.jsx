@@ -146,6 +146,8 @@ export const FieldConsumer = ({
         <RegistrationTeamPicker
           eventId={eventId}
           value={value}
+          label={field.label}
+          required={field.required}
           onChange={onInput}
         />
       );

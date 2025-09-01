@@ -47,8 +47,9 @@ export const FormConsumer = ({
         } else if (type === "shiftpicker") {
           return field.required ? (selectedShifts?.length ?? 0) > 0 : true;
         } else if (type === "team") {
-          const hasValidSelection = Boolean(selectedTeam?.id);
-          return field.required ? hasValidSelection : true;
+          const hasSelection =
+            Boolean(selectedTeam?.id) || Boolean(selectedTeam?.code?.trim());
+          return field.required ? hasSelection : true;
         }
         return validateField(field);
       }),

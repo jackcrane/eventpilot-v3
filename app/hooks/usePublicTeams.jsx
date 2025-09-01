@@ -1,7 +1,7 @@
 import useSWR from "swr";
-import { authFetch } from "../util/url";
+import { publicFetch } from "../util/url";
 
-const fetcher = (url) => authFetch(url).then((r) => r.json());
+const fetcher = (url) => publicFetch(url).then((r) => r.json());
 
 export const usePublicTeams = ({ eventId }) => {
   const key = eventId ? `/api/events/${eventId}/registration/team` : null;
@@ -13,4 +13,3 @@ export const usePublicTeams = ({ eventId }) => {
     error,
   };
 };
-

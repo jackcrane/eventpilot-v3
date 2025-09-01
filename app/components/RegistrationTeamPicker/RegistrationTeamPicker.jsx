@@ -9,12 +9,21 @@ import {
 import { usePublicTeams } from "../../hooks/usePublicTeams";
 import { Row } from "../../util/Flex";
 import toast from "react-hot-toast";
+import { useTeamCodeLookup } from "../../hooks/useTeamCodeLookup";
 
 // value shape: { id: string|null, code: string }
-export const RegistrationTeamPicker = ({ eventId, value, onChange }) => {
+export const RegistrationTeamPicker = ({
+  eventId,
+  value,
+  onChange,
+  label = "Team",
+  required = false,
+}) => {
   const { teams, loading } = usePublicTeams({ eventId });
   const [code, setCode] = useState("");
   const [confirmedTeam, setConfirmedTeam] = useState(null);
+  const { lookup, loading: lookupLoading, reset: resetLookup } =
+    useTeamCodeLookup({ eventId });
 
   const availablePublicTeams = useMemo(
     () => (teams || []).filter((t) => t.public && t.available),
@@ -43,20 +52,12 @@ export const RegistrationTeamPicker = ({ eventId, value, onChange }) => {
   const handleLookup = async () => {
     const entered = (code || value?.code || "").trim();
     if (!entered) return;
-    try {
-      const res = await fetch(
-        `/api/events/${eventId}/registration/team/lookup?code=${encodeURIComponent(
-          entered
-        )}`,
-        {
-          headers: { "X-Instance": localStorage.getItem("instance") },
-        }
-      );
-      if (!res.ok) throw new Error("not-found");
-      const data = await res.json();
+    const data = await lookup(entered);
+    if (data?.team) {
       setConfirmedTeam(data.team);
-      onChange?.({ id: data.team.id, code: "" });
-    } catch (e) {
+      // For code-join, keep id null so server uses code path (allows private teams)
+      onChange?.({ id: null, code: entered });
+    } else {
       toast.error("Invalid team code");
     }
   };
@@ -76,6 +77,7 @@ export const RegistrationTeamPicker = ({ eventId, value, onChange }) => {
             onClick={() => {
               setConfirmedTeam(null);
               setCode("");
+              resetLookup();
               onChange?.({ id: null, code: "" });
             }}
           >
@@ -88,7 +90,9 @@ export const RegistrationTeamPicker = ({ eventId, value, onChange }) => {
 
   return (
     <div>
-      <label className="form-label required">Team</label>
+      <label className={`form-label ${required ? "required" : ""}`}>
+        {label || "Team"}
+      </label>
       {availablePublicTeams.length > 0 ? (
         <>
           <Row gap={2} align="center">
@@ -115,7 +119,9 @@ export const RegistrationTeamPicker = ({ eventId, value, onChange }) => {
                 className="mb-0"
                 style={{ flex: 1 }}
               />
-              <Button onClick={handleLookup}>Join</Button>
+              <Button onClick={handleLookup} loading={lookupLoading}>
+                Join
+              </Button>
             </Row>
           </Row>
         </>
@@ -128,7 +134,9 @@ export const RegistrationTeamPicker = ({ eventId, value, onChange }) => {
             className="mb-0"
             style={{ flex: 1 }}
           />
-          <Button onClick={handleLookup}>Join</Button>
+          <Button onClick={handleLookup} loading={lookupLoading}>
+            Join
+          </Button>
         </Row>
       )}
     </div>

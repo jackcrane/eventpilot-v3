@@ -35,11 +35,10 @@ export const RegistrationFormBuilderPage = () => {
             description: "Let participants select or join a team by code.",
             icon: "users",
             iconColor: "var(--tblr-indigo)",
-            supports: ["label", "description", "required"],
+            supports: ["label", "required"],
             defaults: {
               label: "Team",
               required: false,
-              description: "Join a team by searching or entering a code.",
             },
           },
         ].filter(Boolean)}
