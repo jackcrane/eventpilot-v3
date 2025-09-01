@@ -62,7 +62,7 @@ export const FormConsumer = ({
           <ShiftFinder
             eventId={eventId}
             onSelectedShiftChange={(s) => setShifts(s)}
-            shifts={[]}
+            shifts={shifts}
           />
         </div>
       )}

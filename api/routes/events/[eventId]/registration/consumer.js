@@ -20,10 +20,9 @@ export const get = [
 
     if (!eventId || eventId === "undefined")
       return res.status(400).json({ message: "No event ID provided" });
-
-    const instance = await getNextInstance(eventId);
-    console.log("instance", instance);
-    const instanceId = instance.id;
+    // Prefer explicit instance from header; otherwise fallback to next upcoming
+    const instanceId =
+      req.instanceId || (await getNextInstance(eventId))?.id || null;
 
     let tiers = await prisma.registrationTier.findMany({
       where: {
@@ -83,8 +82,9 @@ export const post = [
     try {
       const { eventId } = req.params;
       const event = await prisma.event.findUnique({ where: { id: eventId } });
-      const instance = await getNextInstance(eventId);
-      const instanceId = instance.id;
+      // Prefer explicit instance from header; otherwise fallback to next upcoming
+      const instanceId =
+        req.instanceId || (await getNextInstance(eventId))?.id || null;
 
       const parsed = registrationSubmissionSchema.safeParse(req.body);
       if (!parsed.success) {

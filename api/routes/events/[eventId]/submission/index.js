@@ -28,6 +28,7 @@ export const post = async (req, res) => {
     const formResponse = await prisma.formResponse.create({
       data: {
         event: { connect: { slug: eventId } },
+        instance: { connect: { id: instanceId } },
         fieldResponses: {
           create: Object.entries(values).map(([fieldId, value]) => ({
             field: { connect: { id: fieldId } },
@@ -42,7 +43,6 @@ export const post = async (req, res) => {
               req.headers["x-forwarded-for"] || req.connection.remoteAddress,
           },
         },
-        instanceId,
       },
     });
 

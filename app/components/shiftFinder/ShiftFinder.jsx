@@ -79,18 +79,40 @@ export const ShiftFinder = ({
 }) => {
   const [selectedShifts, setSelectedShifts] = useState(passedShifts);
   const [locations, setLocations] = useState([]);
+  const [locationsTouched, setLocationsTouched] = useState(false);
 
+  // Initialize selected locations from passedShifts once when empty,
+  // but keep them user-controlled afterward.
   useEffect(() => {
-    if (!passedShiftSchema.safeParse(selectedShifts).success) {
+    const valid = passedShiftSchema.safeParse(passedShifts || []);
+    if (!valid.success) {
       console.error("ShiftFinder passedShifts is not valid", passedShifts);
       alert("ShiftFinder passedShifts is not valid");
       return null;
-    } else {
-      const grouped = groupByLocationAndJob(selectedShifts);
-      const _locations = grouped.map((g) => ({ value: g.id }));
-      setLocations(_locations);
     }
-  }, [selectedShifts]);
+    if (locationsTouched) return;
+    if ((locations?.length || 0) > 0) return;
+    const grouped = groupByLocationAndJob(passedShifts || []);
+    const _locations = grouped.map((g) => ({ value: g.id }));
+    if (_locations.length > 0) setLocations(_locations);
+  }, [passedShifts, locationsTouched, locations?.length]);
+
+  // When locations change (user toggles in STEP 1),
+  // drop any selected shifts that belong to now-unselected locations.
+  useEffect(() => {
+    const allowed = new Set(
+      (locations || []).map((l) => (l?.id ? l.id : l?.value))
+    );
+    const next = (selectedShifts || []).filter((s) => allowed.has(s.locationId));
+    if (next.length !== (selectedShifts || []).length) {
+      setSelectedShifts(next);
+    }
+  }, [locations]);
+
+  const handleLocationsChange = (v) => {
+    setLocationsTouched(true);
+    setLocations(v);
+  };
 
   const _setSelectedShifts = (locationId, jobId, shifts) => {
     const prevalid = passedShiftSchema.safeParse(shifts);
@@ -172,7 +194,7 @@ export const ShiftFinder = ({
     <div>
       <LocationPicker
         locations={locations}
-        setLocations={setLocations}
+        setLocations={handleLocationsChange}
         eventId={eventId}
         fromRUD={fromRUD}
       />
@@ -229,7 +251,7 @@ const LocationPicker = ({ locations, setLocations, eventId, fromRUD }) => {
               </div>
             ),
           }))}
-          value={locations.map((l) => ({ value: l.id || l.value }))}
+          value={locations}
           onChange={setLocations}
           direction="column"
           multiple
