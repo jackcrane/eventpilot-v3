@@ -134,7 +134,17 @@ export const mapGmailMessage = (m) => {
     snippet: m.snippet || null,
     internalDate: m.internalDate ? new Date(Number(m.internalDate)) : null,
     sizeEstimate: m.sizeEstimate || null,
-    headers: { subject, from, to, cc, bcc, date, messageId, references, inReplyTo },
+    headers: {
+      subject,
+      from,
+      to,
+      cc,
+      bcc,
+      date,
+      messageId,
+      references,
+      inReplyTo,
+    },
     textBody: bodies.text,
     htmlBody: bodies.html,
     attachments: bodies.attachments,
@@ -155,7 +165,9 @@ export const summarizeThreadFromMessages = (data) => {
   const to = getHeader(lastPayload, "To");
   const cc = getHeader(lastPayload, "Cc");
   const date = getHeader(lastPayload, "Date");
-  const lastInternalDate = last?.internalDate ? new Date(Number(last.internalDate)) : null;
+  const lastInternalDate = last?.internalDate
+    ? new Date(Number(last.internalDate))
+    : null;
   const isUnread = messages.some((m) => (m.labelIds || []).includes("UNREAD"));
   return {
     id: data.id,
@@ -202,10 +214,17 @@ export const fetchThreadsSummaries = async (gmail, ids) => {
 };
 
 export const getThreadWithMessages = async (gmail, threadId) => {
-  const resp = await gmail.users.threads.get({ userId: "me", id: threadId, format: "full" });
+  const resp = await gmail.users.threads.get({
+    userId: "me",
+    id: threadId,
+    format: "full",
+  });
   const data = resp.data || {};
   const messages = (data.messages || []).map(mapGmailMessage);
-  const summary = summarizeThreadFromMessages({ ...data, messages: data.messages || [] });
+  const summary = summarizeThreadFromMessages({
+    ...data,
+    messages: data.messages || [],
+  });
   return {
     thread: {
       id: summary.id,
@@ -256,13 +275,24 @@ export const buildReplyMime = ({
   return mime;
 };
 
-export const sendThreadReply = async (gmail, connectionEmail, threadId, { to, cc, bcc, subject, text, html }) => {
+export const sendThreadReply = async (
+  gmail,
+  connectionEmail,
+  threadId,
+  { to, cc, bcc, subject, text, html }
+) => {
   // Get last message to build reply headers
   const thread = await gmail.users.threads.get({
     userId: "me",
     id: threadId,
     format: "metadata",
-    metadataHeaders: ["Message-ID", "References", "Subject", "Reply-To", "From"],
+    metadataHeaders: [
+      "Message-ID",
+      "References",
+      "Subject",
+      "Reply-To",
+      "From",
+    ],
   });
   const msgs = thread.data.messages || [];
   if (msgs.length === 0) {
@@ -299,12 +329,20 @@ export const sendThreadReply = async (gmail, connectionEmail, threadId, { to, cc
     lastRefs,
   });
   const raw = toBase64Url(mime);
-  const sent = await gmail.users.messages.send({ userId: "me", requestBody: { raw, threadId } });
+  const sent = await gmail.users.messages.send({
+    userId: "me",
+    requestBody: { raw, threadId },
+  });
 
   const sentId = sent?.data?.id;
   let meta = null;
   if (sentId) {
-    const g = await gmail.users.messages.get({ userId: "me", id: sentId, format: "metadata", metadataHeaders: ["Message-ID", "Date"] });
+    const g = await gmail.users.messages.get({
+      userId: "me",
+      id: sentId,
+      format: "metadata",
+      metadataHeaders: ["Message-ID", "Date"],
+    });
     meta = g.data || null;
   }
   return {
@@ -328,6 +366,10 @@ export const setThreadUnread = async (gmail, threadId, unread = true) => {
   const requestBody = unread
     ? { addLabelIds: ["UNREAD"], removeLabelIds: [] }
     : { addLabelIds: [], removeLabelIds: ["UNREAD"] };
-  const resp = await gmail.users.threads.modify({ userId: "me", id: threadId, requestBody });
+  const resp = await gmail.users.threads.modify({
+    userId: "me",
+    id: threadId,
+    requestBody,
+  });
   return resp?.data ?? null;
 };
