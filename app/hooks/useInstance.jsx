@@ -91,6 +91,8 @@ export const useInstance = ({ eventId, instanceId }) => {
         });
 
         await mutate(key);
+        // Invalidate instances list so deleted instance disappears everywhere
+        if (eventId) await mutate(`/api/events/${eventId}/instances`);
         if (onDelete) onDelete();
         return true;
       } catch {
