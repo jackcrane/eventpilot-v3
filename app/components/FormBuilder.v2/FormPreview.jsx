@@ -17,6 +17,7 @@ export const FormPreview = ({
   selectedField,
   selectedPage,
   inputTypes,
+  allowMultiplePages = true,
 }) => {
   const { confirm, ConfirmModal } = useConfirm({
     title: "Are you sure?",
@@ -71,9 +72,11 @@ export const FormPreview = ({
                       className={classNames(styles.pageHeader, "mb-3")}
                       gap={1}
                     >
-                      <div {...prov.dragHandleProps} className={styles.handle}>
-                        <Icon i="grip-vertical" size={18} />
-                      </div>
+                      {allowMultiplePages && (
+                        <div {...prov.dragHandleProps} className={styles.handle}>
+                          <Icon i="grip-vertical" size={18} />
+                        </div>
+                      )}
                       <Typography.H3
                         className="mb-0"
                         style={{ flex: 1, textAlign: "left" }}
@@ -83,20 +86,22 @@ export const FormPreview = ({
                           <span className="text-muted">(Untitled Page)</span>
                         )}
                       </Typography.H3>
-                      <Button
-                        size="sm"
-                        className="mb-0"
-                        onClick={async () => {
-                          if (await confirm())
-                            setPages((prev) =>
-                              prev.filter((p) => p.id !== page.id)
-                            );
-                        }}
-                        variant="danger"
-                        outline
-                      >
-                        <Icon i="trash" />
-                      </Button>
+                      {allowMultiplePages && (
+                        <Button
+                          size="sm"
+                          className="mb-0"
+                          onClick={async () => {
+                            if (await confirm())
+                              setPages((prev) =>
+                                prev.filter((p) => p.id !== page.id)
+                              );
+                          }}
+                          variant="danger"
+                          outline
+                        >
+                          <Icon i="trash" />
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         onClick={() => setSelectedPageIndex(pageIndex)}
@@ -179,24 +184,26 @@ export const FormPreview = ({
             ))}
 
             {provided.placeholder}
-            <Util.Hr
-              text={
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    setPages((prev) => [
-                      ...prev,
-                      { id: prev.length, name: "", fields: [] },
-                    ])
-                  }
-                  style={{
-                    transform: "translateX(calc(15px / 4))",
-                  }}
-                >
-                  Add Page
-                </Button>
-              }
-            />
+            {allowMultiplePages && (
+              <Util.Hr
+                text={
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      setPages((prev) => [
+                        ...prev,
+                        { id: prev.length, name: "", fields: [] },
+                      ])
+                    }
+                    style={{
+                      transform: "translateX(calc(15px / 4))",
+                    }}
+                  >
+                    Add Page
+                  </Button>
+                }
+              />
+            )}
           </div>
         )}
       </Droppable>

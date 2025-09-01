@@ -172,6 +172,7 @@ export const get = [
           id: true,
           label: true,
           type: true,
+          eventpilotFieldType: true,
           options: { select: { id: true, label: true, deleted: true } },
           deleted: true,
         },
@@ -202,7 +203,9 @@ export const get = [
 
       const fieldsMeta = fields.map((f) => ({
         ...f,
-        currentlyInForm: !f.deleted,
+        // Hide pagebreak markers from roster columns
+        currentlyInForm:
+          !f.deleted && f.type !== "pagebreak" && f.eventpilotFieldType !== "pagebreak",
       }));
 
       return res.json({
