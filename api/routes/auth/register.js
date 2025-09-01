@@ -105,7 +105,7 @@ export const post = async (req, res) => {
     });
 
     await sendEmail({
-      From: "EventPilot Support <EventPilot@jackcrane.rocks>",
+      From: "EventPilot Support <EventPilotgeteventpilot.com>",
       To: email,
       Subject: "Welcome to EventPilot",
       HtmlBody: await render(
@@ -153,7 +153,7 @@ export const put = async (req, res) => {
   });
 
   await sendEmail({
-    From: "EventPilot Support <EventPilot@jackcrane.rocks>",
+    From: "EventPilot Support <EventPilotgeteventpilot.com>",
     To: email,
     Subject: "Verify your email address",
     HtmlBody: await render(

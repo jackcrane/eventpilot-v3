@@ -57,7 +57,7 @@ export const post = async (req, res) => {
       const ip = req.ip;
 
       await sendEmail({
-        From: "EventPilot Support <EventPilot@jackcrane.rocks>",
+        From: "EventPilot Support <EventPilotgeteventpilot.com>",
         To: email,
         Subject: "New login to EventPilot",
         HtmlBody: await render(

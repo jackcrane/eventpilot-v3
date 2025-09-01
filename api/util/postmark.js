@@ -103,8 +103,8 @@ export { rawEmailClient, sendEmail };
 // eslint-disable-next-line
 const test = async () => {
   const res = await sendEmail({
-    From: "EventPilot Support <EventPilot@jackcrane.rocks>",
-    To: "jack@jackcrane.rocks",
+    From: "EventPilot Support <EventPilotgeteventpilot.com>",
+    To: "jackgeteventpilot.com",
     Subject: "Test",
     TextBody: "Test",
     HtmlBody: "<h1>Test</h1>",

@@ -110,7 +110,7 @@ export const LoginEmail = ({ name, city, regionName, ip }) => (
 
 LoginEmail.PreviewProps = {
   name: "Jack Crane",
-  email: "jack@jackcrane.rocks",
+  email: "jackgeteventpilot.com",
   ip: "127.0.0.1",
   regionName: "California",
   city: "San Francisco",
