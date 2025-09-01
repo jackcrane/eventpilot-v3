@@ -2,75 +2,16 @@ import React from "react";
 import { Badge, Button, Card, Typography } from "tabler-react-2";
 import { Row } from "../../util/Flex";
 import { formatDate } from "../tzDateTime/tzDateTime";
-import { authFetch } from "../../util/url";
-import toast from "react-hot-toast";
 import { Icon } from "../../util/Icon";
 
 export const InstanceManager = ({
   instances = [],
   loading = false,
-  eventId,
-  instanceDropdownValue,
-  setInstance,
-  confirm,
-  mutate,
-  listKey,
   onEdit, // function (instanceId) => void
   onCreate, // function () => void
+  onDelete, // function (instanceId) => void
 }) => {
   const canDelete = (instances?.length ?? 0) > 1;
-
-  const handleDelete = async (i) => {
-    if (!canDelete) return;
-    if (!(await confirm())) return;
-    try {
-      const deletingCurrent = i.id === instanceDropdownValue?.id;
-      let nextCandidate = null;
-      if (deletingCurrent) {
-        const now = new Date();
-        const remaining = (instances ?? []).filter((x) => x.id !== i.id);
-        const nextFlagged = remaining.find((x) => x.isNext);
-        const future = remaining
-          .filter(
-            (x) =>
-              x?.startTime && new Date(x.startTime).getTime() >= now.getTime()
-          )
-          .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-        const past = remaining
-          .filter(
-            (x) => x?.endTime && new Date(x.endTime).getTime() < now.getTime()
-          )
-          .sort((a, b) => new Date(b.endTime) - new Date(a.endTime));
-        const fallbackPastByStart = remaining
-          .filter(
-            (x) =>
-              x?.startTime && new Date(x.startTime).getTime() < now.getTime()
-          )
-          .sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-        nextCandidate =
-          nextFlagged ||
-          future?.[0] ||
-          past?.[0] ||
-          fallbackPastByStart?.[0] ||
-          remaining?.[0] ||
-          null;
-      }
-
-      const promise = authFetch(`/api/events/${eventId}/instances/${i.id}`, {
-        method: "DELETE",
-      }).then(async (r) => {
-        if (!r.ok) throw new Error("Request failed");
-        return r.json();
-      });
-      await toast.promise(promise, {
-        loading: "Deleting...",
-        success: "Deleted successfully",
-        error: "Error deleting",
-      });
-      await mutate(listKey);
-      if (nextCandidate) setInstance(nextCandidate.id);
-    } catch (e) {}
-  };
 
   return (
     <div style={{ minWidth: 360 }}>
@@ -131,13 +72,7 @@ export const InstanceManager = ({
                     <Button size="sm" outline onClick={() => onEdit(i.id)}>
                       Edit
                     </Button>
-                    <Button
-                      size="sm"
-                      color="red"
-                      outline
-                      disabled={!canDelete}
-                      onClick={() => handleDelete(i)}
-                    >
+                    <Button size="sm" color="red" outline disabled={!canDelete} onClick={() => onDelete(i.id)}>
                       Delete
                     </Button>
                   </div>

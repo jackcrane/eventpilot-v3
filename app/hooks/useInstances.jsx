@@ -4,7 +4,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
 import React from "react";
-import { useOffcanvas } from "tabler-react-2";
+import { useOffcanvas, useConfirm } from "tabler-react-2";
 import { InstanceCRUD } from "../components/InstanceCRUD/InstanceCRUD";
 import { useSelectedInstance } from "../contexts/SelectedInstanceContext";
 
@@ -28,7 +28,11 @@ export const useInstances = ({ eventId }) => {
   );
   const [mutationLoading, setMutationLoading] = useState(false);
   const [validationError, setValidationError] = useState(null);
-  const { setInstance } = useSelectedInstance();
+  const { instanceDropdownValue, setInstance } = useSelectedInstance();
+  const { confirm, ConfirmModal } = useConfirm({
+    title: "Are you sure you want to delete this instance?",
+    text: "This action cannot be undone.",
+  });
 
   const createInstance = async (_data, setGlobalInstance = true) => {
     setMutationLoading(true);
@@ -71,6 +75,70 @@ export const useInstances = ({ eventId }) => {
     }
   };
 
+  const deleteInstanceById = async (instanceId) => {
+    if (!(await confirm())) return false;
+    setMutationLoading(true);
+    try {
+      // Compute next candidate if deleting currently selected
+      const deletingCurrent = instanceId === instanceDropdownValue?.id;
+      let nextCandidate = null;
+      if (deletingCurrent) {
+        const now = new Date();
+        const list = data?.instances ?? [];
+        const remaining = list.filter((x) => x.id !== instanceId);
+        const nextFlagged = remaining.find((x) => x.isNext);
+        const future = remaining
+          .filter(
+            (x) =>
+              x?.startTime && new Date(x.startTime).getTime() >= now.getTime()
+          )
+          .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+        const past = remaining
+          .filter(
+            (x) => x?.endTime && new Date(x.endTime).getTime() < now.getTime()
+          )
+          .sort((a, b) => new Date(b.endTime) - new Date(a.endTime));
+        const fallbackPastByStart = remaining
+          .filter(
+            (x) =>
+              x?.startTime && new Date(x.startTime).getTime() < now.getTime()
+          )
+          .sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+        nextCandidate =
+          nextFlagged ||
+          future?.[0] ||
+          past?.[0] ||
+          fallbackPastByStart?.[0] ||
+          remaining?.[0] ||
+          null;
+      }
+
+      const promise = authFetch(
+        `/api/events/${eventId}/instances/${instanceId}`,
+        {
+          method: "DELETE",
+        }
+      ).then(async (r) => {
+        if (!r.ok) throw new Error("Request failed");
+        return r.json();
+      });
+
+      await toast.promise(promise, {
+        loading: "Deleting...",
+        success: "Deleted successfully",
+        error: "Error deleting",
+      });
+
+      await mutate(key);
+      if (nextCandidate) setInstance(nextCandidate.id);
+      return true;
+    } catch (e) {
+      return false;
+    } finally {
+      setMutationLoading(false);
+    }
+  };
+
   const {
     offcanvas: createInstanceInteraction,
     OffcanvasElement: CreateInstanceElement,
@@ -89,7 +157,9 @@ export const useInstances = ({ eventId }) => {
     schemaLoading,
     validationError,
     createInstance,
+    deleteInstanceById,
     createInstanceInteraction,
     CreateInstanceElement,
+    DeleteConfirmElement: ConfirmModal,
   };
 };

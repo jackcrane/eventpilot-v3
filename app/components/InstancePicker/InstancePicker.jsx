@@ -1,13 +1,12 @@
 import React from "react";
 import { useInstances } from "../../hooks/useInstances";
-import { DropdownInput, Badge, Typography, useOffcanvas, useConfirm } from "tabler-react-2";
+import { DropdownInput, Badge, Typography, useOffcanvas } from "tabler-react-2";
 import { Col, Row } from "../../util/Flex";
 import { useSelectedInstance } from "../../contexts/SelectedInstanceContext";
 import { Icon } from "../../util/Icon";
 import { formatDate } from "../tzDateTime/tzDateTime";
 import { InstanceCRUD } from "../InstanceCRUD/InstanceCRUD";
 import { InstanceManager } from "../InstanceManager/InstanceManager";
-import { useSWRConfig } from "swr";
 
 export const InstancePicker = ({
   eventId,
@@ -22,11 +21,12 @@ export const InstancePicker = ({
     loading,
     createInstanceInteraction,
     CreateInstanceElement,
+    deleteInstanceById,
+    DeleteConfirmElement,
   } = useInstances({ eventId });
 
   const { instanceDropdownValue, setInstance } = useSelectedInstance();
-  const { mutate } = useSWRConfig();
-  const listKey = eventId ? `/api/events/${eventId}/instances` : null;
+  // useInstances handles list mutation; no local listKey needed here
 
   const {
     offcanvas: openEditor,
@@ -40,10 +40,7 @@ export const InstancePicker = ({
       offcanvasProps: { position: "end", size: 500, zIndex: 1050 },
     });
 
-  const { confirm, ConfirmModal } = useConfirm({
-    title: "Are you sure you want to delete this instance?",
-    text: "This action cannot be undone.",
-  });
+  // Confirm modal provided by useInstances
 
   const handleChange = (id) => {
     if (id.id === "eventpilot__create") {
@@ -56,13 +53,8 @@ export const InstancePicker = ({
             <InstanceManager
               instances={instances}
               loading={loading}
-              eventId={eventId}
-              instanceDropdownValue={selectedInstanceId || instanceDropdownValue}
-              setInstance={setInstance}
-              confirm={confirm}
-              mutate={mutate}
-              listKey={listKey}
               onCreate={() => createInstanceInteraction()}
+              onDelete={(id) => deleteInstanceById(id)}
               onEdit={(instanceId) =>
                 openEditor({
                   content: (
@@ -209,7 +201,7 @@ export const InstancePicker = ({
       {showCreate && CreateInstanceElement}
       {EditOffcanvasElement}
       {ManageOffcanvasElement}
-      {ConfirmModal}
+      {DeleteConfirmElement}
     </>
   );
 };
