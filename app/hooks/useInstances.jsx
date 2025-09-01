@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
 import React from "react";
 import { useOffcanvas } from "tabler-react-2";
-import { InstanceMaker } from "../components/InstanceMaker/InstanceMaker";
+import { InstanceCRUD } from "../components/InstanceCRUD/InstanceCRUD";
 import { useSelectedInstance } from "../contexts/SelectedInstanceContext";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
@@ -76,7 +76,7 @@ export const useInstances = ({ eventId }) => {
     OffcanvasElement: CreateInstanceElement,
   } = useOffcanvas({
     offcanvasProps: { position: "end", size: 470, zIndex: 1051 },
-    content: <InstanceMaker eventId={eventId} />,
+    content: <InstanceCRUD eventId={eventId} mode="create" />,
   });
 
   return {
