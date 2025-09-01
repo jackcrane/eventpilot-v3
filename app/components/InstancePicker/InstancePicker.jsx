@@ -1,12 +1,12 @@
 import React from "react";
 import { useInstances } from "../../hooks/useInstances";
-import { DropdownInput, Badge, Typography } from "tabler-react-2";
+import { DropdownInput, Badge, Typography, useOffcanvas } from "tabler-react-2";
 import { Col, Row } from "../../util/Flex";
 import { useSelectedInstance } from "../../contexts/SelectedInstanceContext";
-import moment from "moment";
-import { Dropdown } from "../dropdown/Dropdown";
 import { Icon } from "../../util/Icon";
 import { formatDate } from "../tzDateTime/tzDateTime";
+import { InstanceCRUD } from "../InstanceCRUD/InstanceCRUD";
+import { InstanceManager } from "../InstanceManager/InstanceManager";
 
 export const InstancePicker = ({
   eventId,
@@ -21,13 +21,56 @@ export const InstancePicker = ({
     loading,
     createInstanceInteraction,
     CreateInstanceElement,
+    deleteInstanceById,
+    DeleteConfirmElement,
   } = useInstances({ eventId });
 
   const { instanceDropdownValue, setInstance } = useSelectedInstance();
+  // useInstances handles list mutation; no local listKey needed here
+
+  const {
+    offcanvas: openEditor,
+    OffcanvasElement: EditOffcanvasElement,
+    close: closeEditor,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 470, zIndex: 1051 },
+  });
+  const { offcanvas: openManage, OffcanvasElement: ManageOffcanvasElement } =
+    useOffcanvas({
+      offcanvasProps: { position: "end", size: 500, zIndex: 1050 },
+    });
+
+  // Confirm modal provided by useInstances
 
   const handleChange = (id) => {
     if (id.id === "eventpilot__create") {
       createInstanceInteraction();
+    } else if (id.id === "eventpilot__manage") {
+      // Open manage list in an offcanvas, then allow launching editor offcanvas inside it
+      setTimeout(() =>
+        openManage({
+          content: (
+            <InstanceManager
+              instances={instances}
+              loading={loading}
+              onCreate={() => createInstanceInteraction()}
+              onDelete={(id) => deleteInstanceById(id)}
+              onEdit={(instanceId) =>
+                openEditor({
+                  content: (
+                    <InstanceCRUD
+                      eventId={eventId}
+                      instanceId={instanceId}
+                      mode="edit"
+                      close={closeEditor}
+                    />
+                  ),
+                })
+              }
+            />
+          ),
+        }),
+      0);
     } else {
       setGlobalInstance && setInstance(id);
       onChange && onChange(id);
@@ -130,6 +173,17 @@ export const InstancePicker = ({
       ),
       searchIndex: "create",
     },
+
+    showCreate && {
+      id: "eventpilot__manage",
+      label: (
+        <Row gap={1}>
+          <Icon i="edit" size={16} />
+          <span>Edit or delete an instance</span>
+        </Row>
+      ),
+      searchIndex: "manage",
+    },
   ].filter(Boolean);
 
   return (
@@ -145,6 +199,9 @@ export const InstancePicker = ({
         }}
       />
       {showCreate && CreateInstanceElement}
+      {EditOffcanvasElement}
+      {ManageOffcanvasElement}
+      {DeleteConfirmElement}
     </>
   );
 };

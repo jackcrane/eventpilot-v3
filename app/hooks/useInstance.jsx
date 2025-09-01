@@ -39,9 +39,11 @@ export const useInstance = ({ eventId, instanceId }) => {
     setMutationLoading(true);
     try {
       const parsed = schema.safeParse(_data);
+      console.log(parsed.error);
       let data;
       if (!parsed.success) {
         toast.error("Error");
+        console.log(_data);
         setValidationError(parsed.error.format());
         return false;
       } else {
@@ -89,6 +91,8 @@ export const useInstance = ({ eventId, instanceId }) => {
         });
 
         await mutate(key);
+        // Invalidate instances list so deleted instance disappears everywhere
+        if (eventId) await mutate(`/api/events/${eventId}/instances`);
         if (onDelete) onDelete();
         return true;
       } catch {

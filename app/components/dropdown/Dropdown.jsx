@@ -7,6 +7,7 @@ export const Dropdown = ({
   open: _open = false,
   children,
   ghost = false,
+  onOpenChange,
 }) => {
   const [open, setOpen] = useState(_open);
   const ref = useRef(null);
@@ -14,6 +15,7 @@ export const Dropdown = ({
   const handleClick = (e) => {
     e.stopPropagation();
     setOpen(!open);
+    onOpenChange && onOpenChange(!open);
   };
 
   // Close on outside click
@@ -21,6 +23,7 @@ export const Dropdown = ({
     const handleOutsideClick = (e) => {
       if (ref.current && !ref.current.contains(e.target)) {
         setOpen(false);
+        onOpenChange && onOpenChange(false);
       }
     };
     document.addEventListener("click", handleOutsideClick);
@@ -28,6 +31,11 @@ export const Dropdown = ({
       document.removeEventListener("click", handleOutsideClick);
     };
   }, []);
+
+  // Sync internal state to prop changes
+  useEffect(() => {
+    setOpen(_open);
+  }, [_open]);
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
