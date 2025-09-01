@@ -67,7 +67,11 @@ export const get = [
             location: true,
           },
         },
-        instances: true,
+        instances: {
+          where: {
+            deleted: false,
+          },
+        },
         formFields: req.query.includeFields,
       },
     });
