@@ -99,6 +99,73 @@ export const post = [
         stripePIClientSecret: clientSecret,
         price: total,
         finalized: false,
+        coupon: {
+          id: coupon.id,
+          title: coupon.title,
+          code: coupon.code,
+          discountType: coupon.discountType,
+          amount: coupon.amount,
+          appliesTo: coupon.appliesTo,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: error?.message || "Server error" });
+    }
+  },
+];
+
+const removeSchema = z.object({ registrationId: z.string().min(1) });
+
+export const del = [
+  async (req, res) => {
+    try {
+      const { eventId } = req.params;
+      const parsed = removeSchema.safeParse(req.body || {});
+      if (!parsed.success) {
+        return res.status(400).json({ message: serializeError(parsed) });
+      }
+      const { registrationId } = parsed.data;
+
+      const [event, registration] = await Promise.all([
+        prisma.event.findUnique({ where: { id: eventId } }),
+        prisma.registration.findUnique({
+          where: { id: registrationId },
+          include: { upsells: true },
+        }),
+      ]);
+      if (!registration || registration.eventId !== eventId) {
+        return res.status(404).json({ message: "Registration not found" });
+      }
+      const instanceId = registration.instanceId;
+
+      // Detach coupon
+      await prisma.registration.update({
+        where: { id: registrationId },
+        data: { couponId: null },
+      });
+
+      const registrationTotal = registration.priceSnapshot || 0;
+      const upsellsTotal = (registration.upsells || []).reduce(
+        (sum, u) => sum + (u.priceSnapshot || 0) * (u.quantity || 1),
+        0
+      );
+      const total = registrationTotal + upsellsTotal;
+      const requiresPayment = total >= 0.3;
+
+      if (!requiresPayment) {
+        await finalizeRegistration({ registrationId, eventId });
+        return res.json({ finalized: true, requiresPayment: false, price: total });
+      }
+
+      const clientSecret = await setupStripePI(total, event, registrationId, instanceId);
+
+      return res.json({
+        requiresPayment: true,
+        stripePIClientSecret: clientSecret,
+        price: total,
+        finalized: false,
+        coupon: null,
       });
     } catch (error) {
       console.error(error);

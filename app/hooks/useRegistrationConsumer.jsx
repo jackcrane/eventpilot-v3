@@ -16,6 +16,7 @@ export const useRegistrationConsumer = ({ eventId }) => {
   const [price, setPrice] = useState(null);
   const [registrationId, setRegistrationId] = useState(null);
   const [applyLoading, setApplyLoading] = useState(false);
+  const [removeLoading, setRemoveLoading] = useState(false);
 
   const submit = async (data) => {
     setMutationLoading(true);
@@ -78,6 +79,34 @@ export const useRegistrationConsumer = ({ eventId }) => {
     return true;
   };
 
+  const removeCoupon = async () => {
+    if (!registrationId) return false;
+    setRemoveLoading(true);
+    const url = `/api/events/${eventId}/registration/consumer/coupon`;
+    const promise = authFetch(url, {
+      method: "DELETE",
+      body: JSON.stringify({ registrationId }),
+    })
+      .then(async (r) => {
+        const j = await r.json();
+        if (!r.ok) throw new Error(j?.message || "Failed to remove coupon");
+        setRequiresPayment(Boolean(j.requiresPayment));
+        setStripePIClientSecret(j.stripePIClientSecret || null);
+        setPrice(j.price ?? null);
+        setFinalized(Boolean(j.finalized));
+        return true;
+      })
+      .finally(() => setRemoveLoading(false));
+
+    await toast.promise(promise, {
+      loading: "Removing coupon...",
+      success: "Coupon removed",
+      error: (e) => e?.message || "Failed to remove coupon",
+    });
+
+    return true;
+  };
+
   return {
     tiers: data?.tiers,
     loading: isLoading,
@@ -86,8 +115,10 @@ export const useRegistrationConsumer = ({ eventId }) => {
     stripePIClientSecret,
     finalized,
     applyLoading,
+    removeLoading,
     submit,
     applyCoupon,
+    removeCoupon,
     error,
     refetch: () => mutate(key),
     price,
