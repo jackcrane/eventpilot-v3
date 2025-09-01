@@ -1,5 +1,5 @@
 import { verifyAuth } from "#verifyAuth";
-import { getGmailClientForEvent, getHeader } from "#util/google";
+import { getGmailClientForEvent, fetchThreadsSummaries } from "#util/google";
 
 // GET /api/events/:eventId/conversations/v2/threads
 // Query params:
@@ -43,62 +43,8 @@ export const get = [
         });
       }
 
-      // Fetch thread details in parallel with minimal metadata
-      const details = await Promise.all(
-        threads.map((t) =>
-          gmail.users.threads.get({
-            userId: "me",
-            id: t.id,
-            format: "metadata",
-            metadataHeaders: ["Subject", "From", "To", "Cc", "Date"],
-          })
-        )
-      );
-
-      const summaries = details.map((resp) => {
-        const data = resp.data || {};
-        const messages = data.messages || [];
-        const messagesCount = messages.length;
-        // Sort by internalDate (string of millis)
-        const sorted = [...messages].sort(
-          (a, b) => Number(a.internalDate || 0) - Number(b.internalDate || 0)
-        );
-        const last = sorted[sorted.length - 1];
-        const first = sorted[0];
-
-        const lastPayload = last?.payload;
-        const subject = getHeader(lastPayload, "Subject");
-        const from = getHeader(lastPayload, "From");
-        const to = getHeader(lastPayload, "To");
-        const cc = getHeader(lastPayload, "Cc");
-        const date = getHeader(lastPayload, "Date");
-        const lastInternalDate = last?.internalDate
-          ? new Date(Number(last.internalDate))
-          : null;
-
-        const isUnread = messages.some((m) =>
-          (m.labelIds || []).includes("UNREAD")
-        );
-
-        return {
-          id: data.id,
-          historyId: data.historyId,
-          snippet: data.snippet || last?.snippet || null,
-          messagesCount,
-          lastMessage: {
-            id: last?.id,
-            subject,
-            from,
-            to,
-            cc,
-            date,
-            internalDate: lastInternalDate,
-            labelIds: last?.labelIds || [],
-          },
-          firstMessageId: first?.id || null,
-          isUnread,
-        };
-      });
+      const threadIds = threads.map((t) => t.id);
+      const summaries = await fetchThreadsSummaries(gmail, threadIds);
 
       return res.status(200).json({
         threads: summaries,

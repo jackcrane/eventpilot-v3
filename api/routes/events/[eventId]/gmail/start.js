@@ -2,12 +2,8 @@ import jwt from "jsonwebtoken";
 import { verifyAuth } from "#verifyAuth";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-const SCOPES = [
-  "openid",
-  "email",
-  "https://www.googleapis.com/auth/gmail.readonly",
-  "https://www.googleapis.com/auth/gmail.send",
-];
+// Request top-level Gmail scope for widest permissions
+const SCOPES = ["openid", "email", "https://mail.google.com/"];
 
 export const get = [
   verifyAuth(["manager"]),
@@ -15,9 +11,9 @@ export const get = [
     try {
       const { eventId } = req.params;
 
-      const baseServer = (process.env.BASE_SERVER_URL || "http://localhost:3000").startsWith(
-        "http"
-      )
+      const baseServer = (
+        process.env.BASE_SERVER_URL || "http://localhost:3000"
+      ).startsWith("http")
         ? process.env.BASE_SERVER_URL
         : `http://${process.env.BASE_SERVER_URL}`;
       // Use static redirect uri under webhooks so Google console only needs one URI
