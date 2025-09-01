@@ -181,7 +181,17 @@ export const get = [
         where: { eventId, deleted: false, instanceId },
         include: {
           fieldResponses: {
-            select: { fieldId: true, value: true },
+            select: {
+              fieldId: true,
+              value: true,
+              field: {
+                select: {
+                  id: true,
+                  type: true,
+                  options: { select: { id: true, label: true, deleted: true } },
+                },
+              },
+            },
           },
         },
       });

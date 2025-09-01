@@ -336,10 +336,15 @@ export const formatFormResponse = (resp, fields) => {
     obj[f.id] = null;
   }
   for (const fr of resp.fieldResponses) {
-    const field = fields.find((f) => f.id === fr.fieldId);
+    // Prefer hydrated field on the response, otherwise fall back to provided list
+    const hydratedField = fr.field;
+    const fallbackField = fields.find((f) => f.id === fr.fieldId);
+    const field = hydratedField || fallbackField;
     if (!field) continue;
+
     if (field.type === "dropdown") {
-      const opt = field.options.find((o) => o.id === fr.value);
+      const fieldOptions = hydratedField?.options || fallbackField?.options || [];
+      const opt = fieldOptions.find((o) => o.id === fr.value);
       obj[field.id] = opt ? { id: opt.id, label: opt.label } : null;
     } else {
       obj[field.id] = fr.value;
