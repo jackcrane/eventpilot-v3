@@ -39,9 +39,11 @@ export const useInstance = ({ eventId, instanceId }) => {
     setMutationLoading(true);
     try {
       const parsed = schema.safeParse(_data);
+      console.log(parsed.error);
       let data;
       if (!parsed.success) {
         toast.error("Error");
+        console.log(_data);
         setValidationError(parsed.error.format());
         return false;
       } else {

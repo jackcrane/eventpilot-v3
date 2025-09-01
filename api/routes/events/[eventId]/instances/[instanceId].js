@@ -2,6 +2,7 @@ import { prisma } from "#prisma";
 import { getNextInstance } from "#util/getNextInstance";
 import { verifyAuth } from "#verifyAuth";
 import { instanceSchema } from "./index";
+import { zerialize } from "zodex";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -79,6 +80,6 @@ export const del = [
 
 export const query = [
   (req, res) => {
-    return res.json(instanceSchema);
+    return res.json(zerialize(instanceSchema));
   },
 ];

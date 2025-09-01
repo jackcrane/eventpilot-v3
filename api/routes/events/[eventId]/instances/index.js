@@ -12,15 +12,15 @@ export const instanceSchema = z.object({
   endTime: z.string().datetime(),
   startTimeTz: z.string(),
   endTimeTz: z.string(),
-  templateInstanceId: z.string().optional(),
+  templateInstanceId: z.string().optional().nullable(),
 
-  locationJobsShifts: z.boolean().default(false),
-  formField: z.boolean().default(false),
-  registrationTier: z.boolean().default(false),
-  registrationPeriod: z.boolean().default(false),
-  registrationPeriodPricing: z.boolean().default(false),
-  upsellItem: z.boolean().default(false),
-  registration: z.boolean().default(false),
+  locationJobsShifts: z.boolean().default(false).optional(),
+  formField: z.boolean().default(false).optional(),
+  registrationTier: z.boolean().default(false).optional(),
+  registrationPeriod: z.boolean().default(false).optional(),
+  registrationPeriodPricing: z.boolean().default(false).optional(),
+  upsellItem: z.boolean().default(false).optional(),
+  registration: z.boolean().default(false).optional(),
 });
 
 export const get = [
