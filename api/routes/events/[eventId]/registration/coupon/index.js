@@ -5,25 +5,27 @@ import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
 import { generateTeamCode } from "#util/generateTeamCode";
 
-export const couponSchema = z.object({
-  title: z.string().min(2).max(128),
-  code: z.string().min(2).max(32).optional().or(z.literal("")),
-  discountType: z.enum(["FLAT", "PERCENT"]),
-  amount: z.number().positive(),
-  appliesTo: z.enum(["REGISTRATION", "UPSELLS", "BOTH"]).default("BOTH"),
-  maxRedemptions: z
-    .number()
-    .int()
-    .refine((n) => n === -1 || n >= 1, {
-      message: "Must be -1 (unlimited) or >= 1",
-    })
-    .optional(),
-  endsAt: z.string().datetime().nullable().optional(),
-  endsAtTz: z.string().nullable().optional(),
-}).refine((data) => !data.endsAt || !!data.endsAtTz, {
-  message: "Timezone required when Ends At is set",
-  path: ["endsAtTz"],
-});
+export const couponSchema = z
+  .object({
+    title: z.string().min(2).max(128),
+    code: z.string().min(2).max(32).optional().or(z.literal("")),
+    discountType: z.enum(["FLAT", "PERCENT"]),
+    amount: z.number().positive(),
+    appliesTo: z.enum(["REGISTRATION", "UPSELLS", "BOTH"]).default("BOTH"),
+    maxRedemptions: z
+      .number()
+      .int()
+      .refine((n) => n === -1 || n >= 1, {
+        message: "Must be -1 (unlimited) or >= 1",
+      })
+      .optional(),
+    endsAt: z.string().datetime().nullable().optional(),
+    endsAtTz: z.string().nullable().optional(),
+  })
+  .refine((data) => !data.endsAt || !!data.endsAtTz, {
+    message: "Timezone required when Ends At is set",
+    path: ["endsAtTz"],
+  });
 
 export const post = [
   verifyAuth(["manager"]),
@@ -34,13 +36,23 @@ export const post = [
     }
     const { eventId } = req.params;
     const instanceId = req.instanceId;
-    let { title, code, discountType, amount, appliesTo, maxRedemptions, endsAt, endsAtTz } =
-      parsed.data;
+    let {
+      title,
+      code,
+      discountType,
+      amount,
+      appliesTo,
+      maxRedemptions,
+      endsAt,
+      endsAtTz,
+    } = parsed.data;
 
     if (discountType === "PERCENT" && amount > 100) {
       return res
         .status(400)
-        .json({ message: { amount: { _errors: ["Percent cannot exceed 100"] } } });
+        .json({
+          message: { amount: { _errors: ["Percent cannot exceed 100"] } },
+        });
     }
 
     let codeToUse = (code || "").trim();
@@ -81,7 +93,11 @@ export const post = [
 
       const redemptionCounts = await prisma.registration.groupBy({
         by: ["couponId"],
-        where: { couponId: { in: coupons.map((c) => c.id) }, deleted: false, finalized: true },
+        where: {
+          couponId: { in: coupons.map((c) => c.id) },
+          deleted: false,
+          finalized: true,
+        },
         _count: { couponId: true },
       });
       const countsMap = Object.fromEntries(
@@ -118,7 +134,11 @@ export const get = [
 
     const redemptionCounts = await prisma.registration.groupBy({
       by: ["couponId"],
-      where: { couponId: { in: coupons.map((c) => c.id) }, deleted: false, finalized: true },
+      where: {
+        couponId: { in: coupons.map((c) => c.id) },
+        deleted: false,
+        finalized: true,
+      },
       _count: { couponId: true },
     });
     const countsMap = Object.fromEntries(

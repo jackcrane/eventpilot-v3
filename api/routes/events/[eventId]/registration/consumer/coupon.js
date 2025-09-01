@@ -42,7 +42,8 @@ export const post = [
           deleted: false,
         },
       });
-      if (!coupon) return res.status(400).json({ message: "Invalid coupon code" });
+      if (!coupon)
+        return res.status(400).json({ message: "Invalid coupon code" });
       if (coupon.endsAt && new Date(coupon.endsAt) < now)
         return res.status(400).json({ message: "Coupon has expired" });
 
@@ -72,13 +73,15 @@ export const post = [
 
       let eligible = 0;
       if (coupon.appliesTo === "BOTH") eligible = totalBefore;
-      else if (coupon.appliesTo === "REGISTRATION") eligible = registrationTotal;
+      else if (coupon.appliesTo === "REGISTRATION")
+        eligible = registrationTotal;
       else if (coupon.appliesTo === "UPSELLS") eligible = upsellsTotal;
 
       let discount = 0;
       if (eligible > 0) {
         if (coupon.discountType === "FLAT") discount = coupon.amount;
-        else if (coupon.discountType === "PERCENT") discount = (eligible * coupon.amount) / 100;
+        else if (coupon.discountType === "PERCENT")
+          discount = (eligible * coupon.amount) / 100;
         if (discount > eligible) discount = eligible;
       }
 
@@ -89,10 +92,19 @@ export const post = [
 
       if (!requiresPayment) {
         await finalizeRegistration({ registrationId, eventId });
-        return res.json({ finalized: true, requiresPayment: false, price: total });
+        return res.json({
+          finalized: true,
+          requiresPayment: false,
+          price: total,
+        });
       }
 
-      const clientSecret = await setupStripePI(total, event, registrationId, instanceId);
+      const clientSecret = await setupStripePI(
+        total,
+        event,
+        registrationId,
+        instanceId
+      );
 
       return res.json({
         requiresPayment: true,
@@ -110,7 +122,9 @@ export const post = [
       });
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ message: error?.message || "Server error" });
+      return res
+        .status(500)
+        .json({ message: error?.message || "Server error" });
     }
   },
 ];
@@ -155,10 +169,19 @@ export const del = [
 
       if (!requiresPayment) {
         await finalizeRegistration({ registrationId, eventId });
-        return res.json({ finalized: true, requiresPayment: false, price: total });
+        return res.json({
+          finalized: true,
+          requiresPayment: false,
+          price: total,
+        });
       }
 
-      const clientSecret = await setupStripePI(total, event, registrationId, instanceId);
+      const clientSecret = await setupStripePI(
+        total,
+        event,
+        registrationId,
+        instanceId
+      );
 
       return res.json({
         requiresPayment: true,
@@ -169,7 +192,9 @@ export const del = [
       });
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ message: error?.message || "Server error" });
+      return res
+        .status(500)
+        .json({ message: error?.message || "Server error" });
     }
   },
 ];
