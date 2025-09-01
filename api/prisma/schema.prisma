@@ -931,7 +931,6 @@ model Coupon {
 
   maxRedemptions Int @default(-1)
 
-  startsAt DateTime?
   endsAt   DateTime?
   endsAtTz String?
 

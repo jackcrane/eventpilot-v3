@@ -1,4 +1,4 @@
-import { Typography, Alert } from "tabler-react-2";
+import { Typography, Alert, Input, Button } from "tabler-react-2";
 import { ConsumerPage } from "../../../components/ConsumerPage/ConsumerPage";
 import { useEvent } from "../../../hooks/useEvent";
 import { useReducedSubdomain } from "../../../hooks/useReducedSubdomain";
@@ -10,12 +10,14 @@ import { mutate } from "swr";
 import { FormConsumer } from "../../../components/FormConsumer.v2/FormConsumer";
 import { useParticipantRegistrationForm } from "../../../hooks/useParticipantRegistrationForm";
 import { PaymentElement } from "../../../components/stripe/PaymentElement";
+import { Row } from "../../../util/Flex";
 
 export const RegisterPage = () => {
   const eventSlug = useReducedSubdomain();
   const [searchParams] = useSearchParams();
   const [instanceReady, setInstanceReady] = useState(false);
   const [instanceError, setInstanceError] = useState(null);
+  const [couponInput, setCouponInput] = useState("");
   const {
     event,
     loading: eventLoading,
@@ -93,6 +95,9 @@ export const RegisterPage = () => {
     requiresPayment,
     stripePIClientSecret,
     finalized,
+    price,
+    applyCoupon,
+    applyLoading,
   } = useRegistrationConsumer({
     eventId: instanceReady ? event?.id : null,
   });
@@ -122,8 +127,27 @@ export const RegisterPage = () => {
         </>
       ) : requiresPayment ? (
         <>
+          <div className="card card-body mb-3">
+            <Typography.H3 className="mb-2">Have a coupon?</Typography.H3>
+            <Row gap={1} align="center">
+              <Input
+                placeholder="Enter coupon code"
+                value={couponInput}
+                onChange={(v) => setCouponInput(v)}
+                style={{ flex: 1 }}
+                className="mb-0"
+              />
+              <Button
+                onClick={() => applyCoupon(couponInput)}
+                loading={applyLoading}
+              >
+                Apply
+              </Button>
+            </Row>
+          </div>
           <PaymentElement
             paymentIntentClientSecret={stripePIClientSecret}
+            total={price}
             eventStripeConnectedAccountId={event.stripeConnectedAccountId}
           />
         </>
