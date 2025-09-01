@@ -8,7 +8,7 @@ import { useParams } from "react-router-dom";
 export const EventVolRegBuilder = () => {
   const { startTour } = useTourManager();
   const { eventId } = useParams();
-  const { pages, loading, error, updatePages } =
+  const { pages, loading, error, updatePages, mutationLoading } =
     useVolunteerRegistrationFormV2({ eventId });
 
   return (
@@ -26,7 +26,7 @@ export const EventVolRegBuilder = () => {
       <FormBuilder
         onSave={updatePages}
         initialValues={pages}
-        loading={loading}
+        loading={mutationLoading}
         requiredFieldTypes={[
           {
             id: "volunteerName",
@@ -43,6 +43,15 @@ export const EventVolRegBuilder = () => {
             description: "The volunteer's email",
             icon: "mail",
             iconColor: "var(--tblr-purple)",
+          },
+          {
+            id: "shiftpicker",
+            label: "Shifts",
+            description: "Let volunteers pick locations, jobs, and shifts.",
+            icon: "calendar-event",
+            iconColor: "var(--tblr-green)",
+            supports: [],
+            defaults: {},
           },
         ]}
       />

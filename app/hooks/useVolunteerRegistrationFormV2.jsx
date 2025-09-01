@@ -1,5 +1,6 @@
 import useSWR, { mutate } from "swr";
 import { authFetch } from "../util/url";
+import { useState } from "react";
 
 // Adapter to present legacy volunteer fields as v2 pages and persist back
 export const useVolunteerRegistrationFormV2 = ({ eventId }) => {
@@ -7,6 +8,7 @@ export const useVolunteerRegistrationFormV2 = ({ eventId }) => {
 
   const fetcher = (url) => authFetch(url).then((r) => r.json());
   const { data, error, isLoading } = useSWR(key, fetcher);
+  const [mutationLoading, setMutationLoading] = useState(false);
 
   // Map legacy -> v2
   const pages = (() => {
@@ -102,6 +104,7 @@ export const useVolunteerRegistrationFormV2 = ({ eventId }) => {
 
   // Persist v2 -> legacy
   const updatePages = async ({ pages }) => {
+    setMutationLoading(true);
     // Flatten pages into legacy list with synthetic pagebreak markers.
     const legacyType = (t) => {
       switch ((t || "").toLowerCase()) {
@@ -161,14 +164,18 @@ export const useVolunteerRegistrationFormV2 = ({ eventId }) => {
 
     const fields = flattened;
 
-    const res = await authFetch(key, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fields }),
-    });
-    if (!res.ok) throw new Error("Failed to update volunteer form");
-    await mutate(key);
-    return true;
+    try {
+      const res = await authFetch(key, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fields }),
+      });
+      if (!res.ok) throw new Error("Failed to update volunteer form");
+      await mutate(key);
+      return true;
+    } finally {
+      setMutationLoading(false);
+    }
   };
 
   return {
@@ -176,5 +183,6 @@ export const useVolunteerRegistrationFormV2 = ({ eventId }) => {
     loading: isLoading,
     error,
     updatePages,
+    mutationLoading,
   };
 };

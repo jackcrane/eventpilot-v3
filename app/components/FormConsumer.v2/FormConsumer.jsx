@@ -18,6 +18,7 @@ export const FormConsumer = ({
   const [selectedRegistrationTier, setSelectedRegistrationTier] =
     useState(null);
   const [selectedUpsells, setSelectedUpsells] = useState([]);
+  const [selectedShifts, setSelectedShifts] = useState([]);
 
   // Scroll to top on page change
   useEffect(() => {
@@ -42,10 +43,12 @@ export const FormConsumer = ({
         const type = field.type.toLowerCase();
         if (type === "registrationtier") {
           return field.required ? selectedRegistrationTier !== null : true;
+        } else if (type === "shiftpicker") {
+          return field.required ? (selectedShifts?.length ?? 0) > 0 : true;
         }
         return validateField(field);
       }),
-    [pages, step, responses, selectedRegistrationTier]
+    [pages, step, responses, selectedRegistrationTier, selectedShifts]
   );
 
   const handleInput = (fieldId, value) => {
@@ -58,6 +61,7 @@ export const FormConsumer = ({
       responses,
       selectedRegistrationTier,
       selectedUpsells: selectedUpsells.map((u) => u.value),
+      selectedShifts,
     };
     onSubmit?.(data);
   };
@@ -89,12 +93,16 @@ export const FormConsumer = ({
             ? selectedRegistrationTier
             : type === "upsells"
             ? selectedUpsells
+            : type === "shiftpicker"
+            ? selectedShifts
             : responses[field.id];
         const onInput =
           type === "registrationtier"
             ? (v) => setSelectedRegistrationTier(v)
             : type === "upsells"
             ? (v) => setSelectedUpsells(v)
+            : type === "shiftpicker"
+            ? (v) => setSelectedShifts(v)
             : (v) => handleInput(field.id, v);
 
         return (

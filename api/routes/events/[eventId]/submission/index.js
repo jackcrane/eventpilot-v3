@@ -203,9 +203,13 @@ export const get = [
 
       const fieldsMeta = fields.map((f) => ({
         ...f,
-        // Hide pagebreak markers from roster columns
+        // Hide pagebreak and shiftpicker markers from roster columns
         currentlyInForm:
-          !f.deleted && f.type !== "pagebreak" && f.eventpilotFieldType !== "pagebreak",
+          !f.deleted &&
+          f.type !== "pagebreak" &&
+          f.eventpilotFieldType !== "pagebreak" &&
+          f.type !== "shiftpicker" &&
+          f.eventpilotFieldType !== "shiftpicker",
       }));
 
       return res.json({

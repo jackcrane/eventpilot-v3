@@ -2,7 +2,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useReducedSubdomain } from "../../../hooks/useReducedSubdomain";
 import { useEvent } from "../../../hooks/useEvent";
 import { useCampaign } from "../../../hooks/useCampaign";
-import { Typography, Alert, Util } from "tabler-react-2";
+import { Typography, Alert } from "tabler-react-2";
 import { Row } from "../../../util/Flex";
 import { useFormBuilder } from "../../../hooks/useFormBuilder";
 import { FormConsumer } from "../../../components/FormConsumer.v2/FormConsumer";
@@ -15,7 +15,6 @@ import { Icon } from "../../../util/Icon";
 import { useLocations } from "../../../hooks/useLocations";
 import { useVolunteerRegistrationFormV2 } from "../../../hooks/useVolunteerRegistrationFormV2";
 import { ConsumerPage } from "../../../components/ConsumerPage/ConsumerPage";
-import { ShiftFinder } from "../../../components/shiftFinder/ShiftFinder";
 
 export const VolunteerRegistrationPage = () => {
   const eventSlug = useReducedSubdomain();
@@ -103,10 +102,9 @@ export const VolunteerRegistrationPage = () => {
   });
 
   const [thankYou, setThankYou] = useState(false);
-  const [selectedShifts, setSelectedShifts] = useState([]);
 
-  const submitForm = async ({ responses }) => {
-    if ((await _submitForm(responses, selectedShifts)).id) {
+  const submitForm = async ({ responses, selectedShifts }) => {
+    if ((await _submitForm(responses, selectedShifts || [])).id) {
       // Scroll to top of page
       window.scrollTo(0, 0);
       setThankYou(true);
@@ -182,20 +180,12 @@ export const VolunteerRegistrationPage = () => {
       ) : (
         <div>
           {mutationLoading && <div>Submitting...</div>}
-          <div className="mb-3">
-            <FormConsumer
-              pages={pages}
-              eventId={event.id}
-              onSubmit={submitForm}
-              mutationLoading={mutationLoading}
-              showSteps={pages?.length > 1}
-            />
-          </div>
-          <Util.Hr text="Pick some shifts" />
-          <ShiftFinder
+          <FormConsumer
+            pages={pages}
             eventId={event.id}
-            onSelectedShiftChange={(s) => setSelectedShifts(s)}
-            shifts={selectedShifts}
+            onSubmit={submitForm}
+            mutationLoading={mutationLoading}
+            showSteps={pages?.length > 1}
           />
         </div>
       )}

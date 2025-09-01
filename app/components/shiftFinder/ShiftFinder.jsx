@@ -4,6 +4,7 @@ import {
   Spinner,
   EnclosedSelectGroup,
   Input,
+  Alert,
 } from "tabler-react-2";
 import styles from "./shiftfinder.module.css";
 import { useEffect, useState, useRef } from "react";
@@ -103,7 +104,9 @@ export const ShiftFinder = ({
     const allowed = new Set(
       (locations || []).map((l) => (l?.id ? l.id : l?.value))
     );
-    const next = (selectedShifts || []).filter((s) => allowed.has(s.locationId));
+    const next = (selectedShifts || []).filter((s) =>
+      allowed.has(s.locationId)
+    );
     if (next.length !== (selectedShifts || []).length) {
       setSelectedShifts(next);
     }
@@ -276,9 +279,12 @@ const JobPicker = ({
     </Typography.Text>
     {locations.length === 0 && (
       <div className="mb-3">
-        <Typography.Text className="mb-0">
+        {/* <Typography.Text className="mb-0">
           You have to pick at least one location.
-        </Typography.Text>
+        </Typography.Text> */}
+        <Alert variant="warning">
+          You have to pick at least one location before picking jobs and shifts.
+        </Alert>
       </div>
     )}
     {locations.map((l) => (
