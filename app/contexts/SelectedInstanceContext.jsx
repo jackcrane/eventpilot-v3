@@ -1,9 +1,9 @@
 // src/contexts/SelectedInstanceContext.js
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { useSWRConfig } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { useInstance } from "../hooks/useInstance";
-import { useParams } from "react-router-dom";
 import { useParsedUrl } from "../hooks/useParsedUrl";
+import { authFetch } from "../util/url";
 
 const SelectedInstanceContext = createContext();
 
@@ -17,6 +17,14 @@ export const SelectedInstanceProvider = ({ children }) => {
     eventId,
     instanceId: instanceDropdownValue?.id,
   });
+
+  // Local fetcher for instances list to avoid circular dependency with useInstances
+  const instancesKey = typeof eventId === "string" ? `/api/events/${eventId}/instances` : null;
+  const { data: instancesResponse } = useSWR(
+    instancesKey,
+    (url) => authFetch(url).then((r) => r.json())
+  );
+  const instances = instancesResponse?.instances ?? null;
 
   useEffect(() => {
     if (!instanceDropdownValue) return;
@@ -33,11 +41,56 @@ export const SelectedInstanceProvider = ({ children }) => {
     }
   }, []);
 
+  // Ensure an instance is always selected: prefer next upcoming (or active), else most recent past
+  useEffect(() => {
+    if (!eventId) return; // wait for event id
+    if (!instances || !Array.isArray(instances)) return; // wait for instances
+
+    const currentId = instanceDropdownValue?.id;
+    const currentIsValid = currentId && instances.some((i) => i.id === currentId);
+    if (currentIsValid) return; // keep current selection if valid
+
+    if (instances.length === 0) return; // nothing to select
+
+    const now = new Date();
+
+    // Prefer flagged next/active instance from server if present
+    const nextFlagged = instances.find((i) => i.isNext);
+
+    // Else choose earliest future by startTime
+    const future = instances
+      .filter((i) => i?.startTime && new Date(i.startTime).getTime() >= now.getTime())
+      .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+    // Else choose most recent past by endTime (fallback to startTime if endTime missing)
+    const past = instances
+      .filter((i) => i?.endTime && new Date(i.endTime).getTime() < now.getTime())
+      .sort((a, b) => new Date(b.endTime) - new Date(a.endTime));
+
+    const fallbackPastByStart = instances
+      .filter((i) => i?.startTime && new Date(i.startTime).getTime() < now.getTime())
+      .sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+
+    const candidate =
+      nextFlagged ||
+      future?.[0] ||
+      past?.[0] ||
+      fallbackPastByStart?.[0] ||
+      instances[0];
+
+    if (candidate && candidate.id !== currentId) {
+      setInstanceDropdownValue({ id: candidate.id });
+    }
+  }, [eventId, instances, instanceDropdownValue?.id]);
+
   return (
     <SelectedInstanceContext.Provider
       value={{
         instance: typeof instance === "object" ? instance : null,
-        setInstance: setInstanceDropdownValue,
+        setInstance: (value) =>
+          typeof value === "string"
+            ? setInstanceDropdownValue({ id: value })
+            : setInstanceDropdownValue(value),
         instanceDropdownValue,
         loading,
         eventId: typeof eventId === "string" ? eventId : null,
