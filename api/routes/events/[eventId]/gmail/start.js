@@ -20,7 +20,8 @@ export const get = [
       )
         ? process.env.BASE_SERVER_URL
         : `http://${process.env.BASE_SERVER_URL}`;
-      const redirectUri = `${baseServer}/api/events/${eventId}/gmail/callback`;
+      // Use static redirect uri under webhooks so Google console only needs one URI
+      const redirectUri = `${baseServer}/api/webhooks/google-oauth`;
 
       const state = jwt.sign(
         { eventId, userId: req.user?.id, ts: Date.now() },
@@ -47,4 +48,3 @@ export const get = [
     }
   },
 ];
-
