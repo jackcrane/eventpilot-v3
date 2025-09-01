@@ -19,6 +19,10 @@ export const couponSchema = z.object({
     })
     .optional(),
   endsAt: z.string().datetime().nullable().optional(),
+  endsAtTz: z.string().nullable().optional(),
+}).refine((data) => !data.endsAt || !!data.endsAtTz, {
+  message: "Timezone required when Ends At is set",
+  path: ["endsAtTz"],
 });
 
 export const post = [
@@ -30,7 +34,7 @@ export const post = [
     }
     const { eventId } = req.params;
     const instanceId = req.instanceId;
-    let { title, code, discountType, amount, appliesTo, maxRedemptions, endsAt } =
+    let { title, code, discountType, amount, appliesTo, maxRedemptions, endsAt, endsAtTz } =
       parsed.data;
 
     if (discountType === "PERCENT" && amount > 100) {
@@ -55,6 +59,7 @@ export const post = [
               appliesTo,
               maxRedemptions: maxRedemptions ?? -1,
               endsAt: endsAt ? new Date(endsAt) : null,
+              endsAtTz: endsAt ? endsAtTz : null,
               event: { connect: { id: eventId } },
               instance: { connect: { id: instanceId } },
             },

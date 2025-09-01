@@ -933,6 +933,7 @@ model Coupon {
 
   startsAt DateTime?
   endsAt   DateTime?
+  endsAtTz String?
 
   deleted   Boolean  @default(false)
   createdAt DateTime @default(now())

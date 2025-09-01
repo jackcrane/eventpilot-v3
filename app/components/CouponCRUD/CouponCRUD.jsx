@@ -77,6 +77,7 @@ const _CouponCRUD = ({
       appliesTo: "BOTH",
       maxRedemptions: -1,
       endsAt: null,
+      endsAtTz: null,
     }
   );
   const { eventId } = useParams();
@@ -93,6 +94,7 @@ const _CouponCRUD = ({
         appliesTo: "BOTH",
         maxRedemptions: -1,
         endsAt: null,
+        endsAtTz: defaultTz,
       }
     );
     setUnlimited((value?.maxRedemptions ?? -1) === -1);
@@ -108,6 +110,7 @@ const _CouponCRUD = ({
       appliesTo: coupon.appliesTo,
       maxRedemptions: unlimited ? -1 : Number(coupon.maxRedemptions ?? 1),
       endsAt: coupon.endsAt ? new Date(coupon.endsAt).toISOString() : null,
+      endsAtTz: coupon.endsAt ? coupon.endsAtTz || defaultTz : null,
     };
 
     if (await onFinish(payload)) onClose?.();
@@ -207,12 +210,16 @@ const _CouponCRUD = ({
       <TzDateTime
         label="Ends At"
         value={coupon.endsAt}
-        tz={defaultTz}
-        onChange={([iso]) => setCoupon({ ...coupon, endsAt: iso })}
+        tz={coupon.endsAtTz || defaultTz}
+        onChange={([iso, tz]) =>
+          setCoupon({ ...coupon, endsAt: iso, endsAtTz: tz })
+        }
         afterLabel={
           <Button
             size="sm"
-            onClick={() => setCoupon({ ...coupon, endsAt: null })}
+            onClick={() =>
+              setCoupon({ ...coupon, endsAt: null, endsAtTz: null })
+            }
           >
             Clear Selection
           </Button>
