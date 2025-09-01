@@ -37,7 +37,7 @@ export const put = [
     if (!parse.success) {
       return res.status(400).json({ message: parse.error.format() });
     }
-    const { name, code, maxSize } = parse.data;
+    const { name, code, maxSize, public: isPublic } = parse.data;
 
     const before = await prisma.team.findFirst({
       where: {
@@ -60,6 +60,7 @@ export const put = [
           name,
           code: codeToUse,
           maxSize: maxSize ?? null,
+          public: isPublic ?? false,
         },
       });
       return res.json({ team });

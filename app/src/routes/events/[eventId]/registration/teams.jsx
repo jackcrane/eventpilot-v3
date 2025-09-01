@@ -35,6 +35,11 @@ export const TeamsPage = () => {
             { label: "Name", accessor: "name" },
             { label: "Code", accessor: "code" },
             {
+              label: "Public",
+              accessor: "public",
+              render: (v) => (v ? "Yes" : "No"),
+            },
+            {
               label: "Max Size",
               accessor: "maxSize",
               render: (v) => (v ? v : "Unlimited"),
@@ -56,4 +61,3 @@ export const TeamsPage = () => {
     </EventPage>
   );
 };
-

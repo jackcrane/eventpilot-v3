@@ -5,6 +5,7 @@ import { MarkdownRender } from "../markdown/MarkdownRenderer";
 import { RegistrationTierListing } from "../RegistrationTierListing/RegistrationTierListing";
 import { RegistrationUpsellListing } from "../RegistrationUpsellListing/RegistrationUpsellListing";
 import { ShiftFinder } from "../shiftFinder/ShiftFinder";
+import { RegistrationTeamPicker } from "../RegistrationTeamPicker/RegistrationTeamPicker";
 
 export const FieldConsumer = ({
   field,
@@ -130,6 +131,22 @@ export const FieldConsumer = ({
           eventId={eventId}
           value={value}
           setUpsell={(v) => onInput(v)}
+        />
+      );
+    case "team":
+      return inBuilder ? (
+        <>
+          <label className="form-label">Team</label>
+          <div className="mb-3 p-2 bg-gray-200">
+            A team picker will appear here. Participants can search public
+            teams or join by entering a team code.
+          </div>
+        </>
+      ) : (
+        <RegistrationTeamPicker
+          eventId={eventId}
+          value={value}
+          onChange={onInput}
         />
       );
     case "shiftpicker":

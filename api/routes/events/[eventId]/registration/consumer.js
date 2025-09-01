@@ -11,6 +11,8 @@ const registrationSubmissionSchema = z.object({
   responses: z.record(z.string(), z.any()),
   selectedRegistrationTier: z.string(),
   selectedUpsells: z.array(z.string()),
+  selectedTeamId: z.string().optional().nullable(),
+  enteredTeamCode: z.string().max(32).optional().nullable(),
 });
 
 export const get = [
@@ -91,8 +93,13 @@ export const post = [
         return res.status(400).json({ message: serializeError(parsed) });
       }
 
-      const { responses, selectedRegistrationTier, selectedUpsells } =
-        parsed.data;
+      const {
+        responses,
+        selectedRegistrationTier,
+        selectedUpsells,
+        selectedTeamId,
+        enteredTeamCode,
+      } = parsed.data;
 
       const fieldIds = Object.keys(responses);
       const fieldTypes = await prisma.registrationField.findMany({
@@ -160,7 +167,49 @@ export const post = [
             skipDuplicates: true, // optional: avoids error if already exists
           });
 
-          // 4) Figure out if payment is required
+          // 4) If a team was selected or code entered, attempt to join
+          if ((selectedTeamId && selectedTeamId.length > 0) || (enteredTeamCode && enteredTeamCode.trim().length > 0)) {
+            // Resolve the team: by id must be public; by code can be any team
+            let team = null;
+            if (selectedTeamId && selectedTeamId.length > 0) {
+              team = await tx.team.findFirst({
+                where: {
+                  id: selectedTeamId,
+                  eventId,
+                  instanceId,
+                  deleted: false,
+                  public: true,
+                },
+              });
+              if (!team) throw new Error("Selected team is not available");
+            } else if (enteredTeamCode && enteredTeamCode.trim().length > 0) {
+              const code = enteredTeamCode.trim();
+              team = await tx.team.findFirst({
+                where: {
+                  code,
+                  eventId,
+                  instanceId,
+                  deleted: false,
+                },
+              });
+              if (!team) throw new Error("Invalid team code");
+            }
+
+            // Enforce capacity if applicable (only count finalized regs)
+            const memberCount = await tx.registration.count({
+              where: { teamId: team.id, instanceId, finalized: true },
+            });
+            if (team.maxSize != null && memberCount >= team.maxSize) {
+              throw new Error("Team is full");
+            }
+
+            await tx.registration.update({
+              where: { id: registration.id },
+              data: { teamId: team.id },
+            });
+          }
+
+          // 5) Figure out if payment is required
           const [requiresPayment, stripePIClientSecret, price] =
             await registrationRequiresPayment(
               upsells,

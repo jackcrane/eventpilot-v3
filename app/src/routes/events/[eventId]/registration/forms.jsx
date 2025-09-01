@@ -3,6 +3,7 @@ import { EventPage } from "../../../../../components/eventPage/EventPage";
 import { FormBuilder } from "../../../../../components/FormBuilder.v2/FormBuilder";
 import { useParticipantRegistrationForm } from "../../../../../hooks/useParticipantRegistrationForm";
 import { useRegistrationUpsells } from "../../../../../hooks/useRegistrationUpsells";
+import { useRegistrationTeams } from "../../../../../hooks/useRegistrationTeams";
 
 export const RegistrationFormBuilderPage = () => {
   const { eventId } = useParams();
@@ -13,6 +14,7 @@ export const RegistrationFormBuilderPage = () => {
   const { upsells, loading: upsellsLoading } = useRegistrationUpsells({
     eventId,
   });
+  const { teams, loading: teamsLoading } = useRegistrationTeams({ eventId });
 
   return (
     <EventPage
@@ -26,6 +28,21 @@ export const RegistrationFormBuilderPage = () => {
         initialValues={pages}
         loading={mutationLoading}
         error={error}
+        customFieldTypes={[
+          teams?.length > 0 && {
+            id: "team",
+            label: "Team",
+            description: "Let participants select or join a team by code.",
+            icon: "users",
+            iconColor: "var(--tblr-indigo)",
+            supports: ["label", "description", "required"],
+            defaults: {
+              label: "Team",
+              required: false,
+              description: "Join a team by searching or entering a code.",
+            },
+          },
+        ].filter(Boolean)}
         requiredFieldTypes={[
           {
             id: "participantName",
