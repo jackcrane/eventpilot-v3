@@ -182,7 +182,8 @@ export const Sidenav = ({
           return (
             <Button
               key={index}
-              href={item.href}
+              href={item.href || undefined}
+              onClick={item.onClick || undefined}
               target={item.target}
               variant={item.active ? "primary" : "secondary"}
               outline={item.active}

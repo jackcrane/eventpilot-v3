@@ -173,10 +173,17 @@ export const EventPage = ({
     { type: "divider" },
     {
       type: "item",
-      href: isNew ? () => startOnboarding() : loginUrl,
+      onClick: isNew ? () => startOnboarding() : loginUrl,
       text: "Financials",
       active: isActive(`${base}/financials`),
-      icon: <Icon i="currency-dollar" size={18} color="var(--tblr-green)" />,
+      icon: (
+        <Icon
+          data-isNew={isNew}
+          i="currency-dollar"
+          size={18}
+          color="var(--tblr-green)"
+        />
+      ),
       accessoryIcon: <Icon i="external-link" size={18} />,
       target: "_blank",
     },
