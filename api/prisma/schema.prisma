@@ -335,8 +335,8 @@ model Event {
   threads   String?
 
   instances           EventInstance[]
-  formFields          FormField[]
-  formResponses       FormResponse[]
+  formFields          VolunteerRegistrationField[]
+  formResponses       VolunteerRegistration[]
   logs                Logs[]
   crmPersons          CrmPerson[]
   crmFields           CrmField[]
@@ -376,8 +376,8 @@ model EventInstance {
 
   logs                      Logs[]
   LedgerItem                LedgerItem[]
-  FormField                 FormField[]
-  FormResponse              FormResponse[]
+  FormField                 VolunteerRegistrationField[]
+  FormResponse              VolunteerRegistration[]
   Location                  Location[]
   Job                       Job[]
   Shift                     Shift[]
@@ -436,7 +436,7 @@ model CrmPersonsImport {
   updatedAt DateTime @updatedAt
 }
 
-model FormField {
+model VolunteerRegistrationField {
   id           String  @id @default(cuid())
   type         String
   label        String
@@ -450,8 +450,8 @@ model FormField {
   eventpilotFieldType String?
   autocompleteType    String?
 
-  options        FormFieldOption[]
-  fieldResponses FieldResponse[]
+  options        VolunteerRegistrationFieldOption[]
+  fieldResponses VolunteerRegistrationAnswer[]
 
   deleted Boolean @default(false)
 
@@ -465,22 +465,24 @@ model FormField {
   instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   logs Logs[]
+  @@map("FormField")
 }
 
-model FormFieldOption {
+model VolunteerRegistrationFieldOption {
   id      String    @id @default(cuid())
   fieldId String
-  field   FormField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  field   VolunteerRegistrationField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
   label   String
   order   Int
   deleted Boolean   @default(false)
 
   @@index([fieldId])
+  @@map("FormFieldOption")
 }
 
-model FormResponse {
+model VolunteerRegistration {
   id             String          @id @default(cuid())
-  fieldResponses FieldResponse[]
+  fieldResponses VolunteerRegistrationAnswer[]
   pii            PII?
   deleted        Boolean         @default(false)
 
@@ -496,14 +498,15 @@ model FormResponse {
   instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   logs   Logs[]
-  shifts FormResponseShift[]
+  shifts VolunteerShiftSignup[]
+  @@map("FormResponse")
 }
 
 model PII {
   id String @id @default(cuid())
 
   formResponseId String?       @unique
-  formResponse   FormResponse? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
+  formResponse   VolunteerRegistration? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
 
   userAgent    String?
   ipAddress    String?
@@ -520,16 +523,17 @@ model PII {
   updatedAt DateTime @updatedAt
 }
 
-model FieldResponse {
+model VolunteerRegistrationAnswer {
   id         String       @id @default(cuid())
   responseId String
-  response   FormResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  response   VolunteerRegistration @relation(fields: [responseId], references: [id], onDelete: Cascade)
   fieldId    String
-  field      FormField    @relation(fields: [fieldId], references: [id])
+  field      VolunteerRegistrationField    @relation(fields: [fieldId], references: [id])
   value      String?
 
   @@index([responseId])
   @@index([fieldId])
+  @@map("FieldResponse")
 }
 
 model Location {
@@ -597,11 +601,11 @@ enum JobRestrictions {
   OTHER
 }
 
-model FormResponseShift {
+model VolunteerShiftSignup {
   id String @id @default(cuid())
 
   formResponseId String
-  formResponse   FormResponse @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
+  formResponse   VolunteerRegistration @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
 
   shiftId String
   shift   Shift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
@@ -611,6 +615,7 @@ model FormResponseShift {
 
   // Unique by shiftId and formResponseId
   @@unique([shiftId, formResponseId])
+  @@map("FormResponseShift")
 }
 
 model Shift {
@@ -640,7 +645,7 @@ model Shift {
   open     Boolean @default(true)
   active   Boolean @default(true)
 
-  volunteers FormResponseShift[]
+  volunteers VolunteerShiftSignup[]
 
   logs    Logs[]
   deleted Boolean @default(false)
@@ -680,7 +685,7 @@ model CrmPersonLink {
   crmPerson   CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
 
   formResponseId String?       @unique
-  formResponse   FormResponse? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
+  formResponse   VolunteerRegistration? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1068,10 +1073,10 @@ model Logs {
   instance   EventInstance? @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   formFieldId String?
-  formField   FormField? @relation(fields: [formFieldId], references: [id], onDelete: Cascade)
+  formField   VolunteerRegistrationField? @relation(fields: [formFieldId], references: [id], onDelete: Cascade)
 
   formResponseId String?
-  formResponse   FormResponse? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
+  formResponse   VolunteerRegistration? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
 
   locationId String?
   location   Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)

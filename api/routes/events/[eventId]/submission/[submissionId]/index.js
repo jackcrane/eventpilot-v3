@@ -60,7 +60,7 @@ export const groupByLocationAndJob = (responses) => {
 };
 
 export const findSubmission = async (eventId, submissionId) => {
-  const fields = await prisma.formField.findMany({
+  const fields = await prisma.volunteerRegistrationField.findMany({
     where: { eventId, deleted: false },
     orderBy: { order: "asc" },
     select: {
@@ -76,7 +76,7 @@ export const findSubmission = async (eventId, submissionId) => {
     },
   });
 
-  const resp = await prisma.formResponse.findUnique({
+  const resp = await prisma.volunteerRegistration.findUnique({
     where: { id: submissionId },
     include: {
       fieldResponses: {
@@ -117,7 +117,7 @@ export const findSubmission = async (eventId, submissionId) => {
     currentlyInForm: !f.deleted,
   }));
 
-  const otherResponsesWithSameFingerprint = await prisma.formResponse.findMany({
+  const otherResponsesWithSameFingerprint = await prisma.volunteerRegistration.findMany({
     where: {
       eventId,
       deleted: false,
@@ -191,13 +191,13 @@ export const put = [
     const { values } = parse.data;
 
     try {
-      const from = await prisma.formResponse.findUnique({
+      const from = await prisma.volunteerRegistration.findUnique({
         where: { id: submissionId },
         include: { fieldResponses: true },
       });
 
       // Overwrite all existing fieldResponses for this submission
-      const updated = await prisma.formResponse.update({
+      const updated = await prisma.volunteerRegistration.update({
         where: { id: submissionId },
         data: {
           fieldResponses: {
@@ -245,7 +245,7 @@ export const patch = [
       }
 
       const incomingShifts = parseResult.data; // array of { id, … }
-      const registeredShifts = await prisma.formResponseShift.findMany({
+      const registeredShifts = await prisma.volunteerShiftSignup.findMany({
         where: { formResponseId: submissionId },
         select: { id: true, shiftId: true },
       });
@@ -268,14 +268,14 @@ export const patch = [
 
       // apply removals
       if (toDelete.length) {
-        await prisma.formResponseShift.deleteMany({
+        await prisma.volunteerShiftSignup.deleteMany({
           where: { id: { in: toDelete } },
         });
       }
 
       // apply additions (skipDuplicates guards against any unique-constraint conflicts)
       if (toCreate.length) {
-        await prisma.formResponseShift.createMany({
+        await prisma.volunteerShiftSignup.createMany({
           data: toCreate,
           skipDuplicates: true,
         });
@@ -301,14 +301,14 @@ export const del = [
     const { submissionId, eventId } = req.params;
     try {
       // Ensure it belongs to this event
-      let resp = await prisma.formResponse.findUnique({
+      let resp = await prisma.volunteerRegistration.findUnique({
         where: { id: submissionId },
       });
       if (!resp || resp.eventId !== eventId) {
         return res.status(404).json({ message: "Submission not found" });
       }
 
-      resp = await prisma.formResponse.update({
+      resp = await prisma.volunteerRegistration.update({
         where: { id: submissionId },
         data: { deleted: true },
       });

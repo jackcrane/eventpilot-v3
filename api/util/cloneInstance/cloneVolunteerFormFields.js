@@ -5,13 +5,13 @@ export const cloneVolunteerFormFields = async ({
   toInstanceId,
   summary,
 }) => {
-  const fields = await tx.formField.findMany({
+  const fields = await tx.volunteerRegistrationField.findMany({
     where: { instanceId: fromInstanceId, deleted: false },
     include: { options: true },
   });
 
   for (const f of fields) {
-    const newF = await tx.formField.create({
+    const newF = await tx.volunteerRegistrationField.create({
       data: {
         type: f.type,
         label: f.label,
@@ -30,7 +30,7 @@ export const cloneVolunteerFormFields = async ({
     summary.formFields++;
 
     for (const o of f.options) {
-      await tx.formFieldOption.create({
+      await tx.volunteerRegistrationFieldOption.create({
         data: {
           fieldId: newF.id,
           label: o.label,
@@ -41,4 +41,3 @@ export const cloneVolunteerFormFields = async ({
     }
   }
 };
-

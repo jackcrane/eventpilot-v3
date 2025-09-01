@@ -7,7 +7,7 @@ export const backfillInstanceIds = async () => {
 
   // list all the models you made instanceId required on:
   const updates = [
-    prisma.formField.updateMany({
+    prisma.volunteerRegistrationField.updateMany({
       where: { instanceId: null },
       data: { instanceId: defaultInstanceId },
     }),

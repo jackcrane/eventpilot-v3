@@ -24,7 +24,7 @@ export const calculateProgress = async (eventId, instanceId) => {
     periodCount,
   ] = await Promise.all([
     // volunteer form fields
-    prisma.formField.count({
+    prisma.volunteerRegistrationField.count({
       where: { eventId, instanceId, deleted: false },
     }),
     // locations
