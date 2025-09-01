@@ -41,7 +41,6 @@ export const get = [
   verifyAuth(["manager"]),
   async (req, res) => {
     const eventId = req.params.eventId;
-    const userId = req.user.id;
     const instanceId = req.instanceId;
 
     try {

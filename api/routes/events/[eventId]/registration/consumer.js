@@ -168,7 +168,10 @@ export const post = [
           });
 
           // 4) If a team was selected or code entered, attempt to join
-          if ((selectedTeamId && selectedTeamId.length > 0) || (enteredTeamCode && enteredTeamCode.trim().length > 0)) {
+          if (
+            (selectedTeamId && selectedTeamId.length > 0) ||
+            (enteredTeamCode && enteredTeamCode.trim().length > 0)
+          ) {
             // Resolve the team: by id must be public; by code can be any team
             let team = null;
             if (selectedTeamId && selectedTeamId.length > 0) {

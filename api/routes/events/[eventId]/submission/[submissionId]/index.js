@@ -117,24 +117,25 @@ export const findSubmission = async (eventId, submissionId) => {
     currentlyInForm: !f.deleted,
   }));
 
-  const otherResponsesWithSameFingerprint = await prisma.volunteerRegistration.findMany({
-    where: {
-      eventId,
-      deleted: false,
-      pii: {
-        fingerprint: resp.pii?.fingerprint,
+  const otherResponsesWithSameFingerprint =
+    await prisma.volunteerRegistration.findMany({
+      where: {
+        eventId,
+        deleted: false,
+        pii: {
+          fingerprint: resp.pii?.fingerprint,
+        },
+        id: {
+          not: resp.id,
+        },
       },
-      id: {
-        not: resp.id,
+      orderBy: { createdAt: "asc" },
+      include: {
+        fieldResponses: {
+          select: { fieldId: true, value: true },
+        },
       },
-    },
-    orderBy: { createdAt: "asc" },
-    include: {
-      fieldResponses: {
-        select: { fieldId: true, value: true },
-      },
-    },
-  });
+    });
 
   const otherResponsesWithSameFingerprintFormatted =
     otherResponsesWithSameFingerprint.map((r) => {
@@ -343,7 +344,8 @@ export const formatFormResponse = (resp, fields) => {
     if (!field) continue;
 
     if (field.type === "dropdown") {
-      const fieldOptions = hydratedField?.options || fallbackField?.options || [];
+      const fieldOptions =
+        hydratedField?.options || fallbackField?.options || [];
       const opt = fieldOptions.find((o) => o.id === fr.value);
       obj[field.id] = opt ? { id: opt.id, label: opt.label } : null;
     } else {

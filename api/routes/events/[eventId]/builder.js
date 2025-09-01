@@ -193,7 +193,10 @@ export const post = [
             ...(options && options.length
               ? {
                   options: {
-                    create: options.map((o) => ({ label: o.label, order: o.order })),
+                    create: options.map((o) => ({
+                      label: o.label,
+                      order: o.order,
+                    })),
                   },
                 }
               : {}),
@@ -243,12 +246,19 @@ export const post = [
       // incoming.options might be undefined for non-option fields
       const incomingOpts = incoming.options || [];
       const originalOpts = original.options || [];
-      const [newOpts, updOpts, , delOpts] = prepareCUD(incomingOpts, originalOpts);
+      const [newOpts, updOpts, , delOpts] = prepareCUD(
+        incomingOpts,
+        originalOpts
+      );
 
       // create new options
       if (newOpts.length > 0) {
         await prisma.volunteerRegistrationFieldOption.createMany({
-          data: newOpts.map((o) => ({ label: o.label, order: o.order, fieldId: incoming.id })),
+          data: newOpts.map((o) => ({
+            label: o.label,
+            order: o.order,
+            fieldId: incoming.id,
+          })),
         });
       }
 
@@ -280,13 +290,14 @@ export const post = [
       }
     }
 
-    const updatedRecordedFields = await prisma.volunteerRegistrationField.findMany({
-      where: { eventId, deleted: false, instanceId },
-      orderBy: { order: "asc" },
-      include: {
-        options: { where: { deleted: false }, orderBy: { order: "asc" } },
-      },
-    });
+    const updatedRecordedFields =
+      await prisma.volunteerRegistrationField.findMany({
+        where: { eventId, deleted: false, instanceId },
+        orderBy: { order: "asc" },
+        include: {
+          options: { where: { deleted: false }, orderBy: { order: "asc" } },
+        },
+      });
 
     return res.json({
       fields: updatedRecordedFields,
