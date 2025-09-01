@@ -1,4 +1,5 @@
-import { Typography, Alert } from "tabler-react-2";
+import { Typography, Alert, Input, Button } from "tabler-react-2";
+import toast from "react-hot-toast";
 import { ConsumerPage } from "../../../components/ConsumerPage/ConsumerPage";
 import { useEvent } from "../../../hooks/useEvent";
 import { useReducedSubdomain } from "../../../hooks/useReducedSubdomain";
@@ -10,12 +11,17 @@ import { mutate } from "swr";
 import { FormConsumer } from "../../../components/FormConsumer.v2/FormConsumer";
 import { useParticipantRegistrationForm } from "../../../hooks/useParticipantRegistrationForm";
 import { PaymentElement } from "../../../components/stripe/PaymentElement";
+import { Row } from "../../../util/Flex";
+import { useCouponCodeLookup } from "../../../hooks/useCouponCodeLookup";
 
 export const RegisterPage = () => {
   const eventSlug = useReducedSubdomain();
   const [searchParams] = useSearchParams();
   const [instanceReady, setInstanceReady] = useState(false);
   const [instanceError, setInstanceError] = useState(null);
+  const [couponInput, setCouponInput] = useState("");
+  const [couponPreview, setCouponPreview] = useState(null);
+  const [couponApplied, setCouponApplied] = useState(false);
   const {
     event,
     loading: eventLoading,
@@ -93,9 +99,18 @@ export const RegisterPage = () => {
     requiresPayment,
     stripePIClientSecret,
     finalized,
+    price,
+    applyCoupon,
+    removeCoupon,
+    applyLoading,
+    removeLoading,
   } = useRegistrationConsumer({
     eventId: instanceReady ? event?.id : null,
   });
+  const { lookup: lookupCoupon, loading: couponLookupLoading, reset: resetCouponLookup } =
+    useCouponCodeLookup({ eventId: instanceReady ? event?.id : null });
+
+  // Remove auto-apply behavior; apply happens on button click
   const { pages } = useParticipantRegistrationForm({
     eventId: instanceReady ? event?.id : null,
   });
@@ -122,8 +137,77 @@ export const RegisterPage = () => {
         </>
       ) : requiresPayment ? (
         <>
+          <div className="card card-body mb-3">
+            <Typography.H3 className="mb-2">Have a coupon?</Typography.H3>
+            {!couponApplied && (
+              <Row gap={1} align="center">
+                <Input
+                  placeholder="Enter coupon code"
+                  value={couponInput}
+                  onChange={(v) => {
+                    setCouponInput(v);
+                    setCouponPreview(null);
+                  }}
+                  style={{ flex: 1 }}
+                  className="mb-0"
+                />
+                <Button
+                  onClick={async () => {
+                    const code = (couponInput || "").trim();
+                    if (!code) return;
+                    const res = await lookupCoupon(code);
+                    if (!res?.coupon) {
+                      toast.error("Invalid coupon");
+                      return;
+                    }
+                    const ok = await applyCoupon(res.coupon.code);
+                    if (ok) {
+                      setCouponPreview(res.coupon);
+                      setCouponApplied(true);
+                    }
+                  }}
+                  loading={couponLookupLoading || applyLoading}
+                >
+                  Apply
+                </Button>
+              </Row>
+            )}
+
+            {/* No separate preview state; apply happens on button click */}
+
+            {couponApplied && (
+              <Alert variant="success" title="Coupon applied" className="mt-2">
+                <Row gap={1} align="center" justify="space-between">
+                  <Typography.Text className="mb-0">
+                    <b>{couponPreview?.title || "Coupon"}</b> —
+                    {" "}
+                    {couponPreview?.discountType === "FLAT"
+                      ? `$${Number(couponPreview?.amount).toFixed(2)} off`
+                      : `${Number(couponPreview?.amount).toFixed(0)}% off`}
+                  </Typography.Text>
+                  <Button
+                    size="sm"
+                    outline
+                    onClick={async () => {
+                      const ok = await removeCoupon();
+                      if (ok) {
+                        setCouponApplied(false);
+                        setCouponPreview(null);
+                        setCouponInput("");
+                        resetCouponLookup();
+                      }
+                    }}
+                    loading={removeLoading}
+                  >
+                    Undo
+                  </Button>
+                </Row>
+              </Alert>
+            )}
+          </div>
           <PaymentElement
             paymentIntentClientSecret={stripePIClientSecret}
+            total={price}
             eventStripeConnectedAccountId={event.stripeConnectedAccountId}
           />
         </>
