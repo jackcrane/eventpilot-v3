@@ -15,10 +15,15 @@ export const get = [
         instanceId: req.instanceId,
         deleted: false,
       },
-      select: { id: true, name: true, public: true },
+      select: { id: true, name: true, public: true, maxSize: true },
     });
     if (!team) return res.status(404).json({ message: "Team not found" });
-    return res.json({ team });
+
+    const memberCount = await prisma.registration.count({
+      where: { teamId: team.id, instanceId: req.instanceId, finalized: true },
+    });
+    const available = team.maxSize == null || memberCount < team.maxSize;
+
+    return res.json({ team: { ...team, available } });
   },
 ];
-

@@ -25,26 +25,32 @@ export const RegistrationTeamPicker = ({
   const { lookup, loading: lookupLoading, reset: resetLookup } =
     useTeamCodeLookup({ eventId });
 
-  const availablePublicTeams = useMemo(
-    () => (teams || []).filter((t) => t.public && t.available),
+  const publicTeams = useMemo(
+    () => (teams || []).filter((t) => t.public),
     [teams]
   );
 
   const items = useMemo(
     () =>
-      availablePublicTeams.map((t) => ({
+      publicTeams.map((t) => ({
         id: t.id,
         value: t.id,
         label: t.name,
-        disabled: false,
+        disabled: !t.available,
       })),
-    [availablePublicTeams]
+    [publicTeams]
   );
 
   const handleSelect = (sel) => {
     const id = sel?.value ?? sel?.id ?? null;
     if (!id) return;
-    const team = availablePublicTeams.find((t) => t.id === id);
+    const team = publicTeams.find((t) => t.id === id);
+    if (!team?.available) {
+      toast.error("That team is full");
+      setConfirmedTeam(null);
+      onChange?.({ id: null, code: "" });
+      return;
+    }
     setConfirmedTeam(team || { id, name: "Selected team" });
     onChange?.({ id, code: "" });
   };
@@ -54,6 +60,13 @@ export const RegistrationTeamPicker = ({
     if (!entered) return;
     const data = await lookup(entered);
     if (data?.team) {
+      if (!data.team.available) {
+        toast.error("That team is full");
+        setCode("");
+        setConfirmedTeam(null);
+        onChange?.({ id: null, code: "" });
+        return;
+      }
       setConfirmedTeam(data.team);
       // For code-join, keep id null so server uses code path (allows private teams)
       onChange?.({ id: null, code: entered });
@@ -93,7 +106,7 @@ export const RegistrationTeamPicker = ({
       <label className={`form-label ${required ? "required" : ""}`}>
         {label || "Team"}
       </label>
-      {availablePublicTeams.length > 0 ? (
+      {publicTeams.filter((t) => t.available).length > 0 ? (
         <>
           <Row gap={2} align="center">
             <DropdownInput
