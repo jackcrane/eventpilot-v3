@@ -17,6 +17,7 @@ export const FormBuilder = ({
   loading,
   customFieldTypes = [],
   requiredFieldTypes = [],
+  allowMultiplePages = true,
 }) => {
   // helper to reorder arrays
   const reorder = (list, startIndex, endIndex) => {
@@ -291,6 +292,7 @@ export const FormBuilder = ({
             selectedField={selectedField}
             selectedPage={selectedPage}
             inputTypes={allInputTypes}
+            allowMultiplePages={allowMultiplePages}
           />
         }
         centerContentClassName="bg-gray-100 polka"

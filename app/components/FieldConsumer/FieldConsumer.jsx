@@ -4,6 +4,7 @@ import { Input, DropdownInput, Checkbox } from "tabler-react-2";
 import { MarkdownRender } from "../markdown/MarkdownRenderer";
 import { RegistrationTierListing } from "../RegistrationTierListing/RegistrationTierListing";
 import { RegistrationUpsellListing } from "../RegistrationUpsellListing/RegistrationUpsellListing";
+import { ShiftFinder } from "../shiftFinder/ShiftFinder";
 
 export const FieldConsumer = ({
   field,
@@ -130,6 +131,25 @@ export const FieldConsumer = ({
           value={value}
           setUpsell={(v) => onInput(v)}
         />
+      );
+    case "shiftpicker":
+      return inBuilder ? (
+        <>
+          <label className="form-label">Shifts</label>
+          <div className="mb-3 p-2 bg-gray-200">
+            A location, job, and shift picker will appear here. A preview is not
+            shown in the form builder, but will be present when the form is
+            viewed.
+          </div>
+        </>
+      ) : (
+        <div className="mb-3">
+          <ShiftFinder
+            eventId={eventId}
+            onSelectedShiftChange={(s) => onInput(s)}
+            shifts={value || []}
+          />
+        </div>
       );
     default:
       return `Unsupported field type: ${field.type}`;

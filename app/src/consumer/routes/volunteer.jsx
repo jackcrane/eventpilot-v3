@@ -5,7 +5,7 @@ import { useCampaign } from "../../../hooks/useCampaign";
 import { Typography, Alert } from "tabler-react-2";
 import { Row } from "../../../util/Flex";
 import { useFormBuilder } from "../../../hooks/useFormBuilder";
-import { FormConsumer } from "../../../components/formConsumer/FormConsumer";
+import { FormConsumer } from "../../../components/FormConsumer.v2/FormConsumer";
 import { usePII } from "../../../hooks/usePII";
 import classNames from "classnames";
 import { ThankYou } from "../../../components/formConsumer/ThankYou";
@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { mutate } from "swr";
 import { Icon } from "../../../util/Icon";
 import { useLocations } from "../../../hooks/useLocations";
+import { useVolunteerRegistrationFormV2 } from "../../../hooks/useVolunteerRegistrationFormV2";
 import { ConsumerPage } from "../../../components/ConsumerPage/ConsumerPage";
 
 export const VolunteerRegistrationPage = () => {
@@ -91,22 +92,19 @@ export const VolunteerRegistrationPage = () => {
     }
   }, [event, loading, searchParams]);
 
-  const {
-    fields,
-    loading: loadingForm,
-    error: errorForm,
-    updateFields,
-    submitForm: _submitForm,
-    mutationLoading,
-  } = useFormBuilder(instanceReady ? eventSlug : null);
+  const { pages, loading: loadingForm, error: errorForm } =
+    useVolunteerRegistrationFormV2({ eventId: instanceReady ? eventSlug : null });
+  const { submitForm: _submitForm, mutationLoading } = useFormBuilder(
+    instanceReady ? eventSlug : null
+  );
   const { loading: locationsLoading, locations } = useLocations({
     eventId: instanceReady ? event?.id : null,
   });
 
   const [thankYou, setThankYou] = useState(false);
 
-  const submitForm = async (values, shifts) => {
-    if ((await _submitForm(values, shifts)).id) {
+  const submitForm = async ({ responses, selectedShifts }) => {
+    if ((await _submitForm(responses, selectedShifts || [])).id) {
       // Scroll to top of page
       window.scrollTo(0, 0);
       setThankYou(true);
@@ -143,7 +141,7 @@ export const VolunteerRegistrationPage = () => {
         <div>Error: {errorForm}</div>
       ) : thankYou ? (
         <ThankYou event={event} />
-      ) : (!instanceError && fields?.length === 0) ||
+      ) : (!instanceError && (pages?.[0]?.fields?.length || 0) === 0) ||
         (locations?.length === 0 && !locationsLoading) ? (
         <div>
           <Typography.H2>No fields found</Typography.H2>
@@ -183,11 +181,11 @@ export const VolunteerRegistrationPage = () => {
         <div>
           {mutationLoading && <div>Submitting...</div>}
           <FormConsumer
-            fields={fields}
-            onSubmit={submitForm}
-            showShifts={true}
+            pages={pages}
             eventId={event.id}
-            loading={mutationLoading}
+            onSubmit={submitForm}
+            mutationLoading={mutationLoading}
+            showSteps={pages?.length > 1}
           />
         </div>
       )}
