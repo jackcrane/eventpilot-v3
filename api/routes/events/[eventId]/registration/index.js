@@ -18,7 +18,7 @@ export const getOrderedFields = async (eventId) => {
       deleted: false,
       page: { deleted: false },
       type: {
-        notIn: ["UPSELLS", "REGISTRATIONTIER", "RICHTEXT"],
+        notIn: ["UPSELLS", "REGISTRATIONTIER", "RICHTEXT", "TEAM"],
       },
     },
   });

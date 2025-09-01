@@ -15,7 +15,7 @@ export const authFetch = async (url, options, redirect = true) => {
     headers: {
       "Content-Type": "application/json",
       ...options?.headers,
-      Authorization: `Bearer ${token}`,
+      ...(token && token !== "null" ? { Authorization: `Bearer ${token}` } : {}),
       "X-Instance": instance,
     },
   });
@@ -39,7 +39,7 @@ export const authFetchWithoutContentType = async (url, options) => {
     ...options,
     headers: {
       ...options?.headers,
-      Authorization: `Bearer ${token}`,
+      ...(token && token !== "null" ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
   if (res.status === 401) {
@@ -47,5 +47,19 @@ export const authFetchWithoutContentType = async (url, options) => {
     window.logout && window.logout();
     emitter.emit("logout");
   }
+  return res;
+};
+
+// For unauthenticated/public endpoints: never attach Authorization header
+export const publicFetch = async (url, options) => {
+  const instance = localStorage.getItem("instance");
+  const res = await fetch(u(url), {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+      "X-Instance": instance,
+    },
+  });
   return res;
 };

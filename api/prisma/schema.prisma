@@ -867,6 +867,7 @@ model Team {
   maxSize       Int?
   registrations Registration[]
 
+  public  Boolean @default(false)
   deleted Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1037,6 +1038,7 @@ enum RegistrationFieldType {
   DROPDOWN
   REGISTRATIONTIER
   UPSELLS
+  TEAM
 }
 
 model Logs {

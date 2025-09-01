@@ -72,6 +72,14 @@ const upsellsField = z.object({
   type: z.literal("upsells")
 })
 
+const teamField = z.object({
+  ...baseField,
+  type: z.literal("team"),
+  label: z.string().default(""),
+  description: z.string().default(""),
+  required: z.boolean().default(false),
+});
+
 const fieldSchema = z.discriminatedUnion("type", [
   textField,
   emailField,
@@ -80,7 +88,8 @@ const fieldSchema = z.discriminatedUnion("type", [
   checkboxField,
   dropdownField,
   registrationTierField,
-  upsellsField
+  upsellsField,
+  teamField
 ]);
 
 export const formSchema = z.object({

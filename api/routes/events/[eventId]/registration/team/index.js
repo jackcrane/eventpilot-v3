@@ -9,6 +9,7 @@ export const teamSchema = z.object({
   // Optional; empty string allowed and triggers auto-generation
   code: z.string().min(2).max(32).optional().or(z.literal("")),
   maxSize: z.number().int().min(1).nullable().optional(),
+  public: z.boolean().optional().default(false),
 });
 
 export const post = [
@@ -20,7 +21,7 @@ export const post = [
     }
 
     const { eventId } = req.params;
-    const { name, code, maxSize } = result.data;
+    const { name, code, maxSize, public: isPublic } = result.data;
 
     // Use provided code or auto-generate an 8-char code from allowed characters
     let codeToUse = (code || "").trim();
@@ -36,6 +37,7 @@ export const post = [
               name,
               code: codeToUse,
               maxSize: maxSize ?? null,
+              public: isPublic ?? false,
               event: { connect: { id: eventId } },
               instance: { connect: { id: req.instanceId } },
             },
@@ -83,10 +85,11 @@ export const post = [
 ];
 
 export const get = [
-  verifyAuth(["manager"]),
+  // Optional auth: consumers can fetch public teams; managers see all
+  verifyAuth(["manager"], true),
   async (req, res) => {
     const { eventId } = req.params;
-    const teams = await prisma.team.findMany({
+    let teams = await prisma.team.findMany({
       where: { eventId, instanceId: req.instanceId, deleted: false },
       include: {
         registrations: {
@@ -97,9 +100,27 @@ export const get = [
       orderBy: { createdAt: "asc" },
     });
 
-    return res.json({
-      teams: teams.map((t) => ({ ...t, memberCount: t.registrations.length })),
-    });
+    teams = teams.map((t) => ({
+      ...t,
+      memberCount: t.registrations.length,
+      available: !t.maxSize || t.maxSize > t.registrations.length,
+    }));
+
+    // If not a manager, only show public teams and strip sensitive fields
+    if (!req.hasUser || req.user.accountType !== "MANAGER") {
+      teams = teams
+        .filter((t) => t.public)
+        .map((t) => ({
+          id: t.id,
+          name: t.name,
+          maxSize: t.maxSize,
+          memberCount: t.memberCount,
+          available: t.available,
+          public: t.public,
+        }));
+    }
+
+    return res.json({ teams });
   },
 ];
 

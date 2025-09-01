@@ -60,6 +60,7 @@ const _TeamCRUD = ({ value, onClose, mutationLoading, validationError, onFinish 
       name: team.name,
       code: team.code,
       maxSize: limitSize ? parseInt(team.maxSize ?? 1, 10) : null,
+      public: Boolean(team.public),
     };
     if (await onFinish(payload)) onClose?.();
   };
@@ -86,6 +87,12 @@ const _TeamCRUD = ({ value, onClose, mutationLoading, validationError, onFinish 
         placeholder="Optional — auto-generated if blank"
         invalid={validationError?.code?._errors?.length > 0}
         invalidText={validationError?.code?._errors?.[0]}
+      />
+
+      <Checkbox
+        label="Public team"
+        value={Boolean(team.public)}
+        onChange={(e) => setTeam({ ...team, public: e })}
       />
 
       <label className="form-label">Team Size</label>
