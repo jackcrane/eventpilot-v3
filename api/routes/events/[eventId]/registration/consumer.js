@@ -13,6 +13,7 @@ const registrationSubmissionSchema = z.object({
   selectedUpsells: z.array(z.string()),
   selectedTeamId: z.string().optional().nullable(),
   enteredTeamCode: z.string().max(32).optional().nullable(),
+  couponCode: z.string().max(32).optional().nullable(),
 });
 
 export const get = [
@@ -99,6 +100,7 @@ export const post = [
         selectedUpsells,
         selectedTeamId,
         enteredTeamCode,
+        couponCode,
       } = parsed.data;
 
       const fieldIds = Object.keys(responses);
@@ -213,13 +215,49 @@ export const post = [
           }
 
           // 5) Figure out if payment is required
+          // Coupon: validate and attach if present
+          let coupon = null;
+          if (couponCode && couponCode.trim().length > 0) {
+            const now = new Date();
+            const code = couponCode.trim();
+            const found = await tx.coupon.findFirst({
+              where: {
+                code,
+                eventId,
+                instanceId,
+                deleted: false,
+              },
+            });
+
+            if (!found) throw new Error("Invalid coupon code");
+            if (found.endsAt && new Date(found.endsAt) < now)
+              throw new Error("Coupon has expired");
+
+            if (found.maxRedemptions !== -1) {
+              const used = await tx.registration.count({
+                where: { couponId: found.id, deleted: false, finalized: true },
+              });
+              if (used >= found.maxRedemptions)
+                throw new Error("Coupon has reached its redemption limit");
+            }
+
+            coupon = found;
+
+            // Attach to registration for auditing
+            await tx.registration.update({
+              where: { id: registration.id },
+              data: { couponId: found.id },
+            });
+          }
+
           const [requiresPayment, stripePIClientSecret, price] =
             await registrationRequiresPayment(
               upsells,
               selectedPeriodPricing,
               event,
               registration.id,
-              instanceId
+              instanceId,
+              coupon
             );
 
           if (!requiresPayment) {

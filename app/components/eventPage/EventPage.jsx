@@ -111,6 +111,13 @@ export const EventPage = ({
           active: isActive(`${base}/registration/upsells`),
           icon: <Icon i="gift" size={18} color="var(--tblr-blue)" />,
         },
+        {
+          type: "item",
+          href: `${base}/registration/coupons`,
+          text: "Coupons",
+          active: isActive(`${base}/registration/coupons`),
+          icon: <Icon i="ticket" size={18} color="var(--tblr-green)" />,
+        },
       ],
     },
     {
