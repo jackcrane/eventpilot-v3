@@ -50,6 +50,8 @@ const sendEmail = async (
   });
   const result = schema.safeParse(options);
 
+  const IS_TEST = result.data.To.includes("eventpilot-test");
+
   if (!result.success) {
     console.log(options);
     console.error(result.error.issues);
@@ -64,7 +66,11 @@ const sendEmail = async (
       options.TextBody = "You have a new email from EventPilot!";
     }
 
-    const res = await rawEmailClient.sendEmail(options);
+    const res = IS_TEST
+      ? {
+          MessageID: "test",
+        }
+      : await rawEmailClient.sendEmail(options);
 
     const emailRecord = await prisma.email.create({
       data: {
