@@ -556,10 +556,13 @@ model PII {
 
 model VolunteerRegistrationAnswer {
   id         String       @id @default(cuid())
+
   responseId String
   response   VolunteerRegistration @relation(fields: [responseId], references: [id], onDelete: Cascade)
+
   fieldId    String
-  field      VolunteerRegistrationField    @relation(fields: [fieldId], references: [id])
+  field      VolunteerRegistrationField    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
   value      String?
 
   @@index([responseId])

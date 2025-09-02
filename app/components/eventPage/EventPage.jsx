@@ -156,14 +156,14 @@ export const EventPage = ({
       children: [
         {
           type: "item",
-          href: `https://${event.slug}.geteventpilot.com/volunteer`,
+          href: `https://${event?.slug}.geteventpilot.com/volunteer`,
           target: "_blank",
           text: "Volunteer Reg.",
           icon: <Icon i="heart" size={18} color="var(--tblr-red)" />,
         },
         {
           type: "item",
-          href: `https://${event.slug}.geteventpilot.com/register`,
+          href: `https://${event?.slug}.geteventpilot.com/register`,
           target: "_blank",
           text: "Participant Reg.",
           icon: <Icon i="ticket" size={18} color="var(--tblr-orange)" />,

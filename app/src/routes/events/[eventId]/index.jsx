@@ -68,9 +68,7 @@ export const Event = () => {
         "This is your event homepage. As more starts to happen in your event, you will see analytics and prompts here to help you keep track of what is happening."
       }
     >
-      <Typography.H2>
-        {progress?.percent === 100 ? "Getting Started" : "Remaining Steps"}
-      </Typography.H2>
+      <Typography.H2>Remaining Steps</Typography.H2>
       <div
         style={{
           display: "flex",
