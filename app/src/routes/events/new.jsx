@@ -8,7 +8,7 @@ import {
   useOffcanvas,
 } from "tabler-react-2";
 import { Page } from "../../../components/page/Page";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SlugInput } from "../../../components/slugInput/SlugInput";
 import { Dropzone } from "../../../components/dropzone/Dropzone";
 import { Icon } from "../../../util/Icon";
@@ -26,7 +26,7 @@ import { useAuth } from "../../../hooks";
 // import { HostedEmailComparisonPopoverContent } from "../../../components/HostedEmailComparison/HostedEmailComparison";
 import { useEvents } from "../../../hooks/useEvents";
 import toast from "react-hot-toast";
-import { useGmailConnection } from "../../../hooks/useGmailConnection";
+// Gmail connection is now initiated from the event dashboard, not here
 
 export const NewEventPage = () => {
   const [event, setEvent] = useState({
@@ -61,29 +61,13 @@ export const NewEventPage = () => {
     setEvent({ ...event, ...e });
   };
 
-  const [newEventId, setNewEventId] = useState(null);
-  const { connect: connectGmail } = useGmailConnection({ eventId: newEventId });
-
-  useEffect(() => {
-    if (newEventId && event.emailSetupMethod === "connect") {
-      // Kick off Google OAuth; this will redirect the browser
-      connectGmail();
-    }
-  }, [newEventId]);
+  // Removed immediate Google OAuth redirect after event creation
 
   const onSubmit = async () => {
     try {
       const parsed = schema.parse(event);
-      // If user chose to connect Gmail, create the event and then start OAuth
-      if (event.emailSetupMethod === "connect") {
-        const response = await createEvent(parsed, false);
-        if (response && response.event?.id) {
-          setNewEventId(response.event.id);
-          return true;
-        }
-        return false;
-      }
-      // Default behavior
+      // Always create the event and navigate to the dashboard.
+      // Gmail connection can be started from the dashboard checklist.
       await createEvent(parsed);
       return true;
     } catch (e) {
@@ -434,8 +418,9 @@ const EventContact = ({ event = {}, onChangeEvent }) => {
       {event.emailSetupMethod === "connect" && (
         <Alert variant="info" className="mb-3" title="Connect Google">
           <Typography.Text className="mb-0">
-            After you submit, we’ll send you to Google to connect your account.
-            Once connected, your event’s public contact email will be set to that Gmail address.
+            After you create your event, connect your Google account from the
+            setup checklist on your event dashboard. Once connected, your
+            event’s public contact email will be set to that Gmail address.
           </Typography.Text>
         </Alert>
       )}
@@ -564,9 +549,9 @@ const Finished = ({ event = {}, onChangeEvent }) => {
       </Typography.Text>
       <Typography.H2>Email Setup</Typography.H2>
       <Typography.Text>
-        If you chose to connect a Google account, you’ll be redirected to Google
-        to authorize EventPilot. After connecting, your event’s public contact email
-        will be set to that Gmail address.
+        If you chose to connect a Google account, you can start the connection
+        from the setup checklist on your event dashboard (or from Settings → Gmail).
+        After connecting, your event’s public contact email will be set to that Gmail address.
       </Typography.Text>
       <Typography.H2>Hosted Website</Typography.H2>
       <Typography.Text>
