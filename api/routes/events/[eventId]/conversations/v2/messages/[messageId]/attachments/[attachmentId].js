@@ -1,5 +1,5 @@
-import { verifyAuth } from "#verifyAuth";
 import { getGmailClientForEvent } from "#util/google";
+import { verifyAttachment } from "#util/signedUrl";
 
 // Flatten MIME tree with parent links (root included)
 const flattenParts = (root) => {
@@ -64,9 +64,40 @@ const parseParam = (value, key) => {
 };
 
 export const get = [
-  verifyAuth(["manager"]),
+  // If a valid signature is present, treat as unauthenticated
+  (req, _res, next) => {
+    const { eventId, messageId, attachmentId } = req.params;
+    const sig = req.query?.sig;
+    const { ok } = verifyAttachment(sig, { eventId, messageId, attachmentId });
+    if (ok) {
+      // Strip auth header so verifyAuth allows unauthenticated
+      if (req.headers && req.headers.authorization) {
+        delete req.headers.authorization;
+      }
+    }
+    next();
+  },
   async (req, res) => {
     const { eventId, messageId, attachmentId } = req.params;
+
+    // If unauthenticated, require a valid short-lived signature
+    if (!req.hasUser) {
+      const sig = req.query?.sig;
+      const { ok, code } = verifyAttachment(sig, {
+        eventId,
+        messageId,
+        attachmentId,
+      });
+      if (!ok) {
+        const message =
+          code === "EXPIRED"
+            ? "Signed link expired"
+            : code === "MISSING"
+              ? "Missing signature"
+              : "Invalid signature";
+        return res.status(401).json({ message });
+      }
+    }
 
     try {
       const { gmail } = await getGmailClientForEvent(eventId);
@@ -188,10 +219,17 @@ export const get = [
       // 11) Send
       res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Length", Buffer.byteLength(buffer));
-      res.setHeader(
-        "Content-Disposition",
-        cdRaw || `attachment; filename="${filename}"`
-      );
+      // Prefer inline for images so they can render in <img src="...">
+      const disposition =
+        cdRaw ||
+        (contentType.startsWith("image/")
+          ? `inline; filename="${filename}"`
+          : `attachment; filename="${filename}"`);
+      res.setHeader("Content-Disposition", disposition);
+      // Short cache for signed URLs
+      if (!req.hasUser) {
+        res.setHeader("Cache-Control", "private, max-age=60");
+      }
       res.status(200).send(buffer);
     } catch (e) {
       if (e?.code === "NO_GMAIL_CONNECTION") {

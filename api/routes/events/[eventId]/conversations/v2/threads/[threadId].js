@@ -7,6 +7,7 @@ import {
   trashThread,
   setThreadUnread,
 } from "#util/google";
+import { signAttachment } from "#util/signedUrl";
 
 const sendSchema = z
   .object({
@@ -34,7 +35,16 @@ export const get = [
         ...m,
         attachments: (m.attachments || []).map((a) => ({
           ...a,
-          downloadUrl: `/api/events/${eventId}/conversations/v2/messages/${m.id}/attachments/${encodeURIComponent(a.attachmentId)}`,
+          downloadUrl: (() => {
+            const sig = signAttachment({
+              eventId,
+              messageId: m.id,
+              attachmentId: a.attachmentId,
+            });
+            return `/api/events/${eventId}/conversations/v2/messages/${m.id}/attachments/${encodeURIComponent(
+              a.attachmentId
+            )}?sig=${encodeURIComponent(sig)}`;
+          })(),
         })),
       }));
       return res.status(200).json({ ...result, messages });
