@@ -95,7 +95,9 @@ export const get = [
           steps.location &&
           steps.job &&
           steps.shift,
-        registrationEnabled: steps.registrationForm && steps.tiersPeriods,
+        // Participant registration requires form, pricing, and payouts (Stripe) configured
+        registrationEnabled:
+          steps.registrationForm && steps.tiersPeriods && steps.stripeConnect,
         eventStart: eventStart_,
         shiftCount,
         locationCount,

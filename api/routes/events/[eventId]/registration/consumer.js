@@ -1,4 +1,5 @@
 import { prisma } from "#prisma";
+import { stripe } from "#stripe";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { mapInputToInsert } from "./fragments/consumer/mapInputToInsert";
@@ -26,6 +27,9 @@ export const get = [
     // Prefer explicit instance from header; otherwise fallback to next upcoming
     const instanceId =
       req.instanceId || (await getNextInstance(eventId))?.id || null;
+
+    // Fetch event for payouts status
+    const event = await prisma.event.findUnique({ where: { id: eventId } });
 
     let tiers = await prisma.registrationTier.findMany({
       where: {
@@ -76,7 +80,20 @@ export const get = [
       };
     });
 
-    res.json({ tiers });
+    // Determine if payouts (Stripe) are fully configured
+    let payoutsEnabled = false;
+    try {
+      if (event?.stripeConnectedAccountId) {
+        const acct = await stripe.accounts.retrieve(
+          event.stripeConnectedAccountId
+        );
+        payoutsEnabled = !!acct?.details_submitted;
+      }
+    } catch (e) {
+      payoutsEnabled = false;
+    }
+
+    res.json({ tiers, payoutsEnabled });
   },
 ];
 

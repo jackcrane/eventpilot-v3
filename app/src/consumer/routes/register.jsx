@@ -94,6 +94,7 @@ export const RegisterPage = () => {
   const {
     loading,
     tiers,
+    payoutsEnabled,
     submit,
     mutationLoading,
     requiresPayment,
@@ -135,6 +136,19 @@ export const RegisterPage = () => {
             </Typography.Text>
           </Alert>
         </>
+      ) : payoutsEnabled === false ? (
+        <div>
+          <Alert
+            variant="danger"
+            className="mt-3"
+            title="This event is not fully configured yet"
+            icon={<Icon i="alert-hexagon" size={24} />}
+          >
+            <Typography.Text className="mb-0">
+              Participant registration is currently unavailable because payouts have not been set up. If you are the event organizer, please connect Stripe from the event dashboard under Remaining Steps.
+            </Typography.Text>
+          </Alert>
+        </div>
       ) : requiresPayment ? (
         <>
           <div className="card card-body mb-3">

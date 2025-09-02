@@ -109,6 +109,7 @@ export const useRegistrationConsumer = ({ eventId }) => {
 
   return {
     tiers: data?.tiers,
+    payoutsEnabled: data?.payoutsEnabled,
     loading: isLoading,
     mutationLoading,
     requiresPayment,

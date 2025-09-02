@@ -5,7 +5,9 @@ import { useStripeExpress } from "../../hooks/useStripeExpress";
 
 export const StripeConnectProgressCard = ({ completed = false }) => {
   const { eventId } = useParams();
-  const { startOnboarding, isLoading, loginUrl, isNew } = useStripeExpress({ eventId });
+  const { startOnboarding, isLoading, loginUrl, isNew } = useStripeExpress({
+    eventId,
+  });
 
   return (
     <ProgressCard
@@ -14,20 +16,32 @@ export const StripeConnectProgressCard = ({ completed = false }) => {
       color="var(--tblr-purple-lt)"
       completed={completed}
       cta={
-        <Button onClick={startOnboarding} loading={isLoading} outline>
-          Get set up with Stripe
-        </Button>
+        <>
+          <Typography.Text
+            style={{
+              fontStyle: "italic",
+            }}
+          >
+            Participant registration is disabled until you have jobs set up.
+          </Typography.Text>
+          <Button onClick={startOnboarding} loading={isLoading} outline>
+            Get set up with Stripe
+          </Button>
+        </>
       }
     >
       <Typography.Text>
-        Connect a Stripe account to accept payments and receive payouts for registrations and upsells.
+        Connect a Stripe account to accept payments and receive payouts for
+        registrations and upsells.
       </Typography.Text>
       {!completed && !isNew && loginUrl && (
         <Typography.Text>
-          Already connected? <a href={loginUrl} target="_blank">Open Stripe Dashboard</a>
+          Already connected?{" "}
+          <a href={loginUrl} target="_blank">
+            Open Stripe Dashboard
+          </a>
         </Typography.Text>
       )}
     </ProgressCard>
   );
 };
-
