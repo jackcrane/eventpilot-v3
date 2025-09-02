@@ -3,7 +3,12 @@ import * as Plot from "@observablehq/plot";
 import { svg } from "htl";
 import moment from "moment";
 
-export const TimeLineChart = ({ data, height = 150 }) => {
+export const TimeLineChart = ({
+  data,
+  height = 150,
+  unitSingular = "Volunteer",
+  unitPlural = "Volunteers",
+}) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -73,9 +78,7 @@ export const TimeLineChart = ({ data, height = 150 }) => {
               text: (d) =>
                 [
                   `Date ${moment(d.date).format("M/D/YY")}`,
-                  `${d.qty?.toFixed(0) || 0} Volunteer${
-                    d.qty !== 1 ? "s" : ""
-                  }`,
+                  `${d.qty?.toFixed(0) || 0} ${d.qty === 1 ? unitSingular : unitPlural}`,
                 ].join("   "),
             })
           ),
