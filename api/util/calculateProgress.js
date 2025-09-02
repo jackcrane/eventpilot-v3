@@ -10,6 +10,7 @@ export const calculateProgress = async (eventId, instanceId) => {
     shift: 1,
     upsells: 2,
     tiersPeriods: 3,
+    gmail: 1,
   };
 
   // fire off all queries in parallel
@@ -22,6 +23,7 @@ export const calculateProgress = async (eventId, instanceId) => {
     upsellCount,
     tierCount,
     periodCount,
+    gmailConnected,
   ] = await Promise.all([
     // volunteer form fields
     prisma.volunteerRegistrationField.count({
@@ -61,6 +63,10 @@ export const calculateProgress = async (eventId, instanceId) => {
     prisma.registrationPeriod.count({
       where: { eventId, instanceId, deleted: false },
     }),
+    // gmail connection exists
+    prisma.gmailConnection
+      .findUnique({ where: { eventId } })
+      .then((r) => !!r),
   ]);
 
   // derive booleans
@@ -72,6 +78,7 @@ export const calculateProgress = async (eventId, instanceId) => {
     shift: shiftCount > 0,
     upsells: upsellCount > 0,
     tiersPeriods: tierCount > 0 && periodCount > 0,
+    gmail: gmailConnected,
   };
 
   // calculate weighted percentage based on defined weights for these steps

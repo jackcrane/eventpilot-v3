@@ -19,6 +19,7 @@ export const useDashboardData = (eventId) => {
     volunteerRegistrationCount: data?.volunteerRegistrationCount,
     volunteerRegistrationByDay: data?.volunteerRegistrationByDay,
     eventStart: data?.eventStart,
+    gmailConnected: data?.progress?.steps?.gmail,
     volunteerRegistrationEnabled: data?.volunteerRegistrationEnabled,
     registrationEnabled: data?.registrationEnabled,
     loading: isLoading,

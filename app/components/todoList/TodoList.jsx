@@ -15,6 +15,7 @@ const humanize = (str) => {
     location: "Created a location",
     job: "Created a job",
     shift: "Created a shift",
+    gmail: "Connected Google account",
   };
 
   return dict[str] || str;
