@@ -3,7 +3,7 @@ import { useEvent } from "../../hooks/useEvent";
 import { ProgressCard } from "./ProgressCard";
 import { Button, Typography } from "tabler-react-2";
 
-export const VolunteerRegistrationProgressCard = () => {
+export const VolunteerRegistrationProgressCard = ({ completed = false }) => {
   const { eventId } = useParams();
   const { event, loading: eventLoading } = useEvent({ eventId });
 
@@ -14,6 +14,21 @@ export const VolunteerRegistrationProgressCard = () => {
       title="Volunteer Registration Form"
       icon="heart"
       color="var(--tblr-red-lt)"
+      completed={completed}
+      cta={
+        <>
+          <Typography.Text
+            style={{
+              fontStyle: "italic",
+            }}
+          >
+            Volunteer registration is disabled until you have shifts set up.
+          </Typography.Text>
+          <Button href={`/events/${eventId}/volunteers/builder`} outline>
+            Build the form
+          </Button>
+        </>
+      }
     >
       <Typography.Text>
         The volunteer registration builder is a tool in EventPilot that allows
@@ -29,18 +44,6 @@ export const VolunteerRegistrationProgressCard = () => {
         </a>{" "}
         to sign up to help with your event.
       </Typography.Text>
-      <div style={{ marginTop: "auto" }}>
-        <Typography.Text
-          style={{
-            fontStyle: "italic",
-          }}
-        >
-          Volunteer registration is disabled until you have shifts set up.
-        </Typography.Text>
-        <Button href={`/events/${eventId}/volunteers/builder`} outline>
-          Build the form
-        </Button>
-      </div>
     </ProgressCard>
   );
 };

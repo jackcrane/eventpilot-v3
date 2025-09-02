@@ -1,8 +1,5 @@
 import { useParams } from "react-router-dom";
 import { useDashboardData } from "../../hooks/useDashboardData";
-import { Button, Typography } from "tabler-react-2";
-import { useEvent } from "../../hooks/useEvent";
-import { ProgressCard } from "./ProgressCard";
 import { VolunteerRegistrationProgressCard } from "./VolunteerRegistrationProgressCard";
 import { LocationProgressCard } from "./LocationProgressCard";
 import { JobProgressCard } from "./JobProgressCard";
@@ -21,16 +18,21 @@ export const ProgressRow = () => {
 
   return (
     <>
-      {!steps.volunteerRegistrationForm && (
-        <VolunteerRegistrationProgressCard />
-      )}
-      {!steps.location && <LocationProgressCard />}
-      {!steps.job && <JobProgressCard />}
-      {!steps.shift && <ShiftProgressCard />}
-      {!steps.registrationForm && <RegistrationFormProgressCard />}
-      {!steps.tiersPeriods && <RegistrationPricingProgressCard />}
-      {!steps.upsells && <RegistrationUpsellsProgressCard />}
-      {!steps.gmail && <GmailProgressCard />}
+      {[
+        { key: "volunteerRegistrationForm", Comp: VolunteerRegistrationProgressCard },
+        { key: "location", Comp: LocationProgressCard },
+        { key: "job", Comp: JobProgressCard },
+        { key: "shift", Comp: ShiftProgressCard },
+        { key: "registrationForm", Comp: RegistrationFormProgressCard },
+        { key: "tiersPeriods", Comp: RegistrationPricingProgressCard },
+        { key: "upsells", Comp: RegistrationUpsellsProgressCard },
+        { key: "gmail", Comp: GmailProgressCard },
+      ]
+        .map(({ key, Comp }) => ({ key, Comp, done: !!steps?.[key] }))
+        .sort((a, b) => Number(a.done) - Number(b.done))
+        .map(({ key, Comp, done }) => (
+          <Comp key={key} completed={done} />
+        ))}
     </>
   );
 };
