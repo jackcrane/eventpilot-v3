@@ -82,7 +82,7 @@ export const Event = () => {
       >
         <ProgressRow />
       </div>
-      {!volunteerRegistrationEnabled && (
+      {!volunteerRegistrationEnabled ? (
         <Alert
           variant="danger"
           className="mt-3"
@@ -92,8 +92,16 @@ export const Event = () => {
           not fully configured the required sections. Please see the steps above
           to set up your event.
         </Alert>
+      ) : (
+        <Alert
+          variant="success"
+          className="mt-3"
+          title="Volunteer Registration is enabled & open"
+        >
+          Your event is fully configured for volunteer registration.
+        </Alert>
       )}
-      {!registrationEnabled && (
+      {!registrationEnabled ? (
         <Alert
           variant="danger"
           className="mt-3"
@@ -102,6 +110,14 @@ export const Event = () => {
           Participants are not able to register for this event because you have
           not fully configured the required sections. Please see the steps above
           to set up your event.
+        </Alert>
+      ) : (
+        <Alert
+          variant="success"
+          className="mt-3"
+          title="Participant Registration is enabled & open"
+        >
+          Your event is fully configured for participant registration.
         </Alert>
       )}
       <Util.Hr />
