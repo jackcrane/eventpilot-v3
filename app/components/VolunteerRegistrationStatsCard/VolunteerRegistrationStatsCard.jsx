@@ -20,6 +20,8 @@ export const VolunteerRegistrationStatsCard = () => {
         startDate={moment().add(1, "month").toDate()}
         endDate={moment().subtract(5, "months").toDate()}
         colorScheme="greens"
+        highlightToday
+        todayStroke="var(--tblr-danger)"
       />
     </Card>
   );
