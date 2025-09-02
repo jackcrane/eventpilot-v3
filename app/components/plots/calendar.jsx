@@ -8,10 +8,12 @@ export const CalendarPlot = ({
   startDate,
   endDate,
   colorScheme = "greens", // string (Plot scheme) or array of colors
-  emptyColor = "#f0f1f5", // color for days without data
+  emptyColor = "#f8f8f8", // color for days without data
   highlightToday = false, // draw a stroke around today's cell
   todayStroke = "#111", // stroke color for today
   todayStrokeWidth = 1.5, // stroke width for today
+  showCounts = false, // show count text if > 0
+  showDates = false, // show the date number in each cell
 }) => {
   const ref = useRef(null);
 
@@ -33,7 +35,7 @@ export const CalendarPlot = ({
       const y = d.getUTCDay(); // 0..6 (Sun..Sat)
       const x = d3.utcWeek.count(sunday0, d); // week column index
       cells.push({
-        date: d,
+        date: d, // midnight UTC
         value: byDay.get(isoDay(d)),
         x1: x - 0.5,
         x2: x + 0.5,
@@ -48,7 +50,6 @@ export const CalendarPlot = ({
     const weeks =
       1 + d3.utcWeek.count(d3.utcSunday.floor(lo), d3.utcSunday.floor(hi));
 
-    // Weekday labels (Mon..Sun) — positions still 1..6,0 but y is reversed
     const weekdayOrder = [1, 2, 3, 4, 5, 6, 0];
     const weekdayLabels = weekdayOrder.map((dow) => ({
       y: dow,
@@ -79,7 +80,6 @@ export const CalendarPlot = ({
       return { x1, x2, mid, label: b.label, i };
     });
 
-    // Today highlight (optional)
     const todayIso = isoDay(new Date());
     const todayRect = highlightToday
       ? cells.filter((c) => isoDay(c.date) === todayIso)
@@ -90,10 +90,14 @@ export const CalendarPlot = ({
     const plot = Plot.plot({
       width,
       height: Math.max(7 * Math.floor(width / Math.max(weeks, 1)), 70),
-      marginTop: 28, // room for month labels on top
-      marginLeft: 36, // room for weekday labels
+      marginTop: 28,
+      marginLeft: 36,
       marginRight: 2,
       marginBottom: 2,
+      style: {
+        overflow: "visible",
+        fontFamily: "var(--tblr-body-font-family)",
+      },
       padding: 0,
       axis: null,
       x: { type: "linear", domain: [-0.6, weeks - 0.4] },
@@ -103,12 +107,10 @@ export const CalendarPlot = ({
         domain: [0, Math.max(1, max)],
         clamp: true,
         unknown: emptyColor,
-        ...(Array.isArray(colorScheme)
-          ? { range: colorScheme }
-          : { scheme: colorScheme }),
+        range: ["white", "#066fd1"], // custom gradient
       },
       marks: [
-        // Month labels — centered at the top edge (accounting for reversed y)
+        // Month labels
         Plot.text(monthRanges, {
           x: (d) => d.mid,
           y: -0.5,
@@ -119,7 +121,7 @@ export const CalendarPlot = ({
           fontFamily: "var(--tblr-body-font-family)",
         }),
 
-        // Weekday labels (left)
+        // Weekday labels
         Plot.text(weekdayLabels, {
           x: -0.6,
           y: (d) => d.y,
@@ -130,7 +132,7 @@ export const CalendarPlot = ({
           fontFamily: "var(--tblr-body-font-family)",
         }),
 
-        // Heatmap cells + hover-only tooltips
+        // Heatmap cells
         Plot.rect(cells, {
           x1: "x1",
           x2: "x2",
@@ -139,10 +141,47 @@ export const CalendarPlot = ({
           fill: "value",
           inset: 0.75,
           title: (d) => `${fmtDate(d.date)} — ${d.value ?? 0}`,
-          tip: { anchor: "top", pointer: "move" }, // hover-only tips
+          tip: { anchor: "top", pointer: "move" },
         }),
 
-        // Today stroke overlay (optional)
+        // Counts inside cells (optional)
+        ...(showCounts
+          ? [
+              Plot.text(
+                cells.filter((d) => (d.value ?? 0) > 0),
+                {
+                  x: (d) => d.x,
+                  y: (d) => d.y,
+                  text: (d) => `${d.value}`,
+                  fill: "#000",
+                  textAnchor: "middle",
+                  dy: 0,
+                  fontSize: 12,
+                  fontFamily: "var(--tblr-body-font-family)",
+                }
+              ),
+            ]
+          : []),
+
+        // Date numbers (optional) — FIX: use UTC day-of-month to avoid timezone drift
+        ...(showDates
+          ? [
+              Plot.text(cells, {
+                x: (d) => d.x,
+                y: (d) => d.y,
+                text: (d) => d.date.getUTCDate(), // <-- was getDate()
+                fill: "#000",
+                textAnchor: "middle",
+                dy: -5,
+                dx: -5,
+                fontSize: 8,
+                fontFamily: "var(--tblr-body-font-family)",
+                opacity: 0.3,
+              }),
+            ]
+          : []),
+
+        // Today stroke overlay
         ...(highlightToday && todayRect.length
           ? [
               Plot.rect(todayRect, {
@@ -172,6 +211,8 @@ export const CalendarPlot = ({
     highlightToday,
     todayStroke,
     todayStrokeWidth,
+    showCounts,
+    showDates, // ensure toggling re-renders
   ]);
 
   return <div ref={ref} />;
@@ -184,6 +225,7 @@ const toUtcDay = (input) => {
     Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
   );
 };
+
 const isoDay = (input) => {
   const d = input instanceof Date ? input : new Date(input);
   const y = d.getUTCFullYear();

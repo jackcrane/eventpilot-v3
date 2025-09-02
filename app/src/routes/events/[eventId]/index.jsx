@@ -121,7 +121,6 @@ export const Event = () => {
       )}
       <Util.Hr />
       <VolunteerRegistrationStatsCard />
-      <SelectedInstanceCard />
     </EventPage>
   );
 };

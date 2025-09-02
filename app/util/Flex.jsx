@@ -26,7 +26,7 @@ export const Col = styled.div`
 
 export const Responsive = styled.div`
   display: flex;
-  flex-direction: row;
+  flex-direction: ${(props) => props.defaultDirection || "row"};
   flex-wrap: ${(props) => (props.wrap ? "wrap" : "nowrap")};
 
   align-items: ${(props) => props.rowAlign || props.align || "center"};
@@ -35,7 +35,8 @@ export const Responsive = styled.div`
   gap: ${(props) => computeGap(props.rowGap || props.gap)};
 
   @media (max-width: ${(props) => props.breakpoint || 768}px) {
-    flex-direction: column;
+    flex-direction: ${(props) =>
+      props.defaultDirection === "column" ? "row" : "column"};
     align-items: ${(props) => props.colAlign || props.align || "center"};
     justify-content: ${(props) =>
       props.colJustify || props.justify || "flex-start"};
