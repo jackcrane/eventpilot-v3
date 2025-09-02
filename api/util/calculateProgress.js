@@ -91,10 +91,13 @@ export const calculateProgress = async (eventId, instanceId) => {
   let stripeOnboarded = false;
   try {
     if (event?.stripeConnectedAccountId) {
-      const acct = await stripe.accounts.retrieve(event.stripeConnectedAccountId);
+      const acct = await stripe.accounts.retrieve(
+        event.stripeConnectedAccountId
+      );
       stripeOnboarded = !!acct?.details_submitted;
     }
   } catch (e) {
+    console.error("Error checking Stripe onboarding:", e);
     // if Stripe call fails, treat as not onboarded, but do not crash dashboard
     stripeOnboarded = false;
   }
