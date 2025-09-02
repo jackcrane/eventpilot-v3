@@ -10,6 +10,8 @@ export const calculateProgress = async (eventId, instanceId) => {
     shift: 1,
     upsells: 2,
     tiersPeriods: 3,
+    teams: 1,
+    coupons: 1,
     gmail: 1,
   };
 
@@ -24,6 +26,8 @@ export const calculateProgress = async (eventId, instanceId) => {
     upsellCount,
     tierCount,
     periodCount,
+    teamCount,
+    couponCount,
     gmailConnected,
   ] = await Promise.all([
     // event flags
@@ -69,6 +73,14 @@ export const calculateProgress = async (eventId, instanceId) => {
     prisma.registrationPeriod.count({
       where: { eventId, instanceId, deleted: false },
     }),
+    // teams
+    prisma.team.count({
+      where: { eventId, instanceId, deleted: false },
+    }),
+    // coupons
+    prisma.coupon.count({
+      where: { eventId, instanceId, deleted: false },
+    }),
     // gmail connection exists
     prisma.gmailConnection.findUnique({ where: { eventId } }).then((r) => !!r),
   ]);
@@ -84,6 +96,8 @@ export const calculateProgress = async (eventId, instanceId) => {
     shift: shiftCount > 0,
     upsells: upsellCount > 0,
     tiersPeriods: tierCount > 0 && periodCount > 0,
+    teams: teamCount > 0,
+    coupons: couponCount > 0,
     // Only require Gmail if the event opted to connect Google during setup
     gmail: showGmailStep ? gmailConnected : true,
   };
