@@ -26,3 +26,18 @@
   flex: 0 0 auto;
   min-height: 320px;
 }
+
+.bottomRow {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+}
+
+.completed {
+  opacity: 0.7;
+}
+
+.completed .icon {
+  filter: grayscale(1);
+  opacity: 0.35;
+}

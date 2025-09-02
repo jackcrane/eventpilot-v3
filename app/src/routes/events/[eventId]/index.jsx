@@ -80,65 +80,7 @@ export const Event = () => {
           gap: 10,
         }}
       >
-        {progress?.percent === 100 ? (
-          <>
-            <Card
-              style={{
-                maxWidth: 300,
-                minWidth: 250,
-                display: "inline-block",
-                marginRight: 10,
-                whiteSpace: "normal",
-              }}
-            >
-              <Typography.H5 className={"mb-1 text-secondary"}>
-                AN EASY, INSTANT WEBSITE
-              </Typography.H5>
-              <Typography.Text>
-                Your event's website is automatically generated from your
-                event's data. We merge locations & timing, common links, images,
-                and contact information.
-              </Typography.Text>
-              <Typography.Text>
-                <a
-                  href={`https://${event.slug}.geteventpilot.com`}
-                  target="_blank"
-                >
-                  https://{event.slug}.geteventpilot.com
-                </a>
-              </Typography.Text>
-            </Card>
-            <Card
-              style={{
-                maxWidth: 350,
-                minWidth: 250,
-                display: "inline-block",
-                marginRight: 10,
-                whiteSpace: "normal",
-              }}
-            >
-              <Typography.H5 className={"mb-1 text-secondary"}>
-                VOLUNTEER REGISTRATIONS
-              </Typography.H5>
-              <Typography.Text>
-                EventPilot combines required fields, event{" "}
-                <Link to="./volunteers/jobs">timing details</Link>, and your{" "}
-                <Link to="./volunteers/builder">custom fields</Link> into one
-                simple form. Share it with volunteers to collect signups easily.
-              </Typography.Text>
-              <Typography.Text>
-                <a
-                  href={`https://${event.slug}.geteventpilot.com/volunteer`}
-                  target="_blank"
-                >
-                  https://{event.slug}.geteventpilot.com/volunteer
-                </a>
-              </Typography.Text>
-            </Card>
-          </>
-        ) : (
-          <ProgressRow />
-        )}
+        <ProgressRow />
       </div>
       {!volunteerRegistrationEnabled && (
         <Alert
