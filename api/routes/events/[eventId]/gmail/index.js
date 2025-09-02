@@ -29,7 +29,9 @@ export const del = [
   async (req, res) => {
     try {
       const { eventId } = req.params;
-      await prisma.gmailConnection.delete({ where: { eventId } }).catch(() => null);
+      await prisma.gmailConnection
+        .delete({ where: { eventId } })
+        .catch(() => null);
       return res.status(200).json({ success: true });
     } catch (e) {
       console.error(e);
@@ -37,4 +39,3 @@ export const del = [
     }
   },
 ];
-

@@ -28,7 +28,8 @@ export const get = [
       let decoded;
       try {
         decoded = jwt.verify(state, process.env.JWT_SECRET);
-      } catch (e) {
+        // eslint-disable-next-line no-unused-vars
+      } catch (_) {
         return res.redirect(redirectError);
       }
 
@@ -126,7 +127,10 @@ export const get = [
           },
         });
       } catch (e) {
-        console.error("Failed to update event contact email after Gmail connect", e);
+        console.error(
+          "Failed to update event contact email after Gmail connect",
+          e
+        );
       }
 
       return res.redirect(redirectSuccess);

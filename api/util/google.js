@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import { google } from "googleapis";
 import { prisma } from "#prisma";
 

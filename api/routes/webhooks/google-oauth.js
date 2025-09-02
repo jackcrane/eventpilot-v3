@@ -10,9 +10,9 @@ export const get = [
   async (req, res) => {
     const { code, state } = req.query || {};
 
-    const baseApp = (process.env.BASE_APP_URL || "http://localhost:5173").startsWith(
-      "http"
-    )
+    const baseApp = (
+      process.env.BASE_APP_URL || "http://localhost:5173"
+    ).startsWith("http")
       ? process.env.BASE_APP_URL
       : `http://${process.env.BASE_APP_URL}`;
 
@@ -27,16 +27,17 @@ export const get = [
       let decoded;
       try {
         decoded = jwt.verify(String(state), process.env.JWT_SECRET);
-      } catch (e) {
+        // eslint-disable-next-line no-unused-vars
+      } catch (_) {
         return fail();
       }
 
       const eventId = decoded?.eventId;
       if (!eventId) return fail();
 
-      const baseServer = (process.env.BASE_SERVER_URL || "http://localhost:3000").startsWith(
-        "http"
-      )
+      const baseServer = (
+        process.env.BASE_SERVER_URL || "http://localhost:3000"
+      ).startsWith("http")
         ? process.env.BASE_SERVER_URL
         : `http://${process.env.BASE_SERVER_URL}`;
       const redirectUri = `${baseServer}/api/webhooks/google-oauth`;
@@ -83,7 +84,9 @@ export const get = [
       const email = String(userinfo?.email || "");
       if (!googleUserId || !email) return fail(eventId);
 
-      const tokenExpiry = expiresIn ? new Date(Date.now() + Number(expiresIn) * 1000) : null;
+      const tokenExpiry = expiresIn
+        ? new Date(Date.now() + Number(expiresIn) * 1000)
+        : null;
 
       await prisma.gmailConnection.upsert({
         where: { eventId },
@@ -121,10 +124,15 @@ export const get = [
           },
         });
       } catch (e) {
-        console.error("Failed to update event contact email after Gmail connect", e);
+        console.error(
+          "Failed to update event contact email after Gmail connect",
+          e
+        );
       }
 
-      return res.redirect(`${baseApp}/events/${eventId}/settings?gmailConnected=1`);
+      return res.redirect(
+        `${baseApp}/events/${eventId}/settings?gmailConnected=1`
+      );
     } catch (e) {
       console.error(e);
       return fail();
