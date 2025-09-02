@@ -206,6 +206,20 @@ export const useWhatNextMap = () => {
           ...standard,
         };
 
+      case "gmail":
+        return {
+          icon: <Icon i="brand-google" />,
+          title: title("Google Connected", "Connect Google Account", done),
+          description: description({
+            positive: `Your Google account is connected. You can read and send email via Gmail in EventPilot conversations.`,
+            negative: `Connect your Google account to enable Gmail-powered inbox and sending.`,
+            done,
+            negativeCta: "Connect Google",
+            negativeHref: `/events/${eventId}/settings`,
+          }),
+          ...standard,
+        };
+
       case "tour":
         return {
           icon: <Icon i="message" />,

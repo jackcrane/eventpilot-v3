@@ -4,6 +4,8 @@ import { Typography, Input, Button, Util, Card } from "tabler-react-2";
 import { useEvent } from "../../../../hooks/useEvent";
 import { useNavigate, useParams } from "react-router-dom";
 import { Row } from "../../../../util/Flex";
+import { useGmailConnection } from "../../../../hooks/useGmailConnection";
+import toast from "react-hot-toast";
 import { TzPicker } from "../../../../components/tzDateTime/tzDateTime";
 import { Dropzone } from "../../../../components/dropzone/Dropzone";
 import { Icon } from "../../../../util/Icon";
@@ -21,6 +23,24 @@ export const EventSettings = () => {
     eventId,
   });
   const navigate = useNavigate();
+  const { gmailConnection, loading: gmailLoading, connect, disconnect } =
+    useGmailConnection({ eventId });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("gmailConnected")) {
+      toast.success("Gmail connected");
+      params.delete("gmailConnected");
+      const url = `${window.location.pathname}?${params.toString()}`.replace(/\?$/, "");
+      window.history.replaceState({}, "", url);
+    }
+    if (params.get("gmailError")) {
+      toast.error("Failed to connect Gmail");
+      params.delete("gmailError");
+      const url = `${window.location.pathname}?${params.toString()}`.replace(/\?$/, "");
+      window.history.replaceState({}, "", url);
+    }
+  }, []);
 
   const [localEvent, setLocalEvent] = useState(event);
   useEffect(() => {
@@ -244,6 +264,30 @@ export const EventSettings = () => {
             placeholder="https://threads.com/..."
             icon={<Icon i="brand-threads" />}
           />
+          <Util.Hr />
+          <Card title="Gmail" variant="default">
+            {gmailConnection ? (
+              <>
+                <Typography.Text>
+                  Connected as <b>{gmailConnection.email}</b>
+                </Typography.Text>
+                <div className="mt-2" />
+                <Button variant="danger" onClick={disconnect} disabled={gmailLoading}>
+                  Disconnect Gmail
+                </Button>
+              </>
+            ) : (
+              <>
+                <Typography.Text>
+                  Connect your event’s Gmail account to let EventPilot read and
+                  send emails via Gmail. This will not change your current email
+                  system.
+                </Typography.Text>
+                <div className="mt-2" />
+                <Button onClick={connect} disabled={gmailLoading}>Connect Gmail</Button>
+              </>
+            )}
+          </Card>
           <Util.Hr />
           <Card title="Danger Zone" variant="danger">
             <Button

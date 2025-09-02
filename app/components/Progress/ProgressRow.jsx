@@ -10,6 +10,7 @@ import { ShiftProgressCard } from "./ShiftProgressCard";
 import { RegistrationFormProgressCard } from "./RegistrationFormProgressCard";
 import { RegistrationUpsellsProgressCard } from "./RegistrationUpsellsProgressCard";
 import { RegistrationPricingProgressCard } from "./RegistrationPricingProgressCard";
+import { GmailProgressCard } from "./GmailProgressCard";
 
 export const ProgressRow = () => {
   const { eventId } = useParams();
@@ -29,6 +30,7 @@ export const ProgressRow = () => {
       {!steps.registrationForm && <RegistrationFormProgressCard />}
       {!steps.tiersPeriods && <RegistrationPricingProgressCard />}
       {!steps.upsells && <RegistrationUpsellsProgressCard />}
+      {!steps.gmail && <GmailProgressCard />}
     </>
   );
 };

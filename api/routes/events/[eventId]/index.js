@@ -36,6 +36,9 @@ export const eventSchema = z.object({
   reddit: z.string().optional().nullable(),
   threads: z.string().optional().nullable(),
 
+  // Framework for Google Workspace provisioning
+  wantsWorkspaceAccount: z.boolean().optional().nullable(),
+
   instance: z
     .object({
       name: z.string().min(1).max(50),

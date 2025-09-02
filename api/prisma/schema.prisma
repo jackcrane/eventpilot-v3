@@ -37,6 +37,7 @@ model User {
 
   events Event[]
   emails Email[]
+  gmailConnection GmailConnection[]
 }
 
 enum AccountType {
@@ -352,10 +353,38 @@ model Event {
   teams               Team[]
   registrationPages   RegistrationPage[]
   ledgerItems         LedgerItem[]
+  gmailConnection     GmailConnection?
 
   stripeConnectedAccountId  String?
   RegistrationPeriodPricing RegistrationPeriodPricing[]
   RegistrationFieldResponse RegistrationFieldResponse[]
+
+  // Email provisioning preference (framework)
+  wantsWorkspaceAccount Boolean @default(false)
+}
+
+model GmailConnection {
+  id           String   @id @default(cuid())
+
+  eventId String
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  googleUserId String
+  email        String
+
+  accessToken  String
+  refreshToken String
+  scope        String?
+  tokenType    String?
+  tokenExpiry  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId])
 }
 
 model EventInstance {

@@ -8,7 +8,7 @@ import {
   useOffcanvas,
 } from "tabler-react-2";
 import { Page } from "../../../components/page/Page";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SlugInput } from "../../../components/slugInput/SlugInput";
 import { Dropzone } from "../../../components/dropzone/Dropzone";
 import { Icon } from "../../../util/Icon";
@@ -22,9 +22,11 @@ import { isEmail } from "../../../util/isEmail";
 import { Row } from "../../../util/Flex";
 import { EventChecklist } from "../../../components/EventChecklist/EventChecklist";
 import { useAuth } from "../../../hooks";
-import { HostedEmailComparisonPopoverContent } from "../../../components/HostedEmailComparison/HostedEmailComparison";
+// Hosted email comparison is deprecated in favor of Google options
+// import { HostedEmailComparisonPopoverContent } from "../../../components/HostedEmailComparison/HostedEmailComparison";
 import { useEvents } from "../../../hooks/useEvents";
 import toast from "react-hot-toast";
+import { useGmailConnection } from "../../../hooks/useGmailConnection";
 
 export const NewEventPage = () => {
   const [event, setEvent] = useState({
@@ -35,8 +37,13 @@ export const NewEventPage = () => {
     logoFileId: null,
     bannerFileId: null,
     useUserEmailAsContact: null,
-    useHostedEmail: null,
+    // Deprecated hosted email flags retained to satisfy current API schema
+    useHostedEmail: false,
     willForwardEmail: true,
+    // Event email setup: 'connect' | 'workspace' | null
+    emailSetupMethod: null,
+    // Persist user's interest in Workspace provisioning (framework only)
+    wantsWorkspaceAccount: false,
     instance: {
       name: null,
       startTime: null,
@@ -54,10 +61,30 @@ export const NewEventPage = () => {
     setEvent({ ...event, ...e });
   };
 
-  const onSubmit = () => {
+  const [newEventId, setNewEventId] = useState(null);
+  const { connect: connectGmail } = useGmailConnection({ eventId: newEventId });
+
+  useEffect(() => {
+    if (newEventId && event.emailSetupMethod === "connect") {
+      // Kick off Google OAuth; this will redirect the browser
+      connectGmail();
+    }
+  }, [newEventId]);
+
+  const onSubmit = async () => {
     try {
       const parsed = schema.parse(event);
-      createEvent(parsed);
+      // If user chose to connect Gmail, create the event and then start OAuth
+      if (event.emailSetupMethod === "connect") {
+        const response = await createEvent(parsed, false);
+        if (response && response.event?.id) {
+          setNewEventId(response.event.id);
+          return true;
+        }
+        return false;
+      }
+      // Default behavior
+      await createEvent(parsed);
       return true;
     } catch (e) {
       setErr(e);
@@ -373,107 +400,52 @@ const EventContact = ({ event = {}, onChangeEvent }) => {
       )}
 
       <Typography.H3 class="required">
-        Public Contact Method
+        Event Email
         <span className="text-danger">*</span>
       </Typography.H3>
       <Typography.Text>
-        You can choose to have EventPilot host a public email inbox for your
-        event, accessible through your dashboard, or you can have your event's
-        contact email publicly listed and be the way your participants,
-        volunteers, and the public can contact your event.
+        Choose how your event will handle inbound email from the public.
       </Typography.Text>
-      {/* <Button onClick={() => offcanvas({ content: <div>Hello</div> })}></Button> */}
-      <a
-        href="javascript:() => null"
-        onClick={() =>
-          offcanvas({ content: <HostedEmailComparisonPopoverContent /> })
-        }
-        className="d-block mb-3"
-      >
-        <Row gap={0.25} align="center">
-          Understand the difference
-          <Icon i="square-chevron-left" />
-        </Row>
-      </a>
       <SegmentedControl
-        value={event.useHostedEmail}
-        onChange={(e) =>
+        value={event.emailSetupMethod}
+        onChange={(e) => {
+          const next = e.id; // 'connect' | 'workspace'
           onChangeEvent({
-            useHostedEmail: e.id,
-            externalContactEmail: e.id ? false : event.externalContactEmail,
-          })
-        }
+            emailSetupMethod: next,
+            wantsWorkspaceAccount: next === "workspace",
+            // Ensure legacy fields satisfy the current API shape
+            useHostedEmail: false,
+            willForwardEmail: true,
+            externalContactEmail: event.contactEmail || user?.email || event.externalContactEmail,
+          });
+        }}
         items={[
           {
-            label: "I want to have EventPilot create an email inbox",
-            id: true,
+            label: "Connect an existing Google account",
+            id: "connect",
           },
-          { label: "I already have an email that I want to use", id: false },
+          {
+            label: "Get a Google Workspace account through EventPilot",
+            id: "workspace",
+          },
         ]}
       />
       <div className="mt-3" />
-      {event.useHostedEmail === null ? (
-        <></>
-      ) : event.useHostedEmail ? (
-        <></>
-      ) : (
-        <>
-          <label
-            className="form-check"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <input
-              className="form-check-input"
-              type="checkbox"
-              checked={event.willForwardEmail}
-              onChange={(e) =>
-                onChangeEvent({ willForwardEmail: e.target.checked })
-              }
-            />
-            <span className="form-check-label" style={{ textAlign: "left" }}>
-              I intend to set up a forwarding rule to forward emails to
-              EventPilot (it's easy, and we will walk you through it after your
-              event is created) <b>(recommended)</b>
-            </span>
-          </label>
-
-          {!event.willForwardEmail && (
-            <Alert
-              variant="danger"
-              className="mb-3"
-              title="Standard Email without Forwarding"
-            >
-              <Typography.Text className="mb-0">
-                You have chosen to use a standard email for your event, and are
-                not using forwarding. This means that EventPilot will not be
-                able to process your incoming emails, so you won't be able to:
-                <ul>
-                  <li>View emails in your dashboard</li>
-                  <li>Associate emails with CRM contacts</li>
-                  <li>Generate todo items from emails</li>
-                </ul>
-                You will just process emails like you would without EventPilot.
-              </Typography.Text>
-            </Alert>
-          )}
-          <Input
-            className="mb-3"
-            value={event.externalContactEmail}
-            onChange={(e) => onChangeEvent({ externalContactEmail: e })}
-            label="Enter the email address of your event"
-            required
-            placeholder="Contact Email"
-            labelDescription={
-              isEmail(event.externalContactEmail)
-                ? ""
-                : "Please enter a valid email address"
-            }
-          />
-        </>
+      {event.emailSetupMethod === "connect" && (
+        <Alert variant="info" className="mb-3" title="Connect Google">
+          <Typography.Text className="mb-0">
+            After you submit, we’ll send you to Google to connect your account.
+            Once connected, your event’s public contact email will be set to that Gmail address.
+          </Typography.Text>
+        </Alert>
+      )}
+      {event.emailSetupMethod === "workspace" && (
+        <Alert variant="warning" className="mb-3" title="Workspace provisioning">
+          <Typography.Text className="mb-0">
+            We’ll help you get a Google Workspace account provisioned for your event.
+            This option is coming soon — we’ll follow up after your event is created.
+          </Typography.Text>
+        </Alert>
       )}
     </>
   );
@@ -590,28 +562,11 @@ const Finished = ({ event = {}, onChangeEvent }) => {
         track of what is happening. For now though, lets take a tour to get you
         familiar with the dashboard.
       </Typography.Text>
-      <Typography.H2>Hosted Email</Typography.H2>
+      <Typography.H2>Email Setup</Typography.H2>
       <Typography.Text>
-        EventPilot hosts an email for your event. Any emails sent to your event
-        will be put into an inbox you can access from the dashboard. You will be
-        able to generate todo items from emails, and senders will be
-        automatically added to your CRM.
-        <Alert variant="info" className="mt-3" title="Your hosted email">
-          Emails sent to{" "}
-          <u>
-            <i>anything</i>@{event.slug}.geteventpilot.com
-          </u>{" "}
-          will be sent into your event's inbox. The "anything" part of the email
-          means you can use any prefix you want. Commonly, events use:
-          <ul>
-            <li>event@</li>
-            <li>volunteer@</li>
-            <li>webmaster@</li>
-            <li>info@</li>
-            <li>support@</li>
-            <li>help@</li>
-          </ul>
-        </Alert>
+        If you chose to connect a Google account, you’ll be redirected to Google
+        to authorize EventPilot. After connecting, your event’s public contact email
+        will be set to that Gmail address.
       </Typography.Text>
       <Typography.H2>Hosted Website</Typography.H2>
       <Typography.Text>
