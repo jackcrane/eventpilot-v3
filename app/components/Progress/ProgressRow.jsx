@@ -10,6 +10,7 @@ import { RegistrationPricingProgressCard } from "./RegistrationPricingProgressCa
 import { GmailProgressCard } from "./GmailProgressCard";
 import { TeamProgressCard } from "./TeamProgressCard";
 import { CouponProgressCard } from "./CouponProgressCard";
+import { StripeConnectProgressCard } from "./StripeConnectProgressCard";
 
 export const ProgressRow = () => {
   const { eventId } = useParams();
@@ -30,6 +31,7 @@ export const ProgressRow = () => {
         { key: "upsells", Comp: RegistrationUpsellsProgressCard },
         { key: "coupons", Comp: CouponProgressCard },
         { key: "teams", Comp: TeamProgressCard },
+        { key: "stripeConnect", Comp: StripeConnectProgressCard },
         { key: "gmail", Comp: GmailProgressCard },
       ]
         .map(({ key, Comp }) => ({ key, Comp, done: !!steps?.[key] }))
