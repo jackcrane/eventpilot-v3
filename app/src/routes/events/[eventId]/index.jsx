@@ -25,6 +25,7 @@ import { useSelectedInstance } from "../../../../contexts/SelectedInstanceContex
 import { SelectedInstanceCard } from "../../../../components/InstanceCard/InstanceCard";
 import { ProgressRow } from "../../../../components/Progress/ProgressRow";
 import { Icon } from "../../../../util/Icon";
+import { VolunteerRegistrationStatsCard } from "../../../../components/VolunteerRegistrationStatsCard/VolunteerRegistrationStatsCard";
 
 const Divider = styled.div`
   background-color: var(--tblr-card-border-color);
@@ -119,6 +120,7 @@ export const Event = () => {
         </Alert>
       )}
       <Util.Hr />
+      <VolunteerRegistrationStatsCard />
       <SelectedInstanceCard />
     </EventPage>
   );
