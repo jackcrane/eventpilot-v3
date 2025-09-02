@@ -358,6 +358,9 @@ model Event {
   stripeConnectedAccountId  String?
   RegistrationPeriodPricing RegistrationPeriodPricing[]
   RegistrationFieldResponse RegistrationFieldResponse[]
+
+  // Email provisioning preference (framework)
+  wantsWorkspaceAccount Boolean @default(false)
 }
 
 model GmailConnection {

@@ -65,14 +65,9 @@ export const generateSections = (event) => {
           validate: (val, event) => !!val || isEmail(event.contactEmail),
         },
         {
-          key: "useHostedEmail",
-          label: "Standard or Hosted Email",
-          validate: (val) => typeof val === "boolean",
-        },
-        event.useHostedEmail !== true && {
-          key: "externalContactEmail",
-          label: "External Contact Email",
-          validate: (val) => !!val && isEmail(event.externalContactEmail),
+          key: "emailSetupMethod",
+          label: "Email Setup",
+          validate: (val) => val === "connect" || val === "workspace",
         },
       ].filter(Boolean),
     },

@@ -57,7 +57,8 @@ export const useEvents = () => {
         navigate(`/events/${response.event.id}`);
       }
 
-      return true;
+      // Return created event response for callers that need the ID
+      return response;
     } catch (e) {
       return false;
     }

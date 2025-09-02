@@ -110,6 +110,20 @@ export const get = [
         },
       });
 
+      // Also set the event's external contact email to the connected Gmail address
+      try {
+        await prisma.event.update({
+          where: { id: eventId },
+          data: {
+            externalContactEmail: email,
+            // Ensure legacy hosted field is off so computed values use externalContactEmail
+            useHostedEmail: false,
+          },
+        });
+      } catch (e) {
+        console.error("Failed to update event contact email after Gmail connect", e);
+      }
+
       return res.redirect(`${baseApp}/events/${eventId}/settings?gmailConnected=1`);
     } catch (e) {
       console.error(e);
@@ -117,4 +131,3 @@ export const get = [
     }
   },
 ];
-

@@ -15,6 +15,7 @@ export const calculateProgress = async (eventId, instanceId) => {
 
   // fire off all queries in parallel
   const [
+    event,
     volunteerFieldCount,
     locationCount,
     jobCount,
@@ -25,6 +26,11 @@ export const calculateProgress = async (eventId, instanceId) => {
     periodCount,
     gmailConnected,
   ] = await Promise.all([
+    // event flags
+    prisma.event.findUnique({
+      where: { id: eventId },
+      select: { wantsWorkspaceAccount: true },
+    }),
     // volunteer form fields
     prisma.volunteerRegistrationField.count({
       where: { eventId, instanceId, deleted: false },
@@ -64,12 +70,12 @@ export const calculateProgress = async (eventId, instanceId) => {
       where: { eventId, instanceId, deleted: false },
     }),
     // gmail connection exists
-    prisma.gmailConnection
-      .findUnique({ where: { eventId } })
-      .then((r) => !!r),
+    prisma.gmailConnection.findUnique({ where: { eventId } }).then((r) => !!r),
   ]);
 
   // derive booleans
+  const wantsWorkspace = !!event?.wantsWorkspaceAccount;
+  const showGmailStep = !wantsWorkspace;
   const steps = {
     volunteerRegistrationForm: volunteerFieldCount > 0,
     registrationForm: registrationFieldCount > 0,
@@ -78,7 +84,8 @@ export const calculateProgress = async (eventId, instanceId) => {
     shift: shiftCount > 0,
     upsells: upsellCount > 0,
     tiersPeriods: tierCount > 0 && periodCount > 0,
-    gmail: gmailConnected,
+    // Only require Gmail if the event opted to connect Google during setup
+    gmail: showGmailStep ? gmailConnected : true,
   };
 
   // calculate weighted percentage based on defined weights for these steps
