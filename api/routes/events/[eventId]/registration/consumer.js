@@ -89,6 +89,7 @@ export const get = [
         );
         payoutsEnabled = !!acct?.details_submitted;
       }
+      // eslint-disable-next-line no-unused-vars
     } catch (e) {
       payoutsEnabled = false;
     }
