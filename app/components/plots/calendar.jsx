@@ -95,7 +95,6 @@ export const CalendarPlot = ({
 
     const fmtDate = d3.utcFormat("%a, %b %-d, %Y");
 
-    const baseCells = cells.filter((c) => !c.highlightColor);
     const highlightedCells = cells.filter((c) => !!c.highlightColor);
 
     const plot = Plot.plot({
@@ -143,8 +142,8 @@ export const CalendarPlot = ({
           fontFamily: "var(--tblr-body-font-family)",
         }),
 
-        // Heatmap cells (non-highlighted)
-        Plot.rect(baseCells, {
+        // Heatmap cells (all)
+        Plot.rect(cells, {
           x1: "x1",
           x2: "x2",
           y1: "y1",
@@ -155,7 +154,7 @@ export const CalendarPlot = ({
           tip: { anchor: "top", pointer: "move" },
         }),
 
-        // Highlighted cells (override background color)
+        // Highlighted cells (override background color) — visual-only layer
         ...(highlightedCells.length
           ? [
               Plot.rect(highlightedCells, {
@@ -165,8 +164,8 @@ export const CalendarPlot = ({
                 y2: "y2",
                 fill: (d) => d.highlightColor,
                 inset: 0.75,
-                title: (d) => `${fmtDate(d.date)} — ${d.value ?? 0}`,
-                tip: { anchor: "top", pointer: "move" },
+                pointerEvents: "none",
+                ariaHidden: true,
               }),
             ]
           : []),
@@ -219,6 +218,8 @@ export const CalendarPlot = ({
                 fill: "none",
                 stroke: todayStroke,
                 strokeWidth: todayStrokeWidth,
+                pointerEvents: "none",
+                ariaHidden: true,
               }),
             ]
           : []),
