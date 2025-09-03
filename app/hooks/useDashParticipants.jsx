@@ -10,9 +10,9 @@ export const useDashParticipants = ({ eventId }) => {
   return {
     participantRegistrations: data?.participantRegistrations,
     registrationsByDay: data?.registrationsByDay,
+    previous: data?.previous || null,
     loading: isLoading,
     error,
     refetch: () => (key ? mutate(key) : undefined),
   };
 };
-

@@ -14,6 +14,13 @@ export const CalendarPlot = ({
   todayStrokeWidth = 1.5, // stroke width for today
   showCounts = false, // show count text if > 0
   showDates = false, // show the date number in each cell
+  highlightCells = [], // [{ date: Date|string, color: string }]
+  height, // optional fixed plot height to avoid growing with width
+  // Color behavior: sequential (white -> blue) or diverging (red -> white -> green)
+  mode = "sequential", // "sequential" | "diverging"
+  positiveColor = "#2ecc71", // for diverging scale
+  negativeColor = "#e74c3c", // for diverging scale
+  neutralColor = "#f8f8f8", // mid for diverging (0)
 }) => {
   const ref = useRef(null);
 
@@ -29,6 +36,12 @@ export const CalendarPlot = ({
     const byDay = new Map();
     for (const { date, value } of data) byDay.set(isoDay(date), value ?? 0);
 
+    // Map of highlighted days -> color
+    const highlightByDay = new Map();
+    for (const { date, color } of highlightCells ?? []) {
+      if (date && color) highlightByDay.set(isoDay(date), color);
+    }
+
     // Build one cell per day in range
     const cells = [];
     for (let d = lo; d <= hi; d = d3.utcDay.offset(d, 1)) {
@@ -43,10 +56,12 @@ export const CalendarPlot = ({
         y2: y + 0.5,
         x,
         y,
+        highlightColor: highlightByDay.get(isoDay(d)),
       });
     }
 
     const max = d3.max(cells, (d) => d.value ?? 0) ?? 0;
+    const maxAbs = d3.max(cells, (d) => Math.abs(d.value ?? 0)) ?? 0;
     const weeks =
       1 + d3.utcWeek.count(d3.utcSunday.floor(lo), d3.utcSunday.floor(hi));
 
@@ -87,13 +102,37 @@ export const CalendarPlot = ({
 
     const fmtDate = d3.utcFormat("%a, %b %-d, %Y");
 
+    const highlightedCells = cells.filter((c) => !!c.highlightColor);
+
+    const marginTop = 28;
+    const marginLeft = 36;
+    const marginRight = 2;
+    const marginBottom = 2;
+
+    // Choose plot dimensions to maintain square day cells.
+    // If a height is provided, derive width from it. Otherwise, derive height from width.
+    let plotHeight;
+    let plotWidth;
+    if (height != null) {
+      const innerH = Math.max(1, height - (marginTop + marginBottom));
+      const cell = Math.max(6, Math.floor(innerH / 7));
+      plotHeight = cell * 7 + marginTop + marginBottom;
+      const innerW = cell * Math.max(1, weeks);
+      plotWidth = innerW + marginLeft + marginRight;
+    } else {
+      const innerW = Math.max(1, (width ?? 720) - (marginLeft + marginRight));
+      const cell = Math.max(6, Math.floor(innerW / Math.max(1, weeks)));
+      plotHeight = cell * 7 + marginTop + marginBottom;
+      plotWidth = width ?? 720;
+    }
+
     const plot = Plot.plot({
-      width,
-      height: Math.max(7 * Math.floor(width / Math.max(weeks, 1)), 70),
-      marginTop: 28,
-      marginLeft: 36,
-      marginRight: 2,
-      marginBottom: 2,
+      width: plotWidth,
+      height: plotHeight,
+      marginTop,
+      marginLeft,
+      marginRight,
+      marginBottom,
       style: {
         overflow: "visible",
         fontFamily: "var(--tblr-body-font-family)",
@@ -102,13 +141,22 @@ export const CalendarPlot = ({
       axis: null,
       x: { type: "linear", domain: [-0.6, weeks - 0.4] },
       y: { type: "linear", domain: [-0.5, 6.5], reverse: true },
-      color: {
-        type: "linear",
-        domain: [0, Math.max(1, max)],
-        clamp: true,
-        unknown: emptyColor,
-        range: ["white", "#066fd1"], // custom gradient
-      },
+      color:
+        mode === "diverging"
+          ? {
+              type: "linear",
+              domain: [-Math.max(1, maxAbs), 0, Math.max(1, maxAbs)],
+              clamp: true,
+              unknown: emptyColor,
+              range: [negativeColor, neutralColor, positiveColor],
+            }
+          : {
+              type: "linear",
+              domain: [0, Math.max(1, max)],
+              clamp: true,
+              unknown: emptyColor,
+              range: ["white", "#066fd1"], // custom gradient
+            },
       marks: [
         // Month labels
         Plot.text(monthRanges, {
@@ -132,7 +180,7 @@ export const CalendarPlot = ({
           fontFamily: "var(--tblr-body-font-family)",
         }),
 
-        // Heatmap cells
+        // Heatmap cells (all)
         Plot.rect(cells, {
           x1: "x1",
           x2: "x2",
@@ -140,19 +188,56 @@ export const CalendarPlot = ({
           y2: "y2",
           fill: "value",
           inset: 0.75,
-          title: (d) => `${fmtDate(d.date)} — ${d.value ?? 0}`,
+          title: (d) => {
+            const v = d.value;
+            if (v == null) return `${fmtDate(d.date)} — No data`;
+            if (mode === "diverging") {
+              const n = Number(v);
+              const sign = n >= 0 ? "+" : "";
+              return `${fmtDate(d.date)} — ${sign}${n}`;
+            }
+            return `${fmtDate(d.date)} — ${v}`;
+          },
           tip: { anchor: "top", pointer: "move" },
         }),
+
+        // Highlighted cells (override background color) — visual-only layer
+        ...(highlightedCells.length
+          ? [
+              Plot.rect(highlightedCells, {
+                x1: "x1",
+                x2: "x2",
+                y1: "y1",
+                y2: "y2",
+                fill: (d) => d.highlightColor,
+                inset: 0.75,
+                pointerEvents: "none",
+                ariaHidden: true,
+              }),
+            ]
+          : []),
 
         // Counts inside cells (optional)
         ...(showCounts
           ? [
               Plot.text(
-                cells.filter((d) => (d.value ?? 0) > 0),
+                // In diverging (change) mode, show for all defined values (including 0 and negatives).
+                // In sequential mode, keep previous behavior: show only when > 0.
+                cells.filter((d) =>
+                  mode === "diverging" ? d.value != null : (d.value ?? 0) > 0
+                ),
                 {
                   x: (d) => d.x,
                   y: (d) => d.y,
-                  text: (d) => `${d.value}`,
+                  text: (d) => {
+                    const v = d.value ?? 0;
+                    if (mode === "diverging") {
+                      const n = Number(v);
+                      const sign = n >= 0 ? "+" : "";
+                      return `${sign}${n}`;
+                    }
+                    return `${v}`;
+                  },
                   fill: "#000",
                   textAnchor: "middle",
                   dy: 0,
@@ -192,6 +277,8 @@ export const CalendarPlot = ({
                 fill: "none",
                 stroke: todayStroke,
                 strokeWidth: todayStrokeWidth,
+                pointerEvents: "none",
+                ariaHidden: true,
               }),
             ]
           : []),
@@ -213,6 +300,12 @@ export const CalendarPlot = ({
     todayStrokeWidth,
     showCounts,
     showDates, // ensure toggling re-renders
+    highlightCells,
+    height,
+    mode,
+    positiveColor,
+    negativeColor,
+    neutralColor,
   ]);
 
   return <div ref={ref} />;

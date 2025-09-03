@@ -10,6 +10,8 @@ export const useDashVolunteers = ({ eventId }) => {
   return {
     volunteerRegistrations: data?.volunteerRegistrations,
     registrationsByDay: data?.registrationsByDay,
+    trend: data?.trend || null,
+    previous: data?.previous || null,
     loading: isLoading,
     error,
     refetch: () => mutate(key),
