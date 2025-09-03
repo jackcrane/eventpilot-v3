@@ -276,6 +276,32 @@ export const InstanceCRUD = ({
 
           <Typography.H3>Pick what data you want to clone.</Typography.H3>
 
+          {/* Select All for cloning options */}
+          <Checkbox
+            label="Select All"
+            value={
+              !!state.formField &&
+              !!state.locationJobsShifts &&
+              !!state.registrationTier &&
+              !!state.registrationPeriod &&
+              !!state.registrationPeriodPricing &&
+              !!state.upsellItem &&
+              !!state.registration
+            }
+            onChange={(v) =>
+              setState({
+                ...state,
+                formField: v,
+                locationJobsShifts: v,
+                registrationTier: v,
+                registrationPeriod: v,
+                registrationPeriodPricing: v,
+                upsellItem: v,
+                registration: v,
+              })
+            }
+          />
+
           <Checkbox
             label="Volunteer Form Fields"
             value={!!state.formField}
