@@ -20,6 +20,8 @@ export const TimeDataFrame = ({
   endDate = moment().subtract(5, "months").toDate(),
   unitSingular = "Item",
   unitPlural = "Items",
+  // Optional: [{ date: Date|string, color: string }]
+  HighlightCells = [],
 }) => {
   const [displayFormat, setDisplayFormat] = useState({ id: defaultDisplay });
 
@@ -64,6 +66,8 @@ export const TimeDataFrame = ({
             todayStroke="var(--tblr-danger)"
             todayStrokeWidth={2}
             showCounts
+            // Pass through to calendar as lower-cased prop
+            highlightCells={HighlightCells}
           />
         ) : (
           <TimeLineChart
@@ -77,4 +81,3 @@ export const TimeDataFrame = ({
     </Card>
   );
 };
-

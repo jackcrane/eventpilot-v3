@@ -5,6 +5,15 @@ import { Row } from "../../util/Flex";
 import timezones from "./tzs.json";
 import classNames from "classnames";
 
+export const buildDate = (date, tzValue) => {
+  if (!date || !tzValue) return "";
+  const zone = timezones.find((t) => t.value === tzValue)?.utc[0];
+  if (!zone) return "";
+
+  const m = moment.tz(date, zone);
+  return m.toDate();
+};
+
 export const formatDate = (date, tzValue, format = "MMM DD, h:mm a") => {
   if (!date || !tzValue) return "";
 

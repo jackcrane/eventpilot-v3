@@ -14,6 +14,7 @@ export const CalendarPlot = ({
   todayStrokeWidth = 1.5, // stroke width for today
   showCounts = false, // show count text if > 0
   showDates = false, // show the date number in each cell
+  highlightCells = [], // [{ date: Date|string, color: string }]
 }) => {
   const ref = useRef(null);
 
@@ -29,6 +30,12 @@ export const CalendarPlot = ({
     const byDay = new Map();
     for (const { date, value } of data) byDay.set(isoDay(date), value ?? 0);
 
+    // Map of highlighted days -> color
+    const highlightByDay = new Map();
+    for (const { date, color } of highlightCells ?? []) {
+      if (date && color) highlightByDay.set(isoDay(date), color);
+    }
+
     // Build one cell per day in range
     const cells = [];
     for (let d = lo; d <= hi; d = d3.utcDay.offset(d, 1)) {
@@ -43,6 +50,7 @@ export const CalendarPlot = ({
         y2: y + 0.5,
         x,
         y,
+        highlightColor: highlightByDay.get(isoDay(d)),
       });
     }
 
@@ -86,6 +94,9 @@ export const CalendarPlot = ({
       : [];
 
     const fmtDate = d3.utcFormat("%a, %b %-d, %Y");
+
+    const baseCells = cells.filter((c) => !c.highlightColor);
+    const highlightedCells = cells.filter((c) => !!c.highlightColor);
 
     const plot = Plot.plot({
       width,
@@ -132,8 +143,8 @@ export const CalendarPlot = ({
           fontFamily: "var(--tblr-body-font-family)",
         }),
 
-        // Heatmap cells
-        Plot.rect(cells, {
+        // Heatmap cells (non-highlighted)
+        Plot.rect(baseCells, {
           x1: "x1",
           x2: "x2",
           y1: "y1",
@@ -143,6 +154,22 @@ export const CalendarPlot = ({
           title: (d) => `${fmtDate(d.date)} — ${d.value ?? 0}`,
           tip: { anchor: "top", pointer: "move" },
         }),
+
+        // Highlighted cells (override background color)
+        ...(highlightedCells.length
+          ? [
+              Plot.rect(highlightedCells, {
+                x1: "x1",
+                x2: "x2",
+                y1: "y1",
+                y2: "y2",
+                fill: (d) => d.highlightColor,
+                inset: 0.75,
+                title: (d) => `${fmtDate(d.date)} — ${d.value ?? 0}`,
+                tip: { anchor: "top", pointer: "move" },
+              }),
+            ]
+          : []),
 
         // Counts inside cells (optional)
         ...(showCounts
@@ -213,6 +240,7 @@ export const CalendarPlot = ({
     todayStrokeWidth,
     showCounts,
     showDates, // ensure toggling re-renders
+    highlightCells,
   ]);
 
   return <div ref={ref} />;
