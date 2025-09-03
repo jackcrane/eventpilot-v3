@@ -65,6 +65,12 @@ export const useInstance = ({ eventId, instanceId }) => {
 
       await mutate(key);
       await mutate(`/api/events/${eventId}/instances`);
+      // Invalidate all event-scoped keys to refresh dependent data
+      await mutate(
+        (k) => typeof k === "string" && k.includes(`/api/events/${eventId}`),
+        undefined,
+        { revalidate: true }
+      );
       return true;
     } catch {
       return false;
@@ -94,6 +100,13 @@ export const useInstance = ({ eventId, instanceId }) => {
         await mutate(key);
         // Invalidate instances list so deleted instance disappears everywhere
         if (eventId) await mutate(`/api/events/${eventId}/instances`);
+        // Also refresh all event-scoped keys across the app
+        if (eventId)
+          await mutate(
+            (k) => typeof k === "string" && k.includes(`/api/events/${eventId}`),
+            undefined,
+            { revalidate: true }
+          );
         if (onDelete) onDelete();
         return true;
       } catch {

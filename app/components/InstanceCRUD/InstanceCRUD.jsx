@@ -12,6 +12,7 @@ import { InstancePicker } from "../InstancePicker/InstancePicker";
 import { useInstances } from "../../hooks/useInstances";
 import { useInstance } from "../../hooks/useInstance";
 import toast from "react-hot-toast";
+import { useSelectedInstance } from "../../contexts/SelectedInstanceContext";
 
 export const InstanceCRUD = ({
   eventId,
@@ -20,9 +21,11 @@ export const InstanceCRUD = ({
   close,
 }) => {
   const isEdit = mode === "edit" || !!instanceId;
+  const { instanceDropdownValue } = useSelectedInstance();
 
   // Hooks for create and edit paths
   const {
+    instances,
     mutationLoading: createLoading,
     createInstance,
     validationError: createValidationError,
@@ -67,6 +70,18 @@ export const InstanceCRUD = ({
     }
   }, [isEdit, instance]);
 
+  // In create mode, default the template instance to whatever the InstancePicker shows by default
+  // This mirrors the SelectedInstanceContext's current dropdown value when user doesn't change it
+  useEffect(() => {
+    if (isEdit) return;
+    const preselectedId = instanceDropdownValue?.id;
+    if (!state.templateInstanceId && preselectedId) {
+      setState((s) =>
+        s.templateInstanceId ? s : { ...s, templateInstanceId: preselectedId }
+      );
+    }
+  }, [isEdit, instanceDropdownValue?.id, state.templateInstanceId]);
+
   const currentLoading = isEdit ? editLoading : false;
   const mutationLoading = isEdit ? updateLoading : createLoading;
   const validationError = isEdit ? editValidationError : createValidationError;
@@ -91,13 +106,63 @@ export const InstanceCRUD = ({
       });
       if (success && typeof close === "function") close();
     } else {
-      const success = await createInstance(state);
+      const res = await createInstance(state);
+      const success = typeof res === "object" ? !!res?.success : !!res;
+      const newId = typeof res === "object" ? res?.instance?.id : null;
       if (success) {
+        if (newId) {
+          try {
+            localStorage.setItem("instance", newId);
+          } catch {}
+        }
         // Preserve existing behavior
         document.location.reload();
       }
     }
   };
+
+  // Auto-fill dates when creating a new instance named as explicit next year
+  useEffect(() => {
+    if (isEdit) return; // only for create flow
+    if (!state?.name || !instances?.length) return;
+
+    const trimmed = (state.name || "").trim();
+    // Only if name is exactly a 4-digit year
+    const yearMatch = /^\d{4}$/.test(trimmed) ? parseInt(trimmed, 10) : null;
+    if (!yearMatch) return;
+
+    const prevYear = String(yearMatch - 1);
+    const prev = instances.find((i) => (i?.name || "").trim() === prevYear);
+    if (!prev) return;
+
+    // Only auto-fill if times are not already set by the user
+    const hasTimes = !!state.startTime || !!state.endTime;
+    if (hasTimes) return;
+
+    const addOneYear = (iso) => {
+      try {
+        if (!iso) return null;
+        const d = new Date(iso);
+        // Preserve month/day/time; advance calendar year
+        d.setFullYear(d.getFullYear() + 1);
+        return d.toISOString();
+      } catch {
+        return null;
+      }
+    };
+
+    const nextStart = addOneYear(prev.startTime);
+    const nextEnd = addOneYear(prev.endTime);
+    if (nextStart && nextEnd) {
+      setState((s) => ({
+        ...s,
+        startTime: nextStart,
+        endTime: nextEnd,
+        startTimeTz: prev.startTimeTz || s.startTimeTz,
+        endTimeTz: prev.endTimeTz || s.endTimeTz,
+      }));
+    }
+  }, [isEdit, state.name, instances]);
 
   if (currentLoading && isEdit) return null;
 
@@ -210,6 +275,32 @@ export const InstanceCRUD = ({
           </Typography.Text>
 
           <Typography.H3>Pick what data you want to clone.</Typography.H3>
+
+          {/* Select All for cloning options */}
+          <Checkbox
+            label="Select All"
+            value={
+              !!state.formField &&
+              !!state.locationJobsShifts &&
+              !!state.registrationTier &&
+              !!state.registrationPeriod &&
+              !!state.registrationPeriodPricing &&
+              !!state.upsellItem &&
+              !!state.registration
+            }
+            onChange={(v) =>
+              setState({
+                ...state,
+                formField: v,
+                locationJobsShifts: v,
+                registrationTier: v,
+                registrationPeriod: v,
+                registrationPeriodPricing: v,
+                upsellItem: v,
+                registration: v,
+              })
+            }
+          />
 
           <Checkbox
             label="Volunteer Form Fields"

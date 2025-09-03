@@ -47,32 +47,29 @@ export const InstancePicker = ({
       createInstanceInteraction();
     } else if (id.id === "eventpilot__manage") {
       // Open manage list in an offcanvas, then allow launching editor offcanvas inside it
-      setTimeout(
-        () =>
-          openManage({
-            content: (
-              <InstanceManager
-                instances={instances}
-                loading={loading}
-                onCreate={() => createInstanceInteraction()}
-                onDelete={(id) => deleteInstanceById(id)}
-                onEdit={(instanceId) =>
-                  openEditor({
-                    content: (
-                      <InstanceCRUD
-                        eventId={eventId}
-                        instanceId={instanceId}
-                        mode="edit"
-                        close={closeEditor}
-                      />
-                    ),
-                  })
-                }
-              />
-            ),
-          }),
-        0
-      );
+      setTimeout(() =>
+        openManage({
+          content: (
+            <InstanceManager
+              eventId={eventId}
+              onCreate={() => createInstanceInteraction()}
+              onDelete={(id) => deleteInstanceById(id)}
+              onEdit={(instanceId) =>
+                openEditor({
+                  content: (
+                    <InstanceCRUD
+                      eventId={eventId}
+                      instanceId={instanceId}
+                      mode="edit"
+                      close={closeEditor}
+                    />
+                  ),
+                })
+              }
+            />
+          ),
+        }),
+      0);
     } else {
       setGlobalInstance && setInstance(id);
       onChange && onChange(id);

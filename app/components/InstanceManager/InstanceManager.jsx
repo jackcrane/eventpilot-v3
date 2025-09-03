@@ -3,28 +3,36 @@ import { Badge, Button, Card, Typography } from "tabler-react-2";
 import { Row } from "../../util/Flex";
 import { formatDate } from "../tzDateTime/tzDateTime";
 import { Icon } from "../../util/Icon";
+import { useInstances } from "../../hooks/useInstances";
 
 export const InstanceManager = ({
+  eventId = null,
   instances = [],
   loading = false,
   onEdit, // function (instanceId) => void
   onCreate, // function () => void
   onDelete, // function (instanceId) => void
 }) => {
-  const canDelete = (instances?.length ?? 0) > 1;
+  // If eventId is provided, fetch live instances so this view updates with SWR
+  const hook = eventId ? useInstances({ eventId }) : null;
+  const resolvedInstances = eventId ? hook?.instances ?? [] : instances;
+  const resolvedLoading = eventId ? hook?.loading ?? false : loading;
+  const deleteViaHook = eventId ? hook?.deleteInstanceById : null;
+
+  const canDelete = (resolvedInstances?.length ?? 0) > 1;
 
   return (
     <div style={{ minWidth: 360 }}>
       <Typography.H5 className="mb-0 text-secondary">INSTANCES</Typography.H5>
       <Typography.H1 className="mb-0">Manage instances</Typography.H1>
-      {loading && <Typography.Text>Loading instances…</Typography.Text>}
-      {!loading && (!instances || instances.length === 0) && (
+      {resolvedLoading && <Typography.Text>Loading instances…</Typography.Text>}
+      {!resolvedLoading && (!resolvedInstances || resolvedInstances.length === 0) && (
         <Typography.Text>No instances found.</Typography.Text>
       )}
       <div className="mb-3"></div>
-      {!loading && instances && instances.length > 0 && (
+      {!resolvedLoading && resolvedInstances && resolvedInstances.length > 0 && (
         <div style={{ maxHeight: 420, overflowY: "auto" }} className="mb-3">
-          {[...(instances ?? [])]
+          {[...(resolvedInstances ?? [])]
             .sort((a, b) => {
               if (a.active && !b.active) return -1;
               if (!a.active && b.active) return 1;
@@ -72,7 +80,13 @@ export const InstanceManager = ({
                     <Button size="sm" outline onClick={() => onEdit(i.id)}>
                       Edit
                     </Button>
-                    <Button size="sm" color="red" outline disabled={!canDelete} onClick={() => onDelete(i.id)}>
+                    <Button
+                      size="sm"
+                      color="red"
+                      outline
+                      disabled={!canDelete}
+                      onClick={() => (onDelete ? onDelete(i.id) : deleteViaHook?.(i.id))}
+                    >
                       Delete
                     </Button>
                   </div>
