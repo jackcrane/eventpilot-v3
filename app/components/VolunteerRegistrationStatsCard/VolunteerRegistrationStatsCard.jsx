@@ -7,7 +7,7 @@ import { buildDate } from "../tzDateTime/tzDateTime";
 
 export const VolunteerRegistrationStatsCard = () => {
   const { eventId } = useParams();
-  const { volunteerRegistrations, registrationsByDay } = useDashVolunteers({
+  const { volunteerRegistrations, registrationsByDay, previous } = useDashVolunteers({
     eventId,
   });
   const { instance } = useSelectedInstance();
@@ -48,8 +48,18 @@ export const VolunteerRegistrationStatsCard = () => {
         date: d.date,
         count: d.count,
       }))}
+      compareSeries={previous?.registrationsByDay?.map((d) => ({
+        date: d.date,
+        count: d.count,
+      }))}
       unitSingular="Volunteer"
       unitPlural="Volunteers"
+      anchorStartDate={buildDate(instance?.startTime, instance?.startTimeTz)}
+      compareStartDate={
+        previous?.instance
+          ? buildDate(previous.instance.startTime, previous.instance.startTimeTz)
+          : undefined
+      }
       startDate={moment(buildDate(instance?.startTime, instance?.startTimeTz))
         .subtract(5, "months")
         .toDate()}

@@ -11,6 +11,10 @@ export const TimeLineChart = ({
   // Optional: force the visible x-domain (calendar-aligned)
   startDate,
   endDate,
+  // Optional comparison series for historical overlay
+  compareData, // [{ date, qty }]
+  anchorStartDate, // Date of the current instance start (for mapping)
+  compareStartDate, // Date of the previous instance start (for mapping)
 }) => {
   const containerRef = useRef(null);
 
@@ -39,6 +43,24 @@ export const TimeLineChart = ({
       const msPerDay = 24 * 60 * 60 * 1000;
       const daySpan = xDomain ? Math.max(1, Math.round((xDomain[1] - xDomain[0]) / msPerDay)) : safeData.length;
       const xTicks = daySpan > 14 ? "week" : "day";
+
+      // Build mapped comparison data aligned to the current instance by day-offset.
+      const mappedCompare = (() => {
+        if (!Array.isArray(compareData) || !anchorStartDate || !compareStartDate)
+          return [];
+        const anchor = new Date(anchorStartDate);
+        const prevStart = new Date(compareStartDate);
+        const dayMs = 24 * 60 * 60 * 1000;
+        return compareData
+          .filter((d) => d?.date)
+          .map((d) => {
+            const dDate = new Date(d.date);
+            const offsetDays = Math.floor((dDate - prevStart) / dayMs);
+            const mapped = new Date(anchor.getTime() + offsetDays * dayMs);
+            return { date: mapped, qty: d.qty ?? 0 };
+          })
+          .sort((a, b) => a.date - b.date);
+      })();
 
       const plot = Plot.plot({
         width,
@@ -82,6 +104,18 @@ export const TimeLineChart = ({
                   stroke: "var(--tblr-primary)",
                   strokeWidth: 2,
                 }),
+                // Historical overlay (previous instance mapped to current axis)
+                ...(mappedCompare.length
+                  ? [
+                      Plot.line(mappedCompare, {
+                        x: "date",
+                        y: "qty",
+                        stroke: "var(--tblr-warning)",
+                        strokeWidth: 2,
+                        strokeDasharray: "5,3",
+                      }),
+                    ]
+                  : []),
                 Plot.ruleX(
                   safeData,
                   Plot.pointerX({
@@ -131,7 +165,17 @@ export const TimeLineChart = ({
     return () => {
       window.removeEventListener("resize", resize);
     };
-  }, [data, height, startDate, endDate, unitPlural, unitSingular]);
+  }, [
+    data,
+    height,
+    startDate,
+    endDate,
+    unitPlural,
+    unitSingular,
+    compareData,
+    anchorStartDate,
+    compareStartDate,
+  ]);
 
   return <div ref={containerRef} style={{ width: "100%" }} />;
 };

@@ -23,6 +23,10 @@ export const TimeDataFrame = ({
   unitPlural = "Items",
   // Optional: [{ date: Date|string, color: string }]
   HighlightCells = [],
+  // Optional comparison inputs for timeline overlay
+  compareSeries = [], // [{ date, count }]
+  anchorStartDate, // current instance start Date
+  compareStartDate, // previous instance start Date
 }) => {
   const [displayFormat, setDisplayFormat] = useState({ id: defaultDisplay });
   // Timeframe state (in months) and paging by timeframe-size
@@ -40,6 +44,10 @@ export const TimeDataFrame = ({
 
   const calendarData = series?.map((d) => ({ date: d.date, value: d.count }));
   const timelineData = series?.map((d) => ({ date: d.date, qty: d.count }));
+  const compareTimelineData = compareSeries?.map((d) => ({
+    date: d.date,
+    qty: d.count,
+  }));
   const maxValue = Math.max(0, ...(series || []).map((d) => d?.count ?? 0));
 
   return (
@@ -193,6 +201,9 @@ export const TimeDataFrame = ({
                   unitPlural={unitPlural}
                   startDate={viewStartDate}
                   endDate={viewEndDate}
+                  compareData={compareTimelineData}
+                  anchorStartDate={anchorStartDate}
+                  compareStartDate={compareStartDate}
                 />
               </div>
             )}
