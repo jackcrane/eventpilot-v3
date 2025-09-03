@@ -30,55 +30,55 @@ const pii = {
 
 const availableShifts = [
   {
-    value: "cmf220ptg000bo2vrtv34jznx",
+    value: "cmf30qxcd000no23uwcy127f9",
     label: "4:00 pm - 6:30 pm ",
-    id: "cmf220ptg000bo2vrtv34jznx",
+    id: "cmf30qxcd000no23uwcy127f9",
     eventId: "cmf1xtte80005o2bss6rvxq7b",
-    createdAt: "2025-09-02T04:34:30.195Z",
-    updatedAt: "2025-09-02T04:34:30.195Z",
-    instanceId: "cmf1xtte90008o2bs2pnh7cp9",
-    startTime: "2026-07-24T20:00:00.000Z",
-    endTime: "2026-07-24T22:30:00.000Z",
+    createdAt: "2025-09-02T20:46:39.948Z",
+    updatedAt: "2025-09-02T20:46:39.948Z",
+    instanceId: "cmf30oix1000fo23uwfiz88wn",
+    startTime: "2025-07-25T20:00:00.000Z",
+    endTime: "2025-07-25T22:30:00.000Z",
     startTimeTz: "Eastern Standard Time",
     endTimeTz: "Eastern Standard Time",
     capacity: 0,
     open: true,
     active: true,
     deleted: false,
-    jobId: "cmf220ptf000ao2vrp5gnzlmj",
-    locationId: "cmf21yk5e0003o2vrtj113hjw",
+    jobId: "cmf30qxcc000mo23ujwuuc81e",
+    locationId: "cmf30q6tt000jo23u1aqwz1tc",
   },
   {
-    value: "cmf220ptg000co2vrezoohxy4",
+    value: "cmf30qxcd000oo23ul5kn7yus",
     label: "6:30 pm - 9:00 pm ",
-    id: "cmf220ptg000co2vrezoohxy4",
+    id: "cmf30qxcd000oo23ul5kn7yus",
     eventId: "cmf1xtte80005o2bss6rvxq7b",
-    createdAt: "2025-09-02T04:34:30.195Z",
-    updatedAt: "2025-09-02T04:34:30.195Z",
-    instanceId: "cmf1xtte90008o2bs2pnh7cp9",
-    startTime: "2026-07-24T22:30:00.000Z",
-    endTime: "2026-07-25T01:00:00.000Z",
+    createdAt: "2025-09-02T20:46:39.948Z",
+    updatedAt: "2025-09-02T20:46:39.948Z",
+    instanceId: "cmf30oix1000fo23uwfiz88wn",
+    startTime: "2025-07-25T22:30:00.000Z",
+    endTime: "2025-07-26T01:00:00.000Z",
     startTimeTz: "Eastern Standard Time",
     endTimeTz: "Eastern Standard Time",
     capacity: 0,
     open: true,
     active: true,
     deleted: false,
-    jobId: "cmf220ptf000ao2vrp5gnzlmj",
-    locationId: "cmf21yk5e0003o2vrtj113hjw",
+    jobId: "cmf30qxcc000mo23ujwuuc81e",
+    locationId: "cmf30q6tt000jo23u1aqwz1tc",
   },
   {
-    value: "cmf221f4w000go2vrsh70yg0d",
-    label: "6:00 am - 9:00 am ",
-    id: "cmf221f4w000go2vrsh70yg0d",
+    value: "cmf30ryte000wo23uqhdcm57n",
+    label: "6:00 am - 8:00 am ",
+    id: "cmf30ryte000wo23uqhdcm57n",
     eventId: "cmf1xtte80005o2bss6rvxq7b",
-    createdAt: "2025-09-02T04:35:03.008Z",
-    updatedAt: "2025-09-02T04:35:03.008Z",
-    locationId: "cmf21zlak0007o2vrrolt647r",
-    instanceId: "cmf1xtte90008o2bs2pnh7cp9",
-    jobId: "cmf221f4w000fo2vrtg1jyc5x",
-    startTime: "2026-07-25T10:00:00.000Z",
-    endTime: "2026-07-25T13:00:00.000Z",
+    createdAt: "2025-09-02T20:47:28.514Z",
+    updatedAt: "2025-09-02T20:47:28.514Z",
+    locationId: "cmf30rn28000so23ub5cxnmzy",
+    instanceId: "cmf30oix1000fo23uwfiz88wn",
+    jobId: "cmf30rytd000vo23u4tm10v2b",
+    startTime: "2025-07-26T10:00:00.000Z",
+    endTime: "2025-07-26T12:00:00.000Z",
     startTimeTz: "Eastern Standard Time",
     endTimeTz: "Eastern Standard Time",
     capacity: 0,
@@ -87,17 +87,36 @@ const availableShifts = [
     deleted: false,
   },
   {
-    value: "cmf221f4w000ho2vrxadcakgk",
-    label: "9:00 am - 12:00 pm ",
-    id: "cmf221f4w000ho2vrxadcakgk",
+    value: "cmf30rytf000xo23u3g5xxxzh",
+    label: "8:00 am - 10:00 am ",
+    id: "cmf30rytf000xo23u3g5xxxzh",
     eventId: "cmf1xtte80005o2bss6rvxq7b",
-    createdAt: "2025-09-02T04:35:03.008Z",
-    updatedAt: "2025-09-02T04:35:03.008Z",
-    locationId: "cmf21zlak0007o2vrrolt647r",
-    instanceId: "cmf1xtte90008o2bs2pnh7cp9",
-    jobId: "cmf221f4w000fo2vrtg1jyc5x",
-    startTime: "2026-07-25T13:00:00.000Z",
-    endTime: "2026-07-25T16:00:00.000Z",
+    createdAt: "2025-09-02T20:47:28.514Z",
+    updatedAt: "2025-09-02T20:47:28.514Z",
+    locationId: "cmf30rn28000so23ub5cxnmzy",
+    instanceId: "cmf30oix1000fo23uwfiz88wn",
+    jobId: "cmf30rytd000vo23u4tm10v2b",
+    startTime: "2025-07-26T12:00:00.000Z",
+    endTime: "2025-07-26T14:00:00.000Z",
+    startTimeTz: "Eastern Standard Time",
+    endTimeTz: "Eastern Standard Time",
+    capacity: 0,
+    open: true,
+    active: true,
+    deleted: false,
+  },
+  {
+    value: "cmf30rytf000yo23ukwfeamms",
+    label: "10:00 am - 12:00 pm ",
+    id: "cmf30rytf000yo23ukwfeamms",
+    eventId: "cmf1xtte80005o2bss6rvxq7b",
+    createdAt: "2025-09-02T20:47:28.514Z",
+    updatedAt: "2025-09-02T20:47:28.514Z",
+    locationId: "cmf30rn28000so23ub5cxnmzy",
+    instanceId: "cmf30oix1000fo23uwfiz88wn",
+    jobId: "cmf30rytd000vo23u4tm10v2b",
+    startTime: "2025-07-26T14:00:00.000Z",
+    endTime: "2025-07-26T16:00:00.000Z",
     startTimeTz: "Eastern Standard Time",
     endTimeTz: "Eastern Standard Time",
     capacity: 0,
@@ -280,8 +299,8 @@ const generateRegistration = async () => {
 
   const data = {
     values: {
-      1756787521757: name,
-      1756787523823: email,
+      1756845915981: name,
+      1756845917411: email,
     },
     shifts: pickRandomItems(availableShifts),
     pii,
@@ -292,7 +311,7 @@ const generateRegistration = async () => {
     {
       method: "POST",
       headers: {
-        "X-Instance": "cmf1xtte90008o2bs2pnh7cp9",
+        "X-Instance": "cmf30oix1000fo23uwfiz88wn",
         "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
@@ -320,7 +339,7 @@ const generateRegistration = async () => {
   }
 };
 
-for (let i = 0; i < 260 - 109; i++) {
+for (let i = 0; i < 170; i++) {
   await generateRegistration();
 }
 
@@ -334,7 +353,7 @@ SET "createdAt" = LEAST(
   (
     (
       -- pick a day within the past 75 days, smoother recency bias
-      (DATE '2025-09-01'
+      (DATE '2024-09-02'
        - (FLOOR(POWER(random(), 1.7) * 75))::int
       )::timestamp
       +
@@ -364,11 +383,11 @@ SET "createdAt" = LEAST(
       END
     ) AT TIME ZONE 'America/New_York'
   ),
-  (TIMESTAMP '2025-09-01 23:59:59' AT TIME ZONE 'America/New_York'),
+  (TIMESTAMP '2024-09-02 23:59:59' AT TIME ZONE 'America/New_York'),
   now()
 )
 WHERE fr."eventId"    = 'cmf1xtte80005o2bss6rvxq7b'
-  AND fr."instanceId" = 'cmf1xtte90008o2bs2pnh7cp9';
+  AND fr."instanceId" = 'cmf30oix1000fo23uwfiz88wn';
 
 
  */

@@ -60,22 +60,7 @@ export const groupByLocationAndJob = (responses) => {
 };
 
 export const findSubmission = async (eventId, submissionId) => {
-  const fields = await prisma.volunteerRegistrationField.findMany({
-    where: { eventId, deleted: false },
-    orderBy: { order: "asc" },
-    select: {
-      id: true,
-      label: true,
-      type: true,
-      options: {
-        select: { id: true, label: true, deleted: true },
-      },
-      deleted: true,
-      order: true,
-      required: true,
-    },
-  });
-
+  // Load the submission first so we can scope fields by instance
   const resp = await prisma.volunteerRegistration.findUnique({
     where: { id: submissionId },
     include: {
@@ -103,13 +88,57 @@ export const findSubmission = async (eventId, submissionId) => {
     throw new Error("Submission not found");
   }
 
+  // Fetch fields for the same instance as the submission to avoid cross-instance mismatches
+  const fields = await prisma.volunteerRegistrationField.findMany({
+    where: { eventId, instanceId: resp.instanceId, deleted: false },
+    orderBy: { order: "asc" },
+    select: {
+      id: true,
+      label: true,
+      type: true,
+      eventpilotFieldType: true,
+      options: {
+        select: { id: true, label: true, deleted: true },
+      },
+      deleted: true,
+      order: true,
+      required: true,
+    },
+  });
+
   const shifts = [...resp.shifts];
   const formattedResponse = formatFormResponse(resp, fields);
 
-  const emailField = fields.find((f) => f.label === "Your Email");
-  const email = formattedResponse[emailField.id];
-  const nameField = fields.find((f) => f.label === "Your Name");
-  const name = formattedResponse[nameField.id];
+  // Robustly resolve special fields (prefer eventpilotFieldType, then fallbacks)
+  const resolveField = (
+    fieldsArr,
+    { preferredType, fallbackType, labelMatch }
+  ) => {
+    return (
+      fieldsArr.find((f) => f.eventpilotFieldType === preferredType) ||
+      (fallbackType
+        ? fieldsArr.find((f) => (f.type || "").toLowerCase() === fallbackType)
+        : null) ||
+      (labelMatch ? fieldsArr.find((f) => labelMatch(f.label || "")) : null) ||
+      null
+    );
+  };
+
+  const emailField = resolveField(fields, {
+    preferredType: "volunteerEmail",
+    fallbackType: "email",
+    labelMatch: (l) => l.trim().toLowerCase() === "your email",
+  });
+  const nameField = resolveField(fields, {
+    preferredType: "volunteerName",
+    fallbackType: null,
+    labelMatch: (l) =>
+      l.trim().toLowerCase() === "your name" ||
+      l.toLowerCase().includes("name"),
+  });
+
+  const email = emailField ? formattedResponse[emailField.id] : undefined;
+  const name = nameField ? formattedResponse[nameField.id] : undefined;
   formattedResponse["flat"] = { email, name };
 
   const fieldsMeta = fields.map((f) => ({
@@ -140,10 +169,17 @@ export const findSubmission = async (eventId, submissionId) => {
   const otherResponsesWithSameFingerprintFormatted =
     otherResponsesWithSameFingerprint.map((r) => {
       const formatted = formatFormResponse(r, fields);
-      const nameFieldId = fields.find((f) => f.label === "Your Name")?.id;
+      const nameFieldResolved = resolveField(fields, {
+        preferredType: "volunteerName",
+        fallbackType: null,
+        labelMatch: (l) =>
+          l.trim().toLowerCase() === "your name" ||
+          l.toLowerCase().includes("name"),
+      });
+      const nameFieldId = nameFieldResolved?.id;
       return {
         ...formatted,
-        name: formatted[nameFieldId],
+        name: nameFieldId ? formatted[nameFieldId] : undefined,
       };
     });
 

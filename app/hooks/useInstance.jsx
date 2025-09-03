@@ -64,6 +64,7 @@ export const useInstance = ({ eventId, instanceId }) => {
       });
 
       await mutate(key);
+      await mutate(`/api/events/${eventId}/instances`);
       return true;
     } catch {
       return false;

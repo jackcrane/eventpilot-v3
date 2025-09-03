@@ -46,79 +46,87 @@ export const post = async (req, res) => {
       },
     });
 
-    await prisma.volunteerShiftSignup.createMany({
-      data: shifts.map((s) => ({
-        formResponseId: formResponse.id,
-        shiftId: s.id,
-      })),
-    });
+    if (Array.isArray(shifts) && shifts.length > 0) {
+      await prisma.volunteerShiftSignup.createMany({
+        data: shifts.map((s) => ({
+          formResponseId: formResponse.id,
+          shiftId: s.id,
+        })),
+        skipDuplicates: true,
+      });
+    }
 
     const fullSubmission = await findSubmission(
       formResponse.eventId,
       formResponse.id
     );
 
-    let existingCrmPersonByEmailAndName = await prisma.crmPerson.findFirst({
-      where: {
-        name: fullSubmission.response.flat.name,
-        emails: {
-          some: {
-            email: fullSubmission.response.flat.email,
-          },
-        },
-      },
-    });
+    const submitterEmail = fullSubmission?.response?.flat?.email || null;
+    const submitterName = fullSubmission?.response?.flat?.name || null;
 
     let crmPersonId;
-    if (!existingCrmPersonByEmailAndName) {
-      existingCrmPersonByEmailAndName = await prisma.crmPerson.create({
-        data: {
-          name: fullSubmission.response.flat.name,
-          emails: {
-            create: {
-              email: fullSubmission.response.flat.email,
-            },
-          },
-          source: "VOLUNTEER",
-          eventId: formResponse.eventId,
-          links: {
-            create: {
-              formResponseId: formResponse.id,
-            },
-          },
-        },
-      });
-      crmPersonId = existingCrmPersonByEmailAndName.id;
-    } else {
-      let crmPersonEmail = await prisma.crmPersonEmail.findFirst({
+    if (submitterEmail) {
+      let existingCrmPersonByEmailAndName = await prisma.crmPerson.findFirst({
         where: {
-          email: fullSubmission.response.flat.email,
-          crmPersonId: existingCrmPersonByEmailAndName.id,
+          name: submitterName || undefined,
+          emails: {
+            some: {
+              email: submitterEmail,
+            },
+          },
         },
       });
-      if (!crmPersonEmail) {
-        crmPersonEmail = await prisma.crmPersonEmail.create({
+
+      if (!existingCrmPersonByEmailAndName) {
+        existingCrmPersonByEmailAndName = await prisma.crmPerson.create({
           data: {
-            email: fullSubmission.response.flat.email,
+            name: submitterName || "Volunteer",
+            emails: {
+              create: {
+                email: submitterEmail,
+              },
+            },
+            source: "VOLUNTEER",
+            eventId: formResponse.eventId,
+            links: {
+              create: {
+                formResponseId: formResponse.id,
+              },
+            },
+          },
+        });
+        crmPersonId = existingCrmPersonByEmailAndName.id;
+      } else {
+        let crmPersonEmail = await prisma.crmPersonEmail.findFirst({
+          where: {
+            email: submitterEmail,
             crmPersonId: existingCrmPersonByEmailAndName.id,
           },
         });
-      }
+        if (!crmPersonEmail) {
+          crmPersonEmail = await prisma.crmPersonEmail.create({
+            data: {
+              email: submitterEmail,
+              crmPersonId: existingCrmPersonByEmailAndName.id,
+            },
+          });
+        }
 
-      await prisma.crmPerson.update({
-        where: {
-          id: existingCrmPersonByEmailAndName.id,
-        },
-        data: {
-          links: {
-            create: {
-              formResponseId: formResponse.id,
+        await prisma.crmPerson.update({
+          where: {
+            id: existingCrmPersonByEmailAndName.id,
+          },
+          data: {
+            links: {
+              create: {
+                formResponseId: formResponse.id,
+              },
             },
           },
-        },
-      });
+        });
 
-      crmPersonId = existingCrmPersonByEmailAndName.id;
+        crmPersonId = existingCrmPersonByEmailAndName.id;
+      }
     }
 
     await prisma.logs.create({
@@ -137,19 +145,23 @@ export const post = async (req, res) => {
       where: { id: formResponse.eventId },
     });
 
-    await sendEmail({
-      From: "EventPilot Support <EventPilot@geteventpilot.com>",
-      To: fullSubmission.response.flat.email,
-      Subject: "Form Response Submitted",
-      TextBody: `Form Response Submitted`,
-      HtmlBody: await render(
-        VolunteerFormResponseThankYouEmail.VolunteerFormResponseThankYouEmail({
-          data: fullSubmission,
-          event: event,
-        })
-      ),
-      crmPersonId,
-    });
+    if (submitterEmail) {
+      await sendEmail({
+        From: "EventPilot Support <EventPilot@geteventpilot.com>",
+        To: submitterEmail,
+        Subject: "Form Response Submitted",
+        TextBody: `Form Response Submitted`,
+        HtmlBody: await render(
+          VolunteerFormResponseThankYouEmail.VolunteerFormResponseThankYouEmail(
+            {
+              data: fullSubmission,
+              event: event,
+            }
+          )
+        ),
+        crmPersonId,
+      });
+    }
 
     res.json({ id: formResponse.id });
   } catch (error) {
