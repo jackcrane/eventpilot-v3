@@ -27,8 +27,13 @@ export const TimeDataFrame = ({
   compareSeries = [], // [{ date, count }]
   anchorStartDate, // current instance start Date
   compareStartDate, // previous instance start Date
+  // Enable a calendar-only toggle to show change vs previous instance
+  enableCalendarChangeToggle = false,
+  // Fraction of the timeframe to move on prev/next; 0.3 = 30%
+  navStepFraction = 0.3,
 }) => {
   const [displayFormat, setDisplayFormat] = useState({ id: defaultDisplay });
+  const [calendarMetric, setCalendarMetric] = useState({ id: "count" }); // "count" | "change"
   // Timeframe state (in months) and paging by timeframe-size
   const [timeframe, setTimeframe] = useState({ id: "6" }); // "1", "3", "6"
   const [offset, setOffset] = useState(0); // 0 = current window, -1 = previous, +1 = next
@@ -42,6 +47,9 @@ export const TimeDataFrame = ({
     .toDate();
   const viewStartDate = moment(viewEndDate).subtract(months, "months").toDate();
 
+  // Clamp step to sane range [0.01, 1]
+  const step = Math.max(0.01, Math.min(1, Number(navStepFraction ?? 0.3)));
+
   const calendarData = series?.map((d) => ({ date: d.date, value: d.count }));
   const timelineData = series?.map((d) => ({ date: d.date, qty: d.count }));
   const compareTimelineData = compareSeries?.map((d) => ({
@@ -49,6 +57,56 @@ export const TimeDataFrame = ({
     qty: d.count,
   }));
   const maxValue = Math.max(0, ...(series || []).map((d) => d?.count ?? 0));
+
+  // Determine if comparison is usable for calendar change view
+  const hasComparison =
+    enableCalendarChangeToggle &&
+    Array.isArray(compareSeries) &&
+    compareSeries.length > 0 &&
+    !!anchorStartDate &&
+    !!compareStartDate;
+
+  // Build per-day change series aligned by day-offset from instance start
+  const changeCalendarData = (() => {
+    if (!hasComparison) return [];
+    const dayMs = 24 * 60 * 60 * 1000;
+    const toIso = (d) => {
+      const x = d instanceof Date ? d : new Date(d);
+      return `${x.getUTCFullYear()}-${String(x.getUTCMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(x.getUTCDate()).padStart(2, "0")}`;
+    };
+
+    const currentMap = new Map(
+      (series || []).map((d) => [toIso(new Date(d.date)), d.count ?? 0])
+    );
+    const anchor = new Date(anchorStartDate);
+    const prevStart = new Date(compareStartDate);
+    const prevMappedMap = new Map();
+    for (const d of compareSeries || []) {
+      if (!d?.date) continue;
+      const dDate = new Date(d.date);
+      const offsetDays = Math.floor((dDate - prevStart) / dayMs);
+      const mapped = new Date(anchor.getTime() + offsetDays * dayMs);
+      prevMappedMap.set(toIso(mapped), d.count ?? 0);
+    }
+
+    const unionDays = new Set([...currentMap.keys(), ...prevMappedMap.keys()]);
+    const out = [];
+    for (const iso of unionDays) {
+      const cur = currentMap.get(iso) ?? 0;
+      const prev = prevMappedMap.get(iso) ?? 0;
+      out.push({ date: new Date(`${iso}T00:00:00Z`), value: cur - prev });
+    }
+    out.sort((a, b) => new Date(a.date) - new Date(b.date));
+    return out;
+  })();
+
+  const maxAbsChange = Math.max(
+    0,
+    ...changeCalendarData.map((d) => Math.abs(d.value ?? 0))
+  );
 
   return (
     <Card title={title}>
@@ -99,7 +157,11 @@ export const TimeDataFrame = ({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Button size="sm" outline onClick={() => setOffset((o) => o - 1)}>
+              <Button
+                size="sm"
+                outline
+                onClick={() => setOffset((o) => o - step)}
+              >
                 <Icon i="chevron-left" />
               </Button>
               <SegmentedControl
@@ -115,46 +177,136 @@ export const TimeDataFrame = ({
                 ]}
                 size="sm"
               />
-              <Button size="sm" outline onClick={() => setOffset((o) => o + 1)}>
+              <Button
+                size="sm"
+                outline
+                onClick={() => setOffset((o) => o + step)}
+              >
                 <Icon i="chevron-right" />
               </Button>
             </div>
 
-            {displayFormat?.id === "calendar" && (
-              <div
-                aria-label="Calendar reference"
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  alignItems: "center",
-                  gap: 16,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 12 }}>0</span>
-                  <div
-                    title={`Scale: 0 to ${maxValue}`}
-                    style={{
-                      width: 72,
-                      height: 12,
-                      background: "linear-gradient(to right, white, #066fd1)",
-                    }}
-                  />
-                  <span style={{ fontSize: 12 }}>{maxValue}</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div
-                    title="Event dates"
-                    style={{
-                      width: 12,
-                      height: 12,
-                      background: "var(--tblr-success)",
-                    }}
-                  />
-                  <span style={{ fontSize: 12 }}>Event dates</span>
-                </div>
-              </div>
+            {displayFormat?.id === "calendar" && hasComparison && (
+              <SegmentedControl
+                value={calendarMetric}
+                onChange={setCalendarMetric}
+                items={[
+                  { id: "count", label: "Count" },
+                  { id: "change", label: "Change" },
+                ]}
+                size="sm"
+              />
             )}
+
+            {displayFormat?.id === "calendar" &&
+              calendarMetric?.id === "count" && (
+                <div
+                  aria-label="Calendar reference"
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    alignItems: "center",
+                    gap: 16,
+                  }}
+                >
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <span style={{ fontSize: 12 }}>0</span>
+                    <div
+                      title={`Scale: 0 to ${maxValue}`}
+                      style={{
+                        width: 72,
+                        height: 12,
+                        background: "linear-gradient(to right, white, #066fd1)",
+                      }}
+                    />
+                    <span style={{ fontSize: 12 }}>{maxValue}</span>
+                  </div>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <div
+                      title="No data"
+                      style={{
+                        width: 12,
+                        height: 12,
+                        background: "#f8f8f8",
+                        border: "1px solid var(--tblr-border-color)",
+                      }}
+                    />
+                    <span style={{ fontSize: 12 }}>No data</span>
+                  </div>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <div
+                      title="Event dates"
+                      style={{
+                        width: 12,
+                        height: 12,
+                        background: "var(--tblr-success)",
+                      }}
+                    />
+                    <span style={{ fontSize: 12 }}>Event dates</span>
+                  </div>
+                </div>
+              )}
+            {displayFormat?.id === "calendar" &&
+              calendarMetric?.id === "change" && (
+                <div
+                  aria-label="Calendar reference"
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    alignItems: "center",
+                    gap: 16,
+                  }}
+                >
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <span style={{ fontSize: 12 }}>-{maxAbsChange}</span>
+                    <div
+                      title={`Change scale: -${maxAbsChange} to +${maxAbsChange}`}
+                      style={{
+                        width: 72,
+                        height: 12,
+                        background:
+                          "linear-gradient(to right, var(--tblr-danger), #c9c9c9, var(--tblr-success))",
+                      }}
+                    />
+                    <span style={{ fontSize: 12 }}>{maxAbsChange}</span>
+                  </div>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <div
+                      title="No data"
+                      style={{
+                        width: 12,
+                        height: 12,
+                        background: "#f8f8f8",
+                        border: "1px solid var(--tblr-border-color)",
+                      }}
+                    />
+                    <span style={{ fontSize: 12 }}>No data</span>
+                  </div>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <div
+                      title="Event dates"
+                      style={{
+                        width: 12,
+                        height: 12,
+                        background: "var(--tblr-success)",
+                      }}
+                    />
+                    <span style={{ fontSize: 12 }}>Event dates</span>
+                  </div>
+                </div>
+              )}
             {displayFormat?.id === "timeline" && (
               <div
                 aria-label="Timeline reference"
@@ -216,7 +368,11 @@ export const TimeDataFrame = ({
                 }}
               >
                 <CalendarPlot
-                  data={calendarData}
+                  data={
+                    calendarMetric?.id === "change"
+                      ? changeCalendarData
+                      : calendarData
+                  }
                   startDate={viewStartDate}
                   endDate={viewEndDate}
                   height={200}
@@ -224,6 +380,11 @@ export const TimeDataFrame = ({
                   todayStroke="var(--tblr-danger)"
                   todayStrokeWidth={2}
                   showCounts
+                  mode={
+                    calendarMetric?.id === "change" ? "diverging" : "sequential"
+                  }
+                  positiveColor="#2ecc71"
+                  negativeColor="#e74c3c"
                   // Pass through to calendar as lower-cased prop
                   highlightCells={HighlightCells}
                 />

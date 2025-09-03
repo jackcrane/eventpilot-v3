@@ -52,6 +52,7 @@ export const VolunteerRegistrationStatsCard = () => {
         date: d.date,
         count: d.count,
       }))}
+      enableCalendarChangeToggle={!!previous?.registrationsByDay?.length}
       unitSingular="Volunteer"
       unitPlural="Volunteers"
       anchorStartDate={buildDate(instance?.startTime, instance?.startTimeTz)}
