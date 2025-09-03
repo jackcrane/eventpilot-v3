@@ -51,8 +51,7 @@ export const InstancePicker = ({
         openManage({
           content: (
             <InstanceManager
-              instances={instances}
-              loading={loading}
+              eventId={eventId}
               onCreate={() => createInstanceInteraction()}
               onDelete={(id) => deleteInstanceById(id)}
               onEdit={(instanceId) =>

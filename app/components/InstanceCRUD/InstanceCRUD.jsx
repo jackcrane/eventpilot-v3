@@ -12,6 +12,7 @@ import { InstancePicker } from "../InstancePicker/InstancePicker";
 import { useInstances } from "../../hooks/useInstances";
 import { useInstance } from "../../hooks/useInstance";
 import toast from "react-hot-toast";
+import { useSelectedInstance } from "../../contexts/SelectedInstanceContext";
 
 export const InstanceCRUD = ({
   eventId,
@@ -20,6 +21,7 @@ export const InstanceCRUD = ({
   close,
 }) => {
   const isEdit = mode === "edit" || !!instanceId;
+  const { instanceDropdownValue } = useSelectedInstance();
 
   // Hooks for create and edit paths
   const {
@@ -66,6 +68,18 @@ export const InstanceCRUD = ({
       }));
     }
   }, [isEdit, instance]);
+
+  // In create mode, default the template instance to whatever the InstancePicker shows by default
+  // This mirrors the SelectedInstanceContext's current dropdown value when user doesn't change it
+  useEffect(() => {
+    if (isEdit) return;
+    const preselectedId = instanceDropdownValue?.id;
+    if (!state.templateInstanceId && preselectedId) {
+      setState((s) =>
+        s.templateInstanceId ? s : { ...s, templateInstanceId: preselectedId }
+      );
+    }
+  }, [isEdit, instanceDropdownValue?.id, state.templateInstanceId]);
 
   const currentLoading = isEdit ? editLoading : false;
   const mutationLoading = isEdit ? updateLoading : createLoading;

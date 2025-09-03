@@ -67,6 +67,12 @@ export const useInstances = ({ eventId }) => {
       }
 
       await mutate(key);
+      // Invalidate all event-scoped keys to refresh dependent data
+      await mutate(
+        (k) => typeof k === "string" && k.includes(`/api/events/${eventId}`),
+        undefined,
+        { revalidate: true }
+      );
       return true;
     } catch {
       return false;
@@ -130,6 +136,12 @@ export const useInstances = ({ eventId }) => {
       });
 
       await mutate(key);
+      // Also refresh all event-scoped keys across the app
+      await mutate(
+        (k) => typeof k === "string" && k.includes(`/api/events/${eventId}`),
+        undefined,
+        { revalidate: true }
+      );
       if (nextCandidate) setInstance(nextCandidate.id);
       return true;
     } catch (e) {
