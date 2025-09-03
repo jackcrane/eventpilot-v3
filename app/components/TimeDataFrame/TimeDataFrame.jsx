@@ -27,6 +27,7 @@ export const TimeDataFrame = ({
 
   const calendarData = series?.map((d) => ({ date: d.date, value: d.count }));
   const timelineData = series?.map((d) => ({ date: d.date, qty: d.count }));
+  const maxValue = Math.max(0, ...(series || []).map((d) => d?.count ?? 0));
 
   return (
     <Card title={title}>
@@ -58,17 +59,65 @@ export const TimeDataFrame = ({
           </div>
         </Responsive>
         {displayFormat?.id === "calendar" ? (
-          <CalendarPlot
-            data={calendarData}
-            startDate={startDate}
-            endDate={endDate}
-            highlightToday
-            todayStroke="var(--tblr-danger)"
-            todayStrokeWidth={2}
-            showCounts
-            // Pass through to calendar as lower-cased prop
-            highlightCells={HighlightCells}
-          />
+          <div
+            style={{ display: "flex", flexDirection: "column", width: "100%" }}
+          >
+            {/* Legend / reference aligned top-right, no borders/background */}
+            <div
+              aria-label="Calendar reference"
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                gap: 16,
+                marginBottom: 8,
+                width: "100%",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 12 }}>0</span>
+                <div
+                  title={`Scale: 0 to ${maxValue}`}
+                  style={{
+                    width: 72,
+                    height: 12,
+                    background: "linear-gradient(to right, white, #066fd1)",
+                  }}
+                />
+                <span style={{ fontSize: 12 }}>{maxValue}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div
+                  title="Event dates"
+                  style={{
+                    width: 12,
+                    height: 12,
+                    background: "var(--tblr-success)",
+                  }}
+                />
+                <span style={{ fontSize: 12 }}>Event dates</span>
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                width: "100%",
+              }}
+            >
+              <CalendarPlot
+                data={calendarData}
+                startDate={startDate}
+                endDate={endDate}
+                highlightToday
+                todayStroke="var(--tblr-danger)"
+                todayStrokeWidth={2}
+                showCounts
+                // Pass through to calendar as lower-cased prop
+                highlightCells={HighlightCells}
+              />
+            </div>
+          </div>
         ) : (
           <TimeLineChart
             data={timelineData}
