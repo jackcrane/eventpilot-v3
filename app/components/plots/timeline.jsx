@@ -8,16 +8,37 @@ export const TimeLineChart = ({
   height = 150,
   unitSingular = "Volunteer",
   unitPlural = "Volunteers",
+  // Optional: force the visible x-domain (calendar-aligned)
+  startDate,
+  endDate,
 }) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
-    if (!data || data.length === 0) return;
-
     const resize = () => {
       if (!containerRef.current) return;
 
       const width = containerRef.current.offsetWidth;
+      const safeData = Array.isArray(data) ? data : [];
+
+      // Determine x-domain: prefer provided start/end dates; otherwise infer from data.
+      const xLo = startDate ? new Date(startDate) : (safeData[0] ? new Date(safeData[0].date) : undefined);
+      const xHi = endDate ? new Date(endDate) : (safeData[safeData.length - 1] ? new Date(safeData[safeData.length - 1].date) : undefined);
+      let xDomain;
+      if (xLo && xHi) {
+        xDomain = xLo <= xHi ? [xLo, xHi] : [xHi, xLo];
+      }
+
+      // Compute y-domain hints and tick config safely when no data.
+      const qtys = safeData.map((d) => d.qty ?? 0);
+      const minQty = qtys.length ? Math.min(...qtys) : 0;
+      const maxQty = qtys.length ? Math.max(...qtys) : 0;
+      const yDomain = [0, Math.max(1, maxQty)];
+
+      // Choose sensible x tick interval based on range length (days).
+      const msPerDay = 24 * 60 * 60 * 1000;
+      const daySpan = xDomain ? Math.max(1, Math.round((xDomain[1] - xDomain[0]) / msPerDay)) : safeData.length;
+      const xTicks = daySpan > 14 ? "week" : "day";
 
       const plot = Plot.plot({
         width,
@@ -26,16 +47,15 @@ export const TimeLineChart = ({
           type: "utc",
           grid: true,
           tickFormat: (d) => moment(d).format("M/D"),
-          ticks: data.length > 14 ? "week" : "day",
+          ticks: xTicks,
+          ...(xDomain ? { domain: xDomain } : {}),
         },
         y: {
           nice: true,
+          grid: true,
+          domain: yDomain,
           tickFormat: (d) => (Number.isInteger(d) ? d : ""),
-          ticks:
-            Math.min(...data.map((d) => d.qty)) ===
-            Math.max(...data.map((d) => d.qty))
-              ? 1
-              : undefined,
+          ticks: minQty === maxQty ? 1 : undefined,
         },
         marks: [
           () => svg`<defs>
@@ -44,44 +64,59 @@ export const TimeLineChart = ({
           <stop offset="70%" stop-color="var(--tblr-primary)" stop-opacity="0" />
         </linearGradient>
       </defs>`,
-          Plot.areaY(data, { x: "date", y: "qty", fill: "url(#gradient)" }),
-          Plot.line(data, {
-            x: "date",
-            y: "qty",
-            stroke: "var(--tblr-primary)",
-            strokeWidth: 2,
-          }),
-          Plot.ruleX(
-            data,
-            Plot.pointerX({
-              x: "date",
-              py: "qty",
-              stroke: "var(--tblr-danger)",
-            })
-          ),
-          Plot.dot(
-            data,
-            Plot.pointerX({
-              x: "date",
-              y: "qty",
-              stroke: "var(--tblr-danger)",
-            })
-          ),
-          Plot.text(
-            data,
-            Plot.pointerX({
-              px: "date",
-              py: "qty",
-              dy: -16,
-              frameAnchor: "top-left",
-              fontVariant: "tabular-nums",
-              text: (d) =>
-                [
-                  `Date ${moment(d.date).format("M/D/YY")}`,
-                  `${d.qty?.toFixed(0) || 0} ${d.qty === 1 ? unitSingular : unitPlural}`,
-                ].join("   "),
-            })
-          ),
+          // Baseline/frame to improve axis visibility
+          Plot.ruleY([0], { stroke: "var(--tblr-border-color)" }),
+          Plot.frame({ stroke: "var(--tblr-border-color)" }),
+
+          // Only render series and pointer interactions when data is present
+          ...(safeData.length
+            ? [
+                Plot.areaY(safeData, {
+                  x: "date",
+                  y: "qty",
+                  fill: "url(#gradient)",
+                }),
+                Plot.line(safeData, {
+                  x: "date",
+                  y: "qty",
+                  stroke: "var(--tblr-primary)",
+                  strokeWidth: 2,
+                }),
+                Plot.ruleX(
+                  safeData,
+                  Plot.pointerX({
+                    x: "date",
+                    py: "qty",
+                    stroke: "var(--tblr-danger)",
+                  })
+                ),
+                Plot.dot(
+                  safeData,
+                  Plot.pointerX({
+                    x: "date",
+                    y: "qty",
+                    stroke: "var(--tblr-danger)",
+                  })
+                ),
+                Plot.text(
+                  safeData,
+                  Plot.pointerX({
+                    px: "date",
+                    py: "qty",
+                    dy: -16,
+                    frameAnchor: "top-left",
+                    fontVariant: "tabular-nums",
+                    text: (d) =>
+                      [
+                        `Date ${moment(d.date).format("M/D/YY")}`,
+                        `${d.qty?.toFixed(0) || 0} ${
+                          d.qty === 1 ? unitSingular : unitPlural
+                        }`,
+                      ].join("   "),
+                  })
+                ),
+              ]
+            : []),
         ],
       });
 
@@ -96,7 +131,7 @@ export const TimeLineChart = ({
     return () => {
       window.removeEventListener("resize", resize);
     };
-  }, [data, height]);
+  }, [data, height, startDate, endDate, unitPlural, unitSingular]);
 
   return <div ref={containerRef} style={{ width: "100%" }} />;
 };

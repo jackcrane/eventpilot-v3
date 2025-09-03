@@ -124,6 +124,8 @@ export const TimeDataFrame = ({
             height={150}
             unitSingular={unitSingular}
             unitPlural={unitPlural}
+            startDate={startDate}
+            endDate={endDate}
           />
         )}
       </Responsive>
