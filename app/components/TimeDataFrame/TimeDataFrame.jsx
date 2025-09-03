@@ -15,6 +15,7 @@ export const TimeDataFrame = ({
   title,
   totalTitle,
   total,
+  trend = null,
   series = [], // [{ date: Date|string, count: number }]
   defaultDisplay = "calendar",
   startDate, // optional; if provided, not used as anchor (endDate is)
@@ -124,7 +125,7 @@ export const TimeDataFrame = ({
           defaultDirection="column"
           colGap={2}
         >
-          <DataBox title={totalTitle} value={total} breakpoint={1000} />
+          <DataBox title={totalTitle} value={total} trend={trend} breakpoint={1000} />
           <div>
             <label className="form-label">Display Format</label>
             <SegmentedControl

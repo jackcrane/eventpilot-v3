@@ -7,7 +7,7 @@ import { buildDate } from "../tzDateTime/tzDateTime";
 
 export const VolunteerRegistrationStatsCard = () => {
   const { eventId } = useParams();
-  const { volunteerRegistrations, registrationsByDay, previous } = useDashVolunteers({
+  const { volunteerRegistrations, registrationsByDay, previous, trend } = useDashVolunteers({
     eventId,
   });
   const { instance } = useSelectedInstance();
@@ -44,6 +44,7 @@ export const VolunteerRegistrationStatsCard = () => {
       title="Volunteer Registrations"
       totalTitle="Total Volunteers"
       total={volunteerRegistrations}
+      trend={trend}
       series={registrationsByDay?.map((d) => ({
         date: d.date,
         count: d.count,
