@@ -54,6 +54,15 @@ export const TimeLineChart = ({
         : safeData.length;
       const xTicks = daySpan > 14 ? "week" : "day";
 
+      // Restrict interactive dataset to the visible x-domain to avoid
+      // tooltips for cropped data outside the plot area.
+      const visibleData = xDomain
+        ? safeData.filter((d) => {
+            const t = new Date(d.date).getTime();
+            return t >= xDomain[0].getTime() && t <= xDomain[1].getTime();
+          })
+        : safeData;
+
       // Build mapped comparison data aligned to the current instance by day-offset.
       const mappedCompare = (() => {
         if (
@@ -75,6 +84,13 @@ export const TimeLineChart = ({
           })
           .sort((a, b) => a.date - b.date);
       })();
+
+      const mappedCompareMap = new Map(
+        (Array.isArray(mappedCompare) ? mappedCompare : []).map((p) => [
+          new Date(p.date).getTime(),
+          p.qty ?? 0,
+        ])
+      );
 
       const plot = Plot.plot({
         width,
@@ -134,7 +150,7 @@ export const TimeLineChart = ({
                     ]
                   : []),
                 Plot.ruleX(
-                  safeData,
+                  visibleData,
                   Plot.pointerX({
                     x: "date",
                     py: "qty",
@@ -143,7 +159,7 @@ export const TimeLineChart = ({
                   })
                 ),
                 Plot.dot(
-                  safeData,
+                  visibleData,
                   Plot.pointerX({
                     x: "date",
                     y: "qty",
@@ -151,22 +167,30 @@ export const TimeLineChart = ({
                     clip: true,
                   })
                 ),
-                Plot.text(
-                  safeData,
+                // HTML tooltip near cursor using Plot.tip
+                Plot.tip(
+                  visibleData,
                   Plot.pointerX({
-                    px: "date",
-                    py: "qty",
-                    dy: -16,
-                    frameAnchor: "top-left",
-                    fontVariant: "tabular-nums",
-                    clip: true,
-                    text: (d) =>
-                      [
+                    x: "date",
+                    y: "qty",
+                    title: (d) => {
+                      const t = new Date(d.date).getTime();
+                      const prev = mappedCompareMap.get(t);
+                      const parts = [
                         `Date ${moment(d.date).format("M/D/YY")}`,
-                        `${d.qty?.toFixed(0) || 0} ${
+                        `${(d.qty ?? 0).toFixed(0)} ${
                           d.qty === 1 ? unitSingular : unitPlural
                         }`,
-                      ].join("   "),
+                      ];
+                      if (typeof prev === "number") {
+                        parts.push(
+                          `${prev.toFixed(0)} ${
+                            prev === 1 ? unitSingular : unitPlural
+                          } (previous)`
+                        );
+                      }
+                      return parts.join("\n");
+                    },
                   })
                 ),
               ]
