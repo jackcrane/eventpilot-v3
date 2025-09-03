@@ -15,6 +15,7 @@ export const CalendarPlot = ({
   showCounts = false, // show count text if > 0
   showDates = false, // show the date number in each cell
   highlightCells = [], // [{ date: Date|string, color: string }]
+  height, // optional fixed plot height to avoid growing with width
 }) => {
   const ref = useRef(null);
 
@@ -55,8 +56,7 @@ export const CalendarPlot = ({
     }
 
     const max = d3.max(cells, (d) => d.value ?? 0) ?? 0;
-    const weeks =
-      1 + d3.utcWeek.count(d3.utcSunday.floor(lo), d3.utcSunday.floor(hi));
+    const weeks = 1 + d3.utcWeek.count(d3.utcSunday.floor(lo), d3.utcSunday.floor(hi));
 
     const weekdayOrder = [1, 2, 3, 4, 5, 6, 0];
     const weekdayLabels = weekdayOrder.map((dow) => ({
@@ -97,13 +97,35 @@ export const CalendarPlot = ({
 
     const highlightedCells = cells.filter((c) => !!c.highlightColor);
 
+    const marginTop = 28;
+    const marginLeft = 36;
+    const marginRight = 2;
+    const marginBottom = 2;
+
+    // Choose plot dimensions to maintain square day cells.
+    // If a height is provided, derive width from it. Otherwise, derive height from width.
+    let plotHeight;
+    let plotWidth;
+    if (height != null) {
+      const innerH = Math.max(1, height - (marginTop + marginBottom));
+      const cell = Math.max(6, Math.floor(innerH / 7));
+      plotHeight = cell * 7 + marginTop + marginBottom;
+      const innerW = cell * Math.max(1, weeks);
+      plotWidth = innerW + marginLeft + marginRight;
+    } else {
+      const innerW = Math.max(1, (width ?? 720) - (marginLeft + marginRight));
+      const cell = Math.max(6, Math.floor(innerW / Math.max(1, weeks)));
+      plotHeight = cell * 7 + marginTop + marginBottom;
+      plotWidth = (width ?? 720);
+    }
+
     const plot = Plot.plot({
-      width,
-      height: Math.max(7 * Math.floor(width / Math.max(weeks, 1)), 70),
-      marginTop: 28,
-      marginLeft: 36,
-      marginRight: 2,
-      marginBottom: 2,
+      width: plotWidth,
+      height: plotHeight,
+      marginTop,
+      marginLeft,
+      marginRight,
+      marginBottom,
       style: {
         overflow: "visible",
         fontFamily: "var(--tblr-body-font-family)",
@@ -242,6 +264,7 @@ export const CalendarPlot = ({
     showCounts,
     showDates, // ensure toggling re-renders
     highlightCells,
+    height,
   ]);
 
   return <div ref={ref} />;
