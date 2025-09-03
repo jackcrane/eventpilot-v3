@@ -167,10 +167,9 @@ export const TimeLineChart = ({
                     clip: true,
                   })
                 ),
-                // HTML tooltip near cursor using Plot.tip
-                Plot.tip(
-                  visibleData,
-                  Plot.pointerX({
+                // HTML tooltip near cursor using Plot.tip; clipped to plot area
+                Plot.tip(visibleData, {
+                  ...Plot.pointerX({
                     x: "date",
                     y: "qty",
                     title: (d) => {
@@ -191,8 +190,9 @@ export const TimeLineChart = ({
                       }
                       return parts.join("\n");
                     },
-                  })
-                ),
+                  }),
+                  clip: true,
+                }),
               ]
             : []),
         ],
