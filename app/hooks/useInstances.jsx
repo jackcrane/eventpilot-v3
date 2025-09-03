@@ -62,14 +62,25 @@ export const useInstances = ({ eventId }) => {
       });
 
       if (result.instance?.id && setGlobalInstance) {
+        // Persist selection immediately so a pending reload keeps it
+        try {
+          localStorage.setItem("instance", result.instance.id);
+        } catch {}
+        // Also update context to fan out revalidation in non-reload flows
         setInstance(result.instance.id);
         toast.success("A new instance has been created & selected");
       }
 
       await mutate(key);
-      return true;
-    } catch {
-      return false;
+      // Invalidate all event-scoped keys to refresh dependent data
+      await mutate(
+        (k) => typeof k === "string" && k.includes(`/api/events/${eventId}`),
+        undefined,
+        { revalidate: true }
+      );
+      return { success: true, instance: result.instance };
+    } catch (e) {
+      return { success: false, error: e };
     } finally {
       setMutationLoading(false);
     }
@@ -130,6 +141,12 @@ export const useInstances = ({ eventId }) => {
       });
 
       await mutate(key);
+      // Also refresh all event-scoped keys across the app
+      await mutate(
+        (k) => typeof k === "string" && k.includes(`/api/events/${eventId}`),
+        undefined,
+        { revalidate: true }
+      );
       if (nextCandidate) setInstance(nextCandidate.id);
       return true;
     } catch (e) {

@@ -1,6 +1,5 @@
 import { prisma } from "#prisma";
 import { computeDeltaMs } from "./helpers.js";
-import { createInstance } from "./createInstance.js";
 import { getTemplateInstance } from "./getTemplateInstance.js";
 import { cloneLocationsJobsShifts } from "./cloneLocationsJobsShifts.js";
 import { cloneVolunteerFormFields } from "./cloneVolunteerFormFields.js";
@@ -43,10 +42,11 @@ export const cloneInstanceFromTemplate = async ({
     opt.shiftChildrenByInstanceDelta
   );
 
-  const created = await createInstance({
-    eventId,
-    ...newInstance,
-  });
+  // Do not create a second instance here. The caller is responsible for
+  // creating the target instance and passing it as `newInstance`.
+  // Historically this function created another instance, which caused
+  // duplicate instances (one empty and one populated). Use the provided
+  // instance as the clone target instead.
 
   const summary = {
     locations: 0,
@@ -70,7 +70,7 @@ export const cloneInstanceFromTemplate = async ({
           tx,
           eventId,
           fromInstanceId,
-          toInstanceId: created.id,
+          toInstanceId: newInstance.id,
           deltaMs,
           summary,
         });
@@ -81,7 +81,7 @@ export const cloneInstanceFromTemplate = async ({
           tx,
           eventId,
           fromInstanceId,
-          toInstanceId: created.id,
+          toInstanceId: newInstance.id,
           summary,
         });
       }
@@ -91,7 +91,7 @@ export const cloneInstanceFromTemplate = async ({
           tx,
           eventId,
           fromInstanceId,
-          toInstanceId: created.id,
+          toInstanceId: newInstance.id,
           summary,
         });
       }
@@ -102,7 +102,7 @@ export const cloneInstanceFromTemplate = async ({
           tx,
           eventId,
           fromInstanceId,
-          toInstanceId: created.id,
+          toInstanceId: newInstance.id,
           deltaMs,
           summary,
         }));
@@ -112,7 +112,7 @@ export const cloneInstanceFromTemplate = async ({
           tx,
           eventId,
           fromInstanceId,
-          toInstanceId: created.id,
+          toInstanceId: newInstance.id,
           summary,
         }));
       }
@@ -120,7 +120,7 @@ export const cloneInstanceFromTemplate = async ({
         await cloneRegistrationPeriodPricing({
           tx,
           fromInstanceId,
-          toInstanceId: created.id,
+          toInstanceId: newInstance.id,
           periodMap,
           tierMap,
           summary,
@@ -132,7 +132,7 @@ export const cloneInstanceFromTemplate = async ({
           tx,
           eventId,
           fromInstanceId,
-          toInstanceId: created.id,
+          toInstanceId: newInstance.id,
           summary,
         });
       }
@@ -140,7 +140,7 @@ export const cloneInstanceFromTemplate = async ({
       await tx.logs.create({
         data: {
           eventId,
-          instanceId: created.id,
+          instanceId: newInstance.id,
           type: "INSTANCE_CREATED",
           data: {
             clonedFromInstanceId: fromInstanceId,
@@ -155,6 +155,5 @@ export const cloneInstanceFromTemplate = async ({
       maxWait: 10_000,
     }
   );
-
-  return { instanceId: created.id, summary };
+  return { instanceId: newInstance.id, summary };
 };
