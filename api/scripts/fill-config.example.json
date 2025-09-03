@@ -1,0 +1,32 @@
+{
+  "common": {
+    "includeFuture": false,
+    "horizonDays": 75,
+    "rampPower": 1.7,
+    "startDate": null,
+    "endDate": null,
+    "seed": 42
+  },
+  "volunteers": {
+    "total": 250,
+    "minShifts": 0,
+    "maxShifts": 2,
+    "fieldMapping": {
+      "volunteerName": "person.fullName",
+      "volunteerEmail": "internet.email",
+      "phone": "phone.number"
+    }
+  },
+  "participants": {
+    "total": 200,
+    "upsellChance": 0.4,
+    "couponChance": 0.2,
+    "teamChance": 0.35,
+    "fieldMapping": {
+      "EMAIL": "internet.email",
+      "TEXT": "lorem.sentence",
+      "TEXTAREA": "lorem.paragraph"
+    }
+  }
+}
+
