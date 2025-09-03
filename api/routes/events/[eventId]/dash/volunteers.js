@@ -100,7 +100,8 @@ export const get = [
 
         const previousAsOf = Number(prevAsOfRows?.[0]?.count ?? 0);
         const delta = Number(volunteerRegistrations) - previousAsOf;
-        const percentChange = previousAsOf > 0 ? (delta / previousAsOf) * 100 : null;
+        const percentChange =
+          previousAsOf > 0 ? (delta / previousAsOf) * 100 : null;
         trend = {
           previousAsOf,
           delta,
