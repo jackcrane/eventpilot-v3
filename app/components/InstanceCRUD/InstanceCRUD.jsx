@@ -25,6 +25,7 @@ export const InstanceCRUD = ({
 
   // Hooks for create and edit paths
   const {
+    instances,
     mutationLoading: createLoading,
     createInstance,
     validationError: createValidationError,
@@ -112,6 +113,49 @@ export const InstanceCRUD = ({
       }
     }
   };
+
+  // Auto-fill dates when creating a new instance named as explicit next year
+  useEffect(() => {
+    if (isEdit) return; // only for create flow
+    if (!state?.name || !instances?.length) return;
+
+    const trimmed = (state.name || "").trim();
+    // Only if name is exactly a 4-digit year
+    const yearMatch = /^\d{4}$/.test(trimmed) ? parseInt(trimmed, 10) : null;
+    if (!yearMatch) return;
+
+    const prevYear = String(yearMatch - 1);
+    const prev = instances.find((i) => (i?.name || "").trim() === prevYear);
+    if (!prev) return;
+
+    // Only auto-fill if times are not already set by the user
+    const hasTimes = !!state.startTime || !!state.endTime;
+    if (hasTimes) return;
+
+    const addOneYear = (iso) => {
+      try {
+        if (!iso) return null;
+        const d = new Date(iso);
+        // Preserve month/day/time; advance calendar year
+        d.setFullYear(d.getFullYear() + 1);
+        return d.toISOString();
+      } catch {
+        return null;
+      }
+    };
+
+    const nextStart = addOneYear(prev.startTime);
+    const nextEnd = addOneYear(prev.endTime);
+    if (nextStart && nextEnd) {
+      setState((s) => ({
+        ...s,
+        startTime: nextStart,
+        endTime: nextEnd,
+        startTimeTz: prev.startTimeTz || s.startTimeTz,
+        endTimeTz: prev.endTimeTz || s.endTimeTz,
+      }));
+    }
+  }, [isEdit, state.name, instances]);
 
   if (currentLoading && isEdit) return null;
 
