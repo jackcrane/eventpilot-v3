@@ -71,14 +71,21 @@ export const TimeLineChart = ({
           !compareStartDate
         )
           return [];
-        const anchor = new Date(anchorStartDate);
-        const prevStart = new Date(compareStartDate);
         const dayMs = 24 * 60 * 60 * 1000;
+        const toUtcMidnight = (x) => {
+          const d = new Date(x);
+          return new Date(
+            Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+          );
+        };
+        const anchor = toUtcMidnight(anchorStartDate);
+        const prevStart = toUtcMidnight(compareStartDate);
         return compareData
           .filter((d) => d?.date)
           .map((d) => {
-            const dDate = new Date(d.date);
-            const offsetDays = Math.floor((dDate - prevStart) / dayMs);
+            const dDate = toUtcMidnight(d.date);
+            // Use UTC-normalized days to avoid DST/timezone off-by-one issues
+            const offsetDays = Math.round((dDate - prevStart) / dayMs);
             const mapped = new Date(anchor.getTime() + offsetDays * dayMs);
             return { date: mapped, qty: d.qty ?? 0 };
           })
@@ -98,7 +105,8 @@ export const TimeLineChart = ({
         x: {
           type: "utc",
           grid: true,
-          tickFormat: (d) => moment(d).format("M/D"),
+          // Format ticks in UTC to match the UTC x-scale and normalization
+          tickFormat: (d) => moment.utc(d).format("M/D"),
           ticks: xTicks,
           ...(xDomain ? { domain: xDomain } : {}),
         },
@@ -176,7 +184,7 @@ export const TimeLineChart = ({
                       const t = new Date(d.date).getTime();
                       const prev = mappedCompareMap.get(t);
                       const parts = [
-                        `Date ${moment(d.date).format("M/D/YY")}`,
+                        `Date ${moment.utc(d.date).format("M/D/YY")}`,
                         `${(d.qty ?? 0).toFixed(0)} ${
                           d.qty === 1 ? unitSingular : unitPlural
                         }`,
