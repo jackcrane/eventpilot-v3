@@ -26,8 +26,16 @@ export const TimeLineChart = ({
       const safeData = Array.isArray(data) ? data : [];
 
       // Determine x-domain: prefer provided start/end dates; otherwise infer from data.
-      const xLo = startDate ? new Date(startDate) : (safeData[0] ? new Date(safeData[0].date) : undefined);
-      const xHi = endDate ? new Date(endDate) : (safeData[safeData.length - 1] ? new Date(safeData[safeData.length - 1].date) : undefined);
+      const xLo = startDate
+        ? new Date(startDate)
+        : safeData[0]
+        ? new Date(safeData[0].date)
+        : undefined;
+      const xHi = endDate
+        ? new Date(endDate)
+        : safeData[safeData.length - 1]
+        ? new Date(safeData[safeData.length - 1].date)
+        : undefined;
       let xDomain;
       if (xLo && xHi) {
         xDomain = xLo <= xHi ? [xLo, xHi] : [xHi, xLo];
@@ -41,12 +49,18 @@ export const TimeLineChart = ({
 
       // Choose sensible x tick interval based on range length (days).
       const msPerDay = 24 * 60 * 60 * 1000;
-      const daySpan = xDomain ? Math.max(1, Math.round((xDomain[1] - xDomain[0]) / msPerDay)) : safeData.length;
+      const daySpan = xDomain
+        ? Math.max(1, Math.round((xDomain[1] - xDomain[0]) / msPerDay))
+        : safeData.length;
       const xTicks = daySpan > 14 ? "week" : "day";
 
       // Build mapped comparison data aligned to the current instance by day-offset.
       const mappedCompare = (() => {
-        if (!Array.isArray(compareData) || !anchorStartDate || !compareStartDate)
+        if (
+          !Array.isArray(compareData) ||
+          !anchorStartDate ||
+          !compareStartDate
+        )
           return [];
         const anchor = new Date(anchorStartDate);
         const prevStart = new Date(compareStartDate);
@@ -97,12 +111,14 @@ export const TimeLineChart = ({
                   x: "date",
                   y: "qty",
                   fill: "url(#gradient)",
+                  clip: true,
                 }),
                 Plot.line(safeData, {
                   x: "date",
                   y: "qty",
                   stroke: "var(--tblr-primary)",
                   strokeWidth: 2,
+                  clip: true,
                 }),
                 // Historical overlay (previous instance mapped to current axis)
                 ...(mappedCompare.length
@@ -110,9 +126,10 @@ export const TimeLineChart = ({
                       Plot.line(mappedCompare, {
                         x: "date",
                         y: "qty",
-                        stroke: "var(--tblr-warning)",
-                        strokeWidth: 2,
+                        stroke: "var(--tblr-secondary)",
+                        strokeWidth: 1,
                         strokeDasharray: "5,3",
+                        clip: true,
                       }),
                     ]
                   : []),
@@ -122,6 +139,7 @@ export const TimeLineChart = ({
                     x: "date",
                     py: "qty",
                     stroke: "var(--tblr-danger)",
+                    clip: true,
                   })
                 ),
                 Plot.dot(
@@ -130,6 +148,7 @@ export const TimeLineChart = ({
                     x: "date",
                     y: "qty",
                     stroke: "var(--tblr-danger)",
+                    clip: true,
                   })
                 ),
                 Plot.text(
@@ -140,6 +159,7 @@ export const TimeLineChart = ({
                     dy: -16,
                     frameAnchor: "top-left",
                     fontVariant: "tabular-nums",
+                    clip: true,
                     text: (d) =>
                       [
                         `Date ${moment(d.date).format("M/D/YY")}`,

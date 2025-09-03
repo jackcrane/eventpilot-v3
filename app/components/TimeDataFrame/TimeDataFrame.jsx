@@ -3,7 +3,7 @@ import { useState } from "react";
 import moment from "moment";
 import { CalendarPlot } from "../plots/calendar";
 import { TimeLineChart } from "../plots/timeline";
-import { Responsive } from "../../util/Flex";
+import { Col, Responsive } from "../../util/Flex";
 import { DataBox } from "../dataBox/DataBox";
 import { Icon } from "../../util/Icon";
 
@@ -153,6 +153,48 @@ export const TimeDataFrame = ({
                   />
                   <span style={{ fontSize: 12 }}>Event dates</span>
                 </div>
+              </div>
+            )}
+            {displayFormat?.id === "timeline" && (
+              <div
+                aria-label="Timeline reference"
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  alignItems: "center",
+                  gap: 16,
+                }}
+              >
+                <Col gap={0} align="flex-start">
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <div
+                      title="Current instance"
+                      style={{
+                        width: 24,
+                        height: 0,
+                        borderTop: "2px solid var(--tblr-primary)",
+                      }}
+                    />
+                    <span style={{ fontSize: 12 }}>Current</span>
+                  </div>
+                  {!!compareSeries?.length && (
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      <div
+                        title="Previous instance"
+                        style={{
+                          width: 24,
+                          height: 0,
+                          borderTop: "1px dashed var(--tblr-secondary)",
+                        }}
+                      />
+                      <span style={{ fontSize: 12 }}>Previous</span>
+                    </div>
+                  )}
+                </Col>
               </div>
             )}
           </div>
