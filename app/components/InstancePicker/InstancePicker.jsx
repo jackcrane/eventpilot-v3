@@ -47,30 +47,32 @@ export const InstancePicker = ({
       createInstanceInteraction();
     } else if (id.id === "eventpilot__manage") {
       // Open manage list in an offcanvas, then allow launching editor offcanvas inside it
-      setTimeout(() =>
-        openManage({
-          content: (
-            <InstanceManager
-              instances={instances}
-              loading={loading}
-              onCreate={() => createInstanceInteraction()}
-              onDelete={(id) => deleteInstanceById(id)}
-              onEdit={(instanceId) =>
-                openEditor({
-                  content: (
-                    <InstanceCRUD
-                      eventId={eventId}
-                      instanceId={instanceId}
-                      mode="edit"
-                      close={closeEditor}
-                    />
-                  ),
-                })
-              }
-            />
-          ),
-        }),
-      0);
+      setTimeout(
+        () =>
+          openManage({
+            content: (
+              <InstanceManager
+                instances={instances}
+                loading={loading}
+                onCreate={() => createInstanceInteraction()}
+                onDelete={(id) => deleteInstanceById(id)}
+                onEdit={(instanceId) =>
+                  openEditor({
+                    content: (
+                      <InstanceCRUD
+                        eventId={eventId}
+                        instanceId={instanceId}
+                        mode="edit"
+                        close={closeEditor}
+                      />
+                    ),
+                  })
+                }
+              />
+            ),
+          }),
+        0
+      );
     } else {
       setGlobalInstance && setInstance(id);
       onChange && onChange(id);
@@ -87,13 +89,20 @@ export const InstancePicker = ({
     if (!a.isNext && b.isNext) return 1;
 
     // Past last
-    const aPast = a.endTime && new Date(a.endTime) < new Date();
-    const bPast = b.endTime && new Date(b.endTime) < new Date();
+    const now = new Date();
+    const aPast = a.endTime && new Date(a.endTime) < now;
+    const bPast = b.endTime && new Date(b.endTime) < now;
     if (aPast && !bPast) return 1;
     if (!aPast && bPast) return -1;
 
     // Otherwise sort by startTime
-    return new Date(a.startTime ?? 0) - new Date(b.startTime ?? 0);
+    if (aPast && bPast) {
+      // Past instances: most recent first
+      return new Date(b.startTime ?? 0) - new Date(a.startTime ?? 0);
+    } else {
+      // Non-past instances: earliest first
+      return new Date(a.startTime ?? 0) - new Date(b.startTime ?? 0);
+    }
   });
 
   const items = [
