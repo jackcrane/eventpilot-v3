@@ -137,8 +137,8 @@ export const InstanceCRUD = ({
           }
           required
           tz={state.startTimeTz}
-          minDate={new Date().toISOString().slice(0, 10)}
-          minTime={new Date().toISOString().slice(11, 16)}
+          // minDate={new Date().toISOString().slice(0, 10)}
+          // minTime={new Date().toISOString().slice(11, 16)}
         />
         {(err("startTime") || err("startTimeTz")) && (
           <div className="invalid-feedback d-block">
@@ -157,8 +157,8 @@ export const InstanceCRUD = ({
           }
           required
           tz={state.endTimeTz}
-          minDate={new Date().toISOString().slice(0, 10)}
-          minTime={new Date().toISOString().slice(11, 16)}
+          // minDate={new Date().toISOString().slice(0, 10)}
+          // minTime={new Date().toISOString().slice(11, 16)}
           afterLabel={
             <Button
               size="sm"
