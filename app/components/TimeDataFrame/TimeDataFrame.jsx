@@ -6,6 +6,8 @@ import { TimeLineChart } from "../plots/timeline";
 import { Col, Responsive } from "../../util/Flex";
 import { DataBox } from "../dataBox/DataBox";
 import { Icon } from "../../util/Icon";
+import { Loading } from "../loading/Loading";
+import { Empty } from "../empty/Empty";
 
 /**
  * TimeDataFrame: A reusable card that shows a total count and
@@ -16,6 +18,9 @@ export const TimeDataFrame = ({
   totalTitle,
   total,
   trend = null,
+  loading = false,
+  loadingTitle = "Loading",
+  loadingText = "We are gathering your data...",
   series = [], // [{ date: Date|string, count: number }]
   defaultDisplay = "calendar",
   startDate, // optional; if provided, not used as anchor (endDate is)
@@ -32,6 +37,9 @@ export const TimeDataFrame = ({
   enableCalendarChangeToggle = false,
   // Fraction of the timeframe to move on prev/next; 0.3 = 30%
   navStepFraction = 0.3,
+  // Empty state customization
+  emptyTitle = "Nothing to show yet",
+  emptyText = "There isn't any data in this timeframe.",
 }) => {
   const [displayFormat, setDisplayFormat] = useState({ id: defaultDisplay });
   const [calendarMetric, setCalendarMetric] = useState({ id: "count" }); // "count" | "change"
@@ -109,8 +117,15 @@ export const TimeDataFrame = ({
     ...changeCalendarData.map((d) => Math.abs(d.value ?? 0))
   );
 
+  const isEmpty = !loading && (!Array.isArray(series) || series.length === 0);
+
   return (
     <Card title={title}>
+      {loading ? (
+        <Loading title={loadingTitle} text={loadingText} gradient={false} />
+      ) : isEmpty ? (
+        <Empty title={emptyTitle} text={emptyText} gradient={false} />
+      ) : (
       <Responsive
         align="center"
         colAlign="flex-start"
@@ -414,6 +429,7 @@ export const TimeDataFrame = ({
           </div>
         </div>
       </Responsive>
+      )}
     </Card>
   );
 };
