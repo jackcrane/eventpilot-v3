@@ -106,8 +106,15 @@ export const InstanceCRUD = ({
       });
       if (success && typeof close === "function") close();
     } else {
-      const success = await createInstance(state);
+      const res = await createInstance(state);
+      const success = typeof res === "object" ? !!res?.success : !!res;
+      const newId = typeof res === "object" ? res?.instance?.id : null;
       if (success) {
+        if (newId) {
+          try {
+            localStorage.setItem("instance", newId);
+          } catch {}
+        }
         // Preserve existing behavior
         document.location.reload();
       }
