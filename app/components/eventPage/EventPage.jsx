@@ -188,11 +188,46 @@ export const EventPage = ({
       target: "_blank",
     },
     {
-      type: "item",
-      href: `${base}/settings`,
+      type: "dropdown",
       text: "Settings",
-      active: isActive(`${base}/settings`),
       icon: <Icon i="settings" size={18} />,
+      children: [
+        {
+          type: "item",
+          href: `${base}/settings/basics`,
+          text: "Basics",
+          active: isActive(`${base}/settings/basics`),
+          icon: <Icon i="file-description" size={18} />,
+        },
+        {
+          type: "item",
+          href: `${base}/settings/contact`,
+          text: "Contact & External",
+          active: isActive(`${base}/settings/contact`),
+          icon: <Icon i="mail" size={18} />,
+        },
+        {
+          type: "item",
+          href: `${base}/settings/socials`,
+          text: "Socials",
+          active: isActive(`${base}/settings/socials`),
+          icon: <Icon i="share" size={18} />,
+        },
+        {
+          type: "item",
+          href: `${base}/settings/connections`,
+          text: "External Connections",
+          active: isActive(`${base}/settings/connections`),
+          icon: <Icon i="plug" size={18} />,
+        },
+        {
+          type: "item",
+          href: `${base}/settings/billing`,
+          text: "Billing",
+          active: isActive(`${base}/settings/billing`),
+          icon: <Icon i="credit-card" size={18} />,
+        },
+      ],
     },
   ];
 

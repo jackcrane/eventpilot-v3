@@ -13,7 +13,7 @@ import { Loading } from "../loading/Loading";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK);
 
-const SetupForm = () => {
+const SetupForm = ({ onSuccess, buttonText = "Submit" }) => {
   const stripe = useStripe();
   const elements = useElements();
 
@@ -30,12 +30,13 @@ const SetupForm = () => {
       return null;
     }
 
-    const { error } = await stripe.confirmSetup({
+    const { error, setupIntent } = await stripe.confirmSetup({
       //`Elements` instance that was used to create the Payment Element
       elements,
       confirmParams: {
         return_url: "https://geteventpilot.com/events",
       },
+      redirect: "if_required",
     });
 
     if (error) {
@@ -43,10 +44,10 @@ const SetupForm = () => {
       // confirming the payment. Show error to your customer (for example, payment
       // details incomplete)
       setErrorMessage(error.message);
+    } else if (setupIntent && setupIntent.status === "succeeded") {
+      onSuccess && onSuccess(setupIntent);
     } else {
-      // Your customer will be redirected to your `return_url`. For some payment
-      // methods like iDEAL, your customer will be redirected to an intermediate
-      // site first to authorize the payment, then redirected to the `return_url`.
+      // For certain methods, Stripe may still redirect to return_url if required
     }
   };
 
@@ -60,7 +61,7 @@ const SetupForm = () => {
       <PaymentElement />
       <Util.Hr />
       <Button disabled={!stripe} variant="primary" className={"mb-3"}>
-        Submit
+        {buttonText}
       </Button>
       {/* Show error message to your customers */}
       {errorMessage && (
