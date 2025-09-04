@@ -4,6 +4,9 @@ import classNames from "classnames";
 import { Icon } from "../../util/Icon";
 
 export const DataBox = ({ title, description, value, trend = null }) => {
+  const showTrend = trend !== null && trend !== undefined;
+  const hasTrendData =
+    !!trend && trend?.previousAsOf != null && Number(trend?.previousAsOf) > 0;
   return (
     <div className={styles.dataBox}>
       <div className={styles.dataBoxHeader}>
@@ -12,23 +15,31 @@ export const DataBox = ({ title, description, value, trend = null }) => {
           {value}
         </Typography.Text>
       </div>
-      {!!trend && (
+      {showTrend && (
         <div className={styles.dataBoxTrend}>
-          <Icon
-            i={Number(trend?.delta ?? 0) >= 0 ? "trending-up" : "trending-down"}
-            color={
-              Number(trend?.delta ?? 0) >= 0
-                ? "var(--tblr-success)"
-                : "var(--tblr-danger)"
-            }
-            size={16}
-          />
-          <Typography.Text className="mb-0">
-            {trend?.percentChange != null
-              ? `${trend.percentChange.toFixed(1)}%`
-              : "—"}{" "}
-            vs last ({Number(trend?.previousAsOf ?? 0)})
-          </Typography.Text>
+          {hasTrendData ? (
+            <>
+              <Icon
+                i={Number(trend?.delta ?? 0) >= 0 ? "trending-up" : "trending-down"}
+                color={
+                  Number(trend?.delta ?? 0) >= 0
+                    ? "var(--tblr-success)"
+                    : "var(--tblr-danger)"
+                }
+                size={16}
+              />
+              <Typography.Text className="mb-0">
+                {trend?.percentChange != null
+                  ? `${trend.percentChange.toFixed(1)}%`
+                  : "—"}{" "}
+                vs last ({Number(trend?.previousAsOf ?? 0)})
+              </Typography.Text>
+            </>
+          ) : (
+            <Typography.Text className="mb-0 text-secondary">
+              no historical trend data
+            </Typography.Text>
+          )}
         </div>
       )}
       {description && (
