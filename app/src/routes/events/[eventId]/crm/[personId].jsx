@@ -9,6 +9,10 @@ import { TriPanelLayout } from "../../../../../components/TriPanelLayout/TriPane
 import classNames from "classnames";
 import tabsStyles from "./CrmPersonTabs.module.css";
 import { ActivityCrmPage } from "../../../../../components/ActivityCrmPage/ActivityCrmPage";
+import { NotesCrmPage } from "../../../../../components/NotesCrmPage/NotesCrmPage";
+import { EmailsCrmPage } from "../../../../../components/EmailsCrmPage/EmailsCrmPage";
+import { FinancialCrmPage } from "../../../../../components/FinancialCrmPage/FinancialCrmPage";
+import { SettingsCrmPage } from "../../../../../components/SettingsCrmPage/SettingsCrmPage";
 
 export const CrmPersonPage = () => {
   const { eventId, personId } = useParams();
@@ -180,14 +184,10 @@ export const CrmPersonPage = () => {
         // }
         centerTabs={[
           { title: "Activity", icon: "activity", content: <ActivityCrmPage /> },
-          { title: "Notes", icon: "notes", content: <p>Notes</p> },
-          { title: "Emails", icon: "mail", content: <p>Emails</p> },
-          {
-            title: "Financial",
-            icon: "currency-dollar",
-            content: <p>Financial</p>,
-          },
-          { title: "Settings", icon: "settings", content: <p>Settings</p> },
+          { title: "Notes", icon: "notes", content: <NotesCrmPage /> },
+          { title: "Emails", icon: "mail", content: <EmailsCrmPage /> },
+          { title: "Financial", icon: "currency-dollar", content: <FinancialCrmPage /> },
+          { title: "Settings", icon: "settings", content: <SettingsCrmPage /> },
         ]}
         rightIcon="hand-stop"
         rightTitle="Involvement"
