@@ -10,7 +10,7 @@ const createNoteSchema = z.object({
 const mapLogToNote = (log) => {
   if (!log) return null;
   const kind = log?.data?.kind;
-  if (log.type === LogType.FILE_UPLOADED && kind === "crm_note_file") {
+  if (log.type === LogType.CRM_FILE_NOTE_CREATED) {
     return {
       id: log.id,
       type: "file",
@@ -24,7 +24,7 @@ const mapLogToNote = (log) => {
       },
     };
   }
-  if (log.type === LogType.CRM_PERSON_MODIFIED && kind === "crm_note") {
+  if (log.type === LogType.CRM_NOTE_CREATED) {
     return {
       id: log.id,
       type: "text",
@@ -44,16 +44,7 @@ export const get = [
       const logs = await prisma.logs.findMany({
         where: {
           crmPersonId: personId,
-          OR: [
-            {
-              type: LogType.CRM_PERSON_MODIFIED,
-              data: { path: ["kind"], equals: "crm_note" },
-            },
-            {
-              type: LogType.FILE_UPLOADED,
-              data: { path: ["kind"], equals: "crm_note_file" },
-            },
-          ],
+          type: { in: [LogType.CRM_NOTE_CREATED, LogType.CRM_FILE_NOTE_CREATED] },
         },
         orderBy: { createdAt: "desc" },
       });
@@ -88,11 +79,11 @@ export const post = [
 
       const log = await prisma.logs.create({
         data: {
-          type: LogType.CRM_PERSON_MODIFIED,
+          type: LogType.CRM_NOTE_CREATED,
           crmPersonId: personId,
           userId: req.user.id,
           ip: req.ip || req.headers["x-forwarded-for"],
-          data: { kind: "crm_note", text: parsed.data.text },
+          data: { text: parsed.data.text },
           eventId,
         },
       });
@@ -104,4 +95,3 @@ export const post = [
     }
   },
 ];
-

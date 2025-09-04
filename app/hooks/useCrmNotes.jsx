@@ -6,7 +6,9 @@ import { authFetch, authFetchWithoutContentType } from "../util/url";
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useCrmNotes = ({ eventId, personId }) => {
-  const key = personId ? `/api/events/${eventId}/crm/person/${personId}/notes` : null;
+  const key = personId
+    ? `/api/events/${eventId}/crm/person/${personId}/notes`
+    : null;
   const { data, error, isLoading } = useSWR(key, fetcher);
 
   // Create text note
@@ -47,6 +49,7 @@ export const useCrmNotes = ({ eventId, personId }) => {
         error: "Failed to save note",
       });
       await mutate(key);
+      await mutate(`/api/events/${eventId}/crm/person/${personId}`);
       return true;
     } catch {
       return false;
@@ -64,6 +67,7 @@ export const useCrmNotes = ({ eventId, personId }) => {
         });
       }
       await mutate(key);
+      await mutate(`/api/events/${eventId}/crm/person/${personId}`);
       return true;
     } catch {
       return false;
@@ -80,4 +84,3 @@ export const useCrmNotes = ({ eventId, personId }) => {
     mutationLoading: creating || uploading,
   };
 };
-

@@ -43,12 +43,11 @@ export const post = [
       // Log against CRM person
       const log = await prisma.logs.create({
         data: {
-          type: LogType.FILE_UPLOADED,
+          type: LogType.CRM_FILE_NOTE_CREATED,
           crmPersonId: personId,
           userId,
           ip: req.ip || req.headers["x-forwarded-for"],
           data: {
-            kind: "crm_note_file",
             fileId: fileRow.id,
             originalname: fileRow.originalname,
             mimetype: fileRow.mimetype,
@@ -78,4 +77,3 @@ export const post = [
     }
   },
 ];
-

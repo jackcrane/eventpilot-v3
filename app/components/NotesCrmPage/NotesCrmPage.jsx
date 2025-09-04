@@ -6,6 +6,7 @@ import { Row, Col } from "../../util/Flex";
 import { Icon } from "../../util/Icon";
 import moment from "moment";
 import { DATETIME_FORMAT } from "../../util/Constants";
+import { isImage } from "../../util/isImage";
 
 export const NotesCrmPage = ({ crmPerson }) => {
   const { eventId, personId } = useParams();
@@ -89,12 +90,25 @@ export const NotesCrmPage = ({ crmPerson }) => {
                     <Typography.Text className="mb-0">{n.text}</Typography.Text>
                   )}
                   {n.type === "file" && (
-                    <Row gap={0.5} align="flex-start">
-                      <Icon i="download" />
-                      <a href={n.file?.url} target="_blank" rel="noreferrer">
-                        {n.file?.name} ({n.file?.mimetype})
-                      </a>
-                    </Row>
+                    <div>
+                      {isImage(n.file?.mimetype) && (
+                        <img
+                          src={n.file?.url}
+                          alt={n.file?.name}
+                          style={{
+                            maxWidth: 300,
+                            maxHeight: 150,
+                          }}
+                          className="mb-2"
+                        />
+                      )}
+                      <Row gap={0.5} align="flex-start">
+                        <Icon i="download" />
+                        <a href={n.file?.url} target="_blank" rel="noreferrer">
+                          {n.file?.name} ({n.file?.mimetype})
+                        </a>
+                      </Row>
+                    </div>
                   )}
                 </div>
               ),
