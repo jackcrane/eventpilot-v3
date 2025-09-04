@@ -11,9 +11,9 @@ export const useDashCouponUsage = ({ eventId }) => {
     total: data?.total ?? 0,
     used: data?.used ?? 0,
     percent: data?.percent ?? null,
+    previous: data?.previous || null,
     loading: isLoading,
     error,
     refetch: () => (key ? mutate(key) : undefined),
   };
 };
-

@@ -11,9 +11,9 @@ export const useDashVolunteerCapacity = ({ eventId }) => {
     jobs: data?.jobs || null,
     shifts: data?.shifts || null,
     note: data?.note || null,
+    previous: data?.previous || null,
     loading: isLoading,
     error,
     refetch: () => (key ? mutate(key) : undefined),
   };
 };
-
