@@ -4,6 +4,7 @@ import { TimeDataFrame } from "../TimeDataFrame/TimeDataFrame";
 import { useSelectedInstance } from "../../contexts/SelectedInstanceContext";
 import moment from "moment";
 import { buildDate } from "../tzDateTime/tzDateTime";
+import { useDbState } from "../../hooks/useDbState";
 
 export const ParticipantRegistrationStatsCard = () => {
   const { eventId } = useParams();
@@ -11,6 +12,11 @@ export const ParticipantRegistrationStatsCard = () => {
     eventId,
   });
   const { instance } = useSelectedInstance();
+
+  // Persisted UI preferences
+  const [display, setDisplay] = useDbState("calendar", "participantStatsDisplayFormat");
+  const [metric, setMetric] = useDbState("count", "participantStatsCalendarMetric");
+  const [timeframe, setTimeframe] = useDbState("6", "participantStatsTimeframe");
 
   // Build inclusive day range highlight from instance start/end
   const start = buildDate(instance?.startTime, instance?.startTimeTz);
@@ -58,6 +64,12 @@ export const ParticipantRegistrationStatsCard = () => {
       enableCalendarChangeToggle={!!previous?.registrationsByDay?.length}
       unitSingular="Participant"
       unitPlural="Participants"
+      defaultDisplay={display}
+      defaultCalendarMetric={metric}
+      defaultTimeframe={timeframe}
+      onChangeDisplayFormat={(v) => setDisplay(v?.id)}
+      onChangeCalendarMetric={(v) => setMetric(v?.id)}
+      onChangeTimeframe={(v) => setTimeframe(v?.id)}
       anchorStartDate={buildDate(instance?.startTime, instance?.startTimeTz)}
       compareStartDate={
         previous?.instance
