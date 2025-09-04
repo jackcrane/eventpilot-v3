@@ -375,6 +375,10 @@ const EventBillingDuringCreation = ({ event = {}, onChangeEvent }) => {
         Add a payment method for your event. Your card is securely stored by
         Stripe and used for your EventPilot subscription.
       </Typography.Text>
+      <Alert variant="info" title="Subscription">
+        Your EventPilot subscription of $200/month will start once you create
+        your event. You can cancel at any time.
+      </Alert>
       <Util.Hr />
       {event.prospectPaymentMethodId ? (
         <Alert variant="success" title="Payment method added">
