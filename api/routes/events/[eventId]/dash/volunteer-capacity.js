@@ -32,15 +32,21 @@ export const get = [
           AND s."deleted" = false
         GROUP BY s."jobId"
       `;
-      const jobSignupMap = new Map(jobSignupRows.map((r) => [r.jobid || r.jobId, Number(r.count)]));
+      const jobSignupMap = new Map(
+        jobSignupRows.map((r) => [r.jobid || r.jobId, Number(r.count)])
+      );
 
-      const jobsTotalCapacity = limitedJobs.reduce((sum, j) => sum + (j.capacity || 0), 0);
+      const jobsTotalCapacity = limitedJobs.reduce(
+        (sum, j) => sum + (j.capacity || 0),
+        0
+      );
       const jobsFilled = limitedJobs.reduce((sum, j) => {
         const signups = Number(jobSignupMap.get(j.id) || 0);
         const filled = Math.min(signups, j.capacity || 0);
         return sum + filled;
       }, 0);
-      const jobsPercent = jobsTotalCapacity > 0 ? (jobsFilled / jobsTotalCapacity) * 100 : null;
+      const jobsPercent =
+        jobsTotalCapacity > 0 ? (jobsFilled / jobsTotalCapacity) * 100 : null;
 
       // Shifts: limited = capacity > 0, open + active
       const shifts = await prisma.shift.findMany({
@@ -51,10 +57,17 @@ export const get = [
           open: true,
           active: true,
         },
-        select: { id: true, capacity: true, job: { select: { capacity: true } } },
+        select: {
+          id: true,
+          capacity: true,
+          job: { select: { capacity: true } },
+        },
       });
       const limitedShifts = shifts
-        .map((s) => ({ id: s.id, effectiveCapacity: (s.capacity ?? s.job?.capacity ?? 0) }))
+        .map((s) => ({
+          id: s.id,
+          effectiveCapacity: s.capacity ?? s.job?.capacity ?? 0,
+        }))
         .filter((s) => (s.effectiveCapacity ?? 0) > 0);
       const shiftsUnlimitedCount = shifts.length - limitedShifts.length;
 
@@ -65,7 +78,8 @@ export const get = [
         const ids = limitedShifts.map((s) => s.id);
         const chunks = [];
         // chunk ids to avoid parameter limits
-        for (let i = 0; i < ids.length; i += 1000) chunks.push(ids.slice(i, i + 1000));
+        for (let i = 0; i < ids.length; i += 1000)
+          chunks.push(ids.slice(i, i + 1000));
         let signupMap = new Map();
         for (const chunk of chunks) {
           // eslint-disable-next-line no-await-in-loop
@@ -85,13 +99,15 @@ export const get = [
           shiftFilled += Math.min(c, s.effectiveCapacity || 0);
         }
       }
-      const shiftsPercent = shiftCapacity > 0 ? (shiftFilled / shiftCapacity) * 100 : null;
+      const shiftsPercent =
+        shiftCapacity > 0 ? (shiftFilled / shiftCapacity) * 100 : null;
 
       const hasExcluded = jobsUnlimitedCount > 0 || shiftsUnlimitedCount > 0;
-      const allUnlimited = (jobsTotalCapacity + shiftCapacity) === 0;
+      const allUnlimited = jobsTotalCapacity + shiftCapacity === 0;
       let note = null;
       if (allUnlimited) note = "All jobs and shifts have unlimited capacity";
-      else if (hasExcluded) note = "Some jobs or shifts are excluded due to unlimited capacity";
+      else if (hasExcluded)
+        note = "Some jobs or shifts are excluded due to unlimited capacity";
 
       // Previous-instance comparison (as-of matched relative day from start)
       let previous = null;
@@ -167,19 +183,28 @@ export const get = [
               open: true,
               active: true,
             },
-            select: { id: true, capacity: true, job: { select: { capacity: true } } },
+            select: {
+              id: true,
+              capacity: true,
+              job: { select: { capacity: true } },
+            },
           });
           const prevLimitedShifts = prevShiftsRaw
-            .map((s) => ({ id: s.id, effectiveCapacity: s.capacity ?? s.job?.capacity ?? 0 }))
+            .map((s) => ({
+              id: s.id,
+              effectiveCapacity: s.capacity ?? s.job?.capacity ?? 0,
+            }))
             .filter((s) => (s.effectiveCapacity ?? 0) > 0);
-          const prevUnlimitedShifts = prevShiftsRaw.length - prevLimitedShifts.length;
+          const prevUnlimitedShifts =
+            prevShiftsRaw.length - prevLimitedShifts.length;
 
           let prevShiftFilled = 0;
           let prevShiftCapacity = 0;
           if (prevLimitedShifts.length > 0) {
             const ids = prevLimitedShifts.map((s) => s.id);
             const chunks = [];
-            for (let i = 0; i < ids.length; i += 1000) chunks.push(ids.slice(i, i + 1000));
+            for (let i = 0; i < ids.length; i += 1000)
+              chunks.push(ids.slice(i, i + 1000));
             let signupMap = new Map();
             for (const chunk of chunks) {
               // eslint-disable-next-line no-await-in-loop
@@ -204,7 +229,8 @@ export const get = [
                   AND date_trunc('day', timezone('America/Chicago', "createdAt")) <= (SELECT prev_cutoff FROM cutoff)
                 GROUP BY "shiftId"
               `;
-              for (const r of rows) signupMap.set(r.shiftid || r.shiftId, Number(r.count));
+              for (const r of rows)
+                signupMap.set(r.shiftid || r.shiftId, Number(r.count));
             }
             for (const s of prevLimitedShifts) {
               prevShiftCapacity += s.effectiveCapacity || 0;
@@ -213,7 +239,9 @@ export const get = [
             }
           }
           const prevShiftsPercent =
-            prevShiftCapacity > 0 ? (prevShiftFilled / prevShiftCapacity) * 100 : null;
+            prevShiftCapacity > 0
+              ? (prevShiftFilled / prevShiftCapacity) * 100
+              : null;
 
           previous = {
             jobs: {
@@ -253,7 +281,10 @@ export const get = [
         previous,
       });
     } catch (error) {
-      console.error("Error in GET /events/:eventId/dash/volunteer-capacity:", error);
+      console.error(
+        "Error in GET /events/:eventId/dash/volunteer-capacity:",
+        error
+      );
       res.status(500).json({ error: "Internal server error" });
     }
   },

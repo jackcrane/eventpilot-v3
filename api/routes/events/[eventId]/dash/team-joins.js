@@ -64,7 +64,8 @@ export const get = [
 
         const previousAsOf = Number(rows?.[0]?.count ?? 0);
         const delta = Number(totalOnTeams) - previousAsOf;
-        const percentChange = previousAsOf > 0 ? (delta / previousAsOf) * 100 : null;
+        const percentChange =
+          previousAsOf > 0 ? (delta / previousAsOf) * 100 : null;
         trend = { previousAsOf, delta, percentChange };
       }
 
@@ -75,4 +76,3 @@ export const get = [
     }
   },
 ];
-

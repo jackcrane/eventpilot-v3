@@ -100,8 +100,13 @@ export const get = [
 
           const prevTotal = Number(prevTotalRows?.[0]?.count ?? 0);
           const prevWith = Number(prevWithRows?.[0]?.count ?? 0);
-          const prevPercent = prevTotal > 0 ? (prevWith / prevTotal) * 100 : null;
-          previous = { total: prevTotal, withUpsells: prevWith, percent: prevPercent };
+          const prevPercent =
+            prevTotal > 0 ? (prevWith / prevTotal) * 100 : null;
+          previous = {
+            total: prevTotal,
+            withUpsells: prevWith,
+            percent: prevPercent,
+          };
         }
       }
 
