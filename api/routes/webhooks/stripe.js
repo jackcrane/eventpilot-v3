@@ -1,8 +1,9 @@
 import express from "express";
 import Stripe from "stripe";
 import { prisma } from "#prisma";
-import { LedgerItemSource, LogType } from "@prisma/client";
+import { LogType } from "@prisma/client";
 import { finalizeRegistration } from "../../util/finalizeRegistration";
+import { createLedgerItemForRegistration } from "../../util/ledger";
 
 const stripe = new Stripe(process.env.STRIPE_SK, {
   apiVersion: "2024-04-10",
@@ -125,24 +126,12 @@ export const post = [
                 id: instanceId,
               },
             });
-
-            await prisma.ledgerItem.create({
-              data: {
-                eventId,
-                amount: paymentIntent.amount / 100,
-                source: LedgerItemSource.REGISTRATION,
-                stripe_paymentIntentId: paymentIntent.id,
-                instanceId: instance.id,
-                logs: {
-                  create: {
-                    type: LogType.LEDGER_ITEM_CREATED,
-                    data: paymentIntent,
-                    eventId,
-                    instanceId: instance.id,
-                    registrationId,
-                  },
-                },
-              },
+            await createLedgerItemForRegistration({
+              eventId,
+              instanceId: instance.id,
+              registrationId,
+              amount: paymentIntent.amount / 100,
+              stripe_paymentIntentId: paymentIntent.id,
             });
 
             await finalizeRegistration({

@@ -5,12 +5,16 @@ import { LogType } from "@prisma/client";
 import { getNameAndEmailFromRegistration } from "./getNameAndEmailFromRegistration";
 import { render } from "@react-email/render";
 import { getCrmPersonByEmail } from "./getCrmPersonByEmail";
+import { createLedgerItemForRegistration } from "./ledger";
 
 export const finalizeRegistration = async ({
   registrationId,
   eventId,
   receiptUrl,
   paymentIntent,
+  // Optional: if provided (and there is no paymentIntent), we will create a ledger item
+  amount,
+  instanceId,
 }) => {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -28,6 +32,18 @@ export const finalizeRegistration = async ({
       finalized: true,
     },
   });
+
+  // If there was no Stripe paymentIntent involved and a positive amount was provided,
+  // create a ledger item to reflect the charge (e.g., admin/manual or free-flow edge cases).
+  // Stripe webhook path already creates the ledger item before calling finalizeRegistration.
+  if (!paymentIntent && amount && amount > 0 && instanceId) {
+    await createLedgerItemForRegistration({
+      eventId,
+      instanceId,
+      registrationId,
+      amount,
+    });
+  }
 
   await prisma.logs.create({
     data: {

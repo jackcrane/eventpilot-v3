@@ -91,7 +91,12 @@ export const post = [
       const requiresPayment = total >= 0.3;
 
       if (!requiresPayment) {
-        await finalizeRegistration({ registrationId, eventId });
+        await finalizeRegistration({
+          registrationId,
+          eventId,
+          amount: total,
+          instanceId,
+        });
         return res.json({
           finalized: true,
           requiresPayment: false,
@@ -168,7 +173,12 @@ export const del = [
       const requiresPayment = total >= 0.3;
 
       if (!requiresPayment) {
-        await finalizeRegistration({ registrationId, eventId });
+        await finalizeRegistration({
+          registrationId,
+          eventId,
+          amount: total,
+          instanceId,
+        });
         return res.json({
           finalized: true,
           requiresPayment: false,
