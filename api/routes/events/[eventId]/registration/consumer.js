@@ -333,7 +333,7 @@ export const post = [
         }
       );
 
-      const { requiresPayment, registrationId } = transaction;
+      const { requiresPayment, registrationId, price } = transaction;
 
       if (!requiresPayment) {
         await finalizeRegistration({
