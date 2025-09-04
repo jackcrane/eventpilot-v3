@@ -23,7 +23,9 @@ export async function createLedgerItemForRegistration({
       logs: {
         create: {
           type: LogType.LEDGER_ITEM_CREATED,
-          data: stripe_paymentIntentId ? { stripe_paymentIntentId } : { amount },
+          data: stripe_paymentIntentId
+            ? { stripe_paymentIntentId }
+            : { amount },
           eventId,
           instanceId,
           registrationId,
@@ -34,4 +36,3 @@ export async function createLedgerItemForRegistration({
 
   return item;
 }
-

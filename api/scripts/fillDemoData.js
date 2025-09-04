@@ -1,3 +1,9 @@
+/*
+
+npm run fake:fill -- --instance cmf4dp3wc0001o2ln7e072l75 --participants 1492 --paySuccessChance 0.95 --upsellChance 0.8 --couponChance 0.2 --teamChance 0.35 --start 2024-04-22 --end 2024-09-03
+
+*/
+
 // Unified fake data generator for volunteers and participants
 // - Works for both VolunteerRegistration and Registration (participants)
 // - Automatically loads fields, shifts, periods/pricing, upsells, teams, coupons
