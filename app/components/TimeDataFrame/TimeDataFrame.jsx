@@ -1,5 +1,5 @@
 import { Card, SegmentedControl, Button } from "tabler-react-2";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import moment from "moment";
 import { CalendarPlot } from "../plots/calendar";
 import { TimeLineChart } from "../plots/timeline";
@@ -23,6 +23,8 @@ export const TimeDataFrame = ({
   loadingText = "We are gathering your data...",
   series = [], // [{ date: Date|string, count: number }]
   defaultDisplay = "calendar",
+  defaultCalendarMetric = "count",
+  defaultTimeframe = "6",
   startDate, // optional; if provided, not used as anchor (endDate is)
   endDate, // optional; used as anchor when provided
   unitSingular = "Item",
@@ -40,12 +42,27 @@ export const TimeDataFrame = ({
   // Empty state customization
   emptyTitle = "Nothing to show yet",
   emptyText = "There isn't any data in this timeframe.",
+  // Change callbacks to persist preferences
+  onChangeDisplayFormat,
+  onChangeCalendarMetric,
+  onChangeTimeframe,
 }) => {
   const [displayFormat, setDisplayFormat] = useState({ id: defaultDisplay });
-  const [calendarMetric, setCalendarMetric] = useState({ id: "count" }); // "count" | "change"
+  const [calendarMetric, setCalendarMetric] = useState({ id: defaultCalendarMetric }); // "count" | "change"
   // Timeframe state (in months) and paging by timeframe-size
-  const [timeframe, setTimeframe] = useState({ id: "6" }); // "1", "3", "6"
+  const [timeframe, setTimeframe] = useState({ id: defaultTimeframe }); // "1", "3", "6"
   const [offset, setOffset] = useState(0); // 0 = current window, -1 = previous, +1 = next
+
+  // Sync internal state with changing defaults (e.g., after async load)
+  useEffect(() => {
+    setDisplayFormat((prev) => (prev?.id === defaultDisplay ? prev : { id: defaultDisplay }));
+  }, [defaultDisplay]);
+  useEffect(() => {
+    setCalendarMetric((prev) => (prev?.id === defaultCalendarMetric ? prev : { id: defaultCalendarMetric }));
+  }, [defaultCalendarMetric]);
+  useEffect(() => {
+    setTimeframe((prev) => (prev?.id === defaultTimeframe ? prev : { id: defaultTimeframe }));
+  }, [defaultTimeframe]);
 
   const months = Number(timeframe?.id || 6);
   // Prefer provided endDate as anchor; otherwise use now + 1 month (existing default behavior)
@@ -145,7 +162,10 @@ export const TimeDataFrame = ({
             <label className="form-label">Display Format</label>
             <SegmentedControl
               value={displayFormat}
-              onChange={setDisplayFormat}
+              onChange={(v) => {
+                setDisplayFormat(v);
+                onChangeDisplayFormat && onChangeDisplayFormat(v);
+              }}
               items={[
                 { id: "calendar", label: "Calendar" },
                 { id: "timeline", label: "Timeline" },
@@ -185,6 +205,7 @@ export const TimeDataFrame = ({
                 onChange={(v) => {
                   setTimeframe(v);
                   setOffset(0);
+                  onChangeTimeframe && onChangeTimeframe(v);
                 }}
                 items={[
                   { id: "1", label: "1 mo" },
@@ -205,7 +226,10 @@ export const TimeDataFrame = ({
             {displayFormat?.id === "calendar" && hasComparison && (
               <SegmentedControl
                 value={calendarMetric}
-                onChange={setCalendarMetric}
+                onChange={(v) => {
+                  setCalendarMetric(v);
+                  onChangeCalendarMetric && onChangeCalendarMetric(v);
+                }}
                 items={[
                   { id: "count", label: "Count" },
                   { id: "change", label: "Change" },
