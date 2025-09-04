@@ -16,7 +16,7 @@ export const LedgerSummaryCard = () => {
   }).format(Number(ledgerTotal || 0));
 
   return (
-    <Card title="Ledger" style={{ maxWidth: 300 }}>
+    <Card title="Ledger" style={{ width: 300, minWidth: 300 }}>
       <DataBox title="Total Amount" value={formatted} trend={trend} />
       <Typography.Text>
         This is the total amount of money collected in this instance. Details
