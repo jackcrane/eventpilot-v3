@@ -7,7 +7,7 @@ import { buildDate } from "../tzDateTime/tzDateTime";
 
 export const ParticipantRegistrationStatsCard = () => {
   const { eventId } = useParams();
-  const { participantRegistrations, registrationsByDay, previous, loading } = useDashParticipants({
+  const { participantRegistrations, registrationsByDay, previous, trend, loading } = useDashParticipants({
     eventId,
   });
   const { instance } = useSelectedInstance();
@@ -41,6 +41,7 @@ export const ParticipantRegistrationStatsCard = () => {
       title="Participant Registrations"
       totalTitle="Total Participants"
       total={participantRegistrations}
+      trend={trend}
       loading={loading}
       loadingTitle="Loading participant stats"
       loadingText="Crunching registration activity and totals..."
@@ -54,6 +55,7 @@ export const ParticipantRegistrationStatsCard = () => {
         date: d.date,
         count: d.count,
       }))}
+      enableCalendarChangeToggle={!!previous?.registrationsByDay?.length}
       unitSingular="Participant"
       unitPlural="Participants"
       anchorStartDate={buildDate(instance?.startTime, instance?.startTimeTz)}
