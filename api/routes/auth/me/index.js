@@ -1,16 +1,14 @@
 import { getChangedKeys } from "#getChangedKeys";
 import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
-import { isCustomerInGoodStanding } from "#stripe";
+// User-level billing deprecated
 import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
 
 export const get = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const goodStanding = await isCustomerInGoodStanding(
-      req.user.stripe_customerId
-    );
+    const goodStanding = false;
 
     res.json({
       user: {

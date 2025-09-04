@@ -24,9 +24,7 @@ export const authFetch = async (url, options, redirect = true) => {
     window.logout && window.logout();
     emitter.emit("logout");
   }
-  if (res.status === 402) {
-    toast.error("Your account is not in good payment standing.");
-  }
+  // 402 (Payment Required) handling is event-scoped now; do not show account-level toasts here
   if (res.status === 500) {
     toast.error("Internal server error.");
   }

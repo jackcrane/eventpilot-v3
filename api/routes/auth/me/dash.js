@@ -1,5 +1,6 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
+import { isCustomerInGoodStanding } from "#stripe";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -14,12 +15,11 @@ export const get = [
       where: { id: req.user.id },
       select: {
         emailVerified: true,
-        goodPaymentStanding: true,
       },
     });
 
     const emailVerified = Boolean(user?.emailVerified);
-    const goodPaymentStanding = Boolean(user?.goodPaymentStanding);
+    const goodPaymentStanding = false; // User-level standing deprecated
 
     return res.json({
       steps: {

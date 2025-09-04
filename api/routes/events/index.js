@@ -103,6 +103,17 @@ export const post = [
         },
       });
 
+      // Ensure an event-scoped Stripe customer exists
+      const customer = await stripe.customers.create({
+        email: event.contactEmail || req.user.email,
+        name: event.name,
+        metadata: { eventId: event.id },
+      });
+      await prisma.event.update({
+        where: { id: event.id },
+        data: { stripe_customerId: customer.id },
+      });
+
       const priceId = process.env.STRIPE_EVENT_SUBSCRIPTION_PRICE_ID;
       if (!priceId) {
         throw new Error(
@@ -111,7 +122,7 @@ export const post = [
       }
 
       subscription = await stripe.subscriptions.create({
-        customer: req.user.stripe_customerId,
+        customer: customer.id,
         items: [
           {
             price: priceId, // Events subscription price

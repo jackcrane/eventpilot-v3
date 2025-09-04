@@ -88,83 +88,43 @@ export const post = [
         }
         break;
       }
-        case "payment_method.attached": {
-          const paymentMethod = event.data.object;
-          const customerId = paymentMethod.customer;
+      case "payment_method.attached": {
+        const paymentMethod = event.data.object;
+        const customerId = paymentMethod.customer;
 
-          const user = await prisma.user.findFirst({
-            where: {
-              stripe_customerId: customerId,
-            },
-          });
-
-          if (!customerId) {
-            console.warn("[STRIPE] Attached payment method has no customer ID");
-            break;
-          }
-
-          if (!user) {
-            console.warn(
-              `[STRIPE] Attached payment method has customer ID ${customerId} but no user found`
-            );
-            break;
-          }
-
-          await stripe.customers.update(customerId, {
-            invoice_settings: {
-              default_payment_method: paymentMethod.id,
-            },
-          });
-
-          await prisma.logs.create({
-            data: {
-              userId: user.id,
-              type: LogType.STRIPE_PAYMENT_METHOD_ATTACHED,
-              data: paymentMethod,
-            },
-          });
-
-          console.log(
-            `[STRIPE] PaymentMethod ${paymentMethod.id} set as default for customer ${customerId}`
-          );
+        if (!customerId) {
+          console.warn("[STRIPE] Attached payment method has no customer ID");
           break;
         }
+
+        const evt = await prisma.event.findFirst({
+          where: { stripe_customerId: customerId },
+        });
+
+        await stripe.customers.update(customerId, {
+          invoice_settings: {
+            default_payment_method: paymentMethod.id,
+          },
+        });
+
+        await prisma.logs.create({
+          data: {
+            eventId: evt?.id,
+            type: LogType.STRIPE_PAYMENT_METHOD_ATTACHED,
+            data: paymentMethod,
+          },
+        });
+
+        console.log(
+          `[STRIPE] PaymentMethod ${paymentMethod.id} set as default for customer ${customerId}`
+        );
+        break;
+      }
 
         case "setup_intent.succeeded": {
           const setupIntent = event.data.object;
           console.log(`[STRIPE] SetupIntent ${setupIntent.id} succeeded`);
-
-          const user = await prisma.user.findFirst({
-            where: {
-              stripe_customerId: setupIntent.customer,
-            },
-          });
-
-          if (!user) {
-            console.warn(
-              `[STRIPE] SetupIntent ${setupIntent.id} succeeded but no user found`
-            );
-            break;
-          }
-
-          await prisma.user.update({
-            where: {
-              id: user.id,
-            },
-            data: {
-              stripe_setupIntentId: null,
-              goodPaymentStanding: true,
-            },
-          });
-
-          await prisma.logs.create({
-            data: {
-              userId: user.id,
-              type: LogType.STRIPE_SETUP_INTENT_SUCCEEDED,
-              data: setupIntent,
-            },
-          });
-
+          // No user-level updates needed; event-level billing uses subscriptions
           break;
         }
 

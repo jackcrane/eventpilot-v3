@@ -16,12 +16,25 @@ export const get = [
       select: {
         id: true,
         stripe_subscriptionId: true,
+        stripe_customerId: true,
+        contactEmail: true,
       },
     });
 
     if (!event) return res.status(404).json({ message: "Event not found" });
-    if (!req.user.stripe_customerId)
-      return res.status(400).json({ message: "Stripe customer not found" });
+    if (!event.stripe_customerId)
+      return res.status(200).json({
+        billing: {
+          subscriptionId: null,
+          subscriptionStatus: null,
+          defaultPaymentMethodId: null,
+          paymentMethods: [],
+          invoices: [],
+          upcomingInvoice: null,
+          billingEmail: null,
+          goodPaymentStanding: false,
+        },
+      });
 
     let subscription = null;
     if (event.stripe_subscriptionId) {
@@ -31,26 +44,41 @@ export const get = [
     }
 
     // Fetch customer + PMs
-    const customer = await stripe.customers.retrieve(req.user.stripe_customerId);
+    const customer = await stripe.customers.retrieve(event.stripe_customerId);
     const pms = await stripe.paymentMethods.list({
-      customer: req.user.stripe_customerId,
+      customer: event.stripe_customerId,
       type: "card",
     });
 
     // Invoices for this subscription only
     const invoices = event.stripe_subscriptionId
       ? await stripe.invoices.list({
-          customer: req.user.stripe_customerId,
+          customer: event.stripe_customerId,
           subscription: event.stripe_subscriptionId,
           limit: 24,
           expand: ["data.charge"],
         })
       : { data: [] };
 
+    // Upcoming invoice (amount and next payment time)
+    let upcomingInvoiceRaw = null;
+    if (event.stripe_subscriptionId) {
+      try {
+        upcomingInvoiceRaw = await stripe.invoices.retrieveUpcoming({
+          customer: event.stripe_customerId,
+          subscription: event.stripe_subscriptionId,
+        });
+      } catch (e) {
+        // No upcoming invoice or cannot be retrieved
+        upcomingInvoiceRaw = null;
+      }
+    }
+
     const defaultPaymentMethodId =
       subscription?.default_payment_method ||
       customer?.invoice_settings?.default_payment_method ||
       null;
+    const hasDefault = Boolean(defaultPaymentMethodId);
 
     const paymentMethods = (pms?.data || []).map((pm) => ({
       id: pm.id,
@@ -75,7 +103,104 @@ export const get = [
       created: i.created,
     }));
 
-    // Persist goodPaymentStanding based on current subscription status
+    // Fallback: if no upcoming invoice, try to use latest open/draft invoice
+    let fallbackInvoice = null;
+    if (!upcomingInvoiceRaw) {
+      try {
+        const openInvoices = await stripe.invoices.list({
+          customer: event.stripe_customerId,
+          subscription: event.stripe_subscriptionId,
+          status: "open",
+          limit: 1,
+        });
+        fallbackInvoice = openInvoices?.data?.[0] || null;
+        if (!fallbackInvoice) {
+          const draftInvoices = await stripe.invoices.list({
+            customer: event.stripe_customerId,
+            subscription: event.stripe_subscriptionId,
+            status: "draft",
+            limit: 1,
+          });
+          fallbackInvoice = draftInvoices?.data?.[0] || null;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    let upcomingSource = upcomingInvoiceRaw || fallbackInvoice || null;
+    // Derive next payment timestamp with sane fallbacks
+    let nextPaymentAt = null;
+    let byPeriodEnd = false;
+    if (upcomingSource) {
+      nextPaymentAt =
+        upcomingSource.next_payment_attempt ||
+        upcomingSource.due_date ||
+        // Try to derive from invoice lines
+        (Array.isArray(upcomingSource.lines?.data)
+          ? Math.max(
+              0,
+              ...upcomingSource.lines.data
+                .map((l) => l?.period?.end || 0)
+                .filter(Boolean)
+            )
+          : 0) ||
+        subscription?.current_period_end ||
+        null;
+      if (
+        !upcomingSource.next_payment_attempt &&
+        !upcomingSource.due_date &&
+        nextPaymentAt &&
+        subscription?.current_period_end &&
+        nextPaymentAt === subscription.current_period_end
+      ) {
+        byPeriodEnd = true;
+      }
+    }
+
+    let upcomingAmount = null;
+    let upcomingCurrency = null;
+    if (upcomingSource) {
+      // prefer invoice total/amount_due
+      upcomingAmount =
+        upcomingSource.total ?? upcomingSource.amount_due ?? null;
+      upcomingCurrency = upcomingSource.currency ?? null;
+    }
+
+    let upcomingInvoice = null;
+    if (upcomingSource) {
+      upcomingInvoice = {
+        amountDue: upcomingAmount ?? 0,
+        currency: upcomingCurrency || "usd",
+        nextPaymentAttempt: nextPaymentAt,
+        byPeriodEnd,
+      };
+    }
+
+    // If still no upcoming invoice but we have a subscription, construct a preview
+    if (!upcomingInvoice && subscription) {
+      try {
+        const items = subscription.items?.data || [];
+        const amount = items.reduce((sum, it) => {
+          const unit =
+            it.price?.unit_amount ??
+            (it.price?.unit_amount_decimal
+              ? Math.round(parseFloat(it.price.unit_amount_decimal))
+              : 0);
+        const qty = it.quantity ?? 1;
+          return sum + unit * qty;
+        }, 0);
+        const currency = items[0]?.price?.currency || "usd";
+        upcomingInvoice = {
+          amountDue: amount,
+          currency,
+          nextPaymentAttempt: subscription.current_period_end || null,
+          byPeriodEnd: Boolean(subscription?.current_period_end),
+        };
+      } catch {}
+    }
+
+    // Persist event.goodPaymentStanding based on subscription status only
     try {
       await prisma.event.update({
         where: { id: event.id },
@@ -94,7 +219,9 @@ export const get = [
         defaultPaymentMethodId,
         paymentMethods,
         invoices: inv,
-        billingEmail: customer?.email || null,
+        upcomingInvoice,
+        billingEmail: event.contactEmail || null,
+        // Standing requires an existing subscription in good status
         goodPaymentStanding: ["active", "trialing"].includes(
           subscription?.status || ""
         ),
@@ -113,10 +240,10 @@ export const patch = [
         id: req.params.eventId,
         userId: req.user.id,
       },
-      select: { stripe_subscriptionId: true },
+      select: { stripe_subscriptionId: true, stripe_customerId: true },
     });
     if (!event) return res.status(404).json({ message: "Event not found" });
-    if (!req.user.stripe_customerId)
+    if (!event.stripe_customerId)
       return res.status(400).json({ message: "Stripe customer not found" });
 
     const schema = z.object({
@@ -129,16 +256,65 @@ export const patch = [
 
     const { defaultPaymentMethodId, billingEmail } = parsed.data;
 
-    if (defaultPaymentMethodId && event.stripe_subscriptionId) {
-      await stripe.subscriptions.update(event.stripe_subscriptionId, {
-        default_payment_method: defaultPaymentMethodId,
-      });
+    let subscriptionId = event.stripe_subscriptionId;
+    if (defaultPaymentMethodId) {
+      if (subscriptionId) {
+        await stripe.subscriptions.update(subscriptionId, {
+          default_payment_method: defaultPaymentMethodId,
+        });
+      } else {
+        // Create subscription if missing
+        const priceId = process.env.STRIPE_EVENT_SUBSCRIPTION_PRICE_ID;
+        if (!priceId) {
+          return res
+            .status(500)
+            .json({ message: "Missing STRIPE_EVENT_SUBSCRIPTION_PRICE_ID" });
+        }
+        const sub = await stripe.subscriptions.create({
+          customer: event.stripe_customerId,
+          items: [{ price: priceId }],
+          default_payment_method: defaultPaymentMethodId,
+          metadata: { eventId: req.params.eventId },
+        });
+        subscriptionId = sub.id;
+        await prisma.event.update({
+          where: { id: req.params.eventId },
+          data: {
+            stripe_subscriptionId: sub.id,
+            goodPaymentStanding: ["active", "trialing"].includes(
+              sub?.status || ""
+            ),
+          },
+        });
+      }
     }
 
     if (billingEmail) {
-      await stripe.customers.update(req.user.stripe_customerId, {
+      await stripe.customers.update(event.stripe_customerId, {
         email: billingEmail,
       });
+      await prisma.event.update({
+        where: { id: req.params.eventId },
+        data: { contactEmail: billingEmail },
+      });
+    }
+
+    // Attempt to auto-pay any open invoice for this subscription
+    try {
+      if (subscriptionId) {
+        const openInvoices = await stripe.invoices.list({
+          customer: event.stripe_customerId,
+          subscription: subscriptionId,
+          status: "open",
+          limit: 1,
+        });
+        if (openInvoices?.data?.length) {
+          await stripe.invoices.pay(openInvoices.data[0].id);
+        }
+      }
+    } catch (e) {
+      // non-fatal
+      console.warn("[STRIPE] Failed to auto-pay invoice", e?.message || e);
     }
 
     return res.status(200).json({ message: "Billing updated" });

@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { prisma } from "#prisma";
-import { isCustomerInGoodStanding } from "#stripe";
+// User-level billing deprecated
 
 // Define role hierarchy
 const ROLE_HIERARCHY = {
@@ -36,14 +36,7 @@ export const verifyAuth =
               return res.sendStatus(401); // Unauthorized
             }
 
-            if (req.method === "POST") {
-              user.goodStanding = await isCustomerInGoodStanding(
-                user.stripe_customerId
-              );
-              // if (!user.goodStanding) {
-              //   return res.sendStatus(402); // Unauthorized
-              // }
-            }
+            // user.goodStanding not computed at user-level anymore
 
             // Attach the user to the request object
             req.user = user;

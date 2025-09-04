@@ -47,9 +47,8 @@ export const useEventBilling = ({ eventId }) => {
   };
 
   const removePaymentMethod = async (paymentMethodId) => {
-    // Removal is customer-scoped; reuse existing endpoint
     return await toast.promise(
-      authFetch(`/api/auth/me/payment/methods/${paymentMethodId}`, {
+      authFetch(`/api/events/${eventId}/payment/methods/${paymentMethodId}`, {
         method: "DELETE",
       }).then(async (r) => {
         if (!r.ok) throw new Error(await r.text());
@@ -69,6 +68,7 @@ export const useEventBilling = ({ eventId }) => {
     paymentMethods: data?.billing?.paymentMethods || [],
     defaultPaymentMethodId: data?.billing?.defaultPaymentMethodId || null,
     invoices: data?.billing?.invoices || [],
+    upcomingInvoice: data?.billing?.upcomingInvoice || null,
     billingEmail: data?.billing?.billingEmail || null,
     goodPaymentStanding: Boolean(data?.billing?.goodPaymentStanding),
     loading: isLoading,
