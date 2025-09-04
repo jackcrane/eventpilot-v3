@@ -1,5 +1,4 @@
 import { Link, useParams } from "react-router-dom";
-import { useState } from "react";
 import { Page } from "../../../../components/page/Page";
 import { useEvent } from "../../../../hooks/useEvent";
 import {
@@ -28,6 +27,7 @@ import { ProgressRow } from "../../../../components/Progress/ProgressRow";
 import { Icon } from "../../../../util/Icon";
 import { VolunteerRegistrationStatsCard } from "../../../../components/VolunteerRegistrationStatsCard/VolunteerRegistrationStatsCard";
 import { ParticipantRegistrationStatsCard } from "../../../../components/ParticipantRegistrationStatsCard/ParticipantRegistrationStatsCard";
+import { useDbState } from "../../../../hooks/useDbState";
 
 const Divider = styled.div`
   background-color: var(--tblr-card-border-color);
@@ -40,7 +40,7 @@ export const Event = () => {
   const { eventId } = useParams();
   const { event, loading, error, refetch } = useEvent({ eventId });
   const { startTour } = useTourManager();
-  const [remainingOpen, setRemainingOpen] = useState(true);
+  const [remainingOpen, setRemainingOpen] = useDbState(true, "remainingStepsOpen");
 
   const {
     eventStart,
@@ -72,7 +72,7 @@ export const Event = () => {
         "This is your event homepage. As more starts to happen in your event, you will see analytics and prompts here to help you keep track of what is happening."
       }
     >
-      <Row align="center" style={{ gap: 8 }} className="mb-1">
+      <Row align="center" style={{ gap: 8 }} className="mb-3">
         <Typography.H2 style={{ margin: 0 }}>Remaining Steps</Typography.H2>
         <Button
           ghost
