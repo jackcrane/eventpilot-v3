@@ -60,7 +60,8 @@ export const get = [
 
         const previousAsOf = Number(rows?.[0]?.total ?? 0);
         const delta = Number(ledgerTotal) - previousAsOf;
-        const percentChange = previousAsOf > 0 ? (delta / previousAsOf) * 100 : null;
+        const percentChange =
+          previousAsOf > 0 ? (delta / previousAsOf) * 100 : null;
         trend = { previousAsOf, delta, percentChange };
       }
 
@@ -71,4 +72,3 @@ export const get = [
     }
   },
 ];
-
