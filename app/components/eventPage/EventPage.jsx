@@ -23,6 +23,8 @@ export const EventPage = ({
   const { event, loading: eventLoading } = useEvent({ eventId });
   const { pathname } = useLocation();
 
+  const openUrl = (url) => window.open(url, "_blank");
+
   const {
     isNew,
     loginUrl,
@@ -173,7 +175,7 @@ export const EventPage = ({
     { type: "divider" },
     {
       type: "item",
-      onClick: isNew ? () => startOnboarding() : loginUrl,
+      onClick: isNew ? () => startOnboarding() : () => openUrl(loginUrl),
       text: "Financials",
       active: isActive(`${base}/financials`),
       icon: (

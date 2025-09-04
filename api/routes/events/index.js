@@ -135,6 +135,16 @@ export const post = [
         data: { stripe_customerId: customerId },
       });
 
+      // Ensure the Stripe customer reflects the event name now that the event exists
+      try {
+        await stripe.customers.update(customerId, {
+          name: event.name,
+          metadata: { eventId: event.id },
+        });
+      } catch (e) {
+        console.warn("[STRIPE] Failed to update customer name", e?.message || e);
+      }
+
       const priceId = process.env.STRIPE_EVENT_SUBSCRIPTION_PRICE_ID;
       if (!priceId) {
         throw new Error(
