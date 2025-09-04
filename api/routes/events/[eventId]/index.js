@@ -43,6 +43,8 @@ export const eventSchema = z.object({
   // Optional: allow specifying a payment method to use for the event's
   // subscription at creation time. Ignored on updates.
   defaultPaymentMethodId: z.string().optional().nullable(),
+  // Optional: reuse a prospect customer created during the wizard
+  stripe_customerId: z.string().optional().nullable(),
 
   instance: z
     .object({

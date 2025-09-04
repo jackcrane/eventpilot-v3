@@ -28,6 +28,7 @@ export const EventSettingsBillingPage = () => {
     setDefaultPaymentMethod,
     removePaymentMethod,
     updateBillingEmail,
+    cancelSubscription,
     refetch,
   } = useEventBilling({ eventId });
 
@@ -146,10 +147,8 @@ export const EventSettingsBillingPage = () => {
             ) : upcomingInvoice ? (
               <div>
                 <Typography.Text>
-                  {upcomingInvoice.byPeriodEnd
-                    ? "By the end of the current period"
-                    : upcomingInvoice.nextPaymentAttempt
-                    ? `Next payment on ${new Date(
+                  {upcomingInvoice.nextPaymentAttempt
+                    ? `${upcomingInvoice.byPeriodEnd ? "Renews on" : "Next payment on"} ${new Date(
                         upcomingInvoice.nextPaymentAttempt * 1000
                       ).toLocaleString()}`
                     : "Next payment date TBD"}
@@ -281,6 +280,34 @@ export const EventSettingsBillingPage = () => {
                 />
               </div>
             )}
+          </Card>
+
+          <div className="mt-3" />
+
+          <Card title="Cancel Subscription">
+            <Typography.Text>
+              Canceling will immediately stop your ability to collect
+              volunteers and participants for this event.
+            </Typography.Text>
+            <div className="d-flex mt-2">
+              <Button
+                color="danger"
+                soft
+                disabled={!billing?.subscriptionId || loading}
+                onClick={async () => {
+                  const ok = window.confirm(
+                    "Are you sure you want to cancel your EventPilot subscription for this event? You will no longer be able to collect volunteers and participants."
+                  );
+                  if (!ok) return;
+                  const success = await cancelSubscription();
+                  if (success) {
+                    await refetch();
+                  }
+                }}
+              >
+                Cancel Subscription
+              </Button>
+            </div>
           </Card>
         </div>
       </div>

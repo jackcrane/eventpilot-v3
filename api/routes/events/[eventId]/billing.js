@@ -200,6 +200,14 @@ export const get = [
       } catch {}
     }
 
+    // Ensure we provide a concrete nextPaymentAttempt when possible
+    if (subscription && upcomingInvoice && !upcomingInvoice.nextPaymentAttempt) {
+      if (subscription.current_period_end) {
+        upcomingInvoice.nextPaymentAttempt = subscription.current_period_end;
+        upcomingInvoice.byPeriodEnd = true;
+      }
+    }
+
     // Persist event.goodPaymentStanding based on subscription status only
     try {
       await prisma.event.update({
@@ -258,6 +266,27 @@ export const patch = [
 
     let subscriptionId = event.stripe_subscriptionId;
     if (defaultPaymentMethodId) {
+      // Ensure PM is attached to the event's customer first
+      try {
+        const pm = await stripe.paymentMethods.retrieve(defaultPaymentMethodId);
+        const pmCustomer =
+          typeof pm.customer === "string" ? pm.customer : pm.customer?.id;
+        if (!pmCustomer) {
+          await stripe.paymentMethods.attach(defaultPaymentMethodId, {
+            customer: event.stripe_customerId,
+          });
+        } else if (pmCustomer !== event.stripe_customerId) {
+          return res.status(400).json({
+            message:
+              "The selected payment method is not attached to this event. Please add it under Billing.",
+          });
+        }
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ message: e?.message || "Invalid payment method" });
+      }
+
       if (subscriptionId) {
         await stripe.subscriptions.update(subscriptionId, {
           default_payment_method: defaultPaymentMethodId,
@@ -318,6 +347,43 @@ export const patch = [
     }
 
     return res.status(200).json({ message: "Billing updated" });
+  },
+];
+
+// DELETE /api/events/:eventId/billing
+// Cancel the event's subscription immediately
+export const del = [
+  verifyAuth(["manager"]),
+  async (req, res) => {
+    const event = await prisma.event.findFirst({
+      where: {
+        id: req.params.eventId,
+        userId: req.user.id,
+      },
+      select: { stripe_subscriptionId: true, stripe_customerId: true },
+    });
+
+    if (!event) return res.status(404).json({ message: "Event not found" });
+    if (!event.stripe_subscriptionId)
+      return res.status(400).json({ message: "No active subscription to cancel" });
+
+    try {
+      await stripe.subscriptions.cancel(event.stripe_subscriptionId);
+    } catch (e) {
+      return res
+        .status(400)
+        .json({ message: e?.message || "Failed to cancel subscription" });
+    }
+
+    // Reflect cancellation locally; webhook should also update this
+    try {
+      await prisma.event.update({
+        where: { id: req.params.eventId },
+        data: { goodPaymentStanding: false },
+      });
+    } catch {}
+
+    return res.status(200).json({ message: "Subscription canceled" });
   },
 ];
 

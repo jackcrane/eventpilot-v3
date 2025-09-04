@@ -70,7 +70,8 @@ export const post = [
         return res.status(400).json({ message: "Instance is required" });
       }
 
-      const { defaultPaymentMethodId, ...eventData } = result.data || {};
+      const { defaultPaymentMethodId, stripe_customerId, ...eventData } =
+        result.data || {};
 
       event = await prisma.event.create({
         data: {
@@ -103,15 +104,35 @@ export const post = [
         },
       });
 
-      // Ensure an event-scoped Stripe customer exists
-      const customer = await stripe.customers.create({
-        email: event.contactEmail || req.user.email,
-        name: event.name,
-        metadata: { eventId: event.id },
-      });
+      // Ensure an event-scoped Stripe customer exists (reuse provided customer if any)
+      let customerId = stripe_customerId;
+      if (customerId) {
+        // Best-effort verification: ensure this customer belongs to the same user
+        try {
+          const cust = await stripe.customers.retrieve(customerId);
+          if (
+            !cust ||
+            typeof cust === "string" ||
+            (cust.metadata && cust.metadata.prospectUserId !== req.user.id)
+          ) {
+            // Fallback to creating a new customer if verification fails
+            customerId = null;
+          }
+        } catch (_) {
+          customerId = null;
+        }
+      }
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: event.contactEmail || req.user.email,
+          name: event.name,
+          metadata: { eventId: event.id },
+        });
+        customerId = customer.id;
+      }
       await prisma.event.update({
         where: { id: event.id },
-        data: { stripe_customerId: customer.id },
+        data: { stripe_customerId: customerId },
       });
 
       const priceId = process.env.STRIPE_EVENT_SUBSCRIPTION_PRICE_ID;
@@ -121,8 +142,33 @@ export const post = [
         );
       }
 
+      // Ensure the provided default payment method is attached to the customer
+      if (defaultPaymentMethodId) {
+        try {
+          const pm = await stripe.paymentMethods.retrieve(
+            defaultPaymentMethodId
+          );
+          const pmCustomer =
+            typeof pm.customer === "string" ? pm.customer : pm.customer?.id;
+          if (!pmCustomer) {
+            await stripe.paymentMethods.attach(defaultPaymentMethodId, {
+              customer: customerId,
+            });
+          } else if (pmCustomer !== customerId) {
+            return res.status(400).json({
+              message:
+                "Payment method is not attached to the selected customer. Please add a new card in the wizard and try again.",
+            });
+          }
+        } catch (e) {
+          return res
+            .status(400)
+            .json({ message: e?.message || "Invalid payment method" });
+        }
+      }
+
       subscription = await stripe.subscriptions.create({
-        customer: customer.id,
+        customer: customerId,
         items: [
           {
             price: priceId, // Events subscription price

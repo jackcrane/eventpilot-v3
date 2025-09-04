@@ -63,6 +63,22 @@ export const useEventBilling = ({ eventId }) => {
     );
   };
 
+  const cancelSubscription = async () => {
+    if (!key) return false;
+    return await toast.promise(
+      authFetch(key, { method: "DELETE" }).then(async (r) => {
+        if (!r.ok) throw new Error(await r.text());
+        await mutate(key);
+        return true;
+      }),
+      {
+        loading: "Canceling subscription…",
+        success: "Subscription canceled",
+        error: "Failed to cancel subscription",
+      }
+    );
+  };
+
   return {
     billing: data?.billing,
     paymentMethods: data?.billing?.paymentMethods || [],
@@ -76,6 +92,7 @@ export const useEventBilling = ({ eventId }) => {
     refetch,
     setDefaultPaymentMethod,
     removePaymentMethod,
+    cancelSubscription,
     updateBillingEmail,
   };
 };

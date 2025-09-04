@@ -22,7 +22,10 @@ import { isEmail } from "../../../util/isEmail";
 import { Row } from "../../../util/Flex";
 import { EventChecklist } from "../../../components/EventChecklist/EventChecklist";
 import { useAuth } from "../../../hooks";
-import { useBilling } from "../../../hooks/useBilling";
+import SetupForm from "../../../components/stripe/Stripe";
+import { useProspectStripeSetupIntent } from "../../../hooks/useProspectStripeSetupIntent";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 // Hosted email comparison is deprecated in favor of Google options
 // import { HostedEmailComparisonPopoverContent } from "../../../components/HostedEmailComparison/HostedEmailComparison";
 import { useEvents } from "../../../hooks/useEvents";
@@ -52,12 +55,15 @@ export const NewEventPage = () => {
       startTimeTz: null,
       endTimeTz: null,
     },
+    // Billing collected during wizard (Stripe prospect)
+    prospectCustomerId: null,
+    prospectPaymentMethodId: null,
   });
   window.setEvent = setEvent;
   const [stage, setStage] = useState(0);
   const { schema, mutationLoading, createEvent } = useEvents();
   const [err, setErr] = useState(null);
-  const { defaultPaymentMethodId } = useBilling();
+  // No pre-creation anymore; billing happens before create
 
   const onChangeEvent = (e) => {
     setEvent({ ...event, ...e });
@@ -67,15 +73,20 @@ export const NewEventPage = () => {
 
   const onSubmit = async () => {
     try {
+      if (!event.prospectPaymentMethodId || !event.prospectCustomerId) {
+        toast.error("Add a payment method before creating your event.");
+        setStage(4);
+        return false;
+      }
       const parsed = schema.parse({
         ...event,
-        // Invite user to reuse their saved payment method for this event's subscription
-        defaultPaymentMethodId: defaultPaymentMethodId || undefined,
+        // Require PM added during wizard
+        defaultPaymentMethodId: event.prospectPaymentMethodId,
+        stripe_customerId: event.prospectCustomerId || undefined,
       });
-      // Always create the event and navigate to the dashboard.
-      // Gmail connection can be started from the dashboard checklist.
-      await createEvent(parsed);
-      return true;
+      // Create the event and navigate to the dashboard on success
+      const res = await createEvent(parsed, true);
+      return Boolean(res);
     } catch (e) {
       setErr(e);
       console.log(e);
@@ -109,13 +120,19 @@ export const NewEventPage = () => {
               <EventAssets event={event} onChangeEvent={onChangeEvent} />
             )}
             {stage === 4 && (
+              <EventBillingDuringCreation
+                event={event}
+                onChangeEvent={onChangeEvent}
+              />
+            )}
+            {stage === 5 && (
               <EventSocials
                 event={event}
                 onChangeEvent={onChangeEvent}
                 setStage={setStage}
               />
             )}
-            {stage === 5 && (
+            {stage === 6 && (
               <Submit
                 event={event}
                 onChangeEvent={onChangeEvent}
@@ -124,7 +141,7 @@ export const NewEventPage = () => {
                 loading={mutationLoading}
               />
             )}
-            {stage === 6 && (
+            {stage === 7 && (
               <Finished event={event} onChangeEvent={onChangeEvent} />
             )}
             <Util.Hr className="mt-4" />
@@ -137,7 +154,7 @@ export const NewEventPage = () => {
                   </Util.Row>
                 </Button>
               )}
-              {stage < 5 && (
+              {stage < 6 && (
                 <Button onClick={() => setStage(stage + 1)} className="mt-3">
                   <Util.Row align="center" gap={1}>
                     Next
@@ -263,6 +280,24 @@ const InstanceInfo = ({ event = {}, onChangeEvent }) => {
         label="End Date"
         required
         tz={event.instance.endTimeTz || event.defaultTz}
+        afterLabel={
+          <Button
+            size="sm"
+            outline
+            onClick={() =>
+              setEvent({
+                ...event,
+                instance: {
+                  ...event.instance,
+                  endTime: event.instance.startTime,
+                  endTimeTz: event.instance.startTimeTz,
+                },
+              })
+            }
+          >
+            Copy from Start Time
+          </Button>
+        }
         minDate={
           event.instance?.endTime
             ? new Date(event.instance?.endTime).toISOString().slice(0, 10)
@@ -323,6 +358,65 @@ const EventAssets = ({ event = {}, onChangeEvent }) => {
         By continuing and uploading these images, you agree that you have the
         legal rights to use these images.
       </Typography.Text>
+    </>
+  );
+};
+
+const EventBillingDuringCreation = ({ event = {}, onChangeEvent }) => {
+  const { intent, customer_session, customerId, loading, error, refetch } =
+    useProspectStripeSetupIntent();
+
+  const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK);
+
+  return (
+    <>
+      <Typography.H2>Billing</Typography.H2>
+      <Typography.Text>
+        Add a payment method for your event. Your card is securely stored by
+        Stripe and used for your EventPilot subscription.
+      </Typography.Text>
+      <Util.Hr />
+      {event.prospectPaymentMethodId ? (
+        <Alert variant="success" title="Payment method added">
+          A payment method has been added. You can proceed to the next step.
+        </Alert>
+      ) : null}
+      {error && (
+        <Alert variant="danger" title="Error loading billing">
+          {String(error?.message || "Failed to load Stripe setup")}
+        </Alert>
+      )}
+      {loading ? (
+        <Typography.Text>Loading…</Typography.Text>
+      ) : intent?.client_secret && customer_session?.client_secret ? (
+        <Elements
+          stripe={stripePromise}
+          options={{
+            clientSecret: intent.client_secret,
+            customerSessionClientSecret: customer_session.client_secret,
+          }}
+        >
+          <SetupForm
+            buttonText={
+              event.prospectPaymentMethodId
+                ? "Replace card"
+                : "Add payment method"
+            }
+            onSuccess={(setupIntent) => {
+              const pmId =
+                setupIntent?.payment_method || setupIntent?.paymentMethod?.id;
+              if (pmId) {
+                onChangeEvent({
+                  prospectPaymentMethodId: pmId,
+                  prospectCustomerId: customerId,
+                });
+              }
+            }}
+          />
+        </Elements>
+      ) : (
+        <Button onClick={() => refetch()}>Retry</Button>
+      )}
     </>
   );
 };
@@ -406,7 +500,8 @@ const EventContact = ({ event = {}, onChangeEvent }) => {
             // Ensure legacy fields satisfy the current API shape
             useHostedEmail: false,
             willForwardEmail: true,
-            externalContactEmail: event.contactEmail || user?.email || event.externalContactEmail,
+            externalContactEmail:
+              event.contactEmail || user?.email || event.externalContactEmail,
           });
         }}
         items={[
@@ -431,10 +526,15 @@ const EventContact = ({ event = {}, onChangeEvent }) => {
         </Alert>
       )}
       {event.emailSetupMethod === "workspace" && (
-        <Alert variant="warning" className="mb-3" title="Workspace provisioning">
+        <Alert
+          variant="warning"
+          className="mb-3"
+          title="Workspace provisioning"
+        >
           <Typography.Text className="mb-0">
-            We’ll help you get a Google Workspace account provisioned for your event.
-            This option is coming soon — we’ll follow up after your event is created.
+            We’ll help you get a Google Workspace account provisioned for your
+            event. This option is coming soon — we’ll follow up after your event
+            is created.
           </Typography.Text>
         </Alert>
       )}
@@ -454,7 +554,7 @@ const EventSocials = ({ event = {}, onChangeEvent, setStage }) => {
         <Typography.Text className="mb-0">
           This section is optional, and you can fill this out later.
         </Typography.Text>
-        <Button onClick={() => setStage(5)} className="mt-3" variant="primary">
+        <Button onClick={() => setStage(6)} className="mt-3" variant="primary">
           Skip to the next step
         </Button>
       </Alert>
@@ -556,8 +656,9 @@ const Finished = ({ event = {}, onChangeEvent }) => {
       <Typography.H2>Email Setup</Typography.H2>
       <Typography.Text>
         If you chose to connect a Google account, you can start the connection
-        from the setup checklist on your event dashboard (or from Settings → Gmail).
-        After connecting, your event’s public contact email will be set to that Gmail address.
+        from the setup checklist on your event dashboard (or from Settings →
+        Gmail). After connecting, your event’s public contact email will be set
+        to that Gmail address.
       </Typography.Text>
       <Typography.H2>Hosted Website</Typography.H2>
       <Typography.Text>
@@ -588,43 +689,115 @@ const Finished = ({ event = {}, onChangeEvent }) => {
 };
 
 const Submit = ({ event = {}, onChangeEvent, onSubmit, err, loading }) => {
-  const { defaultPaymentMethodId, paymentMethods, loading: billingLoading } =
-    useBilling();
-  const defaultPm = paymentMethods?.find((p) => p.id === defaultPaymentMethodId);
   return (
     <>
       <Typography.H2>Submitting your event</Typography.H2>
       <Typography.Text>
-        You are almost done! Click below to submit your event.
+        You are almost done! Click below to create your event.
       </Typography.Text>
-      {!billingLoading && (
+      {!event.prospectPaymentMethodId ? (
         <Alert
-          variant={defaultPm ? "info" : "warning"}
+          variant="warning"
           className="mt-3"
-          title={defaultPm ? "Billing: using your saved card" : "Billing setup"}
+          title="Payment method required"
         >
-          {defaultPm ? (
-            <Typography.Text className="mb-0">
-              This event will be billed to your default payment method
-              ({(defaultPm.brand || "").toUpperCase()} •••• {defaultPm.last4}).
-              You can change this later under Settings → Billing.
-            </Typography.Text>
-          ) : (
-            <Typography.Text className="mb-0">
-              You don’t have a saved payment method yet. After creating the
-              event, go to Settings → Billing to add one.
-            </Typography.Text>
-          )}
+          Please add a payment method in the Billing step before creating your
+          event.
+        </Alert>
+      ) : (
+        <Alert variant="success" className="mt-3" title="Billing ready">
+          A payment method has been added. Your subscription will start after
+          creation.
         </Alert>
       )}
       <Button onClick={() => onSubmit()} className={"mt-3"} variant="primary">
-        Submit
+        Create Event
       </Button>
       {err && (
         <Alert variant="danger" className="mt-3" title="Error">
           Unable to validate the values you have entered. Please check your
           inputs.
         </Alert>
+      )}
+    </>
+  );
+};
+
+const EventBillingSetup = ({ eventId, eventDraft }) => {
+  const navigate = useNavigate();
+  const {
+    paymentMethods,
+    defaultPaymentMethodId,
+    setDefaultPaymentMethod,
+    refetch,
+    loading,
+  } = useEventBilling({ eventId });
+
+  const hasMethod = (paymentMethods || []).length > 0;
+  const defaultSet = Boolean(defaultPaymentMethodId);
+
+  return (
+    <>
+      <Typography.H2>Set up billing</Typography.H2>
+      <Typography.Text>
+        Add a payment method for this event. We use Stripe to securely store
+        your card and start your EventPilot subscription.
+      </Typography.Text>
+      <Util.Hr />
+
+      {!eventId ? (
+        <Alert variant="warning" title="Creating event">
+          Creating your event… if this persists, refresh the page.
+        </Alert>
+      ) : (
+        <div className="row">
+          <div className="col-md-6">
+            <Typography.H3 className="mb-2">Add a payment method</Typography.H3>
+            <Stripe
+              eventId={eventId}
+              onSuccess={async (setupIntent) => {
+                const pmId =
+                  setupIntent?.payment_method || setupIntent?.paymentMethod?.id;
+                if (pmId) {
+                  await setDefaultPaymentMethod(pmId);
+                }
+                await refetch();
+              }}
+            />
+          </div>
+          <div className="col-md-6">
+            <Alert
+              variant={defaultSet ? "success" : hasMethod ? "info" : "warning"}
+              title={
+                defaultSet
+                  ? "Default payment method set"
+                  : hasMethod
+                  ? "Payment method added"
+                  : "No payment method on file"
+              }
+            >
+              <Typography.Text className="mb-0">
+                {defaultSet
+                  ? "You're all set. You can continue to your event dashboard."
+                  : hasMethod
+                  ? "Select a default card by clicking 'Submit' in the form, then continue."
+                  : "Add a card to start your subscription and continue."}
+              </Typography.Text>
+            </Alert>
+
+            <Button
+              className="mt-3"
+              variant="primary"
+              disabled={!defaultSet || loading}
+              onClick={() => navigate(`/events/${eventId}`)}
+            >
+              Continue to Dashboard
+            </Button>
+            <Typography.Text className="d-block text-muted mt-2">
+              You can manage billing later under Settings → Billing.
+            </Typography.Text>
+          </div>
+        </div>
       )}
     </>
   );
