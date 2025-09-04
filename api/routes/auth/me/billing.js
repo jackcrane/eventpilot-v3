@@ -1,6 +1,5 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
-import { stripe } from "#stripe";
 import { z } from "zod";
 
 // GET /api/auth/me/billing

@@ -17,6 +17,7 @@ export const isCustomerInGoodStanding = async (customerId) => {
     });
     return (pms?.data?.length || 0) > 0;
   } catch (e) {
+    void e;
     return false;
   }
 };

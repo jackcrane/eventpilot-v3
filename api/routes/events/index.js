@@ -119,6 +119,7 @@ export const post = [
             customerId = null;
           }
         } catch (_) {
+          void _;
           customerId = null;
         }
       }
@@ -142,7 +143,10 @@ export const post = [
           metadata: { eventId: event.id },
         });
       } catch (e) {
-        console.warn("[STRIPE] Failed to update customer name", e?.message || e);
+        console.warn(
+          "[STRIPE] Failed to update customer name",
+          e?.message || e
+        );
       }
 
       const priceId = process.env.STRIPE_EVENT_SUBSCRIPTION_PRICE_ID;
@@ -235,12 +239,16 @@ export const post = [
         if (event?.id) {
           await prisma.event.delete({ where: { id: event.id } });
         }
-      } catch {}
+      } catch (e) {
+        void e;
+      }
       try {
         if (subscription?.id) {
           await stripe.subscriptions.cancel(subscription.id);
         }
-      } catch {}
+      } catch (e) {
+        void e;
+      }
 
       res.status(500).json({ message: "Error" });
     }

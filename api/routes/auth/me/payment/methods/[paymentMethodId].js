@@ -1,6 +1,4 @@
 import { verifyAuth } from "#verifyAuth";
-import { prisma } from "#prisma";
-import { stripe } from "#stripe";
 
 // DELETE /api/auth/me/payment/methods/:paymentMethodId
 export const del = [

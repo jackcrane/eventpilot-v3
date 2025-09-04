@@ -69,6 +69,7 @@ export const get = [
           subscription: event.stripe_subscriptionId,
         });
       } catch (e) {
+        void e;
         // No upcoming invoice or cannot be retrieved
         upcomingInvoiceRaw = null;
       }
@@ -78,6 +79,7 @@ export const get = [
       subscription?.default_payment_method ||
       customer?.invoice_settings?.default_payment_method ||
       null;
+    // eslint-disable-next-line
     const hasDefault = Boolean(defaultPaymentMethodId);
 
     const paymentMethods = (pms?.data || []).map((pm) => ({
@@ -125,6 +127,7 @@ export const get = [
         }
       } catch (e) {
         // ignore
+        void e;
       }
     }
 
@@ -187,7 +190,7 @@ export const get = [
             (it.price?.unit_amount_decimal
               ? Math.round(parseFloat(it.price.unit_amount_decimal))
               : 0);
-        const qty = it.quantity ?? 1;
+          const qty = it.quantity ?? 1;
           return sum + unit * qty;
         }, 0);
         const currency = items[0]?.price?.currency || "usd";
@@ -197,11 +200,16 @@ export const get = [
           nextPaymentAttempt: subscription.current_period_end || null,
           byPeriodEnd: Boolean(subscription?.current_period_end),
         };
+        // eslint-disable-next-line
       } catch {}
     }
 
     // Ensure we provide a concrete nextPaymentAttempt when possible
-    if (subscription && upcomingInvoice && !upcomingInvoice.nextPaymentAttempt) {
+    if (
+      subscription &&
+      upcomingInvoice &&
+      !upcomingInvoice.nextPaymentAttempt
+    ) {
       if (subscription.current_period_end) {
         upcomingInvoice.nextPaymentAttempt = subscription.current_period_end;
         upcomingInvoice.byPeriodEnd = true;
@@ -218,6 +226,7 @@ export const get = [
           ),
         },
       });
+      // eslint-disable-next-line
     } catch {}
 
     res.json({
@@ -365,7 +374,9 @@ export const del = [
 
     if (!event) return res.status(404).json({ message: "Event not found" });
     if (!event.stripe_subscriptionId)
-      return res.status(400).json({ message: "No active subscription to cancel" });
+      return res
+        .status(400)
+        .json({ message: "No active subscription to cancel" });
 
     try {
       await stripe.subscriptions.cancel(event.stripe_subscriptionId);
@@ -381,6 +392,7 @@ export const del = [
         where: { id: req.params.eventId },
         data: { goodPaymentStanding: false },
       });
+      // eslint-disable-next-line
     } catch {}
 
     return res.status(200).json({ message: "Subscription canceled" });

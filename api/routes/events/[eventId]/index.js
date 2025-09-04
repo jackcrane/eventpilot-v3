@@ -134,6 +134,7 @@ export const put = [
       return res.status(400).json({ message: serializeError(result) });
     }
 
+    // eslint-disable-next-line
     const { defaultPaymentMethodId, ...eventData } = result.data || {};
     await prisma.event.update({
       where: {

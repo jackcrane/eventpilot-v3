@@ -1,6 +1,5 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
-import { isCustomerInGoodStanding } from "#stripe";
 
 export const get = [
   verifyAuth(["manager"]),
