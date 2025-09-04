@@ -8,6 +8,44 @@ import {
   setThreadUnread,
 } from "#util/google";
 import { signAttachment } from "#util/signedUrl";
+import { prisma } from "#prisma";
+import { sendEmailEvent } from "#sse";
+import { upsertConversationCrmPerson } from "#util/upsertConversationCrmPerson";
+
+// Lightweight RFC 5322-ish address list parser for dedupe/linking
+const parseAddressList = (value) => {
+  if (!value) return [];
+  const parts = [];
+  let cur = "";
+  let depth = 0;
+  let inQuotes = false;
+  for (const ch of String(value)) {
+    if (ch === '"') inQuotes = !inQuotes;
+    if (!inQuotes) {
+      if (ch === "<") depth++;
+      if (ch === ">" && depth > 0) depth--;
+    }
+    if (ch === "," && !inQuotes && depth === 0) {
+      parts.push(cur.trim());
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur.trim()) parts.push(cur.trim());
+  return parts
+    .map((p) => {
+      const m = p.match(/^(.*)<([^>]+)>\s*$/);
+      if (m) {
+        const name = m[1].trim().replace(/^"|"$/g, "");
+        const email = m[2].trim();
+        return { Email: email, Name: name || email };
+      }
+      const email = p.replace(/^"|"$/g, "").trim();
+      return { Email: email, Name: email };
+    })
+    .filter((e) => /@/.test(e.Email));
+};
 
 const sendSchema = z
   .object({
@@ -85,6 +123,88 @@ export const post = [
         threadId,
         parse.data
       );
+      // Persist immediately; cron will later confirm/dedupe by Message-ID
+      try {
+        const msgId = result.messageId || null;
+        const sentId = result.sentId || null;
+
+        // Fetch metadata for canonical headers
+        let meta = null;
+        if (sentId) {
+          try {
+            const m = await gmail.users.messages.get({
+              userId: "me",
+              id: sentId,
+              format: "metadata",
+              metadataHeaders: ["Message-ID", "From", "To", "Cc", "Bcc", "Subject", "Date"],
+            });
+            meta = m?.data || null;
+          } catch (_) {}
+        }
+
+        const headers = (meta?.payload?.headers || []).reduce(
+          (acc, h) => ({ ...acc, [String(h.name).toLowerCase()]: h.value }),
+          {}
+        );
+        const from = headers["from"] || connection.email;
+        const to = headers["to"] || (Array.isArray(parse.data.to) ? parse.data.to.join(", ") : parse.data.to || "");
+        const subject = headers["subject"] || parse.data.subject || "";
+
+        // Dedupe by messageId
+        const exists = msgId
+          ? await prisma.email.findFirst({ where: { messageId: msgId, conversationId: threadId } })
+          : null;
+        let emailRecord = exists;
+        if (!exists) {
+          // Link to a CRM person if any recipient matches
+          let crmPersonId = null;
+          try {
+            const recipients = parseAddressList(to)
+              .concat(parseAddressList(headers["cc"]))
+              .concat(parseAddressList(headers["bcc"]));
+            for (const r of recipients) {
+              const match = await prisma.crmPersonEmail.findFirst({
+                where: { email: { equals: r.Email, mode: "insensitive" }, crmPerson: { eventId } },
+                select: { crmPersonId: true },
+              });
+              if (match?.crmPersonId) {
+                crmPersonId = match.crmPersonId;
+                break;
+              }
+            }
+          } catch (_) {}
+
+          emailRecord = await prisma.email.create({
+            data: {
+              conversation: { connect: { id: threadId } },
+              messageId: msgId || undefined,
+              from,
+              to,
+              subject,
+              htmlBody: parse.data.html || null,
+              textBody: parse.data.text || null,
+              crmPersonId: crmPersonId || null,
+            },
+          });
+
+          // Ensure conversation participants from recipients
+          try {
+            const recs = parseAddressList(to);
+            for (const r of recs) {
+              await upsertConversationCrmPerson(r.Email, threadId, eventId);
+            }
+          } catch (_) {}
+
+          // SSE fan-out
+          try {
+            sendEmailEvent(eventId, emailRecord);
+          } catch (_) {}
+        }
+      } catch (e) {
+        // Non-fatal; cron will reconcile
+        console.error("[gmail reply immediate persist]", e);
+      }
+
       return res.status(200).json({
         success: true,
         messageId: result.messageId,
