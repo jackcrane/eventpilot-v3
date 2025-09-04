@@ -29,6 +29,11 @@ import { VolunteerRegistrationStatsCard } from "../../../../components/Volunteer
 import { ParticipantRegistrationStatsCard } from "../../../../components/ParticipantRegistrationStatsCard/ParticipantRegistrationStatsCard";
 import { useDbState } from "../../../../hooks/useDbState";
 import { LedgerSummaryCard } from "../../../../components/LedgerSummaryCard/LedgerSummaryCard";
+import { CrmTotalCard } from "../../../../components/CrmTotalCard/CrmTotalCard";
+import { TeamJoinsCard } from "../../../../components/TeamJoinsCard/TeamJoinsCard";
+import { VolunteerCapacityCard } from "../../../../components/VolunteerCapacityCard/VolunteerCapacityCard";
+import { CouponUsageCard } from "../../../../components/CouponUsageCard/CouponUsageCard";
+import { UpsellUsageCard } from "../../../../components/UpsellUsageCard/UpsellUsageCard";
 
 const Divider = styled.div`
   background-color: var(--tblr-card-border-color);
@@ -159,6 +164,11 @@ export const Event = () => {
         className="mt-2 mb-3"
       >
         <LedgerSummaryCard />
+        <CrmTotalCard />
+        <TeamJoinsCard />
+        <VolunteerCapacityCard />
+        <CouponUsageCard />
+        <UpsellUsageCard />
       </div>
       <VolunteerRegistrationStatsCard />
       <div className="mt-3">
