@@ -8,6 +8,7 @@
 
 import "dotenv/config";
 import { prisma } from "#prisma";
+import { createLedgerItemForRegistration } from "../util/ledger.js";
 
 // Try to use @faker-js/faker; provide a local fallback otherwise
 let faker;
@@ -175,7 +176,7 @@ try {
       email: (first, last) => {
         const f = (first || pick(fnames)).toLowerCase();
         const l = (last || pick(lnames)).toLowerCase();
-        return `${f}.${l}.${rand()}@example.test`;
+        return `${f}.${l}.${rand()}@eventpilot-test.com`;
       },
       userAgent: () => `FakeDataGenerator/1.0 (+${rand()})`,
     },
@@ -469,6 +470,18 @@ const defaultVolunteerValueFor = (field, person) => {
 };
 
 const defaultRegistrationValueFor = (field, person) => {
+  // Prefer semantic fieldType when present (e.g., participantName/email)
+  const ft = (field.fieldType || "").toLowerCase();
+  const label = (field.label || "").toLowerCase();
+
+  if (ft === "participantname" || label.includes("name")) return person.name;
+  if (ft === "participantemail" || label.includes("email")) return person.email;
+  if (ft === "participantphone" || label.includes("phone")) return person.phone;
+  if (label.includes("city")) return person.city;
+  if (label.includes("state")) return person.state;
+  if (label.includes("zip")) return person.zip;
+  if (label.includes("address")) return person.address;
+
   switch (field.type) {
     case "EMAIL":
       return person.email;
@@ -502,7 +515,7 @@ const volunteerValueFor = (field, person, mapping = {}) => {
 };
 
 const registrationValueFor = (field, person, mapping = {}) => {
-  const key = field.type || field.label;
+  const key = field.fieldType || field.type || field.label;
   if (key && mapping[key]) return runFakerPath(mapping[key], person);
   return defaultRegistrationValueFor(field, person);
 };
@@ -735,11 +748,25 @@ const createParticipant = async ({
     });
   }
 
-  // Maybe attach a coupon (basic pick; no caps/expiry validation)
-  const chosenCoupon =
+  // Maybe attach a coupon (validate like consumer flow: expiry + redemption caps)
+  let chosenCoupon =
     Math.random() < cfg.participants.couponChance && coupons?.length
       ? coupons[Math.floor(Math.random() * coupons.length)]
       : null;
+  if (chosenCoupon) {
+    const now = createdAt || new Date();
+    const expired = chosenCoupon.endsAt && new Date(chosenCoupon.endsAt) < now;
+    if (expired) {
+      chosenCoupon = null;
+    } else if (chosenCoupon.maxRedemptions !== -1) {
+      const used = await prisma.registration.count({
+        where: { couponId: chosenCoupon.id, deleted: false, finalized: true },
+      });
+      if (used >= chosenCoupon.maxRedemptions) {
+        chosenCoupon = null;
+      }
+    }
+  }
   if (chosenCoupon) {
     await prisma.registration.update({
       where: { id: reg.id },
@@ -779,23 +806,12 @@ const createParticipant = async ({
   if (paid) {
     // Create ledger item only if there was a non-zero payment required
     if (requiresPayment) {
-      await prisma.ledgerItem.create({
-        data: {
-          eventId,
-          instanceId,
-          amount: total,
-          source: "REGISTRATION",
-          createdAt,
-          logs: {
-            create: {
-              type: "LEDGER_ITEM_CREATED",
-              eventId,
-              instanceId,
-              registrationId: reg.id,
-              data: { total },
-            },
-          },
-        },
+      // Mirror webhook path: create ledger item via shared util
+      await createLedgerItemForRegistration({
+        eventId,
+        instanceId,
+        registrationId: reg.id,
+        amount: total,
       });
     }
 
