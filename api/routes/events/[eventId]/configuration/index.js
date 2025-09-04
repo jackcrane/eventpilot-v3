@@ -5,6 +5,14 @@ import { zerialize } from "zodex";
 
 const configurationSchema = z.object({
   remainingStepsOpen: z.boolean().optional(),
+
+  volunteerStatsDisplayFormat: z.enum(["calendar", "timeline"]).optional(),
+  volunteerStatsCalendarMetric: z.enum(["count", "change"]).optional(),
+  volunteerStatsTimeframe: z.enum(["1", "3", "6"]).optional(),
+
+  participantStatsDisplayFormat: z.enum(["calendar", "timeline"]).optional(),
+  participantStatsCalendarMetric: z.enum(["count", "change"]).optional(),
+  participantStatsTimeframe: z.enum(["1", "3", "6"]).optional(),
 });
 
 async function getEventOr404(req, res) {
@@ -66,4 +74,3 @@ export const query = [
     return res.json(zerialize(configurationSchema));
   },
 ];
-
