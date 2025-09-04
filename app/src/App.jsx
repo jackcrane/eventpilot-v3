@@ -26,6 +26,7 @@ import { EventSettingsSocialsPage } from "./routes/events/[eventId]/settings/soc
 import { EventSettingsConnectionsPage } from "./routes/events/[eventId]/settings/connections";
 import { EventSettingsBillingPage } from "./routes/events/[eventId]/settings/billing";
 import { EventCrm } from "./routes/events/[eventId]/crm";
+import { CrmPersonPage } from "./routes/events/[eventId]/crm/[personId]";
 import { EmailPage } from "./routes/email/[emailId]";
 import { Conversations } from "./routes/events/[eventId]/conversations";
 import { NewEventPage } from "./routes/events/new";
@@ -160,6 +161,10 @@ export default () => {
               element={<EventSettingsBillingPage />}
             />
             <Route path="/events/:eventId/crm" element={<EventCrm />} />
+            <Route
+              path="/events/:eventId/crm/:personId"
+              element={<CrmPersonPage />}
+            />
 
             <Route
               path="/events/:eventId/conversations"

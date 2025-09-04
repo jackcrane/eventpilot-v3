@@ -11,7 +11,14 @@ const FIELD_DEFINITIONS = [
     label: "source",
     hrTitle: "Acquisition Source",
     type: "enum",
-    options: ["MANUAL", "IMPORT"],
+    options: [
+      "MANUAL",
+      "IMPORT",
+      "VOLUNTEER",
+      "REGISTRATION",
+      "SENT_EMAIL",
+      "EMAIL",
+    ],
     defaultOperation: "eq",
   },
   {
