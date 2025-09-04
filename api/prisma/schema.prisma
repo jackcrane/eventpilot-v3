@@ -23,10 +23,7 @@ model User {
 
   emailPreferences EmailPreferences?
 
-  stripe_customerId    String?
-  stripe_setupIntentId String?
-
-  goodPaymentStanding Boolean @default(false)
+  /// No Stripe customer stored at the user level anymore
 
   accountType AccountType @default(MANAGER)
 
@@ -356,6 +353,10 @@ model Event {
   gmailConnection     GmailConnection?
 
   stripeConnectedAccountId  String?
+  // EventPilot billing: subscription for this event in Stripe
+  stripe_subscriptionId     String?   @unique
+  stripe_customerId         String?   @unique
+  goodPaymentStanding       Boolean   @default(false)
   RegistrationPeriodPricing RegistrationPeriodPricing[]
   RegistrationFieldResponse RegistrationFieldResponse[]
 

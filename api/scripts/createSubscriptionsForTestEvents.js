@@ -2,22 +2,20 @@ import { stripe } from "#stripe";
 import { prisma } from "#prisma";
 import { LogType } from "@prisma/client";
 
-const events = await prisma.event.findMany({
-  include: {
-    user: true,
-  },
-});
+const events = await prisma.event.findMany({});
 
 for (const event of events) {
+  const priceId = process.env.STRIPE_EVENT_SUBSCRIPTION_PRICE_ID;
+  if (!priceId) {
+    throw new Error(
+      "Missing STRIPE_EVENT_SUBSCRIPTION_PRICE_ID in environment for test script"
+    );
+  }
+
   const subscription = await stripe.subscriptions.create({
-    customer: event.user.stripe_customerId,
+    customer: event.stripe_customerId,
     items: [
-      {
-        price: "price_1RRbcBIZm3Kzv7N0hZUMowir",
-      },
-      {
-        price: "price_1RRbcBIZm3Kzv7N0SFA9BEG5",
-      },
+      { price: priceId },
     ],
     metadata: {
       eventId: event.id,
@@ -27,6 +25,7 @@ for (const event of events) {
   await prisma.logs.create({
     type: LogType.STRIPE_SUBSCRIPTION_CREATED,
     userId: event.userId,
+    eventId: event.id,
     ip: "::1",
     data: subscription,
   });

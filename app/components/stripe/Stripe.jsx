@@ -1,5 +1,6 @@
 import { loadStripe } from "@stripe/stripe-js";
 import { useStripeSetupIntent } from "../../hooks/useStripeSetupIntent";
+import { useEventStripeSetupIntent } from "../../hooks/useEventStripeSetupIntent";
 import {
   Elements,
   PaymentElement,
@@ -10,6 +11,7 @@ import { Button, Typography, Util, Alert } from "tabler-react-2";
 import React, { useState } from "react";
 import { useOffcanvas } from "tabler-react-2/dist/offcanvas";
 import { Loading } from "../loading/Loading";
+import toast from "react-hot-toast";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK);
 
@@ -18,6 +20,7 @@ const SetupForm = ({ onSuccess, buttonText = "Submit" }) => {
   const elements = useElements();
 
   const [errorMessage, setErrorMessage] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (event) => {
     // We don't want to let default form submission happen here,
@@ -30,6 +33,7 @@ const SetupForm = ({ onSuccess, buttonText = "Submit" }) => {
       return null;
     }
 
+    setSubmitting(true);
     const { error, setupIntent } = await stripe.confirmSetup({
       //`Elements` instance that was used to create the Payment Element
       elements,
@@ -44,10 +48,17 @@ const SetupForm = ({ onSuccess, buttonText = "Submit" }) => {
       // confirming the payment. Show error to your customer (for example, payment
       // details incomplete)
       setErrorMessage(error.message);
+      setSubmitting(false);
     } else if (setupIntent && setupIntent.status === "succeeded") {
-      onSuccess && onSuccess(setupIntent);
+      toast.success("Payment method added");
+      try {
+        onSuccess && (await onSuccess(setupIntent));
+      } finally {
+        setSubmitting(false);
+      }
     } else {
       // For certain methods, Stripe may still redirect to return_url if required
+      setSubmitting(false);
     }
   };
 
@@ -60,7 +71,12 @@ const SetupForm = ({ onSuccess, buttonText = "Submit" }) => {
       )}
       <PaymentElement />
       <Util.Hr />
-      <Button disabled={!stripe} variant="primary" className={"mb-3"}>
+      <Button
+        disabled={!stripe || submitting}
+        loading={submitting}
+        variant="primary"
+        className={"mb-3"}
+      >
         {buttonText}
       </Button>
       {/* Show error message to your customers */}
@@ -75,8 +91,14 @@ const SetupForm = ({ onSuccess, buttonText = "Submit" }) => {
 
 export default SetupForm;
 
-export const Stripe = () => {
-  const { intent, customer_session, loading } = useStripeSetupIntent();
+export const Stripe = ({ onSuccess, eventId }) => {
+  const userSI = useStripeSetupIntent();
+  const eventSI = useEventStripeSetupIntent({ eventId });
+  const intent = eventId ? eventSI.intent : userSI.intent;
+  const customer_session = eventId
+    ? eventSI.customer_session
+    : userSI.customer_session;
+  const loading = eventId ? eventSI.loading : userSI.loading;
 
   if (loading) return <Loading />;
 
@@ -102,7 +124,7 @@ export const Stripe = () => {
           customerSessionClientSecret: customer_session?.client_secret,
         }}
       >
-        <SetupForm />
+        <SetupForm onSuccess={onSuccess} />
       </Elements>
     </div>
   );
@@ -112,22 +134,57 @@ export const StripeTrigger = ({
   children = "Launch Billing Settings",
   type = "button", // [button, link]
   divProps,
+  onSuccess,
+  eventId,
   ...props
 }) => {
-  const { offcanvas, OffcanvasElement } = useOffcanvas({
+  const { offcanvas, OffcanvasElement, close } = useOffcanvas({
     offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
   });
 
   return (
     <>
       {type === "button" ? (
-        <Button onClick={() => offcanvas({ content: <Stripe /> })} {...props}>
+        <Button
+          onClick={() =>
+            offcanvas({
+              content: (
+                <Stripe
+                  eventId={eventId}
+                  onSuccess={async (...args) => {
+                    try {
+                      await (onSuccess?.(...args));
+                    } finally {
+                      close();
+                    }
+                  }}
+                />
+              ),
+            })
+          }
+          {...props}
+        >
           {children}
         </Button>
       ) : (
         <a
           href="#"
-          onClick={() => offcanvas({ content: <Stripe /> })}
+          onClick={() =>
+            offcanvas({
+              content: (
+                <Stripe
+                  eventId={eventId}
+                  onSuccess={async (...args) => {
+                    try {
+                      await (onSuccess?.(...args));
+                    } finally {
+                      close();
+                    }
+                  }}
+                />
+              ),
+            })
+          }
           {...props}
         >
           {children}

@@ -77,16 +77,7 @@ export const UserProfile = () => {
         </Row>
       )}
       <Util.Hr />
-      <H2>Payments</H2>
-      {!user.goodStanding && (
-        <Alert variant="danger" title={"Payment Issue"}>
-          Your account is not in good payment standing. Please click{" "}
-          <StripeTrigger type="link">here</StripeTrigger> to set up a payment
-          method.
-        </Alert>
-      )}
-      <StripeTrigger />
-      <Util.Hr />
+      {/* Payments moved to event-level. */}
       <H2>Email Preferences</H2>
       <Text>
         We value your inbox, and we may send you important, time-sensitive

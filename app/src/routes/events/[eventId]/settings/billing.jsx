@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
 import {
   Typography,
@@ -9,45 +9,30 @@ import {
   Table,
   Input,
 } from "tabler-react-2";
-import SetupForm from "../../../../../components/stripe/Stripe";
-import { Elements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
-import { useStripeSetupIntent } from "../../../../../hooks/useStripeSetupIntent";
-import { useBilling } from "../../../../../hooks/useBilling";
+import { StripeTrigger } from "../../../../../components/stripe/Stripe";
+import { useEventBilling } from "../../../../../hooks/useEventBilling";
 import { Row } from "../../../../../util/Flex";
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK);
+import { useParams } from "react-router-dom";
 
 export const EventSettingsBillingPage = () => {
-  const {
-    intent,
-    customer_session,
-    loading: siLoading,
-    refetch: refetchSI,
-  } = useStripeSetupIntent();
+  const { eventId } = useParams();
   const {
     billing,
     paymentMethods,
     defaultPaymentMethodId,
     invoices,
+    upcomingInvoice,
     billingEmail,
     goodPaymentStanding,
     loading,
     setDefaultPaymentMethod,
     removePaymentMethod,
     updateBillingEmail,
+    cancelSubscription,
     refetch,
-  } = useBilling();
+  } = useEventBilling({ eventId });
 
   const [emailDraft, setEmailDraft] = useState(billingEmail || "");
-
-  const stripeOptions = useMemo(() => {
-    if (!intent?.client_secret || !customer_session?.client_secret) return null;
-    return {
-      clientSecret: intent.client_secret,
-      customerSessionClientSecret: customer_session.client_secret,
-    };
-  }, [intent?.client_secret, customer_session?.client_secret]);
 
   return (
     <EventPage
@@ -138,25 +123,54 @@ export const EventSettingsBillingPage = () => {
             )}
 
             <Util.Hr />
-
-            {stripeOptions ? (
-              <Elements stripe={stripePromise} options={stripeOptions}>
-                <Typography.H3>Add a new payment method</Typography.H3>
-                <SetupForm
-                  buttonText="Save Payment Method"
-                  onSuccess={async () => {
-                    await refetch();
-                    await refetchSI();
-                  }}
-                />
-              </Elements>
-            ) : siLoading ? (
-              <Typography.Text>Loading Stripe…</Typography.Text>
-            ) : null}
+            <Typography.H3>Add a new payment method</Typography.H3>
+            <StripeTrigger
+              eventId={eventId}
+              onSuccess={async (setupIntent) => {
+                const pmId =
+                  setupIntent?.payment_method || setupIntent?.paymentMethod?.id;
+                if (pmId) {
+                  await setDefaultPaymentMethod(pmId);
+                }
+                await refetch();
+              }}
+            >
+              Add Payment Method
+            </StripeTrigger>
           </Card>
         </div>
 
         <div className="col-md-6">
+          <Card title="Upcoming Invoice" className="mb-3">
+            {loading ? (
+              <Typography.Text>Loading…</Typography.Text>
+            ) : upcomingInvoice ? (
+              <div>
+                <Typography.Text>
+                  {upcomingInvoice.nextPaymentAttempt
+                    ? `${upcomingInvoice.byPeriodEnd ? "Renews on" : "Next payment on"} ${new Date(
+                        upcomingInvoice.nextPaymentAttempt * 1000
+                      ).toLocaleString()}`
+                    : "Next payment date TBD"}
+                </Typography.Text>
+                <div className="mt-1" />
+                <Typography.H3 className="mb-0">
+                  {((upcomingInvoice.amountDue || 0) / 100).toLocaleString(
+                    undefined,
+                    {
+                      style: "currency",
+                      currency: (
+                        upcomingInvoice.currency || "usd"
+                      ).toUpperCase(),
+                    }
+                  )}
+                </Typography.H3>
+              </div>
+            ) : (
+              <Typography.Text>No upcoming invoice.</Typography.Text>
+            )}
+          </Card>
+
           <Card title="Billing Email">
             <Typography.Text>
               Invoices and payment receipts are sent to this email.
@@ -266,6 +280,34 @@ export const EventSettingsBillingPage = () => {
                 />
               </div>
             )}
+          </Card>
+
+          <div className="mt-3" />
+
+          <Card title="Cancel Subscription">
+            <Typography.Text>
+              Canceling will immediately stop your ability to collect
+              volunteers and participants for this event.
+            </Typography.Text>
+            <div className="d-flex mt-2">
+              <Button
+                color="danger"
+                soft
+                disabled={!billing?.subscriptionId || loading}
+                onClick={async () => {
+                  const ok = window.confirm(
+                    "Are you sure you want to cancel your EventPilot subscription for this event? You will no longer be able to collect volunteers and participants."
+                  );
+                  if (!ok) return;
+                  const success = await cancelSubscription();
+                  if (success) {
+                    await refetch();
+                  }
+                }}
+              >
+                Cancel Subscription
+              </Button>
+            </div>
           </Card>
         </div>
       </div>

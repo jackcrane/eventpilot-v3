@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { zerialize } from "zodex";
+import { stripe } from "#stripe";
 
 export const eventSchema = z.object({
   name: z.string().min(2),
@@ -38,6 +39,12 @@ export const eventSchema = z.object({
 
   // Framework for Google Workspace provisioning
   wantsWorkspaceAccount: z.boolean().optional().nullable(),
+
+  // Optional: allow specifying a payment method to use for the event's
+  // subscription at creation time. Ignored on updates.
+  defaultPaymentMethodId: z.string().optional().nullable(),
+  // Optional: reuse a prospect customer created during the wizard
+  stripe_customerId: z.string().optional().nullable(),
 
   instance: z
     .object({
@@ -127,11 +134,13 @@ export const put = [
       return res.status(400).json({ message: serializeError(result) });
     }
 
+    // eslint-disable-next-line
+    const { defaultPaymentMethodId, ...eventData } = result.data || {};
     await prisma.event.update({
       where: {
         id: req.params.eventId,
       },
-      data: result.data,
+      data: eventData,
     });
 
     res.json({
@@ -151,6 +160,19 @@ export const del = [
 
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Attempt to cancel associated Stripe subscription if present
+    try {
+      if (event.stripe_subscriptionId) {
+        await stripe.subscriptions.cancel(event.stripe_subscriptionId);
+      }
+    } catch (e) {
+      // Best-effort; continue with deletion even if Stripe call fails
+      console.warn(
+        `[STRIPE] Failed to cancel subscription for event ${event.id}:`,
+        e
+      );
     }
 
     await prisma.event.delete({

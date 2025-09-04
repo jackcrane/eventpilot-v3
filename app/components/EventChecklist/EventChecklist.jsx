@@ -85,8 +85,20 @@ export const generateSections = (event) => {
       ],
     },
     {
-      title: "Social Media",
+      title: "Billing",
       stage: 4,
+      optional: false,
+      items: [
+        {
+          key: "prospectPaymentMethodId",
+          label: "Payment Method",
+          validate: (val) => !!val,
+        },
+      ],
+    },
+    {
+      title: "Social Media",
+      stage: 5,
       optional: true,
       items: [
         { key: "facebook", label: "Facebook" },

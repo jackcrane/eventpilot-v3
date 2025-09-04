@@ -43,23 +43,7 @@ export const Header = ({
           . You will not be able to log in until you verify your email.
         </div>
       )}
-      {loggedIn && !user?.goodStanding && (
-        <div className={"bg-red text-white"} style={{ padding: "5px 10px" }}>
-          Your account is not in good payment standing. Please{" "}
-          <StripeTrigger type="link" divProps={{ className: "text-body" }}>
-            <span
-              style={{
-                textDecoration: "underline",
-                color: "white",
-                display: "inline",
-              }}
-            >
-              set up a payment
-            </span>
-          </StripeTrigger>{" "}
-          method before using EventPilot.
-        </div>
-      )}
+      {/* Account-level payment standing banner removed; billing is event-scoped. */}
       <header className={styles.header}>
         <div className={styles.headerGroup}>
           <ShowWhenSmaller w={500}>
