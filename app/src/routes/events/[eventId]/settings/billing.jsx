@@ -13,12 +13,14 @@ import SetupForm from "../../../../../components/stripe/Stripe";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { useStripeSetupIntent } from "../../../../../hooks/useStripeSetupIntent";
-import { useBilling } from "../../../../../hooks/useBilling";
+import { useEventBilling } from "../../../../../hooks/useEventBilling";
 import { Row } from "../../../../../util/Flex";
+import { useParams } from "react-router-dom";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK);
 
 export const EventSettingsBillingPage = () => {
+  const { eventId } = useParams();
   const {
     intent,
     customer_session,
@@ -37,7 +39,7 @@ export const EventSettingsBillingPage = () => {
     removePaymentMethod,
     updateBillingEmail,
     refetch,
-  } = useBilling();
+  } = useEventBilling({ eventId });
 
   const [emailDraft, setEmailDraft] = useState(billingEmail || "");
 

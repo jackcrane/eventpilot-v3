@@ -356,6 +356,9 @@ model Event {
   gmailConnection     GmailConnection?
 
   stripeConnectedAccountId  String?
+  // EventPilot billing: subscription for this event in Stripe
+  stripe_subscriptionId     String?   @unique
+  goodPaymentStanding       Boolean   @default(false)
   RegistrationPeriodPricing RegistrationPeriodPricing[]
   RegistrationFieldResponse RegistrationFieldResponse[]
 

@@ -70,9 +70,11 @@ export const post = [
         return res.status(400).json({ message: "Instance is required" });
       }
 
+      const { defaultPaymentMethodId, ...eventData } = result.data || {};
+
       event = await prisma.event.create({
         data: {
-          ...result.data,
+          ...eventData,
           externalContactEmail: result.data.externalContactEmail
             ? result.data.externalContactEmail
             : req.user.email,
@@ -101,15 +103,37 @@ export const post = [
         },
       });
 
+      const priceId = process.env.STRIPE_EVENT_SUBSCRIPTION_PRICE_ID;
+      if (!priceId) {
+        throw new Error(
+          "Missing STRIPE_EVENT_SUBSCRIPTION_PRICE_ID in environment"
+        );
+      }
+
       subscription = await stripe.subscriptions.create({
         customer: req.user.stripe_customerId,
         items: [
           {
-            price: "price_1RRbcBIZm3Kzv7N0SFA9BEG5", // Events
+            price: priceId, // Events subscription price
           },
         ],
+        // If provided, set a subscription-level default payment method
+        ...(defaultPaymentMethodId
+          ? { default_payment_method: defaultPaymentMethodId }
+          : {}),
         metadata: {
           eventId: event.id,
+        },
+      });
+
+      // Persist subscription id on the event for future management
+      await prisma.event.update({
+        where: { id: event.id },
+        data: {
+          stripe_subscriptionId: subscription.id,
+          goodPaymentStanding: ["active", "trialing"].includes(
+            subscription?.status || ""
+          ),
         },
       });
 
@@ -120,6 +144,7 @@ export const post = [
             userId: req.user.id,
             ip: req.ip || req.headers["x-forwarded-for"],
             data: subscription,
+            eventId: event.id,
           },
           // {
           //   type: LogType.INSTANCE_CREATED,
@@ -138,13 +163,17 @@ export const post = [
     } catch (e) {
       console.log(e);
 
-      await prisma.event.delete({
-        where: {
-          id: event.id,
-        },
-      });
-
-      await stripe.subscriptions.cancel(subscription.id);
+      // Best-effort cleanup if one side failed
+      try {
+        if (event?.id) {
+          await prisma.event.delete({ where: { id: event.id } });
+        }
+      } catch {}
+      try {
+        if (subscription?.id) {
+          await stripe.subscriptions.cancel(subscription.id);
+        }
+      } catch {}
 
       res.status(500).json({ message: "Error" });
     }

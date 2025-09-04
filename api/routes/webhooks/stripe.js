@@ -22,8 +22,72 @@ export const post = [
       },
     });
 
-    try {
-      switch (event.type) {
+  try {
+    switch (event.type) {
+      case "customer.subscription.created":
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted": {
+        const sub = event.data.object;
+        const status = sub.status; // active | trialing | past_due | canceled | unpaid | incomplete
+
+        // Prefer explicit linkage via metadata.eventId when present
+        let evt = null;
+        const eventId = sub.metadata?.eventId;
+        if (eventId) {
+          evt = await prisma.event.findFirst({ where: { id: eventId } });
+        }
+        if (!evt) {
+          evt = await prisma.event.findFirst({
+            where: { stripe_subscriptionId: sub.id },
+          });
+        }
+
+        if (evt) {
+          await prisma.event.update({
+            where: { id: evt.id },
+            data: {
+              stripe_subscriptionId: sub.id,
+              goodPaymentStanding: ["active", "trialing"].includes(status || ""),
+            },
+          });
+        }
+
+        break;
+      }
+
+      case "invoice.payment_succeeded": {
+        const inv = event.data.object;
+        const subscriptionId = inv.subscription;
+        if (typeof subscriptionId === "string") {
+          const evt = await prisma.event.findFirst({
+            where: { stripe_subscriptionId: subscriptionId },
+          });
+          if (evt) {
+            await prisma.event.update({
+              where: { id: evt.id },
+              data: { goodPaymentStanding: true },
+            });
+          }
+        }
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        const inv = event.data.object;
+        const subscriptionId = inv.subscription;
+        if (typeof subscriptionId === "string") {
+          const evt = await prisma.event.findFirst({
+            where: { stripe_subscriptionId: subscriptionId },
+          });
+          if (evt) {
+            await prisma.event.update({
+              where: { id: evt.id },
+              data: { goodPaymentStanding: false },
+            });
+          }
+        }
+        break;
+      }
         case "payment_method.attached": {
           const paymentMethod = event.data.object;
           const customerId = paymentMethod.customer;
@@ -150,9 +214,9 @@ export const post = [
           break;
         }
 
-        default:
-          console.log(`[STRIPE] Unhandled event type ${event.type}`);
-      }
+      default:
+        console.log(`[STRIPE] Unhandled event type ${event.type}`);
+    }
 
       response.json({ received: true });
     } catch (error) {

@@ -22,6 +22,7 @@ import { isEmail } from "../../../util/isEmail";
 import { Row } from "../../../util/Flex";
 import { EventChecklist } from "../../../components/EventChecklist/EventChecklist";
 import { useAuth } from "../../../hooks";
+import { useBilling } from "../../../hooks/useBilling";
 // Hosted email comparison is deprecated in favor of Google options
 // import { HostedEmailComparisonPopoverContent } from "../../../components/HostedEmailComparison/HostedEmailComparison";
 import { useEvents } from "../../../hooks/useEvents";
@@ -56,6 +57,7 @@ export const NewEventPage = () => {
   const [stage, setStage] = useState(0);
   const { schema, mutationLoading, createEvent } = useEvents();
   const [err, setErr] = useState(null);
+  const { defaultPaymentMethodId } = useBilling();
 
   const onChangeEvent = (e) => {
     setEvent({ ...event, ...e });
@@ -65,7 +67,11 @@ export const NewEventPage = () => {
 
   const onSubmit = async () => {
     try {
-      const parsed = schema.parse(event);
+      const parsed = schema.parse({
+        ...event,
+        // Invite user to reuse their saved payment method for this event's subscription
+        defaultPaymentMethodId: defaultPaymentMethodId || undefined,
+      });
       // Always create the event and navigate to the dashboard.
       // Gmail connection can be started from the dashboard checklist.
       await createEvent(parsed);
@@ -582,12 +588,35 @@ const Finished = ({ event = {}, onChangeEvent }) => {
 };
 
 const Submit = ({ event = {}, onChangeEvent, onSubmit, err, loading }) => {
+  const { defaultPaymentMethodId, paymentMethods, loading: billingLoading } =
+    useBilling();
+  const defaultPm = paymentMethods?.find((p) => p.id === defaultPaymentMethodId);
   return (
     <>
       <Typography.H2>Submitting your event</Typography.H2>
       <Typography.Text>
         You are almost done! Click below to submit your event.
       </Typography.Text>
+      {!billingLoading && (
+        <Alert
+          variant={defaultPm ? "info" : "warning"}
+          className="mt-3"
+          title={defaultPm ? "Billing: using your saved card" : "Billing setup"}
+        >
+          {defaultPm ? (
+            <Typography.Text className="mb-0">
+              This event will be billed to your default payment method
+              ({(defaultPm.brand || "").toUpperCase()} •••• {defaultPm.last4}).
+              You can change this later under Settings → Billing.
+            </Typography.Text>
+          ) : (
+            <Typography.Text className="mb-0">
+              You don’t have a saved payment method yet. After creating the
+              event, go to Settings → Billing to add one.
+            </Typography.Text>
+          )}
+        </Alert>
+      )}
       <Button onClick={() => onSubmit()} className={"mt-3"} variant="primary">
         Submit
       </Button>
