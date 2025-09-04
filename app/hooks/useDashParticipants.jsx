@@ -10,6 +10,7 @@ export const useDashParticipants = ({ eventId }) => {
   return {
     participantRegistrations: data?.participantRegistrations,
     registrationsByDay: data?.registrationsByDay,
+    trend: data?.trend || null,
     previous: data?.previous || null,
     loading: isLoading,
     error,

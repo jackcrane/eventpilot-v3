@@ -333,12 +333,14 @@ export const post = [
         }
       );
 
-      const { requiresPayment, registrationId } = transaction;
+      const { requiresPayment, registrationId, price } = transaction;
 
       if (!requiresPayment) {
         await finalizeRegistration({
           registrationId: registrationId,
           eventId,
+          amount: typeof price === "number" ? price : 0,
+          instanceId,
         });
         const registration = await prisma.registration.findUnique({
           where: { id: registrationId },
