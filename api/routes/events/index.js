@@ -95,6 +95,9 @@ export const post = [
               endTimeTz: result.data.instance?.endTimeTz,
             },
           },
+          configuration: {
+            create: {},
+          },
         },
       });
 
