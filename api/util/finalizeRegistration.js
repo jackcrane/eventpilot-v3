@@ -5,7 +5,6 @@ import { LogType } from "@prisma/client";
 import { getNameAndEmailFromRegistration } from "./getNameAndEmailFromRegistration";
 import { render } from "@react-email/render";
 import { getCrmPersonByEmail } from "./getCrmPersonByEmail";
-import { createLedgerItemForRegistration } from "./ledger";
 
 export const finalizeRegistration = async ({
   registrationId,
@@ -33,17 +32,7 @@ export const finalizeRegistration = async ({
     },
   });
 
-  // If there was no Stripe paymentIntent involved and a positive amount was provided,
-  // create a ledger item to reflect the charge (e.g., admin/manual or free-flow edge cases).
-  // Stripe webhook path already creates the ledger item before calling finalizeRegistration.
-  if (!paymentIntent && amount && amount > 0 && instanceId) {
-    await createLedgerItemForRegistration({
-      eventId,
-      instanceId,
-      registrationId,
-      amount,
-    });
-  }
+  // Defer ledger creation to callers so we can guarantee crmPerson linkage
 
   await prisma.logs.create({
     data: {
@@ -79,6 +68,7 @@ export const finalizeRegistration = async ({
   });
 
   const crmPerson = await getCrmPersonByEmail(email, eventId);
+  let crmPersonId = null;
 
   if (crmPerson) {
     await prisma.crmPerson.update({
@@ -93,6 +83,7 @@ export const finalizeRegistration = async ({
         },
       },
     });
+    crmPersonId = crmPerson.id;
   } else {
     await prisma.crmPerson.create({
       data: {
@@ -117,6 +108,11 @@ export const finalizeRegistration = async ({
           },
         },
       },
+      select: { id: true },
     });
+    // Fetch the person again to obtain the id (or use the created return)
+    const created = await getCrmPersonByEmail(email, eventId);
+    crmPersonId = created?.id || null;
   }
+  return { crmPersonId };
 };

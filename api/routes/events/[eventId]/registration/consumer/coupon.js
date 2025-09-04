@@ -3,6 +3,7 @@ import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { setupStripePI } from "../fragments/consumer/registrationRequiresPayment";
 import { finalizeRegistration } from "../../../../../util/finalizeRegistration";
+import { createLedgerItemForRegistration } from "../../../../../util/ledger";
 
 const applyCouponSchema = z.object({
   registrationId: z.string().min(1),
@@ -91,12 +92,21 @@ export const post = [
       const requiresPayment = total >= 0.3;
 
       if (!requiresPayment) {
-        await finalizeRegistration({
+        const { crmPersonId } = await finalizeRegistration({
           registrationId,
           eventId,
           amount: total,
           instanceId,
         });
+        if (total > 0) {
+          await createLedgerItemForRegistration({
+            eventId,
+            instanceId,
+            registrationId,
+            amount: total,
+            crmPersonId,
+          });
+        }
         return res.json({
           finalized: true,
           requiresPayment: false,
@@ -173,12 +183,21 @@ export const del = [
       const requiresPayment = total >= 0.3;
 
       if (!requiresPayment) {
-        await finalizeRegistration({
+        const { crmPersonId } = await finalizeRegistration({
           registrationId,
           eventId,
           amount: total,
           instanceId,
         });
+        if (total > 0) {
+          await createLedgerItemForRegistration({
+            eventId,
+            instanceId,
+            registrationId,
+            amount: total,
+            crmPersonId,
+          });
+        }
         return res.json({
           finalized: true,
           requiresPayment: false,

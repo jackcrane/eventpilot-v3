@@ -436,15 +436,30 @@ model LedgerItem {
   instanceId String
   instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
+  // Net amount (after discounts/coupons)
   amount Float
+  // Original amount before discounts/coupons
+  originalAmount Float?
 
   source LedgerItemSource
 
   stripe_paymentIntentId String?
 
+  // Optional link to a registration (some ledger items may not be tied to a registration)
+  registrationId String?
+  registration   Registration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+
+  // Required link to the CRM person
+  crmPersonId String?
+  crmPerson   CrmPerson? @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   logs      Logs[]
+
+  @@index([eventId, instanceId])
+  @@index([crmPersonId])
+  @@index([registrationId])
 }
 
 enum LedgerItemSource {
@@ -702,6 +717,7 @@ model CrmPerson {
   inboundEmails InboundEmail[]
   conversations Conversation[]
   registrations Registration[]
+  ledgerItems   LedgerItem[]
   deleted       Boolean        @default(false)
 
   fieldValues CrmPersonField[]
@@ -1014,6 +1030,8 @@ model Registration {
   // Coupon applied to this registration (if any)
   couponId String?
   coupon   Coupon? @relation(fields: [couponId], references: [id])
+
+  ledgerItems LedgerItem[]
 }
 
 model RegistrationUpsell {
