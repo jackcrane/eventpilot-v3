@@ -27,6 +27,7 @@ import { ProgressRow } from "../../../../components/Progress/ProgressRow";
 import { Icon } from "../../../../util/Icon";
 import { VolunteerRegistrationStatsCard } from "../../../../components/VolunteerRegistrationStatsCard/VolunteerRegistrationStatsCard";
 import { ParticipantRegistrationStatsCard } from "../../../../components/ParticipantRegistrationStatsCard/ParticipantRegistrationStatsCard";
+import { LedgerSummaryCard } from "../../../../components/LedgerSummaryCard/LedgerSummaryCard";
 
 const Divider = styled.div`
   background-color: var(--tblr-card-border-color);
@@ -121,6 +122,19 @@ export const Event = () => {
         </Alert>
       )}
       <Util.Hr />
+      {/* Ledger summary row */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "nowrap",
+          overflowX: "auto",
+          alignItems: "stretch",
+          gap: 10,
+        }}
+        className="mt-2 mb-3"
+      >
+        <LedgerSummaryCard />
+      </div>
       <VolunteerRegistrationStatsCard />
       <div className="mt-3">
         <ParticipantRegistrationStatsCard />
