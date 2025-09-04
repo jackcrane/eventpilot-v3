@@ -183,11 +183,31 @@ export const CrmPersonPage = () => {
         //   </div>
         // }
         centerTabs={[
-          { title: "Activity", icon: "activity", content: <ActivityCrmPage /> },
-          { title: "Notes", icon: "notes", content: <NotesCrmPage /> },
-          { title: "Emails", icon: "mail", content: <EmailsCrmPage /> },
-          { title: "Financial", icon: "currency-dollar", content: <FinancialCrmPage /> },
-          { title: "Settings", icon: "settings", content: <SettingsCrmPage /> },
+          {
+            title: "Activity",
+            icon: "activity",
+            content: <ActivityCrmPage crmPerson={crmPerson} />,
+          },
+          {
+            title: "Notes",
+            icon: "notes",
+            content: <NotesCrmPage crmPerson={crmPerson} />,
+          },
+          {
+            title: "Emails",
+            icon: "mail",
+            content: <EmailsCrmPage crmPerson={crmPerson} />,
+          },
+          {
+            title: "Financial",
+            icon: "currency-dollar",
+            content: <FinancialCrmPage crmPerson={crmPerson} />,
+          },
+          {
+            title: "Settings",
+            icon: "settings",
+            content: <SettingsCrmPage crmPerson={crmPerson} />,
+          },
         ]}
         rightIcon="hand-stop"
         rightTitle="Involvement"
