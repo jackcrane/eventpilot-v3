@@ -20,6 +20,11 @@ import { useReducedSubdomain } from "../hooks/useReducedSubdomain";
 import { EventJobs } from "./routes/events/[eventId]/jobs";
 import { Home } from "./home";
 import { EventSettings } from "./routes/events/[eventId]/settings";
+import { EventSettingsBasicsPage } from "./routes/events/[eventId]/settings/basics";
+import { EventSettingsContactPage } from "./routes/events/[eventId]/settings/contact";
+import { EventSettingsSocialsPage } from "./routes/events/[eventId]/settings/socials";
+import { EventSettingsConnectionsPage } from "./routes/events/[eventId]/settings/connections";
+import { EventSettingsBillingPage } from "./routes/events/[eventId]/settings/billing";
 import { EventCrm } from "./routes/events/[eventId]/crm";
 import { EmailPage } from "./routes/email/[emailId]";
 import { Conversations } from "./routes/events/[eventId]/conversations";
@@ -133,6 +138,26 @@ export default () => {
             <Route
               path="/events/:eventId/settings"
               element={<EventSettings />}
+            />
+            <Route
+              path="/events/:eventId/settings/basics"
+              element={<EventSettingsBasicsPage />}
+            />
+            <Route
+              path="/events/:eventId/settings/contact"
+              element={<EventSettingsContactPage />}
+            />
+            <Route
+              path="/events/:eventId/settings/socials"
+              element={<EventSettingsSocialsPage />}
+            />
+            <Route
+              path="/events/:eventId/settings/connections"
+              element={<EventSettingsConnectionsPage />}
+            />
+            <Route
+              path="/events/:eventId/settings/billing"
+              element={<EventSettingsBillingPage />}
             />
             <Route path="/events/:eventId/crm" element={<EventCrm />} />
 
