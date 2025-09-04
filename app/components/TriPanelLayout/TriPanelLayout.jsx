@@ -19,17 +19,39 @@ export const TriPanelLayout = ({
   rightIcon,
   rightTitle,
   rightChildren,
+  /** NEW (optional): tabs in the center panel: [{ title, content, icon }] */
+  centerTabs,
 }) => {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1100);
-  const [activeTab, setActiveTab] = useState("left");
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth <= 1100 : false
+  );
+
+  // Mobile right-panel tab state (left/right stack)
+  const [sideActiveTab, setSideActiveTab] = useState("left");
+
+  // Center panel tab state
+  const hasCenterTabs = Array.isArray(centerTabs) && centerTabs.length > 0;
+  const [centerActiveIndex, setCenterActiveIndex] = useState(0);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 1100);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Active center content (tabs or legacy)
+  const renderCenterContent = () => {
+    if (hasCenterTabs) {
+      const active =
+        centerTabs[
+          Math.max(0, Math.min(centerActiveIndex, centerTabs.length - 1))
+        ];
+      return active?.content ?? null;
+    }
+    return centerChildren;
+  };
 
   return (
     <div className={styles.container}>
@@ -46,7 +68,9 @@ export const TriPanelLayout = ({
       )}
 
       <div className={classNames(styles.center, centerClassName)}>
-        <div className={styles.title}>
+        <div
+          className={classNames(styles.title, hasCenterTabs && styles.hasTabs)}
+        >
           {!isMobile && (
             <Button
               size="sm"
@@ -67,10 +91,32 @@ export const TriPanelLayout = ({
             </Button>
           )}
 
-          <Row gap={1}>
-            <Icon i={centerIcon} size={18} />
-            <Typography.H3 className="mb-0">{centerTitle}</Typography.H3>
-          </Row>
+          {hasCenterTabs ? (
+            <div className={styles.tabs}>
+              {centerTabs.map((t, idx) => (
+                <button
+                  key={`${t.title}-${idx}`}
+                  type="button"
+                  onClick={() => setCenterActiveIndex(idx)}
+                  className={classNames(
+                    styles.tabButton,
+                    idx === centerActiveIndex && styles.tabButtonActive
+                  )}
+                  title={t.title}
+                >
+                  <Row gap={1} align="center">
+                    {t.icon ? <Icon i={t.icon} size={16} /> : null}
+                    <Typography.H3 className="mb-0">{t.title}</Typography.H3>
+                  </Row>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Row gap={1}>
+              <Icon i={centerIcon} size={18} />
+              <Typography.H3 className="mb-0">{centerTitle}</Typography.H3>
+            </Row>
+          )}
 
           <Button
             size="sm"
@@ -90,8 +136,9 @@ export const TriPanelLayout = ({
             />
           </Button>
         </div>
+
         <div className={centerContentClassName} {...centerContentProps}>
-          {centerChildren}
+          {renderCenterContent()}
         </div>
       </div>
 
@@ -102,10 +149,10 @@ export const TriPanelLayout = ({
               <div className={classNames(styles.tabs)}>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("left")}
+                  onClick={() => setSideActiveTab("left")}
                   className={classNames(
                     styles.tabButton,
-                    activeTab === "left" && styles.tabButtonActive
+                    sideActiveTab === "left" && styles.tabButtonActive
                   )}
                 >
                   <Row gap={1} align="center">
@@ -115,10 +162,10 @@ export const TriPanelLayout = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("right")}
+                  onClick={() => setSideActiveTab("right")}
                   className={classNames(
                     styles.tabButton,
-                    activeTab === "right" && styles.tabButtonActive
+                    sideActiveTab === "right" && styles.tabButtonActive
                   )}
                 >
                   <Row gap={1} align="center">
@@ -128,7 +175,7 @@ export const TriPanelLayout = ({
                 </button>
               </div>
               <div className={styles.content}>
-                {activeTab === "left" ? leftChildren : rightChildren}
+                {sideActiveTab === "left" ? leftChildren : rightChildren}
               </div>
             </>
           ) : (
