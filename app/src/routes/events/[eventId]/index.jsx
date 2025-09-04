@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { useState } from "react";
 import { Page } from "../../../../components/page/Page";
 import { useEvent } from "../../../../hooks/useEvent";
 import {
@@ -39,6 +40,7 @@ export const Event = () => {
   const { eventId } = useParams();
   const { event, loading, error, refetch } = useEvent({ eventId });
   const { startTour } = useTourManager();
+  const [remainingOpen, setRemainingOpen] = useState(true);
 
   const {
     eventStart,
@@ -70,17 +72,40 @@ export const Event = () => {
         "This is your event homepage. As more starts to happen in your event, you will see analytics and prompts here to help you keep track of what is happening."
       }
     >
-      <Typography.H2>Remaining Steps</Typography.H2>
+      <Row align="center" style={{ gap: 8 }} className="mb-1">
+        <Typography.H2 style={{ margin: 0 }}>Remaining Steps</Typography.H2>
+        <Button
+          ghost
+          variant="secondary"
+          size="sm"
+          aria-expanded={remainingOpen}
+          aria-controls="remaining-steps-section"
+          onClick={() => setRemainingOpen((v) => !v)}
+        >
+          <Icon i={remainingOpen ? "chevron-up" : "chevron-down"} size={18} />
+          {remainingOpen ? "Hide" : "Show"}
+        </Button>
+      </Row>
       <div
+        id="remaining-steps-section"
         style={{
-          display: "flex",
-          flexWrap: "nowrap",
-          overflowX: "auto",
-          alignItems: "stretch",
-          gap: 10,
+          overflow: "hidden",
+          transition: "max-height 300ms ease, opacity 200ms ease",
+          maxHeight: remainingOpen ? 500 : 0,
+          opacity: remainingOpen ? 1 : 0,
         }}
       >
-        <ProgressRow />
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "nowrap",
+            overflowX: "auto",
+            alignItems: "stretch",
+            gap: 10,
+          }}
+        >
+          <ProgressRow />
+        </div>
       </div>
       {!volunteerRegistrationEnabled ? (
         <Alert
