@@ -62,6 +62,60 @@
       * {
         text-align: left;
       }
+
+      .ai-button {
+        --luminance: 90%;
+        --g1: hsl(351, 100%, var(--luminance)); /* very light pink (#ffe9ec) */
+        --g2: hsl(
+          196,
+          100%,
+          var(--luminance)
+        ); /* very light sky blue (#eaf9ff) */
+        --g3: hsl(
+          96,
+          100%,
+          var(--luminance)
+        ); /* very light mint green (#f1ffe7) */
+        --g4: hsl(
+          60,
+          100%,
+          var(--luminance)
+        ); /* very light lemon yellow (#fffde7) */
+        --g5: hsl(
+          288,
+          100%,
+          var(--luminance)
+        ); /* very light lavender (#f9e7ff) */
+
+        background: linear-gradient(
+          120deg,
+          var(--g1),
+          var(--g2),
+          var(--g3),
+          var(--g4),
+          var(--g5)
+        );
+        background-size: 400% 400%;
+        animation: aiGradient 10s ease infinite;
+      }
+
+      @keyframes aiGradient {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .ai-button {
+          animation: none;
+        }
+      }
     </style>
   </head>
   <body>

@@ -28,9 +28,11 @@ import { CrmPersonsImport } from "../../../../components/crmPersonsImport/CrmPer
 import moment from "moment";
 import { useCrmFields } from "../../../../hooks/useCrmFields";
 import { Filters } from "../../../../components/filters/Filters";
+import filterStyles from "../../../../components/filters/filters.module.css";
 import { ColumnsPicker } from "../../../../components/columnsPicker/ColumnsPicker";
 import toast from "react-hot-toast";
 import { useDbState } from "../../../../hooks/useDbState";
+import classNames from "classnames";
 
 const switchTypeForIcon = (type) => {
   switch (type) {
@@ -318,6 +320,7 @@ export const EventCrm = () => {
   const [lastPrompt, setLastPrompt] = useState("");
   const [lastAst, setLastAst] = useState(null);
   const [savedTitle, setSavedTitle] = useState("");
+  const [aiCollapsed, setAiCollapsed] = useState(false);
   const { generate: generateSegment, loading: generating } =
     useCrmGenerativeSegment({ eventId });
   const {
@@ -328,7 +331,9 @@ export const EventCrm = () => {
     suggestTitle,
     markUsed,
   } = useCrmSavedSegments({ eventId });
-  const { run: runSavedSegment, loading: runningSaved } = useCrmSegment({ eventId });
+  const { run: runSavedSegment, loading: runningSaved } = useCrmSegment({
+    eventId,
+  });
 
   // Hydrate AI filter from db on first render
   useEffect(() => {
@@ -339,23 +344,39 @@ export const EventCrm = () => {
       const filter = ai?.ast?.filter || ai?.ast;
       if (!filter && !ai?.savedSegmentId) return;
       let res = null;
+      let segForPrompt = null;
       if (filter) {
         res = await runSavedSegment({ filter, debug: !!ai?.ast?.debug });
       } else if (ai?.savedSegmentId) {
-        const seg = (savedSegments || []).find((s) => s.id === ai.savedSegmentId);
-        if (seg) res = await runSavedSegment({ filter: seg?.ast?.filter || seg?.ast });
+        const seg = (savedSegments || []).find(
+          (s) => s.id === ai.savedSegmentId
+        );
+        if (seg) {
+          segForPrompt = seg;
+          res = await runSavedSegment({ filter: seg?.ast?.filter || seg?.ast });
+        }
       }
       if (res?.ok) {
         setAiResults(res);
         setCurrentSavedId(ai.savedSegmentId || null);
-        setSavedTitle(ai.title || "");
-        setLastAst(ai.ast || null);
+        setSavedTitle(ai.title || segForPrompt?.title || "");
+        setLastAst(ai.ast || segForPrompt?.ast || null);
+        if (segForPrompt?.prompt) setLastPrompt(segForPrompt.prompt);
       }
       setHydratedAi(true);
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dbFilters, savedSegments, hydratedAi]);
+
+  // Backfill prompt from savedSegments once they load if missing
+  useEffect(() => {
+    if (lastPrompt && lastPrompt.trim()) return;
+    if (!currentSavedId) return;
+    const seg = (savedSegments || []).find((s) => s.id === currentSavedId);
+    if (seg?.prompt) setLastPrompt(seg.prompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedSegments, currentSavedId]);
 
   const filteredPersons = useMemo(() => {
     const baseList = aiResults?.crmPersons || crmPersons;
@@ -446,7 +467,9 @@ export const EventCrm = () => {
     const AiContent = () => {
       const [title, setTitle] = useState(opts?.title || "");
       const [prompt, setPrompt] = useState(opts?.prompt || "");
-      const [tab, setTab] = useState((savedSegments || []).length ? "previous" : "new");
+      const [tab, setTab] = useState(
+        (savedSegments || []).length ? "previous" : "new"
+      );
       const [savedLocal, setSavedLocal] = useState(savedSegments || []);
       useEffect(() => setSavedLocal(savedSegments || []), [savedSegments]);
       return (
@@ -485,7 +508,9 @@ export const EventCrm = () => {
                     borderBottom: "1px solid var(--tblr-border-color, #e9ecef)",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
                     <div
                       onClick={async (e) => {
                         e.stopPropagation();
@@ -552,13 +577,20 @@ export const EventCrm = () => {
                       className="text-primary"
                       title="Open this filter"
                     >
-                      {seg.title?.trim() || seg.prompt?.slice(0, 80) || "Untitled"}
+                      {seg.title?.trim() ||
+                        seg.prompt?.slice(0, 80) ||
+                        "Untitled"}
                     </a>
                   </div>
                   <div
-                    style={{ fontSize: 12, color: "var(--tblr-secondary, #868e96)" }}
+                    style={{
+                      fontSize: 12,
+                      color: "var(--tblr-secondary, #868e96)",
+                    }}
                   >
-                    {seg.lastUsed ? `Last used ${moment(seg.lastUsed).fromNow()}` : ""}
+                    {seg.lastUsed
+                      ? `Last used ${moment(seg.lastUsed).fromNow()}`
+                      : ""}
                   </div>
                 </div>
               ))}
@@ -576,9 +608,9 @@ export const EventCrm = () => {
                 />
               </div>
               <Typography.Text>
-                Tell the AI who you want to find. Include iteration context (e.g.,
-                this year, previous, instance name), participant vs volunteer, tiers
-                or periods by name, and any NOT conditions.
+                Tell the AI who you want to find. Include iteration context
+                (e.g., this year, previous, instance name), participant vs
+                volunteer, tiers or periods by name, and any NOT conditions.
               </Typography.Text>
               <textarea
                 className="form-control"
@@ -592,17 +624,20 @@ export const EventCrm = () => {
                 <Typography.H4 className="mb-2">Best practices</Typography.H4>
                 <ul className="mb-3">
                   <li>
-                    State the iteration clearly (current, previous, name, or year).
+                    State the iteration clearly (current, previous, name, or
+                    year).
                   </li>
                   <li>Use exact tier/period names shown in your event.</li>
                   <li>Mention role (participant vs volunteer) explicitly.</li>
                   <li>Use NOT for exclusions (e.g., not this iteration).</li>
-                  <li>Prefer instance name when a year has multiple instances.</li>
+                  <li>
+                    Prefer instance name when a year has multiple instances.
+                  </li>
                 </ul>
               </div>
 
               <Button
-                variant="primary"
+                className="ai-button"
                 loading={generating}
                 onClick={async () => {
                   const res = await generateSegment({ prompt, debug: false });
@@ -621,9 +656,15 @@ export const EventCrm = () => {
                       let t = saved.savedSegment.title || "";
                       // If no title was provided, suggest one via separate request and persist it
                       if (!t) {
-                        const suggestion = await suggestTitle({ prompt, ast: res.segment });
+                        const suggestion = await suggestTitle({
+                          prompt,
+                          ast: res.segment,
+                        });
                         if (suggestion?.ok && suggestion?.title) {
-                          const upd = await updateSavedSegment(saved.savedSegment.id, { title: suggestion.title });
+                          const upd = await updateSavedSegment(
+                            saved.savedSegment.id,
+                            { title: suggestion.title }
+                          );
                           if (upd?.ok && upd?.savedSegment) {
                             t = upd.savedSegment.title || suggestion.title;
                           } else {
@@ -663,7 +704,9 @@ export const EventCrm = () => {
       const [title, setTitle] = useState(savedTitle || "");
       return (
         <div>
-          <Typography.H5 className="mb-0 text-secondary">SAVE SEARCH</Typography.H5>
+          <Typography.H5 className="mb-0 text-secondary">
+            SAVE SEARCH
+          </Typography.H5>
           <Typography.H1>Add a title</Typography.H1>
           <div className="mb-2">
             <label className="form-label">Title</label>
@@ -690,7 +733,9 @@ export const EventCrm = () => {
                   setSavedTitle(saved.savedSegment.title || "");
                 }
               } else {
-                const updated = await updateSavedSegment(currentSavedId, { title });
+                const updated = await updateSavedSegment(currentSavedId, {
+                  title,
+                });
                 if (updated?.ok && updated?.savedSegment) {
                   setSavedTitle(updated.savedSegment.title || "");
                 }
@@ -704,6 +749,139 @@ export const EventCrm = () => {
       );
     };
     offcanvas({ content: <SaveTitleContent /> });
+  };
+
+  const openAiRefineOffcanvas = () => {
+    const RefineContent = () => {
+      const seg = (savedSegments || []).find((s) => s.id === currentSavedId);
+      const [title, setTitle] = useState(
+        savedTitle || seg?.title || dbFilters?.ai?.title || ""
+      );
+      const [prompt, setPrompt] = useState(lastPrompt || seg?.prompt || "");
+
+      useEffect(() => {
+        // Populate fields if they were empty and we learn values later
+        if ((!prompt || !prompt.trim()) && (lastPrompt || seg?.prompt)) {
+          setPrompt(lastPrompt || seg?.prompt || "");
+        }
+        if (
+          (!title || !title.trim()) &&
+          (savedTitle || seg?.title || dbFilters?.ai?.title)
+        ) {
+          setTitle(savedTitle || seg?.title || dbFilters?.ai?.title || "");
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [lastPrompt, savedTitle, seg?.prompt, seg?.title]);
+
+      return (
+        <div>
+          <Typography.H5 className="mb-0 text-secondary">
+            REFINE AI FILTER
+          </Typography.H5>
+          <Typography.H1>Edit title and prompt</Typography.H1>
+
+          <div className="mb-2">
+            <label className="form-label">Title</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="e.g. 2024 Half - Last Minute"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+
+          <div className="mb-2">
+            <label className="form-label">Original Prompt</label>
+            <textarea
+              className="form-control"
+              rows={6}
+              placeholder="Describe who you want to find"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+            />
+          </div>
+
+          <Row gap={1}>
+            <Button
+              className="ai-button"
+              loading={generating}
+              onClick={async () => {
+                const promptChanged =
+                  (prompt || "").trim() !== (lastPrompt || "").trim();
+
+                if (!promptChanged && currentSavedId) {
+                  const updated = await updateSavedSegment(currentSavedId, {
+                    title: (title || "").trim() || null,
+                  });
+                  if (updated?.ok && updated?.savedSegment) {
+                    setSavedTitle(updated.savedSegment.title || "");
+                    setDbFilters((prev) => ({
+                      ...(prev || {}),
+                      ai: {
+                        ...(prev?.ai || {}),
+                        title:
+                          updated.savedSegment.title || prev?.ai?.title || "",
+                      },
+                    }));
+                  }
+                  close();
+                  return;
+                }
+
+                const res = await generateSegment({ prompt, debug: false });
+                if (res?.ok && res?.results) {
+                  setAiResults(res.results);
+                  setLastPrompt(prompt);
+                  setLastAst(res.segment);
+
+                  const saved = await createSavedSegment({
+                    title,
+                    prompt,
+                    ast: res.segment,
+                  });
+                  if (saved?.ok && saved?.savedSegment) {
+                    setCurrentSavedId(saved.savedSegment.id);
+                    let newTitle = saved.savedSegment.title || "";
+                    if (!newTitle) {
+                      const suggestion = await suggestTitle({
+                        prompt,
+                        ast: res.segment,
+                      });
+                      if (suggestion?.ok && suggestion?.title) {
+                        const upd = await updateSavedSegment(
+                          saved.savedSegment.id,
+                          {
+                            title: suggestion.title,
+                          }
+                        );
+                        if (upd?.ok && upd?.savedSegment)
+                          newTitle = upd.savedSegment.title || suggestion.title;
+                        else newTitle = suggestion.title;
+                      }
+                    }
+                    setSavedTitle(newTitle);
+                    setDbFilters((prev) => ({
+                      ...(prev || {}),
+                      ai: {
+                        enabled: true,
+                        savedSegmentId: saved.savedSegment.id,
+                        ast: res.segment,
+                        title: newTitle || title || "",
+                      },
+                    }));
+                  }
+                  close();
+                }
+              }}
+            >
+              Apply
+            </Button>
+          </Row>
+        </div>
+      );
+    };
+    offcanvas({ content: <RefineContent /> });
   };
 
   const visibleColumns = columnConfig
@@ -757,7 +935,7 @@ export const EventCrm = () => {
       <Util.Hr style={{ margin: "1rem 0" }} />
 
       {crmPersons?.length > 0 && (
-        <Row gap={1} className="mb-3" align="center">
+        <Row gap={1} className="mb-3" align="center" wrap>
           <Input
             placeholder="Search contacts..."
             value={search}
@@ -768,9 +946,98 @@ export const EventCrm = () => {
           <Filters
             onFilterChange={setFilters}
             fields={filterFieldDefs}
-            initial={(dbFilters?.manual?.filters || [])}
+            initial={dbFilters?.manual?.filters || []}
           />
-          <Button variant="outline" onClick={openAiOffcanvas}>
+          {(dbFilters?.ai?.enabled || aiResults) && (
+            <Row gap={1}>
+              <div className="card p-0 px-1">
+                <Row gap={0} align="center">
+                  <div className="p-1" title="AI segment">
+                    <Icon i="sparkles" />
+                  </div>
+                  <div
+                    className={classNames(filterStyles.animatedContainer, {
+                      [filterStyles.collapsed]: aiCollapsed,
+                      [filterStyles.expanded]: !aiCollapsed,
+                    })}
+                    style={{ minWidth: aiCollapsed ? 0 : 200 }}
+                  >
+                    <div
+                      className="p-1"
+                      style={{
+                        maxWidth: 350,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                      title={
+                        savedTitle ||
+                        dbFilters?.ai?.title ||
+                        lastPrompt ||
+                        "AI Filter"
+                      }
+                    >
+                      <Typography.B className="mb-0">
+                        {savedTitle ||
+                          dbFilters?.ai?.title ||
+                          lastPrompt ||
+                          "AI Filter"}
+                      </Typography.B>
+                    </div>
+                    <div className="p-1">
+                      <Button
+                        className="p-1"
+                        ghost
+                        onClick={openAiRefineOffcanvas}
+                      >
+                        <Icon i="pencil" /> refine
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="p-1">
+                    <Button
+                      className="p-1"
+                      ghost
+                      variant="secondary"
+                      onClick={() => setAiCollapsed((c) => !c)}
+                    >
+                      <Icon
+                        i={aiCollapsed ? "chevron-right" : "chevron-left"}
+                      />
+                    </Button>
+                    <Button
+                      className="p-1"
+                      ghost
+                      variant="danger"
+                      onClick={() => {
+                        setAiResults(null);
+                        setCurrentSavedId(null);
+                        setSavedTitle("");
+                        setLastAst(null);
+                        setLastPrompt("");
+                        setDbFilters((prev) => ({
+                          ...(prev || {}),
+                          ai: {
+                            enabled: false,
+                            savedSegmentId: null,
+                            ast: null,
+                            title: "",
+                          },
+                        }));
+                      }}
+                    >
+                      <Icon i="trash" />
+                    </Button>
+                  </div>
+                </Row>
+              </div>
+            </Row>
+          )}
+          <Button
+            variant="outline"
+            onClick={openAiOffcanvas}
+            className="ai-button"
+          >
             <Icon i="sparkles" /> Ask AI
           </Button>
         </Row>
@@ -797,34 +1064,7 @@ export const EventCrm = () => {
         </Alert>
       ))}
 
-      {aiResults && (
-        <Alert
-          variant="info"
-          title={`Showing AI segment results (${ 
-            aiResults.total || (aiResults.crmPersons || []).length
-          })`}
-        >
-          <Row gap={1}>
-            <Typography.Text className="mb-0">
-              You can refine your prompt and run again.
-            </Typography.Text>
-            {savedTitle && (
-              <Typography.B className="mb-0 ml-2">Title: {savedTitle}</Typography.B>
-            )}
-            {!currentSavedId && (
-              <Button size="sm" onClick={openSaveTitleOffcanvas}>
-                Save Prompt
-              </Button>
-            )}
-            {currentSavedId && !savedTitle && (
-              <Button size="sm" onClick={openSaveTitleOffcanvas}>Add Title</Button>
-            )}
-            {currentSavedId && savedTitle && (
-              <Button size="sm" onClick={openSaveTitleOffcanvas}>Rename</Button>
-            )}
-          </Row>
-        </Alert>
-      )}
+      {/* AI alert removed; AI selection now presented as a filter-style cell above */}
 
       {(filteredPersons || []).length > 0 && (
         <Table

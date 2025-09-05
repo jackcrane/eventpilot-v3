@@ -26,11 +26,7 @@ export const useCrmSegment = ({ eventId }) => {
     if (!filter) return { ok: false, error: new Error("Missing filter AST") };
     try {
       const promise = trigger({ filter, debug });
-      const res = await toast.promise(promise, {
-        loading: "Loading saved filter...",
-        success: "Filter loaded",
-        error: (e) => e?.message || "Failed to load",
-      });
+      const res = promise;
       return { ok: true, ...res };
     } catch (e) {
       return { ok: false, error: e };
@@ -45,4 +41,3 @@ export const useCrmSegment = ({ eventId }) => {
     reset,
   };
 };
-
