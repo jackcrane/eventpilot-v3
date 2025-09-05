@@ -65,6 +65,17 @@ export const useCrmSavedSegments = ({ eventId }) => {
     }
   };
 
+  // Quiet variant for optimistic UI flows (e.g., starring)
+  const updateSavedSegmentQuiet = async (segmentId, data) => {
+    try {
+      const { savedSegment } = await patchSaved(`${key}/${segmentId}`, { arg: data });
+      await mutate();
+      return { ok: true, savedSegment };
+    } catch (e) {
+      return { ok: false, error: e };
+    }
+  };
+
   const markUsed = async (segmentId) => {
     return updateSavedSegment(segmentId, { lastUsed: new Date().toISOString() });
   };
@@ -91,6 +102,7 @@ export const useCrmSavedSegments = ({ eventId }) => {
     refetch: () => mutate(),
     createSavedSegment,
     updateSavedSegment,
+    updateSavedSegmentQuiet,
     markUsed,
     suggestTitle,
     mutationLoading: creating,

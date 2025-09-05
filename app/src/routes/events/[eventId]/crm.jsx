@@ -15,6 +15,7 @@ import {
   Badge,
   Util,
   Input,
+  SegmentedControl,
 } from "tabler-react-2";
 import { Icon } from "../../../../util/Icon";
 import { CrmPersonCRUD } from "../../../../components/crmPersonCRUD/crmPersonCRUD";
@@ -22,11 +23,13 @@ import { useCrmPersons } from "../../../../hooks/useCrmPersons";
 import { Row } from "../../../../util/Flex";
 import { useCrmGenerativeSegment } from "../../../../hooks/useCrmGenerativeSegment";
 import { useCrmSavedSegments } from "../../../../hooks/useCrmSavedSegments";
+import { useCrmSegment } from "../../../../hooks/useCrmSegment";
 import { CrmPersonsImport } from "../../../../components/crmPersonsImport/CrmPersonsImport";
 import moment from "moment";
 import { useCrmFields } from "../../../../hooks/useCrmFields";
 import { Filters } from "../../../../components/filters/Filters";
 import { ColumnsPicker } from "../../../../components/columnsPicker/ColumnsPicker";
+import toast from "react-hot-toast";
 
 const switchTypeForIcon = (type) => {
   switch (type) {
@@ -282,7 +285,15 @@ export const EventCrm = () => {
   const [savedTitle, setSavedTitle] = useState("");
   const { generate: generateSegment, loading: generating } =
     useCrmGenerativeSegment({ eventId });
-  const { createSavedSegment, updateSavedSegment, suggestTitle } = useCrmSavedSegments({ eventId });
+  const {
+    savedSegments,
+    createSavedSegment,
+    updateSavedSegment,
+    updateSavedSegmentQuiet,
+    suggestTitle,
+    markUsed,
+  } = useCrmSavedSegments({ eventId });
+  const { run: runSavedSegment, loading: runningSaved } = useCrmSegment({ eventId });
 
   const filteredPersons = useMemo(() => {
     const baseList = aiResults?.crmPersons || crmPersons;
@@ -373,86 +384,191 @@ export const EventCrm = () => {
     const AiContent = () => {
       const [title, setTitle] = useState(opts?.title || "");
       const [prompt, setPrompt] = useState(opts?.prompt || "");
+      const [tab, setTab] = useState((savedSegments || []).length ? "previous" : "new");
+      const [savedLocal, setSavedLocal] = useState(savedSegments || []);
+      useEffect(() => setSavedLocal(savedSegments || []), [savedSegments]);
       return (
         <div>
           <Typography.H5 className="mb-0 text-secondary">
             DESCRIBE YOUR SEGMENT
           </Typography.H5>
           <Typography.H1>Find what you need with AI</Typography.H1>
-          <div className="mb-2">
-            <label className="form-label">Title (optional)</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="e.g. 2024 Half - Last Minute"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+
+          <div className="mt-2 mb-3">
+            <SegmentedControl
+              value={tab}
+              onChange={(e) => setTab(e.id)}
+              items={[
+                { label: "Previous Requests", id: "previous" },
+                { label: "New Prompt", id: "new" },
+              ]}
             />
           </div>
-          <Typography.Text>
-            Tell the AI who you want to find. Include iteration context (e.g.,
-            this year, previous, instance name), participant vs volunteer, tiers
-            or periods by name, and any NOT conditions.
-          </Typography.Text>
-          <textarea
-            className="form-control"
-            rows={6}
-            placeholder="e.g. Participants in 2024 who registered during Last Minute for the Half Marathon"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            style={{ marginTop: 8 }}
-          />
-          <div className="mt-3">
-            <Typography.H4 className="mb-2">Best practices</Typography.H4>
-            <ul className="mb-3">
-              <li>
-                State the iteration clearly (current, previous, name, or year).
-              </li>
-              <li>Use exact tier/period names shown in your event.</li>
-              <li>Mention role (participant vs volunteer) explicitly.</li>
-              <li>Use NOT for exclusions (e.g., not this iteration).</li>
-              <li>Prefer instance name when a year has multiple instances.</li>
-            </ul>
-          </div>
 
-          <Button
-            variant="primary"
-            loading={generating}
-            onClick={async () => {
-              const res = await generateSegment({ prompt, debug: false });
-              if (res?.ok && res?.results) {
-                setAiResults(res.results);
-                setLastPrompt(prompt);
-                setLastAst(res.segment);
-                // Save to DB regardless of title presence
-                const saved = await createSavedSegment({
-                  title,
-                  prompt,
-                  ast: res.segment,
-                });
-                if (saved?.ok && saved?.savedSegment) {
-                  setCurrentSavedId(saved.savedSegment.id);
-                  let t = saved.savedSegment.title || "";
-                  // If no title was provided, suggest one via separate request and persist it
-                  if (!t) {
-                    const suggestion = await suggestTitle({ prompt, ast: res.segment });
-                    if (suggestion?.ok && suggestion?.title) {
-                      const upd = await updateSavedSegment(saved.savedSegment.id, { title: suggestion.title });
-                      if (upd?.ok && upd?.savedSegment) {
-                        t = upd.savedSegment.title || suggestion.title;
-                      } else {
-                        t = suggestion.title;
+          {tab === "previous" ? (
+            <div>
+              {(!savedLocal || savedLocal.length === 0) && (
+                <Typography.Text className="text-secondary">
+                  No saved requests yet. Run one and save it here.
+                </Typography.Text>
+              )}
+              {(savedLocal || []).map((seg) => (
+                <div
+                  key={seg.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "8px 0",
+                    borderBottom: "1px solid var(--tblr-border-color, #e9ecef)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        // optimistic toggle
+                        const prev = seg.favorite;
+                        setSavedLocal((list) =>
+                          list.map((s) =>
+                            s.id === seg.id ? { ...s, favorite: !prev } : s
+                          )
+                        );
+                        const res = await updateSavedSegmentQuiet(seg.id, {
+                          favorite: !prev,
+                        });
+                        if (!res?.ok) {
+                          // revert on error
+                          setSavedLocal((list) =>
+                            list.map((s) =>
+                              s.id === seg.id ? { ...s, favorite: prev } : s
+                            )
+                          );
+                          // toast only on error
+                          toast.error(
+                            res?.error?.message || "Failed to update favorite"
+                          );
+                        }
+                      }}
+                      style={{ cursor: "pointer" }}
+                      title={seg.favorite ? "Unfavorite" : "Favorite"}
+                    >
+                      <Icon
+                        i={seg.favorite ? "star-filled" : "star"}
+                        color={seg.favorite ? "#f59f00" : "#adb5bd"}
+                      />
+                    </div>
+                    <a
+                      href="#"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        const res = await runSavedSegment({
+                          filter: seg?.ast?.filter || seg?.ast,
+                          debug: !!seg?.ast?.debug,
+                        });
+                        if (res?.ok) {
+                          setAiResults(res);
+                          setCurrentSavedId(seg.id);
+                          setSavedTitle(seg.title || "");
+                          setLastAst(seg.ast);
+                          setLastPrompt(seg.prompt || "");
+                          await markUsed(seg.id);
+                          close();
+                        }
+                      }}
+                      style={{ cursor: runningSaved ? "wait" : "pointer" }}
+                      className="text-primary"
+                      title="Open this filter"
+                    >
+                      {seg.title?.trim() || seg.prompt?.slice(0, 80) || "Untitled"}
+                    </a>
+                  </div>
+                  <div
+                    style={{ fontSize: 12, color: "var(--tblr-secondary, #868e96)" }}
+                  >
+                    {seg.lastUsed ? `Last used ${moment(seg.lastUsed).fromNow()}` : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="mb-2">
+                <label className="form-label">Title (optional)</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. 2024 Half - Last Minute"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+              <Typography.Text>
+                Tell the AI who you want to find. Include iteration context (e.g.,
+                this year, previous, instance name), participant vs volunteer, tiers
+                or periods by name, and any NOT conditions.
+              </Typography.Text>
+              <textarea
+                className="form-control"
+                rows={6}
+                placeholder="e.g. Participants in 2024 who registered during Last Minute for the Half Marathon"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                style={{ marginTop: 8 }}
+              />
+              <div className="mt-3">
+                <Typography.H4 className="mb-2">Best practices</Typography.H4>
+                <ul className="mb-3">
+                  <li>
+                    State the iteration clearly (current, previous, name, or year).
+                  </li>
+                  <li>Use exact tier/period names shown in your event.</li>
+                  <li>Mention role (participant vs volunteer) explicitly.</li>
+                  <li>Use NOT for exclusions (e.g., not this iteration).</li>
+                  <li>Prefer instance name when a year has multiple instances.</li>
+                </ul>
+              </div>
+
+              <Button
+                variant="primary"
+                loading={generating}
+                onClick={async () => {
+                  const res = await generateSegment({ prompt, debug: false });
+                  if (res?.ok && res?.results) {
+                    setAiResults(res.results);
+                    setLastPrompt(prompt);
+                    setLastAst(res.segment);
+                    // Save to DB regardless of title presence
+                    const saved = await createSavedSegment({
+                      title,
+                      prompt,
+                      ast: res.segment,
+                    });
+                    if (saved?.ok && saved?.savedSegment) {
+                      setCurrentSavedId(saved.savedSegment.id);
+                      let t = saved.savedSegment.title || "";
+                      // If no title was provided, suggest one via separate request and persist it
+                      if (!t) {
+                        const suggestion = await suggestTitle({ prompt, ast: res.segment });
+                        if (suggestion?.ok && suggestion?.title) {
+                          const upd = await updateSavedSegment(saved.savedSegment.id, { title: suggestion.title });
+                          if (upd?.ok && upd?.savedSegment) {
+                            t = upd.savedSegment.title || suggestion.title;
+                          } else {
+                            t = suggestion.title;
+                          }
+                        }
                       }
+                      setSavedTitle(t);
                     }
+                    close();
                   }
-                  setSavedTitle(t);
-                }
-                close();
-              }
-            }}
-          >
-            Generate
-          </Button>
+                }}
+              >
+                Generate
+              </Button>
+            </>
+          )}
         </div>
       );
     };
