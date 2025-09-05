@@ -168,6 +168,38 @@ export const post = [
             data: inserts,
           });
 
+          // 2b) Link this registration to a CRM person immediately upon submission
+          if (participantEmail) {
+            let existingCrmPerson = await tx.crmPerson.findFirst({
+              where: {
+                eventId,
+                deleted: false,
+                emails: { some: { email: participantEmail } },
+              },
+              select: { id: true },
+            });
+
+            if (!existingCrmPerson) {
+              existingCrmPerson = await tx.crmPerson.create({
+                data: {
+                  name: participantName || "Participant",
+                  source: "REGISTRATION",
+                  eventId,
+                  emails: { create: { email: participantEmail } },
+                  registrations: { connect: { id: registration.id } },
+                },
+                select: { id: true },
+              });
+            } else {
+              await tx.crmPerson.update({
+                where: { id: existingCrmPerson.id },
+                data: {
+                  registrations: { connect: { id: registration.id } },
+                },
+              });
+            }
+          }
+
           // 3) Connect upsells
           // TODO: Make sure upsells are available before connecting
           const upsells = await tx.upsellItem.findMany({
@@ -269,6 +301,16 @@ export const post = [
             });
           }
 
+          // Derive participant name/email from incoming responses (avoids DB reads inside tx)
+          const nameFieldId = fieldTypes.find(
+            (f) => f.fieldType === "participantName"
+          )?.id;
+          const emailFieldId = fieldTypes.find(
+            (f) => f.fieldType === "participantEmail"
+          )?.id;
+          const participantName = nameFieldId ? responses[nameFieldId] : null;
+          const participantEmail = emailFieldId ? responses[emailFieldId] : null;
+
           const [requiresPayment, stripePIClientSecret, price] =
             await registrationRequiresPayment(
               upsells,
@@ -276,7 +318,9 @@ export const post = [
               event,
               registration.id,
               instanceId,
-              coupon
+              coupon,
+              participantName,
+              participantEmail
             );
 
           if (!requiresPayment) {

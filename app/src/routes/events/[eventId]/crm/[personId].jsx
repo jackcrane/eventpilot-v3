@@ -66,6 +66,25 @@ export const CrmPersonPage = () => {
                 <Badge outline>{crmPerson.source}</Badge>
               </Row>
             )}
+            <Util.Hr text="Identifiers" />
+            <Col gap={0.5} align="flex-start">
+              <Row gap={0.5} align="center">
+                <Icon i="hash" />
+                <Typography.Text className="text-muted mb-0">
+                  CRM Person ID:
+                </Typography.Text>
+              </Row>
+              <code style={{ userSelect: "all" }}>{crmPerson?.id}</code>
+              <Row gap={0.5} align="center" style={{ marginTop: 8 }}>
+                <Icon i="brand-stripe" />
+                <Typography.Text className="text-muted mb-0">
+                  Stripe Customer:
+                </Typography.Text>
+              </Row>
+              <code style={{ userSelect: "all" }}>
+                {crmPerson?.stripe_customerId || "None"}
+              </code>
+            </Col>
             <Util.Hr text="Lifetime Value" />
             <Row gap={0.5} align="center" className="mb-2">
               <Icon i="currency-dollar" />

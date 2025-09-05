@@ -69,6 +69,10 @@ export const finalizeRegistration = async ({
 
   const crmPerson = await getCrmPersonByEmail(email, eventId);
   let crmPersonId = null;
+  const stripeCustomerId =
+    paymentIntent && typeof paymentIntent.customer === "string"
+      ? paymentIntent.customer
+      : null;
 
   if (crmPerson) {
     await prisma.crmPerson.update({
@@ -81,11 +85,15 @@ export const finalizeRegistration = async ({
             id: registration.id,
           },
         },
+        // Persist Stripe customer ID when available (and not already set)
+        ...(stripeCustomerId && !crmPerson.stripe_customerId
+          ? { stripe_customerId: stripeCustomerId }
+          : {}),
       },
     });
     crmPersonId = crmPerson.id;
   } else {
-    await prisma.crmPerson.create({
+    const created = await prisma.crmPerson.create({
       data: {
         name,
         source: "REGISTRATION",
@@ -100,6 +108,7 @@ export const finalizeRegistration = async ({
             id: registration.id,
           },
         },
+        ...(stripeCustomerId ? { stripe_customerId: stripeCustomerId } : {}),
         logs: {
           create: {
             type: LogType.CRM_PERSON_CREATED,
@@ -110,8 +119,6 @@ export const finalizeRegistration = async ({
       },
       select: { id: true },
     });
-    // Fetch the person again to obtain the id (or use the created return)
-    const created = await getCrmPersonByEmail(email, eventId);
     crmPersonId = created?.id || null;
   }
   return { crmPersonId };

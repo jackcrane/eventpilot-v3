@@ -1,4 +1,5 @@
 import { stripe } from "#stripe";
+import { prisma } from "#prisma";
 
 export const registrationRequiresPayment = async (
   upsells,
@@ -6,7 +7,9 @@ export const registrationRequiresPayment = async (
   event,
   registrationId,
   instanceId,
-  coupon // optional coupon object
+  coupon, // optional coupon object
+  participantName,
+  participantEmail
 ) => {
   const upsellsTotal = upsells.reduce((sum, u) => sum + u.price, 0);
   const registrationTotal = selectedPeriodPricing.price;
@@ -39,7 +42,9 @@ export const registrationRequiresPayment = async (
       total,
       event,
       registrationId,
-      instanceId
+      instanceId,
+      participantName,
+      participantEmail
     );
     return [true, stripePIClientSecret, total];
   }
@@ -51,8 +56,46 @@ export const setupStripePI = async (
   price,
   event,
   registrationId,
-  instanceId
+  instanceId,
+  participantName,
+  participantEmail
 ) => {
+  // Attempt to associate a Stripe Customer in the event's connected account
+  let customerId = null;
+  try {
+    const name = participantName;
+    const email = participantEmail;
+    if (email) {
+      // Reuse an existing customer if one is already linked to this CRM person
+      const existing = await prisma.crmPerson.findFirst({
+        where: {
+          eventId: event.id,
+          deleted: false,
+          emails: { some: { email } },
+        },
+        select: { stripe_customerId: true },
+      });
+      if (existing?.stripe_customerId) {
+        customerId = existing.stripe_customerId;
+      } else {
+        const customer = await stripe.customers.create(
+          {
+            email,
+            name: name || undefined,
+            metadata: { eventId: event.id, registrationId },
+          },
+          {
+            stripeAccount: event.stripeConnectedAccountId,
+          }
+        );
+        customerId = customer.id;
+      }
+    }
+  } catch (e) {
+    // Fallback: proceed without customer linkage if anything goes wrong
+    customerId = null;
+  }
+
   const pi = await stripe.paymentIntents.create(
     {
       amount: price * 100,
@@ -61,6 +104,7 @@ export const setupStripePI = async (
       automatic_payment_methods: {
         enabled: true,
       },
+      ...(customerId ? { customer: customerId } : {}),
       metadata: {
         eventId: event.id,
         scope: "EVENTPILOT:REGISTRATION",

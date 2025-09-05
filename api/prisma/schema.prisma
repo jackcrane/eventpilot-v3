@@ -712,6 +712,9 @@ model CrmPerson {
   phones CrmPersonPhone[]
   links  CrmPersonLink[]
 
+  // Stripe customer associated with this person (on the event's connected account)
+  stripe_customerId String? @unique
+
   logs          Logs[]
   sentEmails    Email[]
   inboundEmails InboundEmail[]
