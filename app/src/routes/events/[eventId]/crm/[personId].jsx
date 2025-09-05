@@ -301,19 +301,6 @@ export const CrmPersonPage = () => {
                               {pCount} registration{pCount === 1 ? "" : "s"}
                               {pTiers.length ? ` • ${pTiers.join(", ")}` : ""}
                             </Typography.Text>
-                            <Typography.Link
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setInstance(inst.instance.id);
-                                navigate(
-                                  `/events/${eventId}/registration/registrations`
-                                );
-                              }}
-                              style={{ marginLeft: 8 }}
-                            >
-                              View registrations <Icon i="arrow-right" />
-                            </Typography.Link>
                           </Row>
                         )}
                       </Col>

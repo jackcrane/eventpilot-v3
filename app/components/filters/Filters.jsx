@@ -6,7 +6,7 @@ import { Row } from "../../util/Flex";
 import styles from "./filters.module.css";
 import classNames from "classnames";
 
-const FIELD_DEFINITIONS = [
+const DEFAULT_FIELD_DEFINITIONS = [
   {
     label: "source",
     hrTitle: "Acquisition Source",
@@ -41,6 +41,20 @@ const OPERATORS = [
     label: "Is",
     supports: ["enum", "boolean", "number", "text", "date"],
     icon: <Icon i="equal" />,
+  },
+  {
+    id: "exists",
+    label: "Exists",
+    supports: ["enum", "boolean", "number", "text", "date"],
+    icon: <Icon i="check" />,
+    noValue: true,
+  },
+  {
+    id: "not-exists",
+    label: "Does Not Exist",
+    supports: ["enum", "boolean", "number", "text", "date"],
+    icon: <Icon i="x" />,
+    noValue: true,
   },
   {
     id: "neq",
@@ -110,8 +124,9 @@ const OPERATORS = [
   },
 ];
 
-export const Filters = ({ onFilterChange }) => {
+export const Filters = ({ onFilterChange, fields }) => {
   const [filters, setFilters] = useState([]);
+  const FIELD_DEFINITIONS = fields && fields.length ? fields : DEFAULT_FIELD_DEFINITIONS;
 
   // Notify parent when filters change
   useEffect(() => {
@@ -256,13 +271,16 @@ export const Filter = ({
                 id: o.id,
                 label: o.label,
                 icon: o.icon,
+                noValue: o.noValue,
               }))}
               value={operation}
-              onChange={(op) => onChange({ operation: op.id })}
+              onChange={(op) =>
+                onChange({ operation: op.id, ...(op.noValue ? { value: null } : {}) })
+              }
               showIconInPrompt
               autofocusSearch
             />
-            {getInputComponent()}
+            {!ops.find((o) => o.id === operation)?.noValue && getInputComponent()}
           </div>
 
           <div className="p-1">
