@@ -13,6 +13,7 @@ import { NotesCrmPage } from "../../../../../components/NotesCrmPage/NotesCrmPag
 import { EmailsCrmPage } from "../../../../../components/EmailsCrmPage/EmailsCrmPage";
 import { FinancialCrmPage } from "../../../../../components/FinancialCrmPage/FinancialCrmPage";
 import { SettingsCrmPage } from "../../../../../components/SettingsCrmPage/SettingsCrmPage";
+import { useCrmLedger } from "../../../../../hooks/useCrmLedger";
 
 export const CrmPersonPage = () => {
   const { eventId, personId } = useParams();
@@ -23,6 +24,12 @@ export const CrmPersonPage = () => {
 
   const emails = useMemo(() => crmPerson?.emails || [], [crmPerson]);
   const phones = useMemo(() => crmPerson?.phones || [], [crmPerson]);
+  const { lifetimeValue } = useCrmLedger({ eventId, personId });
+  const formattedLTV = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  }).format(Number(lifetimeValue || 0));
 
   return (
     <EventPage loading={loading}>
@@ -52,9 +59,14 @@ export const CrmPersonPage = () => {
                 <Badge outline>{crmPerson.source}</Badge>
               </Row>
             )}
+            <Util.Hr text="Lifetime Value" />
+            <Row gap={0.5} align="center" className="mb-2">
+              <Icon i="currency-dollar" />
+              <Typography.H3 className="mb-0">{formattedLTV}</Typography.H3>
+            </Row>
             <Util.Hr text="Emails" />
             {emails.length ? (
-              <Col gap={0.5}>
+              <Col gap={0.5} align="flex-start">
                 {emails.map((e) => (
                   <Row key={e.id || e.email} gap={0.5} align="center">
                     <Icon i="mail" />
@@ -70,7 +82,7 @@ export const CrmPersonPage = () => {
             )}
             <Util.Hr text="Phones" />
             {phones.length ? (
-              <Col gap={0.5}>
+              <Col gap={0.5} align="flex-start">
                 {phones.map((p) => (
                   <Row key={p.id || p.phone} gap={0.5} align="center">
                     <Icon i="phone" />
