@@ -155,6 +155,10 @@ const createMessages = ({ instructions, prompt, context }) => {
 
 // Compose a single input string for OpenAI Responses API
 const createInput = ({ instructions, prompt, context }) => {
+  const now = new Date();
+  const nowDateUTC = now.toISOString().slice(0, 10);
+  const nowYear = now.getUTCFullYear();
+  const lastYear = nowYear - 1;
   const parts = [
     "You generate a JSON AST payload for the CRM Segments API.",
     "Output MUST be strict JSON (no markdown), matching the segmentSchema summarized below.",
@@ -165,6 +169,12 @@ const createInput = ({ instructions, prompt, context }) => {
     "- Prefer participant.tierName/periodName when exact names are shown in context; use ids if names are ambiguous.",
     "- Do not invent instance names/ids, tier names/ids, or period names/ids.",
     "- Keep JSON minimal (omit unused optional fields).",
+    "",
+    "Temporal context:",
+    `- Today (UTC) is ${nowDateUTC}.`,
+    `- Interpret the phrase "this year" as ${nowYear}.`,
+    `- Interpret the phrase "last year" as ${lastYear}.`,
+    "- If the prompt refers to \"current\" or \"previous\" instance, infer using instance start/end times relative to today.",
     "",
     "Additional filter types:",
     "- Upsell: { type: 'upsell', iteration, exists?, upsellItemId?, upsellItemName? }.",

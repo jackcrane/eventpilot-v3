@@ -12,6 +12,10 @@ const inputSchema = z.object({
 });
 
 const buildInput = ({ prompt, ast }) => {
+  const now = new Date();
+  const nowDateUTC = now.toISOString().slice(0, 10);
+  const nowYear = now.getUTCFullYear();
+  const lastYear = nowYear - 1;
   const guidelines = [
     "Create a concise, human-readable title for a saved CRM search.",
     "Requirements:",
@@ -22,7 +26,15 @@ const buildInput = ({ prompt, ast }) => {
     "- Make it specific (include year/instance name if present).",
   ].join("\n");
 
-  const parts = [guidelines, "", "User Prompt:", prompt];
+  const temporal = [
+    "",
+    "Temporal context:",
+    `- Today (UTC) is ${nowDateUTC}.`,
+    `- Interpret the phrase "this year" as ${nowYear}.`,
+    `- Interpret the phrase "last year" as ${lastYear}.`,
+  ].join("\n");
+
+  const parts = [guidelines, temporal, "", "User Prompt:", prompt];
   if (ast) {
     parts.push("", "Segment AST (optional):", JSON.stringify(ast));
   }
