@@ -3,22 +3,102 @@ import Stripe from "stripe";
 import { prisma } from "#prisma";
 import { LogType } from "@prisma/client";
 import { finalizeRegistration } from "../../util/finalizeRegistration";
+import { getCrmPersonByEmail } from "../../util/getCrmPersonByEmail";
 import { createLedgerItemForRegistration } from "../../util/ledger";
 
 const stripe = new Stripe(process.env.STRIPE_SK, {
   apiVersion: "2024-04-10",
 });
 
+// Best-effort affiliation of Stripe objects to Event and CRM Person
+const resolveAffiliations = async (stripeObject) => {
+  try {
+    // 1) Event resolution
+    let eventId = stripeObject?.metadata?.eventId || null;
+
+    if (!eventId) {
+      // Try via subscription linkage
+      const subId =
+        typeof stripeObject?.subscription === "string"
+          ? stripeObject.subscription
+          : null;
+      if (subId) {
+        const evt = await prisma.event.findFirst({
+          where: { stripe_subscriptionId: subId },
+          select: { id: true },
+        });
+        eventId = evt?.id || null;
+      }
+    }
+
+    if (!eventId) {
+      // Try via customer linkage
+      const customerId =
+        typeof stripeObject?.customer === "string"
+          ? stripeObject.customer
+          : null;
+      if (customerId) {
+        const evt = await prisma.event.findFirst({
+          where: { stripe_customerId: customerId },
+          select: { id: true },
+        });
+        eventId = evt?.id || null;
+      }
+    }
+
+    // 2) CRM person resolution
+    // Prefer explicit metadata assignment
+    let crmPersonId = stripeObject?.metadata?.crmPersonId || null;
+
+    if (!crmPersonId) {
+      // Lookup via Stripe customer ID on the person
+      const customerId =
+        typeof stripeObject?.customer === "string"
+          ? stripeObject.customer
+          : null;
+      if (customerId) {
+        const person = await prisma.crmPerson.findFirst({
+          where: { stripe_customerId: customerId },
+          select: { id: true },
+        });
+        crmPersonId = person?.id || null;
+      }
+    }
+
+    if (!crmPersonId && eventId) {
+      // Fallback: attempt by email when available
+      // PaymentIntent: charges[0].billing_details.email
+      const chargeEmail =
+        stripeObject?.charges?.data?.[0]?.billing_details?.email || null;
+      // PaymentMethod: billing_details.email
+      const pmEmail = stripeObject?.billing_details?.email || null;
+      const email = chargeEmail || pmEmail || null;
+      if (email) {
+        const person = await getCrmPersonByEmail(email, eventId);
+        crmPersonId = person?.id || null;
+      }
+    }
+
+    return { eventId, crmPersonId };
+  } catch (e) {
+    console.warn("[STRIPE] resolveAffiliations error", e);
+    return { eventId: null, crmPersonId: null };
+  }
+};
+
 export const post = [
   express.json({ type: "application/json" }),
   async (request, response) => {
     const event = request.body;
 
+    // Attach event/person when possible for the raw receipt log
+    const baseAffiliation = await resolveAffiliations(event.data?.object);
     await prisma.logs.create({
       data: {
         type: "STRIPE_WEBHOOK_RECEIVED",
         data: event,
-        eventId: event.data?.object?.metadata?.eventId,
+        eventId: baseAffiliation.eventId,
+        crmPersonId: baseAffiliation.crmPersonId,
       },
     });
 
@@ -107,9 +187,12 @@ export const post = [
           },
         });
 
+        // Try to affiliate the log with a CRM person
+        const { crmPersonId } = await resolveAffiliations(paymentMethod);
         await prisma.logs.create({
           data: {
             eventId: evt?.id,
+            crmPersonId,
             type: LogType.STRIPE_PAYMENT_METHOD_ATTACHED,
             data: paymentMethod,
           },
@@ -133,10 +216,15 @@ export const post = [
           const metadata = paymentIntent.metadata;
           const { scope } = metadata;
 
+          // Attach event/person when possible for the PI succeeded log
+          const { eventId: piEventId, crmPersonId: piCrmPersonId } =
+            await resolveAffiliations(paymentIntent);
           await prisma.logs.create({
             data: {
               type: LogType.STRIPE_PAYMENT_INTENT_SUCCEEDED,
               data: paymentIntent,
+              eventId: piEventId,
+              crmPersonId: piCrmPersonId,
             },
           });
 
