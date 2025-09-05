@@ -5,7 +5,9 @@ const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useDashParticipants = ({ eventId }) => {
   const key = eventId ? `/api/events/${eventId}/dash/participants` : null;
-  const { data, error, isLoading } = useSWR(key, fetcher);
+  const { data, error, isLoading } = useSWR(key, fetcher, {
+    refreshInterval: 5000,
+  });
 
   return {
     participantRegistrations: data?.participantRegistrations,

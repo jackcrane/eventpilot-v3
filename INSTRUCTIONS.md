@@ -23,10 +23,12 @@ Concepts
 - Roles:
   - participant: finalized registration within an iteration; optional tier and period filters.
   - volunteer: volunteer registration within an iteration; optional minimum shifts.
+  - upsell purchase: registration contains one or more upsell items within an iteration; optional filter to a specific upsell by id or name.
+  - email activity: existence of inbound/outbound email(s) within a rolling time window.
 - Universe: All non-deleted CRM people for the event. NOT logic operates relative to this universe.
 
 AST Schema (informal summary)
-- Root: filter: Group | Involvement | Transition
+- Root: filter: Group | Involvement | Transition | Upsell | Email Activity
 
 1) Involvement
 {
@@ -45,7 +47,24 @@ AST Schema (informal summary)
   to:   Involvement (exists=true)
 }
 
-3) Group
+3) Upsell
+{
+  type: "upsell",
+  iteration: { type: "current" | "previous" | "specific" | "year" | "name", instanceId?, year?, name? },
+  exists?: boolean (default true),
+  upsellItemId?: string,
+  upsellItemName?: string
+}
+
+4) Email Activity
+{
+  type: "email",
+  direction?: "outbound" | "inbound" | "either" (default "outbound"),
+  withinDays: number,  // e.g. 21 for 3 weeks
+  exists?: boolean (default true)
+}
+
+5) Group
 {
   type: "group",
   op: "and" | "or" (default "and"),
@@ -56,6 +75,8 @@ AST Schema (informal summary)
 Behavioral Rules
 - participant selections require finalized registrations and exclude deleted records.
 - volunteer selections require a volunteer registration linked to the person; minShifts filters by number of shifts on that registration.
+- upsell selections require a finalized registration with at least one upsell in the target iteration; optional narrowing to a specific upsell by name or id.
+- email selections evaluate activity within a rolling window from now back N days.
 - previous requires a current instance in the header; if no previous exists, that subquery yields an empty set.
 - exists=false for Involvement returns the set difference relative to the universe.
 - Group.not negates the composed group relative to the universe.
@@ -69,6 +90,8 @@ Mapping Guidance (NL → AST)
   - participant tier by name or id (e.g., "Half Marathon" → participant.tierName).
   - participant period by name or id (e.g., "Last Minute" → participant.periodName).
   - volunteer minimum shifts (if mentioned; otherwise omit).
+  - upsell purchases (e.g., "VIP T-Shirt" → upsell.upsellItemName) within an iteration; omit item to include any upsell.
+  - email cadence (e.g., "haven't emailed in 3 weeks" → { type: "email", direction: "outbound", withinDays: 21, exists: false }).
 - Compose with AND/OR; use exists=false or group.not for NOT cases.
 - Prefer readable structure (small groups with clear subconditions); avoid redundant nesting.
 
@@ -137,10 +160,39 @@ Examples
       "participant": { "tierName": "Full Marathon" },
       "exists": true
     }
+}
+}
+
+4) Bought any upsell this iteration
+{
+  "filter": {
+    "type": "upsell",
+    "iteration": { "type": "current" },
+    "exists": true
   }
 }
 
-4) Power user: 2+ volunteer shifts in last 2 iterations AND no participant registration this iteration
+5) Did NOT buy the "VIP T-Shirt" upsell this iteration
+{
+  "filter": {
+    "type": "upsell",
+    "iteration": { "type": "current" },
+    "upsellItemName": "VIP T-Shirt",
+    "exists": false
+  }
+}
+
+6) Haven't emailed in 3 weeks (outbound)
+{
+  "filter": {
+    "type": "email",
+    "direction": "outbound",
+    "withinDays": 21,
+    "exists": false
+  }
+}
+
+7) Power user: 2+ volunteer shifts in last 2 iterations AND no participant registration this iteration
 - Note: The API currently supports current/previous/specific. To target two iterations, either issue two requests or provide two specific instanceIds. Example using previous and a specific:
 {
   "filter": {

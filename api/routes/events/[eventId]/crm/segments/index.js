@@ -38,6 +38,24 @@ const involvementCondition = z.object({
   volunteer: volunteerFilter.optional(),
 });
 
+// Upsell condition: people with registrations containing upsells in a given iteration
+const upsellCondition = z.object({
+  type: z.literal("upsell"),
+  iteration: iterationSpec,
+  exists: z.boolean().default(true),
+  upsellItemId: z.string().optional(),
+  upsellItemName: z.string().optional(),
+});
+
+// Email activity condition: people with email activity within a time window
+const emailCondition = z.object({
+  type: z.literal("email"),
+  // outbound = Email model; inbound = InboundEmail model; either = union of both
+  direction: z.enum(["outbound", "inbound", "either"]).default("outbound").optional(),
+  withinDays: z.number().int().positive(),
+  exists: z.boolean().default(true),
+});
+
 // Transition condition: e.g., Half last iteration -> Full this iteration
 const transitionCondition = z.object({
   type: z.literal("transition"),
@@ -56,14 +74,28 @@ const groupNode = z.lazy(() =>
     op: z.enum(["and", "or"]).default("and"),
     not: z.boolean().optional(),
     conditions: z
-      .array(z.union([involvementCondition, transitionCondition, groupNode]))
+      .array(
+        z.union([
+          involvementCondition,
+          transitionCondition,
+          upsellCondition,
+          emailCondition,
+          groupNode,
+        ])
+      )
       .min(1),
   })
 );
 
 // Root schema
 export const segmentSchema = z.object({
-  filter: z.union([groupNode, involvementCondition, transitionCondition]),
+  filter: z.union([
+    groupNode,
+    involvementCondition,
+    transitionCondition,
+    upsellCondition,
+    emailCondition,
+  ]),
   debug: z.boolean().optional().default(false),
 });
 
@@ -271,6 +303,152 @@ const peopleForInvolvement = async ({
   return ids;
 };
 
+const peopleForUpsell = async ({
+  cond,
+  eventId,
+  currentInstanceId,
+  cache,
+  debugInfo,
+  path,
+}) => {
+  const resolvedInstanceIds = await resolveInstanceIdsOrThrow({
+    iteration: cond.iteration,
+    eventId,
+    currentInstanceId,
+  });
+
+  // If filtering by upsellItemName, ensure it exists for the instances
+  if (cond.upsellItemName) {
+    const count = await prisma.upsellItem.count({
+      where: {
+        eventId,
+        deleted: false,
+        instanceId: { in: resolvedInstanceIds },
+        name: cond.upsellItemName,
+      },
+    });
+    if (!count) {
+      throw {
+        status: 400,
+        message: `Upsell item not found for these instances: ${cond.upsellItemName}`,
+      };
+    }
+  }
+
+  const cacheKey = JSON.stringify({
+    type: cond.type,
+    instanceIds: resolvedInstanceIds,
+    upsellItemId: cond.upsellItemId || null,
+    upsellItemName: cond.upsellItemName || null,
+  });
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+  const where = {
+    registration: {
+      eventId,
+      deleted: false,
+      finalized: true,
+      instanceId: { in: resolvedInstanceIds },
+      crmPersonId: { not: null },
+    },
+    ...(cond.upsellItemId ? { upsellItemId: cond.upsellItemId } : {}),
+    ...(cond.upsellItemName
+      ? {
+          upsellItem: {
+            is: {
+              name: cond.upsellItemName,
+              eventId,
+              deleted: false,
+              instanceId: { in: resolvedInstanceIds },
+            },
+          },
+        }
+      : {}),
+  };
+
+  const rows = await prisma.registrationUpsell.findMany({
+    where,
+    select: { registration: { select: { crmPersonId: true } } },
+  });
+  const ids = new Set(
+    rows.map((r) => r.registration?.crmPersonId).filter(Boolean)
+  );
+
+  cache.set(cacheKey, ids);
+  if (debugInfo) {
+    debugInfo.traces.push({
+      path,
+      nodeType: "upsell",
+      iteration: cond.iteration,
+      resolvedInstanceIds,
+      upsellItemId: cond.upsellItemId || null,
+      upsellItemName: cond.upsellItemName || null,
+      baseCount: ids.size,
+    });
+  }
+  return ids;
+};
+
+const peopleForEmailActivity = async ({
+  cond,
+  eventId,
+  cache,
+  debugInfo,
+  path,
+}) => {
+  const direction = cond.direction || "outbound";
+  const withinDays = cond.withinDays;
+  const cutoff = new Date(Date.now() - withinDays * 24 * 60 * 60 * 1000);
+
+  const cacheKey = JSON.stringify({
+    type: cond.type,
+    direction,
+    withinDays,
+  });
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+  const sets = [];
+  if (direction === "outbound" || direction === "either") {
+    const emails = await prisma.email.findMany({
+      where: {
+        createdAt: { gte: cutoff },
+        crmPerson: { is: { eventId, deleted: false } },
+      },
+      select: { crmPersonId: true },
+    });
+    sets.push(new Set(emails.map((e) => e.crmPersonId).filter(Boolean)));
+  }
+  if (direction === "inbound" || direction === "either") {
+    const inbound = await prisma.inboundEmail.findMany({
+      where: {
+        receivedAt: { gte: cutoff },
+        // inboundEmail.crmPersons[] belongs to eventId
+        crmPersons: { some: { eventId, deleted: false } },
+      },
+      select: { crmPersons: { select: { id: true } } },
+    });
+    const s = new Set();
+    for (const row of inbound) for (const p of row.crmPersons) s.add(p.id);
+    sets.push(s);
+  }
+
+  const base = sets.length
+    ? sets.reduce((acc, s) => setUnion(acc, s), new Set())
+    : new Set();
+
+  cache.set(cacheKey, base);
+  if (debugInfo) {
+    debugInfo.traces.push({
+      path,
+      nodeType: "email",
+      direction,
+      withinDays,
+      baseCount: base.size,
+    });
+  }
+  return base;
+};
+
 const evaluateNode = async ({
   node,
   eventId,
@@ -294,6 +472,47 @@ const evaluateNode = async ({
       debugInfo.traces.push({
         path,
         nodeType: "involvement:result",
+        exists: node.exists !== false,
+        resultCount: result.size,
+      });
+    }
+    return result;
+  }
+
+  if (node.type === "upsell") {
+    const base = await peopleForUpsell({
+      cond: node,
+      eventId,
+      currentInstanceId,
+      cache,
+      debugInfo,
+      path,
+    });
+    const result = node.exists === false ? setDiff(universe, base) : base;
+    if (debugInfo) {
+      debugInfo.traces.push({
+        path,
+        nodeType: "upsell:result",
+        exists: node.exists !== false,
+        resultCount: result.size,
+      });
+    }
+    return result;
+  }
+
+  if (node.type === "email") {
+    const base = await peopleForEmailActivity({
+      cond: node,
+      eventId,
+      cache,
+      debugInfo,
+      path,
+    });
+    const result = node.exists === false ? setDiff(universe, base) : base;
+    if (debugInfo) {
+      debugInfo.traces.push({
+        path,
+        nodeType: "email:result",
         exists: node.exists !== false,
         resultCount: result.size,
       });

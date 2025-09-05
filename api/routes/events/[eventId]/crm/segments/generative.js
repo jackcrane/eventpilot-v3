@@ -71,6 +71,15 @@ const buildContext = async (eventId) => {
         select: { id: true, name: true, instanceId: true },
       })
     : [];
+  // Upsell items
+  const upsells = instanceIds.length
+    ? await prisma.upsellItem.findMany({
+        where: { eventId, instanceId: { in: instanceIds }, deleted: false },
+        select: { id: true, name: true, instanceId: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
+
   const byInstance = Object.fromEntries(
     instances.map((i) => [
       i.id,
@@ -85,6 +94,9 @@ const buildContext = async (eventId) => {
           .map(({ id, name }) => ({ id, name })),
         periods: periods
           .filter((p) => p.instanceId === i.id)
+          .map(({ id, name }) => ({ id, name })),
+        upsells: upsells
+          .filter((u) => u.instanceId === i.id)
           .map(({ id, name }) => ({ id, name })),
       },
     ])
@@ -156,6 +168,10 @@ const createInput = ({ instructions, prompt, context }) => {
     "- Prefer participant.tierName/periodName when exact names are shown in context; use ids if names are ambiguous.",
     "- Do not invent instance names/ids, tier names/ids, or period names/ids.",
     "- Keep JSON minimal (omit unused optional fields).",
+    "",
+    "Additional filter types:",
+    "- Upsell: { type: 'upsell', iteration, exists?, upsellItemId?, upsellItemName? }.",
+    "- Email activity: { type: 'email', direction: 'outbound'|'inbound'|'either' (default 'outbound'), withinDays: number, exists? }.",
     "",
     "--- INSTRUCTIONS.md ---",
     instructions || "",
