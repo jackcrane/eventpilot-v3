@@ -2,18 +2,20 @@ import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
 import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
-import OpenAI from "openai";
+import { isOpenAIConfigured, createResponse, extractText } from "#util/openai";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_BASE = process.env.OPENAI_API_BASE; // optional override
+// Config now centralized in #util/openai
 
 const inputSchema = z.object({
   prompt: z.string().min(4),
   ast: z.any().optional(),
-  model: z.string().optional(),
 });
 
 const buildInput = ({ prompt, ast }) => {
+  const now = new Date();
+  const nowDateUTC = now.toISOString().slice(0, 10);
+  const nowYear = now.getUTCFullYear();
+  const lastYear = nowYear - 1;
   const guidelines = [
     "Create a concise, human-readable title for a saved CRM search.",
     "Requirements:",
@@ -24,7 +26,15 @@ const buildInput = ({ prompt, ast }) => {
     "- Make it specific (include year/instance name if present).",
   ].join("\n");
 
-  const parts = [guidelines, "", "User Prompt:", prompt];
+  const temporal = [
+    "",
+    "Temporal context:",
+    `- Today (UTC) is ${nowDateUTC}.`,
+    `- Interpret the phrase "this year" as ${nowYear}.`,
+    `- Interpret the phrase "last year" as ${lastYear}.`,
+  ].join("\n");
+
+  const parts = [guidelines, temporal, "", "User Prompt:", prompt];
   if (ast) {
     parts.push("", "Segment AST (optional):", JSON.stringify(ast));
   }
@@ -48,7 +58,7 @@ const sanitizeTitle = (t) => {
 export const post = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    if (!OPENAI_API_KEY) {
+    if (!isOpenAIConfigured()) {
       return res.status(500).json({ message: "Server missing OPENAI_API_KEY" });
     }
 
@@ -56,24 +66,12 @@ export const post = [
     if (!parsed.success) {
       return res.status(400).json({ message: serializeError(parsed) });
     }
-    const {
-      prompt,
-      ast,
-      model = process.env.OPENAI_MODEL || "gpt-5-nano",
-    } = parsed.data;
+    const { prompt, ast } = parsed.data;
 
     try {
-      const client = new OpenAI({
-        apiKey: OPENAI_API_KEY,
-        baseURL: OPENAI_BASE,
-      });
       const input = buildInput({ prompt, ast });
-      const data = await client.responses.create({
-        model,
-        input,
-        reasoning: { effort: "minimal" },
-      });
-      const content = data?.output_text || "";
+      const data = await createResponse(input);
+      const content = extractText(data);
       const title = sanitizeTitle(content);
       if (!title)
         return res.status(502).json({ message: "LLM returned empty title" });

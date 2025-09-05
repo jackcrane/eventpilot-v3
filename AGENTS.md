@@ -58,6 +58,7 @@ Scaffolding: You can quickly scaffold hooks via `app/hooks/generateHook.js`. `ap
 - For real-time, use `useSWRSubscription` inside hooks; fan-out updates with `mutate(key)`.
 - Do not change database migrations when making product changes unless explicitly scoped to the task.
 - Never EVER modify anything in the schema/migrations folder.
+- Never EVER put anything in the schema/migrations folder.
 
 ## Pointers
 

@@ -24,11 +24,17 @@ const participantFilter = z.object({
   tierName: z.string().optional(),
   periodId: z.string().optional(),
   periodName: z.string().optional(),
+  // Optional registration createdAt range filters (ISO 8601 strings)
+  createdAtGte: z.string().datetime().optional(),
+  createdAtLte: z.string().datetime().optional(),
 });
 
 // Volunteer filter options
 const volunteerFilter = z.object({
   minShifts: z.number().int().nonnegative().optional(),
+  // Optional volunteer registration createdAt range filters (ISO 8601 strings)
+  createdAtGte: z.string().datetime().optional(),
+  createdAtLte: z.string().datetime().optional(),
 });
 
 // Involvement condition
@@ -314,6 +320,18 @@ const peopleForInvolvement = async ({
       ...(cond.participant?.periodName
         ? { registrationPeriod: { is: { name: cond.participant.periodName } } }
         : {}),
+      ...(cond.participant?.createdAtGte || cond.participant?.createdAtLte
+        ? {
+            createdAt: {
+              ...(cond.participant?.createdAtGte
+                ? { gte: new Date(cond.participant.createdAtGte) }
+                : {}),
+              ...(cond.participant?.createdAtLte
+                ? { lte: new Date(cond.participant.createdAtLte) }
+                : {}),
+            },
+          }
+        : {}),
     };
     const regs = await prisma.registration.findMany({
       where,
@@ -331,6 +349,18 @@ const peopleForInvolvement = async ({
         instanceId: { in: resolvedInstanceIds },
         deleted: false,
         crmPersonLink: { isNot: null },
+        ...(cond.volunteer?.createdAtGte || cond.volunteer?.createdAtLte
+          ? {
+              createdAt: {
+                ...(cond.volunteer?.createdAtGte
+                  ? { gte: new Date(cond.volunteer.createdAtGte) }
+                  : {}),
+                ...(cond.volunteer?.createdAtLte
+                  ? { lte: new Date(cond.volunteer.createdAtLte) }
+                  : {}),
+              },
+            }
+          : {}),
       },
       select: {
         crmPersonLink: { select: { crmPersonId: true } },
@@ -461,7 +491,11 @@ const peopleForEmailActivity = async ({
 }) => {
   const direction = cond.direction || "outbound";
   const withinDays = cond.withinDays;
-  const cutoff = new Date(Date.now() - withinDays * 24 * 60 * 60 * 1000);
+  // Compute cutoff and clamp to Unix epoch to avoid invalid pre-epoch DateTimes
+  // that Prisma cannot serialize (e.g., massive withinDays producing year < 0001).
+  const minDate = new Date(Date.UTC(1970, 0, 1, 0, 0, 0));
+  let cutoff = new Date(Date.now() - withinDays * 24 * 60 * 60 * 1000);
+  if (cutoff < minDate) cutoff = minDate;
 
   const cacheKey = JSON.stringify({
     type: cond.type,

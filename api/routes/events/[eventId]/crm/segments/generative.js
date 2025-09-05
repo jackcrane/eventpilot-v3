@@ -6,22 +6,16 @@ import { serializeError } from "#serializeError";
 import fs from "fs";
 import path from "path";
 import { segmentSchema, evaluateSegment } from "./index.js";
-import OpenAI from "openai";
+import { isOpenAIConfigured, createResponse, extractText } from "#util/openai";
 
 // Input schema for the generative endpoint
 export const generativeInputSchema = z.object({
   prompt: z.string().min(4),
-  temperature: z.number().min(0).max(1).default(0.1).optional(),
-  model: z
-    .string()
-    .default(process.env.OPENAI_MODEL || "gpt-5-nano")
-    .optional(),
   includeContext: z.boolean().default(true).optional(),
   debug: z.boolean().default(false).optional(),
 });
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_BASE = process.env.OPENAI_API_BASE; // optional override
+// Config now centralized in #util/openai
 
 let cachedInstructions = null;
 const getInstructions = () => {
@@ -161,6 +155,10 @@ const createMessages = ({ instructions, prompt, context }) => {
 
 // Compose a single input string for OpenAI Responses API
 const createInput = ({ instructions, prompt, context }) => {
+  const now = new Date();
+  const nowDateUTC = now.toISOString().slice(0, 10);
+  const nowYear = now.getUTCFullYear();
+  const lastYear = nowYear - 1;
   const parts = [
     "You generate a JSON AST payload for the CRM Segments API.",
     "Output MUST be strict JSON (no markdown), matching the segmentSchema summarized below.",
@@ -172,9 +170,17 @@ const createInput = ({ instructions, prompt, context }) => {
     "- Do not invent instance names/ids, tier names/ids, or period names/ids.",
     "- Keep JSON minimal (omit unused optional fields).",
     "",
+    "Temporal context:",
+    `- Today (UTC) is ${nowDateUTC}.`,
+    `- Interpret the phrase "this year" as ${nowYear}.`,
+    `- Interpret the phrase "last year" as ${lastYear}.`,
+    "- If the prompt refers to \"current\" or \"previous\" instance, infer using instance start/end times relative to today.",
+    "",
     "Additional filter types:",
     "- Upsell: { type: 'upsell', iteration, exists?, upsellItemId?, upsellItemName? }.",
     "- Email activity: { type: 'email', direction: 'outbound'|'inbound'|'either' (default 'outbound'), withinDays: number, exists? }.",
+    "- Participant registration date range: within involvement.participant you may include createdAtGte and/or createdAtLte as ISO strings (e.g., '2025-06-01T00:00:00.000Z').",
+    "- Volunteer registration date range: within involvement.volunteer you may include createdAtGte and/or createdAtLte as ISO strings (e.g., '2025-06-01T00:00:00.000Z').",
     "",
     "--- INSTRUCTIONS.md ---",
     instructions || "",
@@ -193,7 +199,7 @@ const createInput = ({ instructions, prompt, context }) => {
 export const post = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    if (!OPENAI_API_KEY) {
+    if (!isOpenAIConfigured()) {
       return res.status(500).json({ message: "Server missing OPENAI_API_KEY" });
     }
 
@@ -202,31 +208,15 @@ export const post = [
     if (!parsed.success) {
       return res.status(400).json({ message: serializeError(parsed) });
     }
-    const {
-      prompt,
-      model = process.env.OPENAI_MODEL || "gpt-5-nano",
-      includeContext = true,
-      debug = false,
-    } = parsed.data;
+    const { prompt, includeContext = true, debug = false } = parsed.data;
 
     try {
       const instructions = getInstructions();
       const context = includeContext ? await buildContext(eventId) : {};
       const input = createInput({ instructions, prompt, context });
 
-      const client = new OpenAI({
-        apiKey: OPENAI_API_KEY,
-        baseURL: OPENAI_BASE,
-      });
-      const data = await client.responses.create({
-        model,
-        input,
-        reasoning: {
-          effort: "low",
-        },
-      });
-      console.log(data);
-      const content = data?.output_text || "";
+      const data = await createResponse(input);
+      const content = extractText(data);
       const json = safeJsonParse(content);
       if (!json) {
         return res
