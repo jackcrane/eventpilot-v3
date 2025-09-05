@@ -25,8 +25,7 @@ export const useCrmSegment = ({ eventId }) => {
   const run = async ({ filter, debug }) => {
     if (!filter) return { ok: false, error: new Error("Missing filter AST") };
     try {
-      const promise = trigger({ filter, debug });
-      const res = promise;
+      const res = await trigger({ filter, debug });
       return { ok: true, ...res };
     } catch (e) {
       return { ok: false, error: e };
