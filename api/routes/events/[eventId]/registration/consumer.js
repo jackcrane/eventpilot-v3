@@ -6,6 +6,7 @@ import { mapInputToInsert } from "./fragments/consumer/mapInputToInsert";
 import { LogType } from "@prisma/client";
 import { registrationRequiresPayment } from "./fragments/consumer/registrationRequiresPayment";
 import { finalizeRegistration } from "../../../../util/finalizeRegistration";
+import { createLedgerItemForRegistration } from "../../../../util/ledger";
 import { getNextInstance } from "#util/getNextInstance.js";
 
 const registrationSubmissionSchema = z.object({
@@ -336,12 +337,21 @@ export const post = [
       const { requiresPayment, registrationId, price } = transaction;
 
       if (!requiresPayment) {
-        await finalizeRegistration({
+        const { crmPersonId } = await finalizeRegistration({
           registrationId: registrationId,
           eventId,
           amount: typeof price === "number" ? price : 0,
           instanceId,
         });
+        if (typeof price === "number" && price > 0) {
+          await createLedgerItemForRegistration({
+            eventId,
+            instanceId,
+            registrationId: registrationId,
+            amount: price,
+            crmPersonId,
+          });
+        }
         const registration = await prisma.registration.findUnique({
           where: { id: registrationId },
           include: {

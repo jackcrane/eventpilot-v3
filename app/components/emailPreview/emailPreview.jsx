@@ -20,7 +20,7 @@ export const extractInitialsFromName = (name) => {
   return parts[0].slice(0, 1) + parts[1].slice(0, 1);
 };
 
-export const EmailPreviewPrompt = ({ emailId }) => {
+export const EmailPreviewPrompt = ({ emailId, onClick }) => {
   const { email, loading } = useEmail({ emailId });
 
   if (loading) return null;
@@ -41,11 +41,21 @@ export const EmailPreviewPrompt = ({ emailId }) => {
       ? email.from
       : `${email.from.name} <${email.from.email}>`;
 
+  const handleClick = (e) => {
+    if (onClick) {
+      e.preventDefault();
+      try {
+        onClick(emailId);
+      } catch (_) {}
+    }
+  };
+
   return (
     <a
       href={`/email/${emailId}`}
       className={styles.emailPreviewPrompt}
       target="_blank"
+      onClick={handleClick}
     >
       <Row className={"card p-1"} gap={1} align="center">
         <div style={{ alignSelf: "flex-start" }}>

@@ -810,17 +810,6 @@ const createParticipant = async ({
   }
 
   if (paid) {
-    // Create ledger item only if there was a non-zero payment required
-    if (requiresPayment) {
-      // Mirror webhook path: create ledger item via shared util
-      await createLedgerItemForRegistration({
-        eventId,
-        instanceId,
-        registrationId: reg.id,
-        amount: total,
-      });
-    }
-
     await prisma.registration.update({
       where: { id: reg.id },
       data: { finalized: true },
@@ -844,13 +833,14 @@ const createParticipant = async ({
     where: { eventId, emails: { some: { email: person.email } } },
     select: { id: true },
   });
+  let crmPersonId = existing?.id || null;
   if (existing) {
     await prisma.crmPerson.update({
       where: { id: existing.id },
       data: { registrations: { connect: { id: reg.id } } },
     });
   } else {
-    await prisma.crmPerson.create({
+    const created = await prisma.crmPerson.create({
       data: {
         name: person.name,
         eventId,
@@ -858,6 +848,19 @@ const createParticipant = async ({
         emails: { create: { email: person.email } },
         registrations: { connect: { id: reg.id } },
       },
+      select: { id: true },
+    });
+    crmPersonId = created.id;
+  }
+
+  // Create ledger item only if there was a non-zero payment required, after CRM linkage
+  if (paid && requiresPayment && total > 0 && crmPersonId) {
+    await createLedgerItemForRegistration({
+      eventId,
+      instanceId,
+      registrationId: reg.id,
+      amount: total,
+      crmPersonId,
     });
   }
 };

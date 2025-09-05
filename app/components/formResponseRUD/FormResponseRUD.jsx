@@ -208,25 +208,27 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
         disabled={mutationLoading}
         loading={mutationLoading}
       />
-      <div className="mt-3">
-        <Button
-          variant="danger"
-          outline
-          onClick={async () => {
-            if (
-              await confirm({
-                title: "Are you sure you want to delete this submission?",
-                text: "This action cannot be undone.",
-                commitText: "Delete",
-              })
-            )
-              await deleteResponse();
-          }}
-          disabled={deleteLoading}
-        >
-          {deleteLoading ? "Deleting…" : "Delete Submission"}
-        </Button>
-      </div>
+      {confirm && (
+        <div className="mt-3">
+          <Button
+            variant="danger"
+            outline
+            onClick={async () => {
+              if (
+                await confirm({
+                  title: "Are you sure you want to delete this submission?",
+                  text: "This action cannot be undone.",
+                  commitText: "Delete",
+                })
+              )
+                await deleteResponse();
+            }}
+            disabled={deleteLoading}
+          >
+            {deleteLoading ? "Deleting…" : "Delete Submission"}
+          </Button>
+        </div>
+      )}
       <Util.Hr text="Shifts" />
       <div>
         {groupedShifts.map((location) => (
@@ -251,23 +253,25 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
           </div>
         ))}
       </div>
-      <Button
-        onClick={() =>
-          subOffcanvas({
-            content: (
-              <Shifts
-                eventId={eventId}
-                shifts={shifts}
-                flat={response.flat}
-                submissionId={id}
-              />
-            ),
-          })
-        }
-      >
-        View Shifts
-      </Button>
-      <Util.Hr text="PII & Analytics" />
+      {subOffcanvas && (
+        <Button
+          onClick={() =>
+            subOffcanvas({
+              content: (
+                <Shifts
+                  eventId={eventId}
+                  shifts={shifts}
+                  flat={response.flat}
+                  submissionId={id}
+                />
+              ),
+            })
+          }
+        >
+          View Shifts
+        </Button>
+      )}
+      {/* <Util.Hr text="PII & Analytics" />
       <Typography.Text>
         The following information is collected automatically from the device
         that submitted the form. This information can be used to identify users,
@@ -356,7 +360,7 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
           }
           description="Screen dimensions of the device that submitted the form. This can be useful to identify users who are using a mobile device, helping guide marketing efforts."
         />
-      </div>
+      </div> */}
     </div>
   );
 };

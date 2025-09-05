@@ -5,15 +5,20 @@ export const getOrCreateConversation = async (eventId, mailboxHash) => {
   let shouldSendConfirmation = false;
 
   if (mailboxHash && mailboxHash.length > 0) {
-    conversation = await prisma.conversation.findUnique({
-      where: { id: mailboxHash },
-    });
-    if (!conversation) {
-      conversation = await prisma.conversation.create({
-        data: { event: { connect: { id: eventId } } },
+    // Prefer deterministic id based on mailboxHash (e.g., Gmail threadId or EP hash)
+    conversation = await prisma.conversation
+      .upsert({
+        where: { id: mailboxHash },
+        update: {},
+        create: { id: mailboxHash, event: { connect: { id: eventId } } },
+      })
+      .catch(async () => {
+        // Fallback: if id is taken for some reason, create a new one
+        shouldSendConfirmation = true;
+        return prisma.conversation.create({
+          data: { event: { connect: { id: eventId } } },
+        });
       });
-      shouldSendConfirmation = true;
-    }
   } else {
     conversation = await prisma.conversation.create({
       data: { event: { connect: { id: eventId } } },

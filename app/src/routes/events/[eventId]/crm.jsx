@@ -1,6 +1,6 @@
 // EventCrm.jsx
 import React, { useState, useMemo, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { EventPage } from "../../../../components/eventPage/EventPage";
 import { useCrm } from "../../../../hooks/useCrm";
 import { Empty } from "../../../../components/empty/Empty";
@@ -46,6 +46,7 @@ const switchTypeForIcon = (type) => {
 
 export const EventCrm = () => {
   const { eventId } = useParams();
+  const navigate = useNavigate();
   const { crmFields, loading: fieldsLoading } = useCrm({ eventId });
   const {
     crmPersons,
@@ -70,11 +71,7 @@ export const EventCrm = () => {
       render: (id) => (
         <Button
           size="sm"
-          onClick={() =>
-            offcanvas({
-              content: <CrmPersonCRUD crmPersonId={id} onClose={close} />,
-            })
-          }
+          onClick={() => navigate(`/events/${eventId}/crm/${id}`)}
         >
           <Icon i="info-circle" /> Details
         </Button>
@@ -134,7 +131,7 @@ export const EventCrm = () => {
   useEffect(() => {
     if (
       !fieldsLoading &&
-      crmFields.length > 0 &&
+      crmFields?.length > 0 &&
       !columnConfig.some((c) => c.id.startsWith("field-"))
     ) {
       const dynamic = crmFields.map((f, i) => ({

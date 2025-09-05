@@ -150,19 +150,20 @@ export const post = [
                 id: instanceId,
               },
             });
+            const { crmPersonId } = await finalizeRegistration({
+              registrationId,
+              eventId,
+              receiptUrl,
+              paymentIntent,
+            });
+
             await createLedgerItemForRegistration({
               eventId,
               instanceId: instance.id,
               registrationId,
               amount: paymentIntent.amount / 100,
               stripe_paymentIntentId: paymentIntent.id,
-            });
-
-            await finalizeRegistration({
-              registrationId,
-              eventId,
-              receiptUrl,
-              paymentIntent,
+              crmPersonId,
             });
           } else {
             console.warn(
