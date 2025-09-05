@@ -6,22 +6,16 @@ import { serializeError } from "#serializeError";
 import fs from "fs";
 import path from "path";
 import { segmentSchema, evaluateSegment } from "./index.js";
-import OpenAI from "openai";
+import { isOpenAIConfigured, createResponse, extractText } from "#util/openai";
 
 // Input schema for the generative endpoint
 export const generativeInputSchema = z.object({
   prompt: z.string().min(4),
-  temperature: z.number().min(0).max(1).default(0.1).optional(),
-  model: z
-    .string()
-    .default(process.env.OPENAI_MODEL || "gpt-5-nano")
-    .optional(),
   includeContext: z.boolean().default(true).optional(),
   debug: z.boolean().default(false).optional(),
 });
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_BASE = process.env.OPENAI_API_BASE; // optional override
+// Config now centralized in #util/openai
 
 let cachedInstructions = null;
 const getInstructions = () => {
@@ -193,7 +187,7 @@ const createInput = ({ instructions, prompt, context }) => {
 export const post = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    if (!OPENAI_API_KEY) {
+    if (!isOpenAIConfigured()) {
       return res.status(500).json({ message: "Server missing OPENAI_API_KEY" });
     }
 
@@ -202,31 +196,15 @@ export const post = [
     if (!parsed.success) {
       return res.status(400).json({ message: serializeError(parsed) });
     }
-    const {
-      prompt,
-      model = process.env.OPENAI_MODEL || "gpt-5-nano",
-      includeContext = true,
-      debug = false,
-    } = parsed.data;
+    const { prompt, includeContext = true, debug = false } = parsed.data;
 
     try {
       const instructions = getInstructions();
       const context = includeContext ? await buildContext(eventId) : {};
       const input = createInput({ instructions, prompt, context });
 
-      const client = new OpenAI({
-        apiKey: OPENAI_API_KEY,
-        baseURL: OPENAI_BASE,
-      });
-      const data = await client.responses.create({
-        model,
-        input,
-        reasoning: {
-          effort: "low",
-        },
-      });
-      console.log(data);
-      const content = data?.output_text || "";
+      const data = await createResponse(input);
+      const content = extractText(data);
       const json = safeJsonParse(content);
       if (!json) {
         return res

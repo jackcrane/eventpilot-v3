@@ -461,7 +461,11 @@ const peopleForEmailActivity = async ({
 }) => {
   const direction = cond.direction || "outbound";
   const withinDays = cond.withinDays;
-  const cutoff = new Date(Date.now() - withinDays * 24 * 60 * 60 * 1000);
+  // Compute cutoff and clamp to Unix epoch to avoid invalid pre-epoch DateTimes
+  // that Prisma cannot serialize (e.g., massive withinDays producing year < 0001).
+  const minDate = new Date(Date.UTC(1970, 0, 1, 0, 0, 0));
+  let cutoff = new Date(Date.now() - withinDays * 24 * 60 * 60 * 1000);
+  if (cutoff < minDate) cutoff = minDate;
 
   const cacheKey = JSON.stringify({
     type: cond.type,

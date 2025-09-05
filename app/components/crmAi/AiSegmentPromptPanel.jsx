@@ -18,7 +18,9 @@ export const AiSegmentPromptPanel = ({
   onApply, // ({ results, savedSegmentId, ast, title, prompt })
   onClose,
 }) => {
-  const { generate, loading: generating } = useCrmGenerativeSegment({ eventId });
+  const { generate, loading: generating } = useCrmGenerativeSegment({
+    eventId,
+  });
   const {
     savedSegments,
     createSavedSegment,
@@ -27,9 +29,13 @@ export const AiSegmentPromptPanel = ({
     suggestTitle,
     markUsed,
   } = useCrmSavedSegments({ eventId });
-  const { run: runSavedSegment, loading: runningSaved } = useCrmSegment({ eventId });
+  const { run: runSavedSegment, loading: runningSaved } = useCrmSegment({
+    eventId,
+  });
 
-  const [tab, setTab] = useState((savedSegments || []).length ? "previous" : "new");
+  const [tab, setTab] = useState(
+    (savedSegments || []).length ? "previous" : "new"
+  );
   const [savedLocal, setSavedLocal] = useState(savedSegments || []);
   const [title, setTitle] = useState(initialTitle || "");
   const [prompt, setPrompt] = useState(initialPrompt || "");
@@ -71,8 +77,13 @@ export const AiSegmentPromptPanel = ({
       if (!savedTitle) {
         const suggestion = await suggestTitle({ prompt, ast: res.segment });
         if (suggestion?.ok && suggestion?.title) {
-          const upd = await updateSavedSegment(savedId, { title: suggestion.title });
-          savedTitle = upd?.ok && upd?.savedSegment ? upd.savedSegment.title || suggestion.title : suggestion.title;
+          const upd = await updateSavedSegment(savedId, {
+            title: suggestion.title,
+          });
+          savedTitle =
+            upd?.ok && upd?.savedSegment
+              ? upd.savedSegment.title || suggestion.title
+              : suggestion.title;
         }
       }
     }
@@ -89,7 +100,9 @@ export const AiSegmentPromptPanel = ({
 
   return (
     <div>
-      <Typography.H5 className="mb-0 text-secondary">DESCRIBE YOUR SEGMENT</Typography.H5>
+      <Typography.H5 className="mb-0 text-secondary">
+        DESCRIBE YOUR SEGMENT
+      </Typography.H5>
       <Typography.H1>Find what you need with AI</Typography.H1>
 
       <div className="mb-2">
@@ -141,19 +154,28 @@ export const AiSegmentPromptPanel = ({
                     e.stopPropagation();
                     const prev = seg.favorite;
                     setSavedLocal((list) =>
-                      list.map((s) => (s.id === seg.id ? { ...s, favorite: !prev } : s))
+                      list.map((s) =>
+                        s.id === seg.id ? { ...s, favorite: !prev } : s
+                      )
                     );
-                    const res = await updateSavedSegmentQuiet(seg.id, { favorite: !prev });
+                    const res = await updateSavedSegmentQuiet(seg.id, {
+                      favorite: !prev,
+                    });
                     if (!res?.ok) {
                       setSavedLocal((list) =>
-                        list.map((s) => (s.id === seg.id ? { ...s, favorite: prev } : s))
+                        list.map((s) =>
+                          s.id === seg.id ? { ...s, favorite: prev } : s
+                        )
                       );
                     }
                   }}
                   style={{ cursor: "pointer" }}
                   title={seg.favorite ? "Unfavorite" : "Favorite"}
                 >
-                  <Icon i={seg.favorite ? "star-filled" : "star"} color={seg.favorite ? "#f59f00" : "#adb5bd"} />
+                  <Icon
+                    i={seg.favorite ? "star-filled" : "star"}
+                    color={seg.favorite ? "#f59f00" : "#adb5bd"}
+                  />
                 </div>
                 <a
                   href="#"
@@ -168,8 +190,15 @@ export const AiSegmentPromptPanel = ({
                   {seg.title?.trim() || seg.prompt?.slice(0, 80) || "Untitled"}
                 </a>
               </div>
-              <div style={{ fontSize: 12, color: "var(--tblr-secondary, #868e96)" }}>
-                {seg.lastUsed ? `Last used ${moment(seg.lastUsed).fromNow()}` : ""}
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--tblr-secondary, #868e96)",
+                }}
+              >
+                {seg.lastUsed
+                  ? `Last used ${moment(seg.lastUsed).fromNow()}`
+                  : ""}
               </div>
             </div>
           ))}
@@ -177,7 +206,9 @@ export const AiSegmentPromptPanel = ({
       ) : (
         <>
           <Typography.Text>
-            Tell the AI who you want to find. Include iteration context (e.g., this year, previous, instance name), participant vs volunteer, tiers or periods by name, and any NOT conditions.
+            Tell the AI who you want to find. Include iteration context (e.g.,
+            this year, previous, instance name), participant vs volunteer, tiers
+            or periods by name, and any NOT conditions.
           </Typography.Text>
           <textarea
             className="form-control"
@@ -187,17 +218,11 @@ export const AiSegmentPromptPanel = ({
             onChange={(e) => setPrompt(e.target.value)}
             style={{ marginTop: 8 }}
           />
-          <div className="mt-3">
-            <Typography.B className="mb-1">Optional Title</Typography.B>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="e.g. 2024 Half - Last Minute"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-          <Button className="ai-button mt-2" loading={generating} onClick={onGenerate}>
+          <Button
+            className="ai-button mt-2"
+            loading={generating}
+            onClick={onGenerate}
+          >
             Generate
           </Button>
         </>
