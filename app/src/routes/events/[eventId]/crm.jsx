@@ -14,6 +14,7 @@ import {
   Dropdown,
   Badge,
   Util,
+  Input,
 } from "tabler-react-2";
 import { Icon } from "../../../../util/Icon";
 import { CrmPersonCRUD } from "../../../../components/crmPersonCRUD/crmPersonCRUD";
@@ -60,6 +61,100 @@ export const EventCrm = () => {
     useCrmFields({ eventId });
 
   const [filters, setFilters] = useState([]);
+  const [search, setSearch] = useState("");
+
+  // Build filter field definitions (base + dynamic custom fields)
+  const filterFieldDefs = useMemo(() => {
+    const base = [
+      {
+        label: "source",
+        hrTitle: "Acquisition Source",
+        type: "enum",
+        options: [
+          "MANUAL",
+          "IMPORT",
+          "VOLUNTEER",
+          "REGISTRATION",
+          "SENT_EMAIL",
+          "EMAIL",
+        ],
+        defaultOperation: "eq",
+      },
+      {
+        label: "createdAt",
+        hrTitle: "Created Date",
+        type: "date",
+        defaultOperation: "date-after",
+        accessor: (p) => p.createdAt,
+      },
+      {
+        label: "updatedAt",
+        hrTitle: "Updated Date",
+        type: "date",
+        defaultOperation: "date-after",
+        accessor: (p) => p.updatedAt,
+      },
+      {
+        label: "name",
+        hrTitle: "Name",
+        type: "text",
+        defaultOperation: "contains",
+        accessor: (p) => p.name,
+      },
+      {
+        label: "emails",
+        hrTitle: "Email",
+        type: "text",
+        defaultOperation: "contains",
+        accessor: (p) => (p.emails || []).map((e) => e.email).join(", "),
+      },
+      {
+        label: "phones",
+        hrTitle: "Phone",
+        type: "text",
+        defaultOperation: "contains",
+        accessor: (p) => (p.phones || []).map((ph) => ph.phone).join(", "),
+      },
+      {
+        label: "stripe_customerId",
+        hrTitle: "Stripe Customer ID",
+        type: "text",
+        defaultOperation: "contains",
+        accessor: (p) => p.stripe_customerId,
+      },
+    ];
+
+    const mapType = (t) => {
+      switch (t) {
+        case "DATE":
+          return "date";
+        case "NUMBER":
+          return "number";
+        case "BOOLEAN":
+          return "boolean";
+        default:
+          return "text"; // TEXT, EMAIL, PHONE, ADDRESS -> text search
+      }
+    };
+
+    const dynamic = (crmFields || []).map((f) => ({
+      label: f.label,
+      hrTitle: f.label,
+      type: mapType(f.type),
+      defaultOperation:
+        f.type === "DATE"
+          ? "date-after"
+          : f.type === "NUMBER"
+          ? "greater-than"
+          : f.type === "BOOLEAN"
+          ? "eq"
+          : "contains",
+      options: f.type === "BOOLEAN" ? ["true", "false"] : undefined,
+      accessor: (p) => p?.fields?.[f.id],
+    }));
+
+    return [...base, ...dynamic];
+  }, [crmFields]);
 
   const [columnConfig, setColumnConfig] = useState([
     {
@@ -178,44 +273,88 @@ export const EventCrm = () => {
   }, [fieldsLoading, crmFields, columnConfig, offcanvas]);
 
   const filteredPersons = useMemo(() => {
-    if (!filters.length) return crmPersons;
-    return crmPersons.filter((person) =>
+    if (!crmPersons) return crmPersons;
+
+    const q = (search || "").trim().toLowerCase();
+    const base = q
+      ? crmPersons.filter((p) => {
+          const hay = [
+            p.name,
+            p.source,
+            (p.emails || []).map((e) => e.email).join(" "),
+            (p.phones || []).map((ph) => ph.phone).join(" "),
+            ...Object.values(p.fields || {}),
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return hay.includes(q);
+        })
+      : crmPersons;
+
+    if (!filters.length) return base;
+
+    return base.filter((person) =>
       filters.every(({ field, operation, value }) => {
-        const raw = person[field.label];
-        if (raw == null || value == null) return true;
+        const raw = field?.accessor
+          ? field.accessor(person)
+          : person[field?.label];
+        const exists = (r) => {
+          if (r == null) return false;
+          if (Array.isArray(r)) return r.length > 0;
+          if (typeof r === "string") return r.trim() !== "";
+          return true;
+        };
+
+        if (operation === "exists") {
+          return exists(raw);
+        }
+        if (operation === "not-exists") {
+          return !exists(raw);
+        }
+
+        if (raw == null || value == null || value === "") return true;
         const val = String(raw).toLowerCase();
-        const q = String(value).toLowerCase();
+        const query = String(value).toLowerCase();
         switch (operation) {
           case "eq":
-            return val === q;
+            return val === query;
           case "neq":
-            return val !== q;
+            return val !== query;
           case "contains":
-            return val.includes(q);
+            return val.includes(query);
           case "not-contains":
-            return !val.includes(q);
+            return !val.includes(query);
           case "starts-with":
-            return val.startsWith(q);
+            return val.startsWith(query);
           case "ends-with":
-            return val.endsWith(q);
+            return val.endsWith(query);
           case "greater-than":
-            return parseFloat(val) > parseFloat(q);
+            return parseFloat(val) > parseFloat(query);
           case "greater-than-or-equal":
-            return parseFloat(val) >= parseFloat(q);
+            return parseFloat(val) >= parseFloat(query);
           case "less-than":
-            return parseFloat(val) < parseFloat(q);
+            return parseFloat(val) < parseFloat(query);
           case "less-than-or-equal":
-            return parseFloat(val) <= parseFloat(q);
-          case "date-after":
-            return new Date(val) > new Date(q);
-          case "date-before":
-            return new Date(val) < new Date(q);
+            return parseFloat(val) <= parseFloat(query);
+          case "date-after": {
+            const dv = new Date(val).getTime();
+            const dq = new Date(query).getTime();
+            if (!dv || !dq) return true;
+            return dv > dq;
+          }
+          case "date-before": {
+            const dv = new Date(val).getTime();
+            const dq = new Date(query).getTime();
+            if (!dv || !dq) return true;
+            return dv < dq;
+          }
           default:
             return true;
         }
       })
     );
-  }, [crmPersons, filters]);
+  }, [crmPersons, filters, search]);
 
   const visibleColumns = columnConfig
     .filter((c) => c.show)
@@ -268,8 +407,15 @@ export const EventCrm = () => {
       <Util.Hr style={{ margin: "1rem 0" }} />
 
       {crmPersons?.length > 0 && (
-        <Row gap={1} className="mb-3">
-          <Filters onFilterChange={setFilters} />
+        <Row gap={1} className="mb-3" align="center">
+          <Input
+            placeholder="Search contacts..."
+            value={search}
+            onChange={setSearch}
+            className="mb-0"
+            style={{ minWidth: 240 }}
+          />
+          <Filters onFilterChange={setFilters} fields={filterFieldDefs} />
         </Row>
       )}
 
