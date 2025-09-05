@@ -2,10 +2,11 @@ import React, { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
 import { useCrmPerson } from "../../../../../hooks/useCrmPerson";
-import { Button, Typography, Util, Badge } from "tabler-react-2";
+import { Button, Typography, Util, Badge, Card } from "tabler-react-2";
 import { Row, Col } from "../../../../../util/Flex";
 import { Icon } from "../../../../../util/Icon";
 import { TriPanelLayout } from "../../../../../components/TriPanelLayout/TriPanelLayout";
+import { useSelectedInstance } from "../../../../../contexts/SelectedInstanceContext";
 import classNames from "classnames";
 import tabsStyles from "./CrmPersonTabs.module.css";
 import { ActivityCrmPage } from "../../../../../components/ActivityCrmPage/ActivityCrmPage";
@@ -14,17 +15,23 @@ import { EmailsCrmPage } from "../../../../../components/EmailsCrmPage/EmailsCrm
 import { FinancialCrmPage } from "../../../../../components/FinancialCrmPage/FinancialCrmPage";
 import { SettingsCrmPage } from "../../../../../components/SettingsCrmPage/SettingsCrmPage";
 import { useCrmLedger } from "../../../../../hooks/useCrmLedger";
+import { useCrmPersonInvolvement } from "../../../../../hooks/useCrmPersonInvolvement";
 
 export const CrmPersonPage = () => {
   const { eventId, personId } = useParams();
   const navigate = useNavigate();
   const { crmPerson, loading } = useCrmPerson({ eventId, personId });
+  const { setInstance } = useSelectedInstance();
 
   const [tab, setTab] = useState({ id: "activity" });
 
   const emails = useMemo(() => crmPerson?.emails || [], [crmPerson]);
   const phones = useMemo(() => crmPerson?.phones || [], [crmPerson]);
   const { lifetimeValue } = useCrmLedger({ eventId, personId });
+  const { involvement, loading: involvementLoading } = useCrmPersonInvolvement({
+    eventId,
+    personId,
+  });
   const formattedLTV = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -227,20 +234,74 @@ export const CrmPersonPage = () => {
           <div>
             <Typography.H3>Involvement</Typography.H3>
             <Typography.Text className="text-muted">
-              Participation details (e.g., volunteer roles, registrations) will
-              appear here.
+              Volunteer and participant activity by instance.
             </Typography.Text>
             <Util.Hr />
-            <Col gap={0.5}>
-              <Row gap={0.5} align="center">
-                <Icon i="heart" /> Volunteer: <em>Not loaded</em>
-              </Row>
-              <Row gap={0.5} align="center">
-                <Icon i="ticket" /> Participant: <em>Not loaded</em>
-              </Row>
-              <Row gap={0.5} align="center">
-                <Icon i="user" /> Other: <em>Not loaded</em>
-              </Row>
+            <Col gap={1} align="flex-start" justify="flex-start">
+              {(involvementLoading || loading) && (
+                <Typography.Text className="text-muted">
+                  Loading…
+                </Typography.Text>
+              )}
+              {!involvementLoading && involvement?.length === 0 && (
+                <Typography.Text className="text-muted">
+                  No involvement found.
+                </Typography.Text>
+              )}
+              {involvement?.map((inst) => {
+                const vCount = inst?.volunteer?.registrations?.length || 0;
+                const vShifts = inst?.volunteer?.shiftCount || 0;
+                const pRegs = inst?.participant?.registrations || [];
+                const pCount = pRegs.length;
+                const pTiers = Array.from(
+                  new Set(pRegs.map((r) => r.tierName).filter(Boolean))
+                );
+                const showVolunteer = vCount > 0 && vShifts > 0;
+                const showParticipant = pCount > 0; // hide if not a participant
+                if (!showVolunteer && !showParticipant) return null;
+                return (
+                  <div key={inst.instance.id} style={{ width: "100%" }}>
+                    <Typography.H4 className="mb-1">
+                      {inst.instance.name}
+                    </Typography.H4>
+                    <Card className="mb-2" style={{ width: "100%" }}>
+                      <Col gap={0.5} align="flex-start" justify="flex-start">
+                        {showVolunteer && (
+                          <Row gap={0.5} align="center">
+                            <Icon i="heart" color="var(--tblr-danger)" />
+                            <Typography.Text className="mb-0">
+                              {vShifts} shift{vShifts === 1 ? "" : "s"} across{" "}
+                              {vCount} registration{vCount === 1 ? "" : "s"}
+                            </Typography.Text>
+                          </Row>
+                        )}
+                        {showParticipant && (
+                          <Row gap={0.5} align="center">
+                            <Icon i="ticket" color="var(--tblr-primary)" />
+                            <Typography.Text className="mb-0">
+                              {pCount} registration{pCount === 1 ? "" : "s"}
+                              {pTiers.length ? ` • ${pTiers.join(", ")}` : ""}
+                            </Typography.Text>
+                            <Typography.Link
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setInstance(inst.instance.id);
+                                navigate(
+                                  `/events/${eventId}/registration/registrations`
+                                );
+                              }}
+                              style={{ marginLeft: 8 }}
+                            >
+                              View registrations <Icon i="arrow-right" />
+                            </Typography.Link>
+                          </Row>
+                        )}
+                      </Col>
+                    </Card>
+                  </div>
+                );
+              })}
             </Col>
           </div>
         }

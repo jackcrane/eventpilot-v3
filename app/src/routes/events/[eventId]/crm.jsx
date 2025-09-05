@@ -69,7 +69,10 @@ export const EventCrm = () => {
       show: true,
       accessor: "id",
       render: (id) => (
-        <Button size="sm" onClick={() => navigate(`/events/${eventId}/crm/${id}`)}>
+        <Button
+          size="sm"
+          onClick={() => navigate(`/events/${eventId}/crm/${id}`)}
+        >
           <Icon i="info-circle" /> Details
         </Button>
       ),
@@ -128,7 +131,7 @@ export const EventCrm = () => {
   useEffect(() => {
     if (
       !fieldsLoading &&
-      crmFields.length > 0 &&
+      crmFields?.length > 0 &&
       !columnConfig.some((c) => c.id.startsWith("field-"))
     ) {
       const dynamic = crmFields.map((f, i) => ({
