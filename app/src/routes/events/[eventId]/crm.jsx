@@ -868,6 +868,26 @@ export const EventCrm = () => {
               Apply
             </Button>
           </Row>
+
+          {(seg?.ast || dbFilters?.ai?.ast || lastAst) && (
+            <details className="mb-2" style={{ marginTop: 8 }}>
+              <summary
+                style={{
+                  marginTop: 12,
+                  color: "var(--tblr-secondary)",
+                }}
+              >
+                View underlying abstract syntax tree (Advanced)
+              </summary>
+              <pre>
+                {JSON.stringify(
+                  seg?.ast || dbFilters?.ai?.ast || lastAst,
+                  null,
+                  2
+                )}
+              </pre>
+            </details>
+          )}
         </div>
       );
     };
