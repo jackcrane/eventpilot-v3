@@ -20,6 +20,7 @@ import { Icon } from "../../../../util/Icon";
 import { CrmPersonCRUD } from "../../../../components/crmPersonCRUD/crmPersonCRUD";
 import { useCrmPersons } from "../../../../hooks/useCrmPersons";
 import { Row } from "../../../../util/Flex";
+import { useCrmGenerativeSegment } from "../../../../hooks/useCrmGenerativeSegment";
 import { CrmPersonsImport } from "../../../../components/crmPersonsImport/CrmPersonsImport";
 import moment from "moment";
 import { useCrmFields } from "../../../../hooks/useCrmFields";
@@ -272,12 +273,18 @@ export const EventCrm = () => {
     }
   }, [fieldsLoading, crmFields, columnConfig, offcanvas]);
 
+  // AI segment support
+  const [aiResults, setAiResults] = useState(null); // { crmPersons, total, debug? }
+  const { generate: generateSegment, loading: generating } =
+    useCrmGenerativeSegment({ eventId });
+
   const filteredPersons = useMemo(() => {
-    if (!crmPersons) return crmPersons;
+    const baseList = aiResults?.crmPersons || crmPersons;
+    if (!baseList) return baseList;
 
     const q = (search || "").trim().toLowerCase();
     const base = q
-      ? crmPersons.filter((p) => {
+      ? baseList.filter((p) => {
           const hay = [
             p.name,
             p.source,
@@ -290,7 +297,7 @@ export const EventCrm = () => {
             .toLowerCase();
           return hay.includes(q);
         })
-      : crmPersons;
+      : baseList;
 
     if (!filters.length) return base;
 
@@ -354,7 +361,64 @@ export const EventCrm = () => {
         }
       })
     );
-  }, [crmPersons, filters, search]);
+  }, [crmPersons, aiResults, filters, search]);
+
+  const openAiOffcanvas = () => {
+    const AiContent = () => {
+      const [prompt, setPrompt] = useState("");
+      return (
+        <div>
+          <Typography.H3>Describe your segment</Typography.H3>
+          <Typography.Text>
+            Tell the AI who you want to find. Include iteration context
+            (e.g., this year, previous, instance name), participant vs
+            volunteer, tiers or periods by name, and any NOT conditions.
+          </Typography.Text>
+
+          <textarea
+            className="form-control"
+            rows={6}
+            placeholder="e.g. Participants in 2024 who registered during Last Minute for the Half Marathon"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            style={{ marginTop: 8 }}
+          />
+
+          <div className="mt-3">
+            <Typography.H4 className="mb-2">Best practices</Typography.H4>
+            <ul className="mb-3">
+              <li>State the iteration clearly (current, previous, name, or year).</li>
+              <li>Use exact tier/period names shown in your event.</li>
+              <li>Mention role (participant vs volunteer) explicitly.</li>
+              <li>Use NOT for exclusions (e.g., not this iteration).</li>
+              <li>Prefer instance name when a year has multiple instances.</li>
+            </ul>
+          </div>
+
+          <Row gap={1} justify="flex-end">
+            <Button variant="secondary" onClick={close} disabled={generating}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              loading={generating}
+              onClick={async () => {
+                const res = await generateSegment({ prompt, debug: false });
+                if (res?.ok && res?.results) {
+                  setAiResults(res.results);
+                  close();
+                }
+              }}
+            >
+              Generate
+            </Button>
+          </Row>
+        </div>
+      );
+    };
+
+    offcanvas({ content: <AiContent /> });
+  };
 
   const visibleColumns = columnConfig
     .filter((c) => c.show)
@@ -416,6 +480,9 @@ export const EventCrm = () => {
             style={{ minWidth: 240 }}
           />
           <Filters onFilterChange={setFilters} fields={filterFieldDefs} />
+          <Button variant="outline" onClick={openAiOffcanvas}>
+            <Icon i="sparkles" /> Ask AI
+          </Button>
         </Row>
       )}
 
@@ -440,10 +507,27 @@ export const EventCrm = () => {
         </Alert>
       ))}
 
-      {crmPersons?.length > 0 && (
+      {aiResults && (
+        <Alert
+          variant="info"
+          title={`Showing AI segment results (${aiResults.total || (aiResults.crmPersons || []).length})`}
+        >
+          <Row gap={1}>
+            <Typography.Text className="mb-0">
+              You can refine your prompt and run again, or clear to return to
+              your full CRM list.
+            </Typography.Text>
+            <Button size="sm" variant="secondary" onClick={() => setAiResults(null)}>
+              Clear AI Results
+            </Button>
+          </Row>
+        </Alert>
+      )}
+
+      {(filteredPersons || []).length > 0 && (
         <Table
           className="card"
-          showPagination={filteredPersons?.length > 10}
+          showPagination={(filteredPersons || []).length > 10}
           columns={visibleColumns}
           data={filteredPersons}
         />
