@@ -21,6 +21,7 @@ import { CrmPersonCRUD } from "../../../../components/crmPersonCRUD/crmPersonCRU
 import { useCrmPersons } from "../../../../hooks/useCrmPersons";
 import { Row } from "../../../../util/Flex";
 import { useCrmGenerativeSegment } from "../../../../hooks/useCrmGenerativeSegment";
+import { useCrmSavedSegments } from "../../../../hooks/useCrmSavedSegments";
 import { CrmPersonsImport } from "../../../../components/crmPersonsImport/CrmPersonsImport";
 import moment from "moment";
 import { useCrmFields } from "../../../../hooks/useCrmFields";
@@ -275,8 +276,13 @@ export const EventCrm = () => {
 
   // AI segment support
   const [aiResults, setAiResults] = useState(null); // { crmPersons, total, debug? }
+  const [currentSavedId, setCurrentSavedId] = useState(null);
+  const [lastPrompt, setLastPrompt] = useState("");
+  const [lastAst, setLastAst] = useState(null);
+  const [savedTitle, setSavedTitle] = useState("");
   const { generate: generateSegment, loading: generating } =
     useCrmGenerativeSegment({ eventId });
+  const { createSavedSegment, updateSavedSegment } = useCrmSavedSegments({ eventId });
 
   const filteredPersons = useMemo(() => {
     const baseList = aiResults?.crmPersons || crmPersons;
@@ -363,15 +369,26 @@ export const EventCrm = () => {
     );
   }, [crmPersons, aiResults, filters, search]);
 
-  const openAiOffcanvas = () => {
+  const openAiOffcanvas = (opts = {}) => {
     const AiContent = () => {
-      const [prompt, setPrompt] = useState("");
+      const [title, setTitle] = useState(opts?.title || "");
+      const [prompt, setPrompt] = useState(opts?.prompt || "");
       return (
         <div>
           <Typography.H5 className="mb-0 text-secondary">
             DESCRIBE YOUR SEGMENT
           </Typography.H5>
           <Typography.H1>Find what you need with AI</Typography.H1>
+          <div className="mb-2">
+            <label className="form-label">Title (optional)</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="e.g. 2024 Half - Last Minute"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
           <Typography.Text>
             Tell the AI who you want to find. Include iteration context (e.g.,
             this year, previous, instance name), participant vs volunteer, tiers
@@ -405,6 +422,18 @@ export const EventCrm = () => {
               const res = await generateSegment({ prompt, debug: false });
               if (res?.ok && res?.results) {
                 setAiResults(res.results);
+                setLastPrompt(prompt);
+                setLastAst(res.segment);
+                // Save to DB regardless of title presence
+                const saved = await createSavedSegment({
+                  title,
+                  prompt,
+                  ast: res.segment,
+                });
+                if (saved?.ok && saved?.savedSegment) {
+                  setCurrentSavedId(saved.savedSegment.id);
+                  setSavedTitle(saved.savedSegment.title || "");
+                }
                 close();
               }
             }}
@@ -416,6 +445,54 @@ export const EventCrm = () => {
     };
 
     offcanvas({ content: <AiContent /> });
+  };
+
+  const openSaveTitleOffcanvas = () => {
+    const SaveTitleContent = () => {
+      const [title, setTitle] = useState(savedTitle || "");
+      return (
+        <div>
+          <Typography.H5 className="mb-0 text-secondary">SAVE SEARCH</Typography.H5>
+          <Typography.H1>Add a title</Typography.H1>
+          <div className="mb-2">
+            <label className="form-label">Title</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="e.g. 2024 Half - Last Minute"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+          <Button
+            variant="primary"
+            onClick={async () => {
+              if (!currentSavedId) {
+                // Create now using lastPrompt/lastAst
+                const saved = await createSavedSegment({
+                  title,
+                  prompt: lastPrompt,
+                  ast: lastAst,
+                });
+                if (saved?.ok && saved?.savedSegment) {
+                  setCurrentSavedId(saved.savedSegment.id);
+                  setSavedTitle(saved.savedSegment.title || "");
+                }
+              } else {
+                const updated = await updateSavedSegment(currentSavedId, { title });
+                if (updated?.ok && updated?.savedSegment) {
+                  setSavedTitle(updated.savedSegment.title || "");
+                }
+              }
+              close();
+            }}
+          >
+            Save
+          </Button>
+        </div>
+      );
+    };
+    offcanvas({ content: <SaveTitleContent /> });
   };
 
   const visibleColumns = columnConfig
@@ -508,22 +585,24 @@ export const EventCrm = () => {
       {aiResults && (
         <Alert
           variant="info"
-          title={`Showing AI segment results (${
+          title={`Showing AI segment results (${ 
             aiResults.total || (aiResults.crmPersons || []).length
           })`}
         >
           <Row gap={1}>
             <Typography.Text className="mb-0">
-              You can refine your prompt and run again, or clear to return to
-              your full CRM list.
+              You can refine your prompt and run again.
             </Typography.Text>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setAiResults(null)}
-            >
-              Clear AI Results
-            </Button>
+            {!currentSavedId && (
+              <Button size="sm" onClick={openSaveTitleOffcanvas}>
+                Save Prompt
+              </Button>
+            )}
+            {currentSavedId && !savedTitle && (
+              <Button size="sm" onClick={openSaveTitleOffcanvas}>
+                Add Title
+              </Button>
+            )}
           </Row>
         </Alert>
       )}

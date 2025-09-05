@@ -203,7 +203,7 @@ export const post = [
         model,
         input,
         reasoning: {
-          effort: "minimal",
+          effort: "low",
         },
       });
       console.log(data);
