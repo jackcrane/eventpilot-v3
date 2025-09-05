@@ -8,7 +8,7 @@ Endpoint
 - Method: POST
 - Path: /api/events/:eventId/crm/segments
 - Headers: Authorization: Bearer <token>, X-Instance: <currentInstanceId>
-- Body: { filter: <AST>, pagination?: { page?, pageSize?, sort? } }
+- Body: { filter: <AST>, debug?: boolean }
 - Response: { crmPersons: [...], total }
 - Introspection: QUERY /api/events/:eventId/crm/segments returns the zod schema via zodex.
 
@@ -53,13 +53,6 @@ AST Schema (informal summary)
   conditions: [ Group | Involvement | Transition, ... ]
 }
 
-Pagination (optional)
-{
-  page?: number (default 1),
-  pageSize?: number (default 50, max 500),
-  sort?: { field?: "name" | "createdAt" | "updatedAt" (default "createdAt"), direction?: "asc" | "desc" (default "desc") }
-}
-
 Behavioral Rules
 - participant selections require finalized registrations and exclude deleted records.
 - volunteer selections require a volunteer registration linked to the person; minShifts filters by number of shifts on that registration.
@@ -99,8 +92,7 @@ Examples
         "exists": false
       }
     ]
-  },
-  "pagination": { "page": 1, "pageSize": 50 }
+  }
 }
 
 2) Did Half Marathon last iteration AND signed up for Full this iteration (participant tiers by name)

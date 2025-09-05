@@ -64,24 +64,6 @@ const groupNode = z.lazy(() =>
 // Root schema
 export const segmentSchema = z.object({
   filter: z.union([groupNode, involvementCondition, transitionCondition]),
-  pagination: z
-    .object({
-      page: z.number().int().positive().default(1),
-      pageSize: z.number().int().positive().max(500).default(50),
-      sort: z
-        .object({
-          field: z
-            .enum(["name", "createdAt", "updatedAt"])
-            .default("createdAt"),
-          direction: z.enum(["asc", "desc"]).default("desc"),
-        })
-        .default({ field: "createdAt", direction: "desc" }),
-    })
-    .default({
-      page: 1,
-      pageSize: 50,
-      sort: { field: "createdAt", direction: "desc" },
-    }),
   debug: z.boolean().optional().default(false),
 });
 
@@ -403,7 +385,6 @@ export const post = [
         eventId,
         currentInstanceId,
         filter: parsed.data.filter,
-        pagination: parsed.data.pagination,
         debug: parsed.data.debug,
       });
       return res.json(payload);
@@ -425,7 +406,7 @@ export const query = [
 ];
 
 // Reusable evaluator for other routes (e.g., generative)
-export const evaluateSegment = async ({ eventId, currentInstanceId, filter, pagination, debug }) => {
+export const evaluateSegment = async ({ eventId, currentInstanceId, filter, debug }) => {
   const universe = await getUniverse(eventId);
   const cache = makePredicateCache();
   const debugInfo = debug
@@ -448,22 +429,12 @@ export const evaluateSegment = async ({ eventId, currentInstanceId, filter, pagi
 
   const total = resultSet.size;
 
-  // Pagination
-  const page = pagination?.page || 1;
-  const pageSize = pagination?.pageSize || 50;
   const ids = Array.from(resultSet);
-
-  // Sorting: performed in DB
-  const orderBy = [
-    { [(pagination?.sort?.field || "createdAt")]: pagination?.sort?.direction || "desc" },
-  ];
-
-  const pagedIds = ids.slice((page - 1) * pageSize, page * pageSize);
-  const people = pagedIds.length
+  const people = ids.length
     ? await prisma.crmPerson.findMany({
-        where: { id: { in: pagedIds }, eventId, deleted: false },
+        where: { id: { in: ids }, eventId, deleted: false },
         include: { emails: true, phones: true, fieldValues: true },
-        orderBy,
+        orderBy: [{ createdAt: "desc" }],
       })
     : [];
 

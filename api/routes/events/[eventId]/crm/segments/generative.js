@@ -135,7 +135,7 @@ const createMessages = ({ instructions, prompt, context }) => {
     prompt,
     "\nContext (instances, tiers, periods, and year ambiguity):\n",
     JSON.stringify(context, null, 2),
-    "\nReturn ONLY the JSON AST: { filter, pagination?, debug? }",
+    "\nReturn ONLY the JSON AST: { filter, debug? }",
   ].join("\n");
 
   return [
@@ -222,14 +222,13 @@ export const post = [
           .json({ message: serializeError(validated), raw: json });
       }
 
-      // Evaluate immediately and return both AST and results
+      // Evaluate immediately and return both AST and results (no pagination)
       const currentInstanceId = req.instanceId || null;
-      const { filter, pagination } = validated.data;
+      const { filter } = validated.data;
       const results = await evaluateSegment({
         eventId,
         currentInstanceId,
         filter,
-        pagination,
         debug,
       });
 
