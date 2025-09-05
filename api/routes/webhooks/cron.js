@@ -2,7 +2,11 @@ import { prisma } from "#prisma";
 import { sendEmail } from "#postmark";
 import { render } from "@react-email/render";
 import DailyDigestEmail from "#emails/daily-digest.jsx";
-import { getGmailClientForEvent, getHeader, extractBodiesAndAttachments } from "#util/google";
+import {
+  getGmailClientForEvent,
+  getHeader,
+  extractBodiesAndAttachments,
+} from "#util/google";
 import { getOrCreateConversation } from "./fragments/getOrCreateConversation.js";
 import {
   createInboundEmailFromGmail,
@@ -52,7 +56,10 @@ export const post = async (req, res) => {
                 {}
               );
               const bodiesAndAtts = extractBodiesAndAttachments(part);
-              const bodies = { text: bodiesAndAtts.text, html: bodiesAndAtts.html };
+              const bodies = {
+                text: bodiesAndAtts.text,
+                html: bodiesAndAtts.html,
+              };
               const attachments = bodiesAndAtts.attachments || [];
               const msgId = headers["message-id"] || payload.id;
               const from = headers["from"] || "";
@@ -124,6 +131,7 @@ export const post = async (req, res) => {
 
                 try {
                   sendEmailEvent(conn.eventId, created);
+                  // eslint-disable-next-line
                 } catch (_) {}
                 continue;
               }
@@ -138,24 +146,24 @@ export const post = async (req, res) => {
                   select: { id: true },
                 });
                 if (!existsOut) {
-              const message = {
-                id: payload.id,
-                threadId: payload.threadId,
-                internalDate: payload.internalDate
-                  ? new Date(Number(payload.internalDate))
-                  : new Date(),
-                headers: {
-                  subject: getHeader(part, "Subject") || "",
-                  from: getHeader(part, "From") || "",
-                  to: getHeader(part, "To") || "",
-                  cc: getHeader(part, "Cc") || "",
-                  bcc: getHeader(part, "Bcc") || "",
-                  date: getHeader(part, "Date") || null,
-                  messageId: getHeader(part, "Message-ID") || payload.id,
-                },
-                textBody: bodies.text,
-                htmlBody: bodies.html,
-              };
+                  const message = {
+                    id: payload.id,
+                    threadId: payload.threadId,
+                    internalDate: payload.internalDate
+                      ? new Date(Number(payload.internalDate))
+                      : new Date(),
+                    headers: {
+                      subject: getHeader(part, "Subject") || "",
+                      from: getHeader(part, "From") || "",
+                      to: getHeader(part, "To") || "",
+                      cc: getHeader(part, "Cc") || "",
+                      bcc: getHeader(part, "Bcc") || "",
+                      date: getHeader(part, "Date") || null,
+                      messageId: getHeader(part, "Message-ID") || payload.id,
+                    },
+                    textBody: bodies.text,
+                    htmlBody: bodies.html,
+                  };
                   const { conversation } = await getOrCreateConversation(
                     conn.eventId,
                     message.threadId
@@ -172,6 +180,7 @@ export const post = async (req, res) => {
                   );
                   try {
                     sendEmailEvent(conn.eventId, createdOut);
+                    // eslint-disable-next-line
                   } catch (_) {}
                 }
               }

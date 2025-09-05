@@ -12,8 +12,8 @@ export const finalizeRegistration = async ({
   receiptUrl,
   paymentIntent,
   // Optional: if provided (and there is no paymentIntent), we will create a ledger item
-  amount,
-  instanceId,
+  // amount,
+  // instanceId,
 }) => {
   const event = await prisma.event.findUnique({
     where: { id: eventId },

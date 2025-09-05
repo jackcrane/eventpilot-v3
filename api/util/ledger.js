@@ -56,7 +56,11 @@ export async function createLedgerItemForRegistration({
         create: {
           type: LogType.LEDGER_ITEM_CREATED,
           data: stripe_paymentIntentId
-            ? { stripe_paymentIntentId, amount, originalAmount: computedOriginal }
+            ? {
+                stripe_paymentIntentId,
+                amount,
+                originalAmount: computedOriginal,
+              }
             : { amount, originalAmount: computedOriginal },
           eventId,
           instanceId,

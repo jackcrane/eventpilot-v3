@@ -136,9 +136,18 @@ export const post = [
               userId: "me",
               id: sentId,
               format: "metadata",
-              metadataHeaders: ["Message-ID", "From", "To", "Cc", "Bcc", "Subject", "Date"],
+              metadataHeaders: [
+                "Message-ID",
+                "From",
+                "To",
+                "Cc",
+                "Bcc",
+                "Subject",
+                "Date",
+              ],
             });
             meta = m?.data || null;
+            // eslint-disable-next-line
           } catch (_) {}
         }
 
@@ -147,12 +156,18 @@ export const post = [
           {}
         );
         const from = headers["from"] || connection.email;
-        const to = headers["to"] || (Array.isArray(parse.data.to) ? parse.data.to.join(", ") : parse.data.to || "");
+        const to =
+          headers["to"] ||
+          (Array.isArray(parse.data.to)
+            ? parse.data.to.join(", ")
+            : parse.data.to || "");
         const subject = headers["subject"] || parse.data.subject || "";
 
         // Dedupe by messageId
         const exists = msgId
-          ? await prisma.email.findFirst({ where: { messageId: msgId, conversationId: threadId } })
+          ? await prisma.email.findFirst({
+              where: { messageId: msgId, conversationId: threadId },
+            })
           : null;
         let emailRecord = exists;
         if (!exists) {
@@ -164,7 +179,10 @@ export const post = [
               .concat(parseAddressList(headers["bcc"]));
             for (const r of recipients) {
               const match = await prisma.crmPersonEmail.findFirst({
-                where: { email: { equals: r.Email, mode: "insensitive" }, crmPerson: { eventId } },
+                where: {
+                  email: { equals: r.Email, mode: "insensitive" },
+                  crmPerson: { eventId },
+                },
                 select: { crmPersonId: true },
               });
               if (match?.crmPersonId) {
@@ -172,6 +190,7 @@ export const post = [
                 break;
               }
             }
+            // eslint-disable-next-line
           } catch (_) {}
 
           emailRecord = await prisma.email.create({
@@ -193,11 +212,13 @@ export const post = [
             for (const r of recs) {
               await upsertConversationCrmPerson(r.Email, threadId, eventId);
             }
+            // eslint-disable-next-line
           } catch (_) {}
 
           // SSE fan-out
           try {
             sendEmailEvent(eventId, emailRecord);
+            // eslint-disable-next-line
           } catch (_) {}
         }
       } catch (e) {

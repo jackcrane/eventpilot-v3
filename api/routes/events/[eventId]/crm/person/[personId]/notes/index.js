@@ -9,7 +9,6 @@ const createNoteSchema = z.object({
 
 const mapLogToNote = (log) => {
   if (!log) return null;
-  const kind = log?.data?.kind;
   if (log.type === LogType.CRM_FILE_NOTE_CREATED) {
     return {
       id: log.id,
@@ -44,7 +43,9 @@ export const get = [
       const logs = await prisma.logs.findMany({
         where: {
           crmPersonId: personId,
-          type: { in: [LogType.CRM_NOTE_CREATED, LogType.CRM_FILE_NOTE_CREATED] },
+          type: {
+            in: [LogType.CRM_NOTE_CREATED, LogType.CRM_FILE_NOTE_CREATED],
+          },
         },
         orderBy: { createdAt: "desc" },
       });
