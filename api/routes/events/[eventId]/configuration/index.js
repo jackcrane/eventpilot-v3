@@ -13,6 +13,9 @@ const configurationSchema = z.object({
   participantStatsDisplayFormat: z.enum(["calendar", "timeline"]).optional(),
   participantStatsCalendarMetric: z.enum(["count", "change"]).optional(),
   participantStatsTimeframe: z.enum(["1", "3", "6"]).optional(),
+
+  // Persist CRM filters (manual + AI)
+  crmFilters: z.any().optional(),
 });
 
 async function getEventOr404(req, res) {

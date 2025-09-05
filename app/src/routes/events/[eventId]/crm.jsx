@@ -30,6 +30,7 @@ import { useCrmFields } from "../../../../hooks/useCrmFields";
 import { Filters } from "../../../../components/filters/Filters";
 import { ColumnsPicker } from "../../../../components/columnsPicker/ColumnsPicker";
 import toast from "react-hot-toast";
+import { useDbState } from "../../../../hooks/useDbState";
 
 const switchTypeForIcon = (type) => {
   switch (type) {
@@ -67,6 +68,16 @@ export const EventCrm = () => {
 
   const [filters, setFilters] = useState([]);
   const [search, setSearch] = useState("");
+  // Persisted CRM filter state (manual + AI)
+  const [dbFilters, setDbFilters] = useDbState(
+    {
+      manual: { search: "", filters: [] },
+      ai: { enabled: false, savedSegmentId: null, ast: null, title: "" },
+    },
+    "crmFilters"
+  );
+  const [hydratedManual, setHydratedManual] = useState(false);
+  const [hydratedAi, setHydratedAi] = useState(false);
 
   // Build filter field definitions (base + dynamic custom fields)
   const filterFieldDefs = useMemo(() => {
@@ -160,6 +171,30 @@ export const EventCrm = () => {
 
     return [...base, ...dynamic];
   }, [crmFields]);
+
+  // Hydrate manual filters from db once definitions are ready
+  useEffect(() => {
+    if (hydratedManual) return;
+    const m = dbFilters?.manual;
+    if (!m) return;
+    setSearch(m.search || "");
+    setHydratedManual(true);
+  }, [dbFilters, hydratedManual]);
+
+  // Persist manual filters + search on change
+  useEffect(() => {
+    if (!hydratedManual) return;
+    const minimal = (filters || []).map((f) => ({
+      label: f?.field?.label,
+      operation: f?.operation,
+      value: f?.value ?? null,
+    }));
+    setDbFilters((prev) => ({
+      ...(prev || {}),
+      manual: { search: search || "", filters: minimal },
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, search]);
 
   const [columnConfig, setColumnConfig] = useState([
     {
@@ -294,6 +329,33 @@ export const EventCrm = () => {
     markUsed,
   } = useCrmSavedSegments({ eventId });
   const { run: runSavedSegment, loading: runningSaved } = useCrmSegment({ eventId });
+
+  // Hydrate AI filter from db on first render
+  useEffect(() => {
+    if (hydratedAi) return;
+    const ai = dbFilters?.ai;
+    if (!ai || !ai.enabled) return;
+    const run = async () => {
+      const filter = ai?.ast?.filter || ai?.ast;
+      if (!filter && !ai?.savedSegmentId) return;
+      let res = null;
+      if (filter) {
+        res = await runSavedSegment({ filter, debug: !!ai?.ast?.debug });
+      } else if (ai?.savedSegmentId) {
+        const seg = (savedSegments || []).find((s) => s.id === ai.savedSegmentId);
+        if (seg) res = await runSavedSegment({ filter: seg?.ast?.filter || seg?.ast });
+      }
+      if (res?.ok) {
+        setAiResults(res);
+        setCurrentSavedId(ai.savedSegmentId || null);
+        setSavedTitle(ai.title || "");
+        setLastAst(ai.ast || null);
+      }
+      setHydratedAi(true);
+    };
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbFilters, savedSegments, hydratedAi]);
 
   const filteredPersons = useMemo(() => {
     const baseList = aiResults?.crmPersons || crmPersons;
@@ -473,6 +535,16 @@ export const EventCrm = () => {
                           setLastAst(seg.ast);
                           setLastPrompt(seg.prompt || "");
                           await markUsed(seg.id);
+                          // persist AI selection
+                          setDbFilters((prev) => ({
+                            ...(prev || {}),
+                            ai: {
+                              enabled: true,
+                              savedSegmentId: seg.id,
+                              ast: seg.ast,
+                              title: seg.title || seg.prompt || "",
+                            },
+                          }));
                           close();
                         }
                       }}
@@ -560,6 +632,16 @@ export const EventCrm = () => {
                         }
                       }
                       setSavedTitle(t);
+                      // persist AI selection
+                      setDbFilters((prev) => ({
+                        ...(prev || {}),
+                        ai: {
+                          enabled: true,
+                          savedSegmentId: saved.savedSegment.id,
+                          ast: res.segment,
+                          title: t || title || "",
+                        },
+                      }));
                     }
                     close();
                   }
@@ -683,7 +765,11 @@ export const EventCrm = () => {
             className="mb-0"
             style={{ minWidth: 240 }}
           />
-          <Filters onFilterChange={setFilters} fields={filterFieldDefs} />
+          <Filters
+            onFilterChange={setFilters}
+            fields={filterFieldDefs}
+            initial={(dbFilters?.manual?.filters || [])}
+          />
           <Button variant="outline" onClick={openAiOffcanvas}>
             <Icon i="sparkles" /> Ask AI
           </Button>

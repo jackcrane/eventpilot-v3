@@ -124,7 +124,7 @@ const OPERATORS = [
   },
 ];
 
-export const Filters = ({ onFilterChange, fields }) => {
+export const Filters = ({ onFilterChange, fields, initial }) => {
   const [filters, setFilters] = useState([]);
   const FIELD_DEFINITIONS = fields && fields.length ? fields : DEFAULT_FIELD_DEFINITIONS;
 
@@ -132,6 +132,28 @@ export const Filters = ({ onFilterChange, fields }) => {
   useEffect(() => {
     onFilterChange(filters);
   }, [filters, onFilterChange]);
+
+  // Hydrate from initial value once (or when definitions change if empty)
+  useEffect(() => {
+    if (!initial || !initial.length) return;
+    if (filters.length > 0) return;
+    const now = Date.now();
+    const next = initial
+      .map((it, i) => {
+        const def = FIELD_DEFINITIONS.find((fd) => fd.label === it.label);
+        if (!def) return null;
+        return {
+          id: now + i,
+          field: def,
+          operation: it.operation || def.defaultOperation,
+          value: it.value ?? null,
+          collapsed: false,
+        };
+      })
+      .filter(Boolean);
+    if (next.length) setFilters(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial, FIELD_DEFINITIONS]);
 
   const usedLabels = filters.map((f) => f.field.label);
 
