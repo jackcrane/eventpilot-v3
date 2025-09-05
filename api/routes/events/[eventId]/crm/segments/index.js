@@ -11,7 +11,10 @@ const iterationSpec = z.discriminatedUnion("type", [
   z.object({ type: z.literal("current") }),
   z.object({ type: z.literal("previous") }),
   z.object({ type: z.literal("specific"), instanceId: z.string().min(1) }),
-  z.object({ type: z.literal("year"), year: z.number().int().gte(1970).lte(2100) }),
+  z.object({
+    type: z.literal("year"),
+    year: z.number().int().gte(1970).lte(2100),
+  }),
   z.object({ type: z.literal("name"), name: z.string().min(1) }),
 ]);
 
@@ -51,7 +54,10 @@ const upsellCondition = z.object({
 const emailCondition = z.object({
   type: z.literal("email"),
   // outbound = Email model; inbound = InboundEmail model; either = union of both
-  direction: z.enum(["outbound", "inbound", "either"]).default("outbound").optional(),
+  direction: z
+    .enum(["outbound", "inbound", "either"])
+    .default("outbound")
+    .optional(),
   withinDays: z.number().int().positive(),
   exists: z.boolean().default(true),
 });
@@ -100,19 +106,38 @@ export const segmentSchema = z.object({
 });
 
 // Utility: resolve instanceIds from iteration spec (strict; throws on missing)
-const resolveInstanceIdsOrThrow = async ({ iteration, eventId, currentInstanceId }) => {
+const resolveInstanceIdsOrThrow = async ({
+  iteration,
+  eventId,
+  currentInstanceId,
+}) => {
   if (iteration.type === "current") {
     if (!currentInstanceId)
-      throw { status: 400, message: "X-Instance header is required when using iteration.type=\"current\"." };
-    const current = await prisma.eventInstance.findUnique({ where: { id: currentInstanceId } });
+      throw {
+        status: 400,
+        message:
+          'X-Instance header is required when using iteration.type="current".',
+      };
+    const current = await prisma.eventInstance.findUnique({
+      where: { id: currentInstanceId },
+    });
     if (!current || current.eventId !== eventId)
-      throw { status: 400, message: "X-Instance does not reference a valid instance for this event." };
+      throw {
+        status: 400,
+        message:
+          "X-Instance does not reference a valid instance for this event.",
+      };
     return [currentInstanceId];
   }
   if (iteration.type === "specific") {
-    const inst = await prisma.eventInstance.findUnique({ where: { id: iteration.instanceId } });
+    const inst = await prisma.eventInstance.findUnique({
+      where: { id: iteration.instanceId },
+    });
     if (!inst || inst.eventId !== eventId)
-      throw { status: 400, message: `Specific instanceId not found for this event: ${iteration.instanceId}` };
+      throw {
+        status: 400,
+        message: `Specific instanceId not found for this event: ${iteration.instanceId}`,
+      };
     return [inst.id];
   }
   if (iteration.type === "year") {
@@ -128,9 +153,15 @@ const resolveInstanceIdsOrThrow = async ({ iteration, eventId, currentInstanceId
       orderBy: { startTime: "asc" },
     });
     if (!instances.length)
-      throw { status: 400, message: `No instances found for year ${iteration.year}.` };
+      throw {
+        status: 400,
+        message: `No instances found for year ${iteration.year}.`,
+      };
     if (instances.length > 1)
-      throw { status: 400, message: `Multiple instances found in year ${iteration.year}. Use iteration.type=\"name\" or iteration.type=\"specific\".` };
+      throw {
+        status: 400,
+        message: `Multiple instances found in year ${iteration.year}. Use iteration.type="name" or iteration.type="specific".`,
+      };
     return [instances[0].id];
   }
   if (iteration.type === "name") {
@@ -140,23 +171,41 @@ const resolveInstanceIdsOrThrow = async ({ iteration, eventId, currentInstanceId
       orderBy: { startTime: "asc" },
     });
     if (!instances.length)
-      throw { status: 400, message: `No instance found with name: ${iteration.name}` };
+      throw {
+        status: 400,
+        message: `No instance found with name: ${iteration.name}`,
+      };
     if (instances.length > 1)
-      throw { status: 400, message: `Multiple instances share the name: ${iteration.name}. Use iteration.type=\"specific\" with instanceId.` };
+      throw {
+        status: 400,
+        message: `Multiple instances share the name: ${iteration.name}. Use iteration.type="specific" with instanceId.`,
+      };
     return [instances[0].id];
   }
   // previous
   if (!currentInstanceId)
-    throw { status: 400, message: "X-Instance header is required when using iteration.type=\"previous\"." };
-  const current = await prisma.eventInstance.findUnique({ where: { id: currentInstanceId } });
+    throw {
+      status: 400,
+      message:
+        'X-Instance header is required when using iteration.type="previous".',
+    };
+  const current = await prisma.eventInstance.findUnique({
+    where: { id: currentInstanceId },
+  });
   if (!current || current.eventId !== eventId)
-    throw { status: 400, message: "X-Instance does not reference a valid instance for this event." };
+    throw {
+      status: 400,
+      message: "X-Instance does not reference a valid instance for this event.",
+    };
   const previous = await prisma.eventInstance.findFirst({
     where: { eventId, deleted: false, startTime: { lt: current.startTime } },
     orderBy: { startTime: "desc" },
   });
   if (!previous)
-    throw { status: 400, message: "No previous instance exists before the current instance." };
+    throw {
+      status: 400,
+      message: "No previous instance exists before the current instance.",
+    };
   return [previous.id];
 };
 
@@ -219,18 +268,32 @@ const peopleForInvolvement = async ({
     // Validate name-based filters if provided
     if (cond.participant?.tierName) {
       const tierCount = await prisma.registrationTier.count({
-        where: { eventId, instanceId: { in: resolvedInstanceIds }, name: cond.participant.tierName },
+        where: {
+          eventId,
+          instanceId: { in: resolvedInstanceIds },
+          name: cond.participant.tierName,
+        },
       });
       if (!tierCount) {
-        throw { status: 400, message: `Tier name not found for these instances: ${cond.participant.tierName}` };
+        throw {
+          status: 400,
+          message: `Tier name not found for these instances: ${cond.participant.tierName}`,
+        };
       }
     }
     if (cond.participant?.periodName) {
       const periodCount = await prisma.registrationPeriod.count({
-        where: { eventId, instanceId: { in: resolvedInstanceIds }, name: cond.participant.periodName },
+        where: {
+          eventId,
+          instanceId: { in: resolvedInstanceIds },
+          name: cond.participant.periodName,
+        },
       });
       if (!periodCount) {
-        throw { status: 400, message: `Period name not found for these instances: ${cond.participant.periodName}` };
+        throw {
+          status: 400,
+          message: `Period name not found for these instances: ${cond.participant.periodName}`,
+        };
       }
     }
     const where = {
@@ -625,7 +688,12 @@ export const query = [
 ];
 
 // Reusable evaluator for other routes (e.g., generative)
-export const evaluateSegment = async ({ eventId, currentInstanceId, filter, debug }) => {
+export const evaluateSegment = async ({
+  eventId,
+  currentInstanceId,
+  filter,
+  debug,
+}) => {
   const universe = await getUniverse(eventId);
   const cache = makePredicateCache();
   const debugInfo = debug
@@ -658,7 +726,10 @@ export const evaluateSegment = async ({ eventId, currentInstanceId, filter, debu
     : [];
 
   const payload = {
-    crmPersons: people.map((p) => ({ ...p, fields: collapseCrmValues(p.fieldValues) })),
+    crmPersons: people.map((p) => ({
+      ...p,
+      fields: collapseCrmValues(p.fieldValues),
+    })),
     total,
   };
   if (debugInfo) payload.debug = debugInfo;

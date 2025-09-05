@@ -24,12 +24,7 @@ const buildInput = ({ prompt, ast }) => {
     "- Make it specific (include year/instance name if present).",
   ].join("\n");
 
-  const parts = [
-    guidelines,
-    "",
-    "User Prompt:",
-    prompt,
-  ];
+  const parts = [guidelines, "", "User Prompt:", prompt];
   if (ast) {
     parts.push("", "Segment AST (optional):", JSON.stringify(ast));
   }
@@ -61,15 +56,27 @@ export const post = [
     if (!parsed.success) {
       return res.status(400).json({ message: serializeError(parsed) });
     }
-    const { prompt, ast, model = process.env.OPENAI_MODEL || "gpt-5-nano" } = parsed.data;
+    const {
+      prompt,
+      ast,
+      model = process.env.OPENAI_MODEL || "gpt-5-nano",
+    } = parsed.data;
 
     try {
-      const client = new OpenAI({ apiKey: OPENAI_API_KEY, baseURL: OPENAI_BASE });
+      const client = new OpenAI({
+        apiKey: OPENAI_API_KEY,
+        baseURL: OPENAI_BASE,
+      });
       const input = buildInput({ prompt, ast });
-      const data = await client.responses.create({ model, input, reasoning: { effort: "minimal" } });
+      const data = await client.responses.create({
+        model,
+        input,
+        reasoning: { effort: "minimal" },
+      });
       const content = data?.output_text || "";
       const title = sanitizeTitle(content);
-      if (!title) return res.status(502).json({ message: "LLM returned empty title" });
+      if (!title)
+        return res.status(502).json({ message: "LLM returned empty title" });
       return res.json({ title });
     } catch (e) {
       console.error("[CRM SAVED SEGMENTS][SUGGEST TITLE][POST] Error:", e);
@@ -82,4 +89,3 @@ export const query = [
   verifyAuth(["manager"]),
   (_req, res) => res.json(zerialize(inputSchema)),
 ];
-

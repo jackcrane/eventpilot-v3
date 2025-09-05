@@ -39,12 +39,14 @@ const getInstructions = () => {
 const safeJsonParse = (txt) => {
   try {
     return JSON.parse(txt);
+    // eslint-disable-next-line no-unused-vars
   } catch (e) {
     // try to extract a JSON code block if present
     const m = txt.match(/\{[\s\S]*\}/);
     if (m) {
       try {
         return JSON.parse(m[0]);
+        // eslint-disable-next-line
       } catch (_) {}
     }
     return null;
@@ -123,6 +125,7 @@ const buildContext = async (eventId) => {
   };
 };
 
+// eslint-disable-next-line no-unused-vars
 const createMessages = ({ instructions, prompt, context }) => {
   const guidance = [
     "You generate a JSON AST payload for the CRM Segments API.",

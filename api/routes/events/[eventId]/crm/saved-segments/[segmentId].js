@@ -23,12 +23,15 @@ export const patch = [
       const existing = await prisma.crmSavedSegment.findFirst({
         where: { id: segmentId, eventId, deleted: false },
       });
-      if (!existing) return res.status(404).json({ message: "Saved segment not found" });
+      if (!existing)
+        return res.status(404).json({ message: "Saved segment not found" });
 
       const data = {};
-      if (parsed.data.title != null) data.title = parsed.data.title.trim() || null;
+      if (parsed.data.title != null)
+        data.title = parsed.data.title.trim() || null;
       if (parsed.data.favorite != null) data.favorite = parsed.data.favorite;
-      if (parsed.data.lastUsed != null) data.lastUsed = new Date(parsed.data.lastUsed);
+      if (parsed.data.lastUsed != null)
+        data.lastUsed = new Date(parsed.data.lastUsed);
 
       const updated = await prisma.crmSavedSegment.update({
         where: { id: existing.id },
@@ -46,4 +49,3 @@ export const query = [
   verifyAuth(["manager"]),
   (_req, res) => res.json(zerialize(savedSegmentUpdateSchema)),
 ];
-
