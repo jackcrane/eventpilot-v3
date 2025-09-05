@@ -19,7 +19,7 @@ Concepts
   - previous: the nearest instance that started before current.
   - specific: by instanceId.
 - Roles:
-  - participant: finalized registration within an iteration; optional tier filter.
+  - participant: finalized registration within an iteration; optional tier and period filters.
   - volunteer: volunteer registration within an iteration; optional minimum shifts.
 - Universe: All non-deleted CRM people for the event. NOT logic operates relative to this universe.
 
@@ -32,7 +32,7 @@ AST Schema (informal summary)
   role: "participant" | "volunteer",
   iteration: { type: "current" | "previous" | "specific", instanceId? },
   exists: boolean (default true),
-  participant?: { tierId?: string, tierName?: string },
+  participant?: { tierId?: string, tierName?: string, periodId?: string, periodName?: string },
   volunteer?: { minShifts?: number }
 }
 
@@ -71,6 +71,7 @@ Mapping Guidance (NL → AST)
 - Identify iteration(s): use current/previous unless a specific instanceId is provided.
 - Identify attribute filters when present:
   - participant tier by name or id (e.g., "Half Marathon" → participant.tierName).
+  - participant period by name or id (e.g., "Last Minute" → participant.periodName).
   - volunteer minimum shifts (if mentioned; otherwise omit).
 - Compose with AND/OR; use exists=false or group.not for NOT cases.
 - Prefer readable structure (small groups with clear subconditions); avoid redundant nesting.
@@ -178,4 +179,3 @@ Don’ts
 Notes
 - If previous cannot be resolved (no header or no prior instance), that subcondition evaluates to an empty set.
 - The server evaluates set logic in-memory for clarity; performance is acceptable for ~10k people.
-

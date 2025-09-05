@@ -16,6 +16,8 @@ const iterationSpec = z.discriminatedUnion("type", [
 const participantFilter = z.object({
   tierId: z.string().optional(),
   tierName: z.string().optional(),
+  periodId: z.string().optional(),
+  periodName: z.string().optional(),
 });
 
 // Volunteer filter options
@@ -77,28 +79,38 @@ export const segmentSchema = z.object({
       pageSize: 50,
       sort: { field: "createdAt", direction: "desc" },
     }),
+  debug: z.boolean().optional().default(false),
 });
 
-// Utility: resolve instanceId from iteration spec
-const resolveInstanceId = async ({ iteration, eventId, currentInstanceId }) => {
+// Utility: resolve instanceId from iteration spec (strict; throws on missing)
+const resolveInstanceIdOrThrow = async ({ iteration, eventId, currentInstanceId }) => {
   if (iteration.type === "current") {
-    if (!currentInstanceId) return null;
+    if (!currentInstanceId)
+      throw { status: 400, message: "X-Instance header is required when using iteration.type=\"current\"." };
+    const current = await prisma.eventInstance.findUnique({ where: { id: currentInstanceId } });
+    if (!current || current.eventId !== eventId)
+      throw { status: 400, message: "X-Instance does not reference a valid instance for this event." };
     return currentInstanceId;
   }
   if (iteration.type === "specific") {
-    return iteration.instanceId;
+    const inst = await prisma.eventInstance.findUnique({ where: { id: iteration.instanceId } });
+    if (!inst || inst.eventId !== eventId)
+      throw { status: 400, message: `Specific instanceId not found for this event: ${iteration.instanceId}` };
+    return inst.id;
   }
   // previous
-  if (!currentInstanceId) return null;
-  const current = await prisma.eventInstance.findUnique({
-    where: { id: currentInstanceId, eventId },
-  });
-  if (!current) return null;
+  if (!currentInstanceId)
+    throw { status: 400, message: "X-Instance header is required when using iteration.type=\"previous\"." };
+  const current = await prisma.eventInstance.findUnique({ where: { id: currentInstanceId } });
+  if (!current || current.eventId !== eventId)
+    throw { status: 400, message: "X-Instance does not reference a valid instance for this event." };
   const previous = await prisma.eventInstance.findFirst({
     where: { eventId, deleted: false, startTime: { lt: current.startTime } },
     orderBy: { startTime: "desc" },
   });
-  return previous?.id || null;
+  if (!previous)
+    throw { status: 400, message: "No previous instance exists before the current instance." };
+  return previous.id;
 };
 
 // Fetch the universe of CRM people for this event
@@ -137,15 +149,14 @@ const peopleForInvolvement = async ({
   eventId,
   currentInstanceId,
   cache,
+  debugInfo,
+  path,
 }) => {
-  const resolvedInstanceId = await resolveInstanceId({
+  const resolvedInstanceId = await resolveInstanceIdOrThrow({
     iteration: cond.iteration,
     eventId,
     currentInstanceId,
   });
-  if (!resolvedInstanceId) {
-    return new Set();
-  }
 
   const cacheKey = JSON.stringify({
     type: cond.type,
@@ -168,7 +179,13 @@ const peopleForInvolvement = async ({
         ? { registrationTierId: cond.participant.tierId }
         : {}),
       ...(cond.participant?.tierName
-        ? { registrationTier: { name: cond.participant.tierName } }
+        ? { registrationTier: { is: { name: cond.participant.tierName } } }
+        : {}),
+      ...(cond.participant?.periodId
+        ? { registrationPeriodId: cond.participant.periodId }
+        : {}),
+      ...(cond.participant?.periodName
+        ? { registrationPeriod: { is: { name: cond.participant.periodName } } }
         : {}),
     };
     const regs = await prisma.registration.findMany({
@@ -209,6 +226,16 @@ const peopleForInvolvement = async ({
   }
 
   cache.set(cacheKey, ids);
+  if (debugInfo) {
+    debugInfo.traces.push({
+      path,
+      nodeType: "involvement",
+      role: cond.role,
+      iteration: cond.iteration,
+      resolvedInstanceId,
+      baseCount: ids.size,
+    });
+  }
   return ids;
 };
 
@@ -218,6 +245,8 @@ const evaluateNode = async ({
   currentInstanceId,
   universe,
   cache,
+  debugInfo,
+  path = "root",
 }) => {
   if (node.type === "involvement") {
     const base = await peopleForInvolvement({
@@ -225,8 +254,19 @@ const evaluateNode = async ({
       eventId,
       currentInstanceId,
       cache,
+      debugInfo,
+      path,
     });
-    return node.exists === false ? setDiff(universe, base) : base;
+    const result = node.exists === false ? setDiff(universe, base) : base;
+    if (debugInfo) {
+      debugInfo.traces.push({
+        path,
+        nodeType: "involvement:result",
+        exists: node.exists !== false,
+        resultCount: result.size,
+      });
+    }
+    return result;
   }
 
   if (node.type === "transition") {
@@ -235,20 +275,35 @@ const evaluateNode = async ({
       eventId,
       currentInstanceId,
       cache,
+      debugInfo,
+      path: `${path}.from`,
     });
     const toSet = await peopleForInvolvement({
       cond: node.to,
       eventId,
       currentInstanceId,
       cache,
+      debugInfo,
+      path: `${path}.to`,
     });
-    return setIntersect(fromSet, toSet);
+    const combined = setIntersect(fromSet, toSet);
+    if (debugInfo) {
+      debugInfo.traces.push({
+        path,
+        nodeType: "transition",
+        fromCount: fromSet.size,
+        toCount: toSet.size,
+        resultCount: combined.size,
+      });
+    }
+    return combined;
   }
 
   if (node.type === "group") {
     if (!node.conditions?.length) return new Set();
     const evaluated = [];
-    for (const child of node.conditions) {
+    for (let i = 0; i < node.conditions.length; i++) {
+      const child = node.conditions[i];
       evaluated.push(
         await evaluateNode({
           node: child,
@@ -256,6 +311,8 @@ const evaluateNode = async ({
           currentInstanceId,
           universe,
           cache,
+          debugInfo,
+          path: `${path}.conditions[${i}]`,
         })
       );
     }
@@ -263,7 +320,18 @@ const evaluateNode = async ({
       node.op === "and"
         ? evaluated.reduce((acc, s) => setIntersect(acc, s))
         : evaluated.reduce((acc, s) => setUnion(acc, s));
-    return node.not ? setDiff(universe, combined) : combined;
+    const result = node.not ? setDiff(universe, combined) : combined;
+    if (debugInfo) {
+      debugInfo.traces.push({
+        path,
+        nodeType: "group",
+        op: node.op,
+        not: !!node.not,
+        childCounts: evaluated.map((s) => s.size),
+        resultCount: result.size,
+      });
+    }
+    return result;
   }
 
   return new Set();
@@ -281,15 +349,25 @@ export const post = [
     }
 
     try {
-      const { filter, pagination } = parsed.data;
+      const { filter, pagination, debug } = parsed.data;
       const universe = await getUniverse(eventId);
       const cache = makePredicateCache();
+      const debugInfo = debug
+        ? {
+            enabled: true,
+            universeSize: universe.size,
+            currentInstanceId,
+            traces: [],
+          }
+        : null;
+
       const resultSet = await evaluateNode({
         node: filter,
         eventId,
         currentInstanceId,
         universe,
         cache,
+        debugInfo,
       });
 
       const total = resultSet.size;
@@ -311,15 +389,20 @@ export const post = [
           })
         : [];
 
-      return res.json({
+      const payload = {
         crmPersons: people.map((p) => ({
           ...p,
           fields: collapseCrmValues(p.fieldValues),
         })),
         total,
-      });
+      };
+      if (debugInfo) payload.debug = debugInfo;
+      return res.json(payload);
     } catch (e) {
       console.error("[CRM SEGMENTS][POST] Error:", e);
+      if (e?.status) {
+        return res.status(e.status).json({ message: e.message });
+      }
       return res.status(500).json({ error: "Internal server error" });
     }
   },
