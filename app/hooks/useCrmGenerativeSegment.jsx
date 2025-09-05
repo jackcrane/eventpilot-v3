@@ -36,7 +36,7 @@ export const useCrmGenerativeSegment = ({ eventId }) => {
     try {
       const promise = trigger({ prompt, temperature, includeContext, debug });
       const res = await toast.promise(promise, {
-        loading: "Generating with AI...",
+        loading: "Building your perfect segment...",
         success: "Segment generated",
         error: (e) => e?.message || "Failed to generate",
       });

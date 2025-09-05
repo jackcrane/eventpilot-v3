@@ -282,7 +282,7 @@ export const EventCrm = () => {
   const [savedTitle, setSavedTitle] = useState("");
   const { generate: generateSegment, loading: generating } =
     useCrmGenerativeSegment({ eventId });
-  const { createSavedSegment, updateSavedSegment } = useCrmSavedSegments({ eventId });
+  const { createSavedSegment, updateSavedSegment, suggestTitle } = useCrmSavedSegments({ eventId });
 
   const filteredPersons = useMemo(() => {
     const baseList = aiResults?.crmPersons || crmPersons;
@@ -432,7 +432,20 @@ export const EventCrm = () => {
                 });
                 if (saved?.ok && saved?.savedSegment) {
                   setCurrentSavedId(saved.savedSegment.id);
-                  setSavedTitle(saved.savedSegment.title || "");
+                  let t = saved.savedSegment.title || "";
+                  // If no title was provided, suggest one via separate request and persist it
+                  if (!t) {
+                    const suggestion = await suggestTitle({ prompt, ast: res.segment });
+                    if (suggestion?.ok && suggestion?.title) {
+                      const upd = await updateSavedSegment(saved.savedSegment.id, { title: suggestion.title });
+                      if (upd?.ok && upd?.savedSegment) {
+                        t = upd.savedSegment.title || suggestion.title;
+                      } else {
+                        t = suggestion.title;
+                      }
+                    }
+                  }
+                  setSavedTitle(t);
                 }
                 close();
               }
@@ -593,15 +606,19 @@ export const EventCrm = () => {
             <Typography.Text className="mb-0">
               You can refine your prompt and run again.
             </Typography.Text>
+            {savedTitle && (
+              <Typography.B className="mb-0 ml-2">Title: {savedTitle}</Typography.B>
+            )}
             {!currentSavedId && (
               <Button size="sm" onClick={openSaveTitleOffcanvas}>
                 Save Prompt
               </Button>
             )}
             {currentSavedId && !savedTitle && (
-              <Button size="sm" onClick={openSaveTitleOffcanvas}>
-                Add Title
-              </Button>
+              <Button size="sm" onClick={openSaveTitleOffcanvas}>Add Title</Button>
+            )}
+            {currentSavedId && savedTitle && (
+              <Button size="sm" onClick={openSaveTitleOffcanvas}>Rename</Button>
             )}
           </Row>
         </Alert>

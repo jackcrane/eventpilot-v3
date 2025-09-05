@@ -69,6 +69,21 @@ export const useCrmSavedSegments = ({ eventId }) => {
     return updateSavedSegment(segmentId, { lastUsed: new Date().toISOString() });
   };
 
+  const suggestTitle = async ({ prompt, ast }) => {
+    if (!eventId) return { ok: false };
+    try {
+      const res = await authFetch(`/api/events/${eventId}/crm/saved-segments/suggest-title`, {
+        method: "POST",
+        body: JSON.stringify({ prompt, ast }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.message || "Failed to suggest title");
+      return { ok: true, title: json.title };
+    } catch (e) {
+      return { ok: false, error: e };
+    }
+  };
+
   return {
     savedSegments: data?.savedSegments || [],
     loading: isLoading,
@@ -77,7 +92,7 @@ export const useCrmSavedSegments = ({ eventId }) => {
     createSavedSegment,
     updateSavedSegment,
     markUsed,
+    suggestTitle,
     mutationLoading: creating,
   };
 };
-
