@@ -479,6 +479,22 @@ export const EventCrm = () => {
           </Typography.H5>
           <Typography.H1>Find what you need with AI</Typography.H1>
 
+          <div className="mb-2">
+            <Alert
+              variant="warning"
+              title={
+                <Row gap={1} align="center">
+                  <Icon i="alert-triangle" />
+                  <Typography.B className="mb-0">
+                    AI can make mistakes
+                  </Typography.B>
+                </Row>
+              }
+            >
+              Review suggestions and verify before taking action.
+            </Alert>
+          </div>
+
           <div className="mt-2 mb-3">
             <SegmentedControl
               value={tab}
@@ -769,6 +785,22 @@ export const EventCrm = () => {
             REFINE AI FILTER
           </Typography.H5>
           <Typography.H1>Edit title and prompt</Typography.H1>
+
+          <div className="mb-2">
+            <Alert
+              variant="warning"
+              title={
+                <Row gap={1} align="center">
+                  <Icon i="alert-triangle" />
+                  <Typography.B className="mb-0">
+                    AI can make mistakes
+                  </Typography.B>
+                </Row>
+              }
+            >
+              Review suggestions and verify before taking action.
+            </Alert>
+          </div>
 
           <div className="mb-2">
             <label className="form-label">Title</label>
