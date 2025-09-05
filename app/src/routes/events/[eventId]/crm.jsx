@@ -465,7 +465,7 @@ export const EventCrm = () => {
 
   const openAiOffcanvas = (opts = {}) => {
     const AiContent = () => {
-      const [title, setTitle] = useState(opts?.title || "");
+      const [title] = useState(opts?.title || "");
       const [prompt, setPrompt] = useState(opts?.prompt || "");
       const [tab, setTab] = useState(
         (savedSegments || []).length ? "previous" : "new"
@@ -597,16 +597,6 @@ export const EventCrm = () => {
             </div>
           ) : (
             <>
-              <div className="mb-2">
-                <label className="form-label">Title (optional)</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. 2024 Half - Last Minute"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
               <Typography.Text>
                 Tell the AI who you want to find. Include iteration context
                 (e.g., this year, previous, instance name), participant vs
