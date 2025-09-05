@@ -4,3 +4,6 @@ export { EmailSent } from "./EmailSent";
 export { FormResponseCreated } from "./FormResponseCreated";
 export { CrmNoteCreated } from "./CrmNoteCreated";
 export { CrmFileNoteCreated } from "./CrmFileNoteCreated";
+export { CrmPersonModified } from "./CrmPersonModified";
+export { EmailWebhookReceived } from "./EmailWebhookReceived";
+export { CrmPersonCreated } from "./CrmPersonCreated";
