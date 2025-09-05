@@ -91,6 +91,7 @@ export const setupStripePI = async (
         customerId = customer.id;
       }
     }
+    // eslint-disable-next-line no-unused-vars
   } catch (e) {
     // Fallback: proceed without customer linkage if anything goes wrong
     customerId = null;

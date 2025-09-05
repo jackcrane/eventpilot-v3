@@ -309,7 +309,9 @@ export const post = [
             (f) => f.fieldType === "participantEmail"
           )?.id;
           const participantName = nameFieldId ? responses[nameFieldId] : null;
-          const participantEmail = emailFieldId ? responses[emailFieldId] : null;
+          const participantEmail = emailFieldId
+            ? responses[emailFieldId]
+            : null;
 
           const [requiresPayment, stripePIClientSecret, price] =
             await registrationRequiresPayment(
