@@ -21,9 +21,7 @@ const postGenerative = async (key, { arg }) => {
 };
 
 export const useCrmGenerativeSegment = ({ eventId }) => {
-  const key = eventId
-    ? `/api/events/${eventId}/crm/segments/generative`
-    : null;
+  const key = eventId ? `/api/events/${eventId}/crm/segments/generative` : null;
 
   const { trigger, data, error, isMutating, reset } = useSWRMutation(
     key,
@@ -56,4 +54,3 @@ export const useCrmGenerativeSegment = ({ eventId }) => {
     reset,
   };
 };
-

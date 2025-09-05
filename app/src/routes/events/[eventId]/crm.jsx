@@ -368,13 +368,15 @@ export const EventCrm = () => {
       const [prompt, setPrompt] = useState("");
       return (
         <div>
-          <Typography.H3>Describe your segment</Typography.H3>
+          <Typography.H5 className="mb-0 text-secondary">
+            DESCRIBE YOUR SEGMENT
+          </Typography.H5>
+          <Typography.H1>Find what you need with AI</Typography.H1>
           <Typography.Text>
-            Tell the AI who you want to find. Include iteration context
-            (e.g., this year, previous, instance name), participant vs
-            volunteer, tiers or periods by name, and any NOT conditions.
+            Tell the AI who you want to find. Include iteration context (e.g.,
+            this year, previous, instance name), participant vs volunteer, tiers
+            or periods by name, and any NOT conditions.
           </Typography.Text>
-
           <textarea
             className="form-control"
             rows={6}
@@ -383,11 +385,12 @@ export const EventCrm = () => {
             onChange={(e) => setPrompt(e.target.value)}
             style={{ marginTop: 8 }}
           />
-
           <div className="mt-3">
             <Typography.H4 className="mb-2">Best practices</Typography.H4>
             <ul className="mb-3">
-              <li>State the iteration clearly (current, previous, name, or year).</li>
+              <li>
+                State the iteration clearly (current, previous, name, or year).
+              </li>
               <li>Use exact tier/period names shown in your event.</li>
               <li>Mention role (participant vs volunteer) explicitly.</li>
               <li>Use NOT for exclusions (e.g., not this iteration).</li>
@@ -395,24 +398,19 @@ export const EventCrm = () => {
             </ul>
           </div>
 
-          <Row gap={1} justify="flex-end">
-            <Button variant="secondary" onClick={close} disabled={generating}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              loading={generating}
-              onClick={async () => {
-                const res = await generateSegment({ prompt, debug: false });
-                if (res?.ok && res?.results) {
-                  setAiResults(res.results);
-                  close();
-                }
-              }}
-            >
-              Generate
-            </Button>
-          </Row>
+          <Button
+            variant="primary"
+            loading={generating}
+            onClick={async () => {
+              const res = await generateSegment({ prompt, debug: false });
+              if (res?.ok && res?.results) {
+                setAiResults(res.results);
+                close();
+              }
+            }}
+          >
+            Generate
+          </Button>
         </div>
       );
     };
@@ -510,14 +508,20 @@ export const EventCrm = () => {
       {aiResults && (
         <Alert
           variant="info"
-          title={`Showing AI segment results (${aiResults.total || (aiResults.crmPersons || []).length})`}
+          title={`Showing AI segment results (${
+            aiResults.total || (aiResults.crmPersons || []).length
+          })`}
         >
           <Row gap={1}>
             <Typography.Text className="mb-0">
               You can refine your prompt and run again, or clear to return to
               your full CRM list.
             </Typography.Text>
-            <Button size="sm" variant="secondary" onClick={() => setAiResults(null)}>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setAiResults(null)}
+            >
               Clear AI Results
             </Button>
           </Row>
