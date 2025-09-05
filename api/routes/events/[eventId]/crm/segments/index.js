@@ -24,11 +24,17 @@ const participantFilter = z.object({
   tierName: z.string().optional(),
   periodId: z.string().optional(),
   periodName: z.string().optional(),
+  // Optional registration createdAt range filters (ISO 8601 strings)
+  createdAtGte: z.string().datetime().optional(),
+  createdAtLte: z.string().datetime().optional(),
 });
 
 // Volunteer filter options
 const volunteerFilter = z.object({
   minShifts: z.number().int().nonnegative().optional(),
+  // Optional volunteer registration createdAt range filters (ISO 8601 strings)
+  createdAtGte: z.string().datetime().optional(),
+  createdAtLte: z.string().datetime().optional(),
 });
 
 // Involvement condition
@@ -314,6 +320,18 @@ const peopleForInvolvement = async ({
       ...(cond.participant?.periodName
         ? { registrationPeriod: { is: { name: cond.participant.periodName } } }
         : {}),
+      ...(cond.participant?.createdAtGte || cond.participant?.createdAtLte
+        ? {
+            createdAt: {
+              ...(cond.participant?.createdAtGte
+                ? { gte: new Date(cond.participant.createdAtGte) }
+                : {}),
+              ...(cond.participant?.createdAtLte
+                ? { lte: new Date(cond.participant.createdAtLte) }
+                : {}),
+            },
+          }
+        : {}),
     };
     const regs = await prisma.registration.findMany({
       where,
@@ -331,6 +349,18 @@ const peopleForInvolvement = async ({
         instanceId: { in: resolvedInstanceIds },
         deleted: false,
         crmPersonLink: { isNot: null },
+        ...(cond.volunteer?.createdAtGte || cond.volunteer?.createdAtLte
+          ? {
+              createdAt: {
+                ...(cond.volunteer?.createdAtGte
+                  ? { gte: new Date(cond.volunteer.createdAtGte) }
+                  : {}),
+                ...(cond.volunteer?.createdAtLte
+                  ? { lte: new Date(cond.volunteer.createdAtLte) }
+                  : {}),
+              },
+            }
+          : {}),
       },
       select: {
         crmPersonLink: { select: { crmPersonId: true } },

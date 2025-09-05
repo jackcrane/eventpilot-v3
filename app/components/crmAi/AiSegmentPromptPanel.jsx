@@ -148,7 +148,15 @@ export const AiSegmentPromptPanel = ({
                 borderBottom: "1px solid var(--tblr-border-color, #e9ecef)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  flex: "1 1 auto",
+                  minWidth: 0,
+                }}
+              >
                 <div
                   onClick={async (e) => {
                     e.stopPropagation();
@@ -194,6 +202,9 @@ export const AiSegmentPromptPanel = ({
                 style={{
                   fontSize: 12,
                   color: "var(--tblr-secondary, #868e96)",
+                  flex: "0 0 160px",
+                  textAlign: "right",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {seg.lastUsed

@@ -179,6 +179,8 @@ const createInput = ({ instructions, prompt, context }) => {
     "Additional filter types:",
     "- Upsell: { type: 'upsell', iteration, exists?, upsellItemId?, upsellItemName? }.",
     "- Email activity: { type: 'email', direction: 'outbound'|'inbound'|'either' (default 'outbound'), withinDays: number, exists? }.",
+    "- Participant registration date range: within involvement.participant you may include createdAtGte and/or createdAtLte as ISO strings (e.g., '2025-06-01T00:00:00.000Z').",
+    "- Volunteer registration date range: within involvement.volunteer you may include createdAtGte and/or createdAtLte as ISO strings (e.g., '2025-06-01T00:00:00.000Z').",
     "",
     "--- INSTRUCTIONS.md ---",
     instructions || "",
