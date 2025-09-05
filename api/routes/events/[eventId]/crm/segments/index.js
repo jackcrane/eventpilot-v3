@@ -399,54 +399,13 @@ export const post = [
     }
 
     try {
-      const { filter, pagination, debug } = parsed.data;
-      const universe = await getUniverse(eventId);
-      const cache = makePredicateCache();
-      const debugInfo = debug
-        ? {
-            enabled: true,
-            universeSize: universe.size,
-            currentInstanceId,
-            traces: [],
-          }
-        : null;
-
-      const resultSet = await evaluateNode({
-        node: filter,
+      const payload = await evaluateSegment({
         eventId,
         currentInstanceId,
-        universe,
-        cache,
-        debugInfo,
+        filter: parsed.data.filter,
+        pagination: parsed.data.pagination,
+        debug: parsed.data.debug,
       });
-
-      const total = resultSet.size;
-
-      // Pagination
-      const page = pagination.page || 1;
-      const pageSize = pagination.pageSize || 50;
-      const ids = Array.from(resultSet);
-
-      // Sorting: performed in DB
-      const orderBy = [{ [pagination.sort.field]: pagination.sort.direction }];
-
-      const pagedIds = ids.slice((page - 1) * pageSize, page * pageSize);
-      const people = pagedIds.length
-        ? await prisma.crmPerson.findMany({
-            where: { id: { in: pagedIds }, eventId, deleted: false },
-            include: { emails: true, phones: true, fieldValues: true },
-            orderBy,
-          })
-        : [];
-
-      const payload = {
-        crmPersons: people.map((p) => ({
-          ...p,
-          fields: collapseCrmValues(p.fieldValues),
-        })),
-        total,
-      };
-      if (debugInfo) payload.debug = debugInfo;
       return res.json(payload);
     } catch (e) {
       console.error("[CRM SEGMENTS][POST] Error:", e);
@@ -464,3 +423,54 @@ export const query = [
     return res.json(zerialize(segmentSchema));
   },
 ];
+
+// Reusable evaluator for other routes (e.g., generative)
+export const evaluateSegment = async ({ eventId, currentInstanceId, filter, pagination, debug }) => {
+  const universe = await getUniverse(eventId);
+  const cache = makePredicateCache();
+  const debugInfo = debug
+    ? {
+        enabled: true,
+        universeSize: universe.size,
+        currentInstanceId,
+        traces: [],
+      }
+    : null;
+
+  const resultSet = await evaluateNode({
+    node: filter,
+    eventId,
+    currentInstanceId,
+    universe,
+    cache,
+    debugInfo,
+  });
+
+  const total = resultSet.size;
+
+  // Pagination
+  const page = pagination?.page || 1;
+  const pageSize = pagination?.pageSize || 50;
+  const ids = Array.from(resultSet);
+
+  // Sorting: performed in DB
+  const orderBy = [
+    { [(pagination?.sort?.field || "createdAt")]: pagination?.sort?.direction || "desc" },
+  ];
+
+  const pagedIds = ids.slice((page - 1) * pageSize, page * pageSize);
+  const people = pagedIds.length
+    ? await prisma.crmPerson.findMany({
+        where: { id: { in: pagedIds }, eventId, deleted: false },
+        include: { emails: true, phones: true, fieldValues: true },
+        orderBy,
+      })
+    : [];
+
+  const payload = {
+    crmPersons: people.map((p) => ({ ...p, fields: collapseCrmValues(p.fieldValues) })),
+    total,
+  };
+  if (debugInfo) payload.debug = debugInfo;
+  return payload;
+};
