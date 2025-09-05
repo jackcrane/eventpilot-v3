@@ -18,6 +18,8 @@ Concepts
   - current: resolved from the X-Instance header.
   - previous: the nearest instance that started before current.
   - specific: by instanceId.
+  - year: a calendar year (UTC Jan 1–Dec 31). Allowed only if exactly one instance exists in that year for the event; otherwise the API returns 400 and you must use name or specific.
+  - name: resolve by exact instance name. Allowed only if exactly one instance matches; otherwise the API returns 400 and you must use specific.
 - Roles:
   - participant: finalized registration within an iteration; optional tier and period filters.
   - volunteer: volunteer registration within an iteration; optional minimum shifts.
@@ -30,7 +32,7 @@ AST Schema (informal summary)
 {
   type: "involvement",
   role: "participant" | "volunteer",
-  iteration: { type: "current" | "previous" | "specific", instanceId? },
+  iteration: { type: "current" | "previous" | "specific" | "year" | "name", instanceId?, year?, name? },
   exists: boolean (default true),
   participant?: { tierId?: string, tierName?: string, periodId?: string, periodName?: string },
   volunteer?: { minShifts?: number }
@@ -69,6 +71,7 @@ Behavioral Rules
 Mapping Guidance (NL → AST)
 - Identify role(s) (participant/volunteer).
 - Identify iteration(s): use current/previous unless a specific instanceId is provided.
+  - The LLM may use { type: "year", year: 2024 } if the event has exactly one instance in that year; otherwise prefer { type: "name", name: "<instance name>" } or { type: "specific", instanceId }.
 - Identify attribute filters when present:
   - participant tier by name or id (e.g., "Half Marathon" → participant.tierName).
   - participant period by name or id (e.g., "Last Minute" → participant.periodName).
@@ -173,9 +176,12 @@ Do’s
 
 Don’ts
 - Do not assume or invent instanceIds.
+- Do not invent years; only use explicit numeric years if the user states them.
 - Do not include unrelated fields.
 - Do not return SQL or prose; only the JSON payload.
 
 Notes
 - If previous cannot be resolved (no header or no prior instance), that subcondition evaluates to an empty set.
+- If a tierName or periodName is provided but no matching tier/period exists for the resolved instances, the API returns 400.
+- If iteration.type = "year" matches multiple instances, the API returns 400 instructing to use name/specific. If iteration.type = "name" matches 0 or multiple, the API returns 400.
 - The server evaluates set logic in-memory for clarity; performance is acceptable for ~10k people.

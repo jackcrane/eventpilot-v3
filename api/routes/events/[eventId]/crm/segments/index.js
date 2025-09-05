@@ -5,11 +5,14 @@ import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
 import { collapseCrmValues } from "..";
 
-// Iteration spec: current (from X-Instance header), previous (relative to current), or a specific instanceId
+// Iteration spec: current (from X-Instance header), previous (relative to current),
+// a specific instanceId, a calendar year (if unique), or an instance by name
 const iterationSpec = z.discriminatedUnion("type", [
   z.object({ type: z.literal("current") }),
   z.object({ type: z.literal("previous") }),
   z.object({ type: z.literal("specific"), instanceId: z.string().min(1) }),
+  z.object({ type: z.literal("year"), year: z.number().int().gte(1970).lte(2100) }),
+  z.object({ type: z.literal("name"), name: z.string().min(1) }),
 ]);
 
 // Participant filter options
@@ -82,21 +85,51 @@ export const segmentSchema = z.object({
   debug: z.boolean().optional().default(false),
 });
 
-// Utility: resolve instanceId from iteration spec (strict; throws on missing)
-const resolveInstanceIdOrThrow = async ({ iteration, eventId, currentInstanceId }) => {
+// Utility: resolve instanceIds from iteration spec (strict; throws on missing)
+const resolveInstanceIdsOrThrow = async ({ iteration, eventId, currentInstanceId }) => {
   if (iteration.type === "current") {
     if (!currentInstanceId)
       throw { status: 400, message: "X-Instance header is required when using iteration.type=\"current\"." };
     const current = await prisma.eventInstance.findUnique({ where: { id: currentInstanceId } });
     if (!current || current.eventId !== eventId)
       throw { status: 400, message: "X-Instance does not reference a valid instance for this event." };
-    return currentInstanceId;
+    return [currentInstanceId];
   }
   if (iteration.type === "specific") {
     const inst = await prisma.eventInstance.findUnique({ where: { id: iteration.instanceId } });
     if (!inst || inst.eventId !== eventId)
       throw { status: 400, message: `Specific instanceId not found for this event: ${iteration.instanceId}` };
-    return inst.id;
+    return [inst.id];
+  }
+  if (iteration.type === "year") {
+    const start = new Date(Date.UTC(iteration.year, 0, 1, 0, 0, 0));
+    const end = new Date(Date.UTC(iteration.year + 1, 0, 1, 0, 0, 0));
+    const instances = await prisma.eventInstance.findMany({
+      where: {
+        eventId,
+        deleted: false,
+        startTime: { gte: start, lt: end },
+      },
+      select: { id: true },
+      orderBy: { startTime: "asc" },
+    });
+    if (!instances.length)
+      throw { status: 400, message: `No instances found for year ${iteration.year}.` };
+    if (instances.length > 1)
+      throw { status: 400, message: `Multiple instances found in year ${iteration.year}. Use iteration.type=\"name\" or iteration.type=\"specific\".` };
+    return [instances[0].id];
+  }
+  if (iteration.type === "name") {
+    const instances = await prisma.eventInstance.findMany({
+      where: { eventId, deleted: false, name: iteration.name },
+      select: { id: true },
+      orderBy: { startTime: "asc" },
+    });
+    if (!instances.length)
+      throw { status: 400, message: `No instance found with name: ${iteration.name}` };
+    if (instances.length > 1)
+      throw { status: 400, message: `Multiple instances share the name: ${iteration.name}. Use iteration.type=\"specific\" with instanceId.` };
+    return [instances[0].id];
   }
   // previous
   if (!currentInstanceId)
@@ -110,7 +143,7 @@ const resolveInstanceIdOrThrow = async ({ iteration, eventId, currentInstanceId 
   });
   if (!previous)
     throw { status: 400, message: "No previous instance exists before the current instance." };
-  return previous.id;
+  return [previous.id];
 };
 
 // Fetch the universe of CRM people for this event
@@ -152,7 +185,7 @@ const peopleForInvolvement = async ({
   debugInfo,
   path,
 }) => {
-  const resolvedInstanceId = await resolveInstanceIdOrThrow({
+  const resolvedInstanceIds = await resolveInstanceIdsOrThrow({
     iteration: cond.iteration,
     eventId,
     currentInstanceId,
@@ -161,7 +194,7 @@ const peopleForInvolvement = async ({
   const cacheKey = JSON.stringify({
     type: cond.type,
     role: cond.role,
-    instanceId: resolvedInstanceId,
+    instanceIds: resolvedInstanceIds,
     participant: cond.participant || null,
     volunteer: cond.volunteer || null,
   });
@@ -169,9 +202,26 @@ const peopleForInvolvement = async ({
 
   let ids = new Set();
   if (cond.role === "participant") {
+    // Validate name-based filters if provided
+    if (cond.participant?.tierName) {
+      const tierCount = await prisma.registrationTier.count({
+        where: { eventId, instanceId: { in: resolvedInstanceIds }, name: cond.participant.tierName },
+      });
+      if (!tierCount) {
+        throw { status: 400, message: `Tier name not found for these instances: ${cond.participant.tierName}` };
+      }
+    }
+    if (cond.participant?.periodName) {
+      const periodCount = await prisma.registrationPeriod.count({
+        where: { eventId, instanceId: { in: resolvedInstanceIds }, name: cond.participant.periodName },
+      });
+      if (!periodCount) {
+        throw { status: 400, message: `Period name not found for these instances: ${cond.participant.periodName}` };
+      }
+    }
     const where = {
       eventId,
-      instanceId: resolvedInstanceId,
+      instanceId: { in: resolvedInstanceIds },
       deleted: false,
       finalized: true,
       crmPersonId: { not: null },
@@ -201,7 +251,7 @@ const peopleForInvolvement = async ({
     const forms = await prisma.volunteerRegistration.findMany({
       where: {
         eventId,
-        instanceId: resolvedInstanceId,
+        instanceId: { in: resolvedInstanceIds },
         deleted: false,
         crmPersonLink: { isNot: null },
       },
@@ -232,7 +282,7 @@ const peopleForInvolvement = async ({
       nodeType: "involvement",
       role: cond.role,
       iteration: cond.iteration,
-      resolvedInstanceId,
+      resolvedInstanceIds,
       baseCount: ids.size,
     });
   }
