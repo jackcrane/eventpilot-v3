@@ -4,35 +4,21 @@ import { useNavigate, useParams } from "react-router-dom";
 import { EventPage } from "../../../../components/eventPage/EventPage";
 import { useCrm } from "../../../../hooks/useCrm";
 import { Empty } from "../../../../components/empty/Empty";
-import {
-  Table,
-  Button,
-  useOffcanvas,
-  Alert,
-  Spinner,
-  Typography,
-  Dropdown,
-  Badge,
-  Util,
-  Input,
-  SegmentedControl,
-} from "tabler-react-2";
+import { Button, useOffcanvas, Badge, Util } from "tabler-react-2";
 import { Icon } from "../../../../util/Icon";
-import { CrmPersonCRUD } from "../../../../components/crmPersonCRUD/crmPersonCRUD";
 import { useCrmPersons } from "../../../../hooks/useCrmPersons";
-import { Row } from "../../../../util/Flex";
-import { useCrmGenerativeSegment } from "../../../../hooks/useCrmGenerativeSegment";
 import { useCrmSavedSegments } from "../../../../hooks/useCrmSavedSegments";
 import { useCrmSegment } from "../../../../hooks/useCrmSegment";
-import { CrmPersonsImport } from "../../../../components/crmPersonsImport/CrmPersonsImport";
-import moment from "moment";
 import { useCrmFields } from "../../../../hooks/useCrmFields";
-import { Filters } from "../../../../components/filters/Filters";
-import filterStyles from "../../../../components/filters/filters.module.css";
-import { ColumnsPicker } from "../../../../components/columnsPicker/ColumnsPicker";
-import toast from "react-hot-toast";
+// filterStyles moved into AiSegmentBadge component
+import { AiSegmentPromptPanel } from "../../../../components/crmAi/AiSegmentPromptPanel";
+import { AiSegmentRefinePanel } from "../../../../components/crmAi/AiSegmentRefinePanel";
 import { useDbState } from "../../../../hooks/useDbState";
-import classNames from "classnames";
+// classNames no longer used here (used inside AiSegmentBadge)
+import { CrmHeaderActions } from "../../../../components/crm/CrmHeaderActions";
+import { CrmFilterBar } from "../../../../components/crm/CrmFilterBar";
+import { CrmImportProgressAlerts } from "../../../../components/crm/CrmImportProgressAlerts";
+import { CrmPersonsTable } from "../../../../components/crm/CrmPersonsTable";
 
 const switchTypeForIcon = (type) => {
   switch (type) {
@@ -321,17 +307,8 @@ export const EventCrm = () => {
   const [lastAst, setLastAst] = useState(null);
   const [savedTitle, setSavedTitle] = useState("");
   const [aiCollapsed, setAiCollapsed] = useState(false);
-  const { generate: generateSegment, loading: generating } =
-    useCrmGenerativeSegment({ eventId });
-  const {
-    savedSegments,
-    createSavedSegment,
-    updateSavedSegment,
-    updateSavedSegmentQuiet,
-    suggestTitle,
-    markUsed,
-  } = useCrmSavedSegments({ eventId });
-  const { run: runSavedSegment, loading: runningSaved } = useCrmSegment({
+  const { savedSegments } = useCrmSavedSegments({ eventId });
+  const { run: runSavedSegment } = useCrmSegment({
     eventId,
   });
 
@@ -463,467 +440,73 @@ export const EventCrm = () => {
     );
   }, [crmPersons, aiResults, filters, search]);
 
-  const openAiOffcanvas = (opts = {}) => {
-    const AiContent = () => {
-      const [title] = useState(opts?.title || "");
-      const [prompt, setPrompt] = useState(opts?.prompt || "");
-      const [tab, setTab] = useState(
-        (savedSegments || []).length ? "previous" : "new"
-      );
-      const [savedLocal, setSavedLocal] = useState(savedSegments || []);
-      useEffect(() => setSavedLocal(savedSegments || []), [savedSegments]);
-      return (
-        <div>
-          <Typography.H5 className="mb-0 text-secondary">
-            DESCRIBE YOUR SEGMENT
-          </Typography.H5>
-          <Typography.H1>Find what you need with AI</Typography.H1>
+  // Legacy AI offcanvas implementation removed (replaced by AiSegmentPromptPanel)
 
-          <div className="mb-2">
-            <Alert
-              variant="warning"
-              title={
-                <Row gap={1} align="center">
-                  <Icon i="alert-triangle" />
-                  <Typography.B className="mb-0">
-                    AI can make mistakes
-                  </Typography.B>
-                </Row>
-              }
-            >
-              Review suggestions and verify before taking action.
-            </Alert>
-          </div>
-
-          <div className="mt-2 mb-3">
-            <SegmentedControl
-              value={tab}
-              onChange={(e) => setTab(e.id)}
-              items={[
-                { label: "Previous Requests", id: "previous" },
-                { label: "New Prompt", id: "new" },
-              ]}
-            />
-          </div>
-
-          {tab === "previous" ? (
-            <div>
-              {(!savedLocal || savedLocal.length === 0) && (
-                <Typography.Text className="text-secondary">
-                  No saved requests yet. Run one and save it here.
-                </Typography.Text>
-              )}
-              {(savedLocal || []).map((seg) => (
-                <div
-                  key={seg.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "8px 0",
-                    borderBottom: "1px solid var(--tblr-border-color, #e9ecef)",
-                  }}
-                >
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    <div
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        // optimistic toggle
-                        const prev = seg.favorite;
-                        setSavedLocal((list) =>
-                          list.map((s) =>
-                            s.id === seg.id ? { ...s, favorite: !prev } : s
-                          )
-                        );
-                        const res = await updateSavedSegmentQuiet(seg.id, {
-                          favorite: !prev,
-                        });
-                        if (!res?.ok) {
-                          // revert on error
-                          setSavedLocal((list) =>
-                            list.map((s) =>
-                              s.id === seg.id ? { ...s, favorite: prev } : s
-                            )
-                          );
-                          // toast only on error
-                          toast.error(
-                            res?.error?.message || "Failed to update favorite"
-                          );
-                        }
-                      }}
-                      style={{ cursor: "pointer" }}
-                      title={seg.favorite ? "Unfavorite" : "Favorite"}
-                    >
-                      <Icon
-                        i={seg.favorite ? "star-filled" : "star"}
-                        color={seg.favorite ? "#f59f00" : "#adb5bd"}
-                      />
-                    </div>
-                    <a
-                      href="#"
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        const res = await runSavedSegment({
-                          filter: seg?.ast?.filter || seg?.ast,
-                          debug: !!seg?.ast?.debug,
-                        });
-                        if (res?.ok) {
-                          setAiResults(res);
-                          setCurrentSavedId(seg.id);
-                          setSavedTitle(seg.title || "");
-                          setLastAst(seg.ast);
-                          setLastPrompt(seg.prompt || "");
-                          await markUsed(seg.id);
-                          // persist AI selection
-                          setDbFilters((prev) => ({
-                            ...(prev || {}),
-                            ai: {
-                              enabled: true,
-                              savedSegmentId: seg.id,
-                              ast: seg.ast,
-                              title: seg.title || seg.prompt || "",
-                            },
-                          }));
-                          close();
-                        }
-                      }}
-                      style={{ cursor: runningSaved ? "wait" : "pointer" }}
-                      className="text-primary"
-                      title="Open this filter"
-                    >
-                      {seg.title?.trim() ||
-                        seg.prompt?.slice(0, 80) ||
-                        "Untitled"}
-                    </a>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "var(--tblr-secondary, #868e96)",
-                    }}
-                  >
-                    {seg.lastUsed
-                      ? `Last used ${moment(seg.lastUsed).fromNow()}`
-                      : ""}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <>
-              <Typography.Text>
-                Tell the AI who you want to find. Include iteration context
-                (e.g., this year, previous, instance name), participant vs
-                volunteer, tiers or periods by name, and any NOT conditions.
-              </Typography.Text>
-              <textarea
-                className="form-control"
-                rows={6}
-                placeholder="e.g. Participants in 2024 who registered during Last Minute for the Half Marathon"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                style={{ marginTop: 8 }}
-              />
-              <div className="mt-3">
-                <Typography.H4 className="mb-2">Best practices</Typography.H4>
-                <ul className="mb-3">
-                  <li>
-                    State the iteration clearly (current, previous, name, or
-                    year).
-                  </li>
-                  <li>Use exact tier/period names shown in your event.</li>
-                  <li>Mention role (participant vs volunteer) explicitly.</li>
-                  <li>Use NOT for exclusions (e.g., not this iteration).</li>
-                  <li>
-                    Prefer instance name when a year has multiple instances.
-                  </li>
-                </ul>
-              </div>
-
-              <Button
-                className="ai-button"
-                loading={generating}
-                onClick={async () => {
-                  const res = await generateSegment({ prompt, debug: false });
-                  if (res?.ok && res?.results) {
-                    setAiResults(res.results);
-                    setLastPrompt(prompt);
-                    setLastAst(res.segment);
-                    // Save to DB regardless of title presence
-                    const saved = await createSavedSegment({
-                      title,
-                      prompt,
-                      ast: res.segment,
-                    });
-                    if (saved?.ok && saved?.savedSegment) {
-                      setCurrentSavedId(saved.savedSegment.id);
-                      let t = saved.savedSegment.title || "";
-                      // If no title was provided, suggest one via separate request and persist it
-                      if (!t) {
-                        const suggestion = await suggestTitle({
-                          prompt,
-                          ast: res.segment,
-                        });
-                        if (suggestion?.ok && suggestion?.title) {
-                          const upd = await updateSavedSegment(
-                            saved.savedSegment.id,
-                            { title: suggestion.title }
-                          );
-                          if (upd?.ok && upd?.savedSegment) {
-                            t = upd.savedSegment.title || suggestion.title;
-                          } else {
-                            t = suggestion.title;
-                          }
-                        }
-                      }
-                      setSavedTitle(t);
-                      // persist AI selection
-                      setDbFilters((prev) => ({
-                        ...(prev || {}),
-                        ai: {
-                          enabled: true,
-                          savedSegmentId: saved.savedSegment.id,
-                          ast: res.segment,
-                          title: t || title || "",
-                        },
-                      }));
-                    }
-                    close();
-                  }
-                }}
-              >
-                Generate
-              </Button>
-            </>
-          )}
-        </div>
-      );
-    };
-
-    offcanvas({ content: <AiContent /> });
+  // Refactored AI prompt offcanvas content using dedicated component
+  const openAiOffcanvasRefactored = (opts = {}) => {
+    offcanvas({
+      content: (
+        <AiSegmentPromptPanel
+          eventId={eventId}
+          initialTitle={opts?.title || ""}
+          initialPrompt={opts?.prompt || ""}
+          onApply={({ results, savedSegmentId, ast, title, prompt }) => {
+            if (results) setAiResults(results);
+            setCurrentSavedId(savedSegmentId || null);
+            setSavedTitle(title || "");
+            setLastAst(ast || null);
+            setLastPrompt(prompt || "");
+            if (savedSegmentId || ast) {
+              setDbFilters((prev) => ({
+                ...(prev || {}),
+                ai: {
+                  enabled: true,
+                  savedSegmentId: savedSegmentId || null,
+                  ast: ast || null,
+                  title: title || "",
+                },
+              }));
+            }
+          }}
+          onClose={close}
+        />
+      ),
+    });
   };
 
-  const openSaveTitleOffcanvas = () => {
-    const SaveTitleContent = () => {
-      const [title, setTitle] = useState(savedTitle || "");
-      return (
-        <div>
-          <Typography.H5 className="mb-0 text-secondary">
-            SAVE SEARCH
-          </Typography.H5>
-          <Typography.H1>Add a title</Typography.H1>
-          <div className="mb-2">
-            <label className="form-label">Title</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="e.g. 2024 Half - Last Minute"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-          <Button
-            variant="primary"
-            onClick={async () => {
-              if (!currentSavedId) {
-                // Create now using lastPrompt/lastAst
-                const saved = await createSavedSegment({
-                  title,
-                  prompt: lastPrompt,
-                  ast: lastAst,
-                });
-                if (saved?.ok && saved?.savedSegment) {
-                  setCurrentSavedId(saved.savedSegment.id);
-                  setSavedTitle(saved.savedSegment.title || "");
-                }
-              } else {
-                const updated = await updateSavedSegment(currentSavedId, {
-                  title,
-                });
-                if (updated?.ok && updated?.savedSegment) {
-                  setSavedTitle(updated.savedSegment.title || "");
-                }
-              }
-              close();
-            }}
-          >
-            Save
-          </Button>
-        </div>
-      );
-    };
-    offcanvas({ content: <SaveTitleContent /> });
-  };
+  // Legacy save-title offcanvas removed (handled in refine/prompt components)
 
-  const openAiRefineOffcanvas = () => {
-    const RefineContent = () => {
-      const seg = (savedSegments || []).find((s) => s.id === currentSavedId);
-      const [title, setTitle] = useState(
-        savedTitle || seg?.title || dbFilters?.ai?.title || ""
-      );
-      const [prompt, setPrompt] = useState(lastPrompt || seg?.prompt || "");
-
-      useEffect(() => {
-        // Populate fields if they were empty and we learn values later
-        if ((!prompt || !prompt.trim()) && (lastPrompt || seg?.prompt)) {
-          setPrompt(lastPrompt || seg?.prompt || "");
-        }
-        if (
-          (!title || !title.trim()) &&
-          (savedTitle || seg?.title || dbFilters?.ai?.title)
-        ) {
-          setTitle(savedTitle || seg?.title || dbFilters?.ai?.title || "");
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [lastPrompt, savedTitle, seg?.prompt, seg?.title]);
-
-      return (
-        <div>
-          <Typography.H5 className="mb-0 text-secondary">
-            REFINE AI FILTER
-          </Typography.H5>
-          <Typography.H1>Edit title and prompt</Typography.H1>
-
-          <div className="mb-2">
-            <Alert
-              variant="warning"
-              title={
-                <Row gap={1} align="center">
-                  <Icon i="alert-triangle" />
-                  <Typography.B className="mb-0">
-                    AI can make mistakes
-                  </Typography.B>
-                </Row>
-              }
-            >
-              Review suggestions and verify before taking action.
-            </Alert>
-          </div>
-
-          <div className="mb-2">
-            <label className="form-label">Title</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="e.g. 2024 Half - Last Minute"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-
-          <div className="mb-2">
-            <label className="form-label">Original Prompt</label>
-            <textarea
-              className="form-control"
-              rows={6}
-              placeholder="Describe who you want to find"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-            />
-          </div>
-
-          <Row gap={1}>
-            <Button
-              className="ai-button"
-              loading={generating}
-              onClick={async () => {
-                const promptChanged =
-                  (prompt || "").trim() !== (lastPrompt || "").trim();
-
-                if (!promptChanged && currentSavedId) {
-                  const updated = await updateSavedSegment(currentSavedId, {
-                    title: (title || "").trim() || null,
-                  });
-                  if (updated?.ok && updated?.savedSegment) {
-                    setSavedTitle(updated.savedSegment.title || "");
-                    setDbFilters((prev) => ({
-                      ...(prev || {}),
-                      ai: {
-                        ...(prev?.ai || {}),
-                        title:
-                          updated.savedSegment.title || prev?.ai?.title || "",
-                      },
-                    }));
-                  }
-                  close();
-                  return;
-                }
-
-                const res = await generateSegment({ prompt, debug: false });
-                if (res?.ok && res?.results) {
-                  setAiResults(res.results);
-                  setLastPrompt(prompt);
-                  setLastAst(res.segment);
-
-                  const saved = await createSavedSegment({
-                    title,
-                    prompt,
-                    ast: res.segment,
-                  });
-                  if (saved?.ok && saved?.savedSegment) {
-                    setCurrentSavedId(saved.savedSegment.id);
-                    let newTitle = saved.savedSegment.title || "";
-                    if (!newTitle) {
-                      const suggestion = await suggestTitle({
-                        prompt,
-                        ast: res.segment,
-                      });
-                      if (suggestion?.ok && suggestion?.title) {
-                        const upd = await updateSavedSegment(
-                          saved.savedSegment.id,
-                          {
-                            title: suggestion.title,
-                          }
-                        );
-                        if (upd?.ok && upd?.savedSegment)
-                          newTitle = upd.savedSegment.title || suggestion.title;
-                        else newTitle = suggestion.title;
-                      }
-                    }
-                    setSavedTitle(newTitle);
-                    setDbFilters((prev) => ({
-                      ...(prev || {}),
-                      ai: {
-                        enabled: true,
-                        savedSegmentId: saved.savedSegment.id,
-                        ast: res.segment,
-                        title: newTitle || title || "",
-                      },
-                    }));
-                  }
-                  close();
-                }
-              }}
-            >
-              Apply
-            </Button>
-          </Row>
-
-          {(seg?.ast || dbFilters?.ai?.ast || lastAst) && (
-            <details className="mb-2" style={{ marginTop: 8 }}>
-              <summary
-                style={{
-                  marginTop: 12,
-                  color: "var(--tblr-secondary)",
-                }}
-              >
-                View underlying abstract syntax tree (Advanced)
-              </summary>
-              <pre>
-                {JSON.stringify(
-                  seg?.ast || dbFilters?.ai?.ast || lastAst,
-                  null,
-                  2
-                )}
-              </pre>
-            </details>
-          )}
-        </div>
-      );
-    };
-    offcanvas({ content: <RefineContent /> });
+  // Refactored AI refine offcanvas using dedicated component
+  const openAiRefineOffcanvasRefactored = () => {
+    offcanvas({
+      content: (
+        <AiSegmentRefinePanel
+          eventId={eventId}
+          currentSavedId={currentSavedId}
+          lastPrompt={lastPrompt}
+          lastAst={lastAst}
+          savedTitle={savedTitle}
+          defaultTitle={dbFilters?.ai?.title || ""}
+          onApply={({ results, savedSegmentId, ast, title, prompt }) => {
+            if (results) setAiResults(results);
+            if (savedSegmentId) setCurrentSavedId(savedSegmentId);
+            setSavedTitle(title || "");
+            setLastAst(ast || null);
+            setLastPrompt(prompt || "");
+            setDbFilters((prev) => ({
+              ...(prev || {}),
+              ai: {
+                enabled: true,
+                savedSegmentId: savedSegmentId || prev?.ai?.savedSegmentId || null,
+                ast: ast || prev?.ai?.ast || null,
+                title: title || prev?.ai?.title || "",
+              },
+            }));
+          }}
+          onClose={close}
+        />
+      ),
+    });
   };
 
   const visibleColumns = columnConfig
@@ -943,179 +526,54 @@ export const EventCrm = () => {
       {OffcanvasElement}
       {CreateCrmFieldModalElement}
 
-      <Row gap={1} justify="flex-end" className="mb-3">
-        <ColumnsPicker
-          columns={columnConfig}
-          onColumnsChange={setColumnConfig}
-        />
-        <Dropdown
-          prompt="Create/Import Contacts"
-          items={[
-            {
-              text: "Create a Contact",
-              onclick: () => offcanvas({ content: <CrmPersonCRUD /> }),
-            },
-            {
-              text: "Import Contacts from CSV",
-              onclick: () =>
-                offcanvas({
-                  content: (
-                    <CrmPersonsImport
-                      createCrmFieldModal={createCrmFieldModal}
-                      CreateCrmFieldModalElement={CreateCrmFieldModalElement}
-                    />
-                  ),
-                }),
-            },
-          ]}
-        />
-        <Button onClick={createCrmFieldModal} loading={mutationLoading}>
-          Create a Field
-        </Button>
-      </Row>
+      <CrmHeaderActions
+        columnConfig={columnConfig}
+        setColumnConfig={setColumnConfig}
+        offcanvas={offcanvas}
+        createCrmFieldModal={createCrmFieldModal}
+        mutationLoading={mutationLoading}
+        CreateCrmFieldModalElement={CreateCrmFieldModalElement}
+      />
 
       <Util.Hr style={{ margin: "1rem 0" }} />
 
       {crmPersons?.length > 0 && (
-        <Row gap={1} className="mb-3" align="center" wrap>
-          <Input
-            placeholder="Search contacts..."
-            value={search}
-            onChange={setSearch}
-            className="mb-0"
-            style={{ minWidth: 240 }}
-          />
-          <Filters
-            onFilterChange={setFilters}
-            fields={filterFieldDefs}
-            initial={dbFilters?.manual?.filters || []}
-          />
-          {(dbFilters?.ai?.enabled || aiResults) && (
-            <Row gap={1}>
-              <div className="card p-0 px-1">
-                <Row gap={0} align="center">
-                  <div className="p-1" title="AI segment">
-                    <Icon i="sparkles" />
-                  </div>
-                  <div
-                    className={classNames(filterStyles.animatedContainer, {
-                      [filterStyles.collapsed]: aiCollapsed,
-                      [filterStyles.expanded]: !aiCollapsed,
-                    })}
-                    style={{ minWidth: aiCollapsed ? 0 : 200 }}
-                  >
-                    <div
-                      className="p-1"
-                      style={{
-                        maxWidth: 350,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                      title={
-                        savedTitle ||
-                        dbFilters?.ai?.title ||
-                        lastPrompt ||
-                        "AI Filter"
-                      }
-                    >
-                      <Typography.B className="mb-0">
-                        {savedTitle ||
-                          dbFilters?.ai?.title ||
-                          lastPrompt ||
-                          "AI Filter"}
-                      </Typography.B>
-                    </div>
-                    <div className="p-1">
-                      <Button
-                        className="p-1"
-                        ghost
-                        onClick={openAiRefineOffcanvas}
-                      >
-                        <Icon i="pencil" /> refine
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="p-1">
-                    <Button
-                      className="p-1"
-                      ghost
-                      variant="secondary"
-                      onClick={() => setAiCollapsed((c) => !c)}
-                    >
-                      <Icon
-                        i={aiCollapsed ? "chevron-right" : "chevron-left"}
-                      />
-                    </Button>
-                    <Button
-                      className="p-1"
-                      ghost
-                      variant="danger"
-                      onClick={() => {
-                        setAiResults(null);
-                        setCurrentSavedId(null);
-                        setSavedTitle("");
-                        setLastAst(null);
-                        setLastPrompt("");
-                        setDbFilters((prev) => ({
-                          ...(prev || {}),
-                          ai: {
-                            enabled: false,
-                            savedSegmentId: null,
-                            ast: null,
-                            title: "",
-                          },
-                        }));
-                      }}
-                    >
-                      <Icon i="trash" />
-                    </Button>
-                  </div>
-                </Row>
-              </div>
-            </Row>
-          )}
-          <Button
-            variant="outline"
-            onClick={openAiOffcanvas}
-            className="ai-button"
-          >
-            <Icon i="sparkles" /> Ask AI
-          </Button>
-        </Row>
+        <CrmFilterBar
+          search={search}
+          setSearch={setSearch}
+          filterFieldDefs={filterFieldDefs}
+          setFilters={setFilters}
+          initialFilters={dbFilters?.manual?.filters || []}
+          showAiBadge={dbFilters?.ai?.enabled || aiResults}
+          aiTitle={savedTitle || dbFilters?.ai?.title || lastPrompt || "AI Filter"}
+          aiCollapsed={aiCollapsed}
+          onToggleAi={() => setAiCollapsed((c) => !c)}
+          onRefineAi={openAiRefineOffcanvasRefactored}
+          onClearAi={() => {
+            setAiResults(null);
+            setCurrentSavedId(null);
+            setSavedTitle("");
+            setLastAst(null);
+            setLastPrompt("");
+            setDbFilters((prev) => ({
+              ...(prev || {}),
+              ai: { enabled: false, savedSegmentId: null, ast: null, title: "" },
+            }));
+          }}
+          onAskAi={openAiOffcanvasRefactored}
+        />
       )}
 
       {crmPersons?.length === 0 && (
         <Empty text="You don't have any CRM responses yet." />
       )}
 
-      {imports.map((i) => (
-        <Alert
-          variant="info"
-          title={
-            <Row gap={1} align="center">
-              <Spinner size="sm" />
-              <Typography.H3 className="ml-2 mb-0">Importing</Typography.H3>
-            </Row>
-          }
-          key={i.createdAt}
-        >
-          An import is currently running. It started{" "}
-          {moment(i.createdAt).fromNow()} and is{" "}
-          {Math.round((i.completed / i.total) * 100)}% complete.
-        </Alert>
-      ))}
+      <CrmImportProgressAlerts imports={imports} />
 
-      {/* AI alert removed; AI selection now presented as a filter-style cell above */}
-
-      {(filteredPersons || []).length > 0 && (
-        <Table
-          className="card"
-          showPagination={(filteredPersons || []).length > 10}
-          columns={visibleColumns}
-          data={filteredPersons}
-        />
-      )}
+      <CrmPersonsTable
+        data={filteredPersons}
+        columns={visibleColumns}
+      />
     </EventPage>
   );
 };
