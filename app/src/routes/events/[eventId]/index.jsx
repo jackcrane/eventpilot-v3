@@ -83,7 +83,6 @@ export const Event = () => {
       }
     >
       <Row align="center" style={{ gap: 8 }} className="mb-3">
-        <RrwebPlayerTrigger sessionId="cmf8k09vi000qo24z4sgsafcy" />
         <Typography.H2 style={{ margin: 0 }}>Remaining Steps</Typography.H2>
         <Button
           ghost
