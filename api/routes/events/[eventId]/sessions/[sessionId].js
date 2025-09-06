@@ -105,6 +105,9 @@ export const get = [
             events.push(...p.events);
           }
         }
+        // Ensure deterministic ordering by timestamp to keep FullSnapshot first
+        // (some chunking/resume sequences can produce slight out-of-order merges)
+        events.sort((a, b) => (a?.timestamp ?? 0) - (b?.timestamp ?? 0));
       } catch (_) {
         console.error("Failed to fetch events from chunks", _);
         return res.status(500).json({ message: "Internal server error" });

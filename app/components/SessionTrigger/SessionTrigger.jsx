@@ -4,7 +4,7 @@ import { useOffcanvas } from "tabler-react-2/dist/offcanvas";
 import { useParams } from "react-router-dom";
 import { useSession } from "../../hooks/useSession";
 import { Loading } from "../loading/Loading";
-import RrwebPlayer from "../RrwebPlayer/RrwebPlayer";
+import { RrwebPlayer } from "../RrwebPlayer/RrwebPlayer";
 
 // Renders a button that opens an offcanvas showing JSON for a session
 // Props: { sessionId: string, eventId?: string, label?: string, ...buttonProps }

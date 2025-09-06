@@ -45,6 +45,7 @@
     "postmark": "^4.0.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "rrweb-player": "^1.0.0-alpha.4",
     "stripe": "^18.1.0",
     "tsx": "^4.19.2",
     "uuid": "^11.0.5",

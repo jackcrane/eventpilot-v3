@@ -1,34 +1,28 @@
-import React, { Suspense } from "react";
-import { Typography } from "tabler-react-2";
-import { Player } from "@posthog/react-rrweb-player";
+import React, { useEffect, useRef } from "react";
+import rrwebPlayer from "rrweb-player";
+import "rrweb-player/dist/style.css";
 
-// Renders an rrweb replay using @posthog/react-rrweb-player
-// Props:
-// - events: rrweb event array (required)
-// - width, height, className, style: basic sizing/styling
-// - playerProps: extra props forwarded to the Player
-export const RrwebPlayer = ({
-  events,
-  width = "100%",
-  height = 500,
-  className,
-  style,
-  playerProps = {},
-}) => {
-  if (!events || events.length === 0) {
-    return <Typography.Text>No events to display</Typography.Text>;
-  }
+export const RrwebPlayer = ({ events = [], config = {} }) => {
+  const containerRef = useRef(null);
 
-  return (
-    <Player
-      events={events}
-      width={width}
-      height={height}
-      className={className}
-      style={style}
-      {...playerProps}
-    />
-  );
+  useEffect(() => {
+    if (!containerRef.current || !events.length) return;
+
+    // Create player instance
+    const player = new rrwebPlayer({
+      target: containerRef.current,
+      props: {
+        events,
+        width: "100%",
+      },
+    });
+
+    return () => {
+      // rrweb-player doesn’t have an official destroy,
+      // but we can clear the container to avoid leaks
+      containerRef.current.innerHTML = "";
+    };
+  }, [events, config]);
+
+  return <div ref={containerRef} />;
 };
-
-export default RrwebPlayer;
