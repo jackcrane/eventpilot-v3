@@ -16,6 +16,8 @@ const registrationSubmissionSchema = z.object({
   selectedTeamId: z.string().optional().nullable(),
   enteredTeamCode: z.string().max(32).optional().nullable(),
   couponCode: z.string().max(32).optional().nullable(),
+  // Optional rrweb session to link conversion
+  sessionId: z.string().optional().nullable(),
 });
 
 export const get = [
@@ -120,6 +122,7 @@ export const post = [
         selectedTeamId,
         enteredTeamCode,
         couponCode,
+        sessionId,
       } = parsed.data;
 
       const fieldIds = Object.keys(responses);
@@ -381,6 +384,21 @@ export const post = [
       );
 
       const { requiresPayment, registrationId, price } = transaction;
+
+      // Best-effort: link rrweb session to the newly created registration and mark converted
+      if (sessionId && registrationId) {
+        try {
+          await prisma.session.updateMany({
+            where: { id: sessionId, eventId },
+            data: {
+              registrationId,
+              converted: true,
+            },
+          });
+        } catch (e) {
+          console.warn("Failed to link session to registration", e);
+        }
+      }
 
       if (!requiresPayment) {
         const { crmPersonId } = await finalizeRegistration({

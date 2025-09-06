@@ -29,10 +29,17 @@ export const useFormBuilder = (eventId) => {
     const pii = await getPII();
     try {
       const url = `/api/events/${eventId}/submission`;
+      // Read rrweb session id from sessionStorage if available
+      let sessionId = null;
+      try {
+        if (typeof sessionStorage !== "undefined") {
+          sessionId = sessionStorage.getItem("ep_rrweb_sessionId");
+        }
+      } catch (_) {}
       const res = await authFetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ values, shifts, pii }),
+        body: JSON.stringify({ values, shifts, pii, sessionId }),
       });
       const data = await res.json();
       setMutationLoading(false);

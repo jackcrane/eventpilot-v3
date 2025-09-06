@@ -20,9 +20,16 @@ export const useRegistrationConsumer = ({ eventId }) => {
 
   const submit = async (data) => {
     setMutationLoading(true);
+    // Read rrweb session id from sessionStorage if available
+    let sessionId = null;
+    try {
+      if (typeof sessionStorage !== "undefined") {
+        sessionId = sessionStorage.getItem("ep_rrweb_sessionId");
+      }
+    } catch (_) {}
     const promise = authFetch(key, {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, sessionId }),
     })
       .then(async (r) => {
         if (!r.ok) throw new Error("Request failed");

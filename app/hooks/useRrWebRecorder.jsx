@@ -51,6 +51,17 @@ export const useRrWebRecorder = ({
   const setSessionId = (id) => {
     sessionIdRef.current = id;
     _setSessionId(id);
+    try {
+      if (id) {
+        // Store current session id for consumer flows to read when submitting
+        // Use sessionStorage so it resets on tab close
+        if (typeof sessionStorage !== "undefined") {
+          sessionStorage.setItem("ep_rrweb_sessionId", id);
+        }
+      }
+    } catch (_) {
+      // no-op if storage is unavailable
+    }
   };
 
   const startedAtRef = useRef(null);
