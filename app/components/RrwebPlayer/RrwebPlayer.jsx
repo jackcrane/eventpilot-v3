@@ -14,6 +14,9 @@ export const RrwebPlayer = ({ events = [], config = {} }) => {
       props: {
         events,
         width: 400,
+        skipInactive: true,
+        inactiveColor: "var(--tblr-danger)",
+
         ...config,
       },
     });

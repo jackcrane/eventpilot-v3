@@ -22,6 +22,7 @@ const toBase64 = (str) =>
     : btoa(unescape(encodeURIComponent(str)));
 
 let rrwebRecordRef = null;
+let recorderStarted = false; // singleton guard across StrictMode/effect re-runs
 const ensureRrweb = async () => {
   if (!rrwebRecordRef) {
     const mod = await import("rrweb");
@@ -57,6 +58,25 @@ export const useRrWebRecorder = ({
   const stopFnRef = useRef(null);
   const intervalRef = useRef(null);
 
+  // Keep latest props in refs so we can run the recorder lifecycle once
+  const eventIdRef = useRef(eventId);
+  const instanceIdRef = useRef(instanceId);
+  const pageTypeRef = useRef(pageType);
+  const pathPropRef = useRef(path);
+
+  useEffect(() => {
+    eventIdRef.current = eventId;
+  }, [eventId]);
+  useEffect(() => {
+    instanceIdRef.current = instanceId;
+  }, [instanceId]);
+  useEffect(() => {
+    pageTypeRef.current = pageType;
+  }, [pageType]);
+  useEffect(() => {
+    pathPropRef.current = path;
+  }, [path]);
+
   const eventsRef = useRef([]); // active buffer
   const pendingRef = useRef([]); // queued before session id exists
 
@@ -65,14 +85,15 @@ export const useRrWebRecorder = ({
   const finalizingRef = useRef(false);
 
   const buildPath = () =>
-    path || (typeof location !== "undefined" ? location.pathname : undefined);
+    pathPropRef.current ||
+    (typeof location !== "undefined" ? location.pathname : undefined);
 
   const drainPending = async (sid) => {
     if (!sid || pendingRef.current.length === 0) return;
     const pending = pendingRef.current;
     pendingRef.current = [];
     for (const p of pending) {
-      await postJson(`/api/events/${eventId}/sessions/${sid}`, {
+      await postJson(`/api/events/${eventIdRef.current}/sessions/${sid}`, {
         chunk: {
           fileB64: p.fileB64,
           filename: `rrweb-${sid}-${p.startedAt}.json`,
@@ -82,7 +103,7 @@ export const useRrWebRecorder = ({
         },
         finalize: p.finalize,
         terminationReason: p.terminationReason,
-        pageType,
+        pageType: pageTypeRef.current,
         path: buildPath(),
       });
     }
@@ -126,7 +147,7 @@ export const useRrWebRecorder = ({
       return;
     }
 
-    await postJson(`/api/events/${eventId}/sessions/${sid}`, {
+    await postJson(`/api/events/${eventIdRef.current}/sessions/${sid}`, {
       chunk: {
         fileB64,
         filename: `rrweb-${sid}-${startedAt}.json`,
@@ -136,18 +157,19 @@ export const useRrWebRecorder = ({
       },
       finalize,
       terminationReason,
-      pageType,
+      pageType: pageTypeRef.current,
       path: buildPath(),
     });
   };
 
   const createSession = async () => {
-    if (creatingRef.current || createdOnceRef.current || !eventId) return;
+    const eid = eventIdRef.current;
+    if (creatingRef.current || createdOnceRef.current || !eid) return;
     creatingRef.current = true;
     try {
       const body = {
-        instanceId: instanceId || undefined,
-        pageType: pageType || undefined,
+        instanceId: instanceIdRef.current || undefined,
+        pageType: pageTypeRef.current || undefined,
         path: buildPath(),
         metadata: {
           startedAt: startedAtRef.current,
@@ -155,7 +177,7 @@ export const useRrWebRecorder = ({
             typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
         },
       };
-      const json = await postJson(`/api/events/${eventId}/sessions`, body);
+      const json = await postJson(`/api/events/${eid}/sessions`, body);
       if (json?.id) {
         setSessionId(json.id);
         createdOnceRef.current = true;
@@ -169,42 +191,39 @@ export const useRrWebRecorder = ({
   };
 
   const start = async () => {
-    const record = await ensureRrweb();
-    startedAtRef.current = Date.now();
+    // Ensure we only start recording/interval once per page lifetime
+    if (!recorderStarted) {
+      const record = await ensureRrweb();
+      startedAtRef.current = Date.now();
 
-    stopFnRef.current = record({
-      emit: (e) => {
-        eventsRef.current.push(e);
-      },
-      // sampling / recordCanvas can be configured here
-    });
+      stopFnRef.current = record({
+        emit: (e) => {
+          eventsRef.current.push(e);
+        },
+        // sampling / recordCanvas can be configured here
+      });
 
-    // attempt session create ASAP
-    createSession();
+      // attempt session create ASAP
+      createSession();
 
-    // interval that never closes over stale state
-    intervalRef.current = setInterval(() => {
-      flush().catch(() => {});
-      if (!sessionIdRef.current && !creatingRef.current) {
-        createSession();
-      }
-    }, burstMs);
+      // interval that never closes over stale state
+      intervalRef.current = setInterval(() => {
+        flush().catch(() => {});
+        if (!sessionIdRef.current && !creatingRef.current) {
+          createSession();
+        }
+      }, burstMs);
 
-    // lifecycle -> finalize
-    const onPageHide = () => finalize("UNLOAD");
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "hidden") finalize("UNLOAD");
-    };
+      recorderStarted = true;
+    }
+
+    // lifecycle -> only finalize when the page is actually closing
     const onBeforeUnload = () => finalize("CLOSE");
 
-    window.addEventListener("pagehide", onPageHide);
-    document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("beforeunload", onBeforeUnload);
 
     // cleanup remover
     return () => {
-      window.removeEventListener("pagehide", onPageHide);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("beforeunload", onBeforeUnload);
     };
   };
@@ -239,19 +258,19 @@ export const useRrWebRecorder = ({
     }
   };
 
+  // Start once on mount and keep running; only end on page close
   useEffect(() => {
-    if (!eventId) return;
     let removeLifecycle = () => {};
     (async () => {
       removeLifecycle = await start();
     })();
     return () => {
-      // treat React unmount as a proper close
-      finalize("CLOSE").catch(() => {});
+      // Do not finalize on unmount; just remove our listeners
       removeLifecycle?.();
     };
+    // We intentionally run once to avoid finalizing/restarting during normal renders
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventId, burstMs, pageType, path, instanceId]);
+  }, []);
 
   return {
     sessionId,
