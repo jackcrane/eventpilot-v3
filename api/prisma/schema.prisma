@@ -280,7 +280,6 @@ model File {
   inboundEmailAttachmentId String?                 @unique
 
   logs         Logs[]
-  Session      Session[]
   SessionChunk SessionChunk[]
 }
 
@@ -294,8 +293,6 @@ model Session {
   instanceId String?
   instance   EventInstance? @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
-  fileId String?
-  file   File?   @relation(fields: [fileId], references: [id], onDelete: Cascade)
 
   // Optional links to created records
   registrationId          String?

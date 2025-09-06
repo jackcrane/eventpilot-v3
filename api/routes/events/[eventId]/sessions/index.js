@@ -122,18 +122,34 @@ export const post = [
         session = await prisma.session.findUnique({ where: { id: sid } });
       }
       if (!session) {
-        session = await prisma.session.create({
-          data: {
+        // Try to find the most recent active session for this event/instance to finalize
+        // This avoids creating a new record on end when the cookie/sessionId is missing.
+        session = await prisma.session.findFirst({
+          where: {
             eventId: event.id,
-            instanceId,
-            path: meta?.path || null,
-            pageType: meta?.pageType || null,
-            metadata: meta || {},
+            instanceId: instanceId ?? null,
             active: true,
-            startedAt: meta?.startedAt ? new Date(meta.startedAt) : new Date(),
           },
+          orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
         });
-        setSessionCookie(res, session.id);
+        if (session) {
+          // Restore continuity by setting cookie to the found session
+          setSessionCookie(res, session.id);
+        } else {
+          // As a last resort, create a fresh session so we don't lose the chunk
+          session = await prisma.session.create({
+            data: {
+              eventId: event.id,
+              instanceId,
+              path: meta?.path || null,
+              pageType: meta?.pageType || null,
+              metadata: meta || {},
+              active: true,
+              startedAt: meta?.startedAt ? new Date(meta.startedAt) : new Date(),
+            },
+          });
+          setSessionCookie(res, session.id);
+        }
       }
 
       // Compute chunk window from events
