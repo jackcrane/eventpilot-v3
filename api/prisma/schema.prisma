@@ -32,8 +32,8 @@ model User {
 
   suspended Boolean @default(false)
 
-  events Event[]
-  emails Email[]
+  events          Event[]
+  emails          Email[]
   gmailConnection GmailConnection[]
 }
 
@@ -243,13 +243,14 @@ enum EmailWebhookType {
 }
 
 model Geolocation {
-  id         String   @id @default(cuid())
-  ip         String   @unique
+  id         String    @id @default(cuid())
+  ip         String    @unique
   city       String?
   regionName String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
   logs       Logs[]
+  Session    Session[]
 }
 
 model File {
@@ -278,7 +279,74 @@ model File {
   inboundEmailAttachment   InboundEmailAttachment? @relation("FileAttachment")
   inboundEmailAttachmentId String?                 @unique
 
-  logs Logs[]
+  logs         Logs[]
+  SessionChunk SessionChunk[]
+}
+
+/// Records rrweb consumer session captures and associations
+model Session {
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  instanceId String?
+  instance   EventInstance? @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+
+  // Optional links to created records
+  registrationId          String?
+  registration            Registration?          @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+  volunteerRegistrationId String?
+  volunteerRegistration   VolunteerRegistration? @relation(fields: [volunteerRegistrationId], references: [id], onDelete: SetNull)
+
+  // Request context
+  path      String?
+  pageType  String?
+  metadata  Json?
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  // Analytics state
+  active            Boolean                   @default(true)
+  converted         Boolean                   @default(false)
+  terminationReason SessionTerminationReason?
+
+  // Networking context
+  ip            String?
+  geolocationId String?
+  geolocation   Geolocation? @relation(fields: [geolocationId], references: [id], onDelete: SetNull)
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  SessionChunk SessionChunk[]
+
+  @@index([eventId, instanceId])
+  @@index([registrationId])
+  @@index([volunteerRegistrationId])
+}
+
+model SessionChunk {
+  id String @id @default(cuid())
+
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  fileId String
+  file   File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  startedAt DateTime
+  endedAt   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+}
+
+enum SessionTerminationReason {
+  UNLOAD
+  CLOSE
 }
 
 model Event {
@@ -340,13 +408,13 @@ model Event {
   crmPersons          CrmPerson[]
   crmFields           CrmField[]
   crmPersonImports    CrmPersonsImport[]
-  inboundEmails       InboundEmail[]       @relation(name: "Event_InboundEmails")
+  inboundEmails       InboundEmail[]               @relation(name: "Event_InboundEmails")
   conversations       Conversation[]
   registrationTiers   RegistrationTier[]
   registrationPeriods RegistrationPeriod[]
   registrationUpsells UpsellItem[]
   /// Saved CRM AI segments / searches
-  crmSavedSegments CrmSavedSegment[]
+  crmSavedSegments    CrmSavedSegment[]
   registrationFields  RegistrationField[]
   registrations       Registration[]
   teams               Team[]
@@ -356,9 +424,9 @@ model Event {
 
   stripeConnectedAccountId  String?
   // EventPilot billing: subscription for this event in Stripe
-  stripe_subscriptionId     String?   @unique
-  stripe_customerId         String?   @unique
-  goodPaymentStanding       Boolean   @default(false)
+  stripe_subscriptionId     String?                     @unique
+  stripe_customerId         String?                     @unique
+  goodPaymentStanding       Boolean                     @default(false)
   RegistrationPeriodPricing RegistrationPeriodPricing[]
   RegistrationFieldResponse RegistrationFieldResponse[]
 
@@ -367,16 +435,17 @@ model Event {
 
   // Configuration 1:1
   configuration Configuration?
+  Session       Session[]
 }
 
 model GmailConnection {
-  id           String   @id @default(cuid())
+  id String @id @default(cuid())
 
   eventId String
-  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   createdById String?
-  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   googleUserId String
   email        String
@@ -427,6 +496,7 @@ model EventInstance {
   RegistrationField         RegistrationField[]
   RegistrationFieldResponse RegistrationFieldResponse[]
   coupons                   Coupon[]
+  Session                   Session[]
 }
 
 model LedgerItem {
@@ -439,7 +509,7 @@ model LedgerItem {
   instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   // Net amount (after discounts/coupons)
-  amount Float
+  amount         Float
   // Original amount before discounts/coupons
   originalAmount Float?
 
@@ -517,26 +587,27 @@ model VolunteerRegistrationField {
   instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   logs Logs[]
+
   @@map("FormField")
 }
 
 model VolunteerRegistrationFieldOption {
-  id      String    @id @default(cuid())
+  id      String                     @id @default(cuid())
   fieldId String
   field   VolunteerRegistrationField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
   label   String
   order   Int
-  deleted Boolean   @default(false)
+  deleted Boolean                    @default(false)
 
   @@index([fieldId])
   @@map("FormFieldOption")
 }
 
 model VolunteerRegistration {
-  id             String          @id @default(cuid())
+  id             String                        @id @default(cuid())
   fieldResponses VolunteerRegistrationAnswer[]
   pii            PII?
-  deleted        Boolean         @default(false)
+  deleted        Boolean                       @default(false)
 
   crmPersonLink CrmPersonLink?
 
@@ -549,15 +620,17 @@ model VolunteerRegistration {
   instanceId String
   instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
-  logs   Logs[]
-  shifts VolunteerShiftSignup[]
+  logs    Logs[]
+  shifts  VolunteerShiftSignup[]
+  Session Session[]
+
   @@map("FormResponse")
 }
 
 model PII {
   id String @id @default(cuid())
 
-  formResponseId String?       @unique
+  formResponseId String?                @unique
   formResponse   VolunteerRegistration? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
 
   userAgent    String?
@@ -576,15 +649,15 @@ model PII {
 }
 
 model VolunteerRegistrationAnswer {
-  id         String       @id @default(cuid())
+  id String @id @default(cuid())
 
   responseId String
   response   VolunteerRegistration @relation(fields: [responseId], references: [id], onDelete: Cascade)
 
-  fieldId    String
-  field      VolunteerRegistrationField    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  fieldId String
+  field   VolunteerRegistrationField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
 
-  value      String?
+  value String?
 
   @@index([responseId])
   @@index([fieldId])
@@ -743,7 +816,7 @@ model CrmPersonLink {
   crmPersonId String
   crmPerson   CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
 
-  formResponseId String?       @unique
+  formResponseId String?                @unique
   formResponse   VolunteerRegistration? @relation(fields: [formResponseId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -926,8 +999,8 @@ model Team {
   maxSize       Int?
   registrations Registration[]
 
-  public  Boolean @default(false)
-  deleted Boolean @default(false)
+  public    Boolean  @default(false)
+  deleted   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -981,7 +1054,7 @@ model Coupon {
   instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   title        String
-  code         String @unique
+  code         String             @unique
   discountType CouponDiscountType
   amount       Float
   appliesTo    CouponAppliesTo
@@ -1037,6 +1110,7 @@ model Registration {
   coupon   Coupon? @relation(fields: [couponId], references: [id])
 
   ledgerItems LedgerItem[]
+  Session     Session[]
 }
 
 model RegistrationUpsell {
@@ -1276,13 +1350,13 @@ model Configuration {
 
   // Volunteer stats card preferences
   volunteerStatsDisplayFormat  String @default("calendar") // "calendar" | "timeline"
-  volunteerStatsCalendarMetric String @default("count")    // "count" | "change"
-  volunteerStatsTimeframe      String @default("6")        // "1" | "3" | "6" (months)
+  volunteerStatsCalendarMetric String @default("count") // "count" | "change"
+  volunteerStatsTimeframe      String @default("6") // "1" | "3" | "6" (months)
 
   // Participant stats card preferences
   participantStatsDisplayFormat  String @default("calendar") // "calendar" | "timeline"
-  participantStatsCalendarMetric String @default("count")    // "count" | "change"
-  participantStatsTimeframe      String @default("6")        // "1" | "3" | "6" (months)
+  participantStatsCalendarMetric String @default("count") // "count" | "change"
+  participantStatsTimeframe      String @default("6") // "1" | "3" | "6" (months)
 
   // CRM filter persistence (manual + AI)
   crmFilters Json?
