@@ -6,6 +6,7 @@ import styles from "./ConsumerPage.module.css";
 import classNames from "classnames";
 import { Loading } from "../loading/Loading";
 import { useTitle } from "react-use";
+import { RrwebSessionProvider } from "../../contexts/RrwebSessionContext";
 
 export const ConsumerPage = ({ children, title, loading }) => {
   const eventSlug = useReducedSubdomain();
@@ -16,6 +17,8 @@ export const ConsumerPage = ({ children, title, loading }) => {
     error,
   } = useEvent({ eventId: eventSlug });
   useTitle(title ? `${title} | ${event?.name}` : event?.name);
+
+  // Rrweb session provider wraps consumer content
 
   if (eventLoading) {
     return <div>Loading...</div>;
@@ -56,7 +59,9 @@ export const ConsumerPage = ({ children, title, loading }) => {
               </Typography.Text>
             </div>
           </Row>
-          {loading ? <Loading /> : children}
+          <RrwebSessionProvider eventId={event?.id}>
+            {loading ? <Loading /> : children}
+          </RrwebSessionProvider>
         </div>
         <Typography.Text
           className={classNames("text-muted", styles.disclaimer)}

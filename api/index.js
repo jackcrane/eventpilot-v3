@@ -17,8 +17,8 @@ const app = express();
 
 app.use(
   cors({
-    // origin: "http://localhost:3152", // Allow requests from your React app
-    // optionsSuccessStatus: 200,
+    origin: true, // reflect request origin
+    credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "QUERY"],
   })
 );

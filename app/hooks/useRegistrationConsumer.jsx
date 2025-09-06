@@ -2,10 +2,12 @@ import useSWR, { mutate } from "swr";
 import { authFetch } from "../util/url";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { useRrwebSession } from "../contexts/RrwebSessionContext";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useRegistrationConsumer = ({ eventId }) => {
+  const { attachRegistration } = useRrwebSession();
   const key = `/api/events/${eventId}/registration/consumer`;
   const { data, error, isLoading } = useSWR(key, fetcher);
   const [mutationLoading, setMutationLoading] = useState(false);
@@ -35,7 +37,13 @@ export const useRegistrationConsumer = ({ eventId }) => {
         setFinalized(data.registration.finalized);
         // Capture registration id for later coupon application
         const rid = registration?.id || data.registration?.registration?.id;
-        if (rid) setRegistrationId(rid);
+        if (rid) {
+          setRegistrationId(rid);
+          // Link the current rrweb session to this registration in DB
+          try {
+            await attachRegistration(rid);
+          } catch (_) {}
+        }
         setMutationLoading(false);
         return true;
       })

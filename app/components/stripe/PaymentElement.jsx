@@ -111,7 +111,10 @@ const _PaymentElement = ({
 
   return (
     <form onSubmit={handleSubmit}>
-      <StripePaymentElement />
+      {/* Prevent rrweb from recording Stripe element content */}
+      <div data-rr-block>
+        <StripePaymentElement />
+      </div>
       <Button
         type="submit"
         disabled={!stripe || loading}

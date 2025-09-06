@@ -15,6 +15,7 @@ import { Icon } from "../../../util/Icon";
 import { useLocations } from "../../../hooks/useLocations";
 import { useVolunteerRegistrationFormV2 } from "../../../hooks/useVolunteerRegistrationFormV2";
 import { ConsumerPage } from "../../../components/ConsumerPage/ConsumerPage";
+import { useRrwebSession } from "../../../contexts/RrwebSessionContext";
 
 export const VolunteerRegistrationPage = () => {
   const eventSlug = useReducedSubdomain();
@@ -102,9 +103,14 @@ export const VolunteerRegistrationPage = () => {
   });
 
   const [thankYou, setThankYou] = useState(false);
+  const { attachVolunteerRegistration } = useRrwebSession();
 
   const submitForm = async ({ responses, selectedShifts }) => {
-    if ((await _submitForm(responses, selectedShifts || [])).id) {
+    const created = await _submitForm(responses, selectedShifts || []);
+    if (created?.id) {
+      try {
+        await attachVolunteerRegistration(created.id);
+      } catch (_) {}
       // Scroll to top of page
       window.scrollTo(0, 0);
       setThankYou(true);

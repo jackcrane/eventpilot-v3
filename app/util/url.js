@@ -12,6 +12,7 @@ export const authFetch = async (url, options, redirect = true) => {
   const instance = localStorage.getItem("instance");
   const res = await fetch(u(url), {
     ...options,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...options?.headers,
@@ -35,6 +36,7 @@ export const authFetchWithoutContentType = async (url, options) => {
   const token = localStorage.getItem("token");
   const res = await fetch(u(url), {
     ...options,
+    credentials: "include",
     headers: {
       ...options?.headers,
       ...(token && token !== "null" ? { Authorization: `Bearer ${token}` } : {}),
@@ -53,6 +55,7 @@ export const publicFetch = async (url, options) => {
   const instance = localStorage.getItem("instance");
   const res = await fetch(u(url), {
     ...options,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...options?.headers,
