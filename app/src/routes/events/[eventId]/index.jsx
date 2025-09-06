@@ -34,6 +34,7 @@ import { TeamJoinsCard } from "../../../../components/TeamJoinsCard/TeamJoinsCar
 import { VolunteerCapacityCard } from "../../../../components/VolunteerCapacityCard/VolunteerCapacityCard";
 import { CouponUsageCard } from "../../../../components/CouponUsageCard/CouponUsageCard";
 import { UpsellUsageCard } from "../../../../components/UpsellUsageCard/UpsellUsageCard";
+import SessionTrigger from "../../../../components/SessionTrigger/SessionTrigger";
 
 const Divider = styled.div`
   background-color: var(--tblr-card-border-color);
@@ -46,7 +47,10 @@ export const Event = () => {
   const { eventId } = useParams();
   const { event, loading, error, refetch } = useEvent({ eventId });
   const { startTour } = useTourManager();
-  const [remainingOpen, setRemainingOpen] = useDbState(true, "remainingStepsOpen");
+  const [remainingOpen, setRemainingOpen] = useDbState(
+    true,
+    "remainingStepsOpen"
+  );
 
   const {
     eventStart,
@@ -79,6 +83,7 @@ export const Event = () => {
       }
     >
       <Row align="center" style={{ gap: 8 }} className="mb-3">
+        <SessionTrigger sessionId={"cmf8ef23m001no27pe5iq6rjg"} />
         <Typography.H2 style={{ margin: 0 }}>Remaining Steps</Typography.H2>
         <Button
           ghost
