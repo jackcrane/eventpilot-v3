@@ -1,5 +1,6 @@
 import { prisma } from "#prisma";
 import { uploadFile } from "#file";
+import { verifyAuth } from "#verifyAuth";
 
 /**
  * POST /api/events/:eventId/sessions/:sessionId
@@ -95,6 +96,47 @@ export const post = [
     } catch (err) {
       console.error("Upload/Finalize session error:", err);
       res.status(500).json({ message: "Failed to persist session chunk" });
+    }
+  },
+];
+
+export const get = [
+  verifyAuth(["manager"]),
+  async (req, res) => {
+    try {
+      const { eventId, sessionId } = req.params;
+
+      const session = await prisma.session.findUnique({
+        where: { id: sessionId, eventId },
+        include: {
+          SessionChunk: {
+            include: {
+              file: true,
+            },
+          },
+        },
+      });
+
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      // Load session chunk data and merge to one array of events
+      const events = [];
+      const files = session.SessionChunk.map((chunk) => chunk.file.location);
+      for (const file of files) {
+        const data = await fetch(file);
+        const json = await data.json();
+        events.push(...json.events);
+      }
+
+      session.events = events;
+      delete session.SessionChunk;
+
+      res.json(session);
+    } catch (err) {
+      console.error("Get session error:", err);
+      res.status(500).json({ message: "Failed to get session" });
     }
   },
 ];
