@@ -22,6 +22,7 @@ export const RegisterPage = () => {
   const [couponInput, setCouponInput] = useState("");
   const [couponPreview, setCouponPreview] = useState(null);
   const [couponApplied, setCouponApplied] = useState(false);
+  const [paymentSucceeded, setPaymentSucceeded] = useState(false);
   const {
     event,
     loading: eventLoading,
@@ -151,78 +152,85 @@ export const RegisterPage = () => {
         </div>
       ) : requiresPayment ? (
         <>
-          <div className="card card-body mb-3">
-            <Typography.H3 className="mb-2">Have a coupon?</Typography.H3>
-            {!couponApplied && (
-              <Row gap={1} align="center">
-                <Input
-                  placeholder="Enter coupon code"
-                  value={couponInput}
-                  onChange={(v) => {
-                    setCouponInput(v);
-                    setCouponPreview(null);
-                  }}
-                  style={{ flex: 1 }}
-                  className="mb-0"
-                />
-                <Button
-                  onClick={async () => {
-                    const code = (couponInput || "").trim();
-                    if (!code) return;
-                    const res = await lookupCoupon(code);
-                    if (!res?.coupon) {
-                      toast.error("Invalid coupon");
-                      return;
-                    }
-                    const ok = await applyCoupon(res.coupon.code);
-                    if (ok) {
-                      setCouponPreview(res.coupon);
-                      setCouponApplied(true);
-                    }
-                  }}
-                  loading={couponLookupLoading || applyLoading}
-                >
-                  Apply
-                </Button>
-              </Row>
-            )}
-
-            {/* No separate preview state; apply happens on button click */}
-
-            {couponApplied && (
-              <Alert variant="success" title="Coupon applied" className="mt-2">
-                <Row gap={1} align="center" justify="space-between">
-                  <Typography.Text className="mb-0">
-                    <b>{couponPreview?.title || "Coupon"}</b> —
-                    {" "}
-                    {couponPreview?.discountType === "FLAT"
-                      ? `$${Number(couponPreview?.amount).toFixed(2)} off`
-                      : `${Number(couponPreview?.amount).toFixed(0)}% off`}
-                  </Typography.Text>
+          {!paymentSucceeded && (
+            <div className="card card-body mb-3">
+              <Typography.H3 className="mb-2">Have a coupon?</Typography.H3>
+              {!couponApplied && (
+                <Row gap={1} align="center">
+                  <Input
+                    placeholder="Enter coupon code"
+                    value={couponInput}
+                    onChange={(v) => {
+                      setCouponInput(v);
+                      setCouponPreview(null);
+                    }}
+                    style={{ flex: 1 }}
+                    className="mb-0"
+                  />
                   <Button
-                    size="sm"
-                    outline
                     onClick={async () => {
-                      const ok = await removeCoupon();
+                      const code = (couponInput || "").trim();
+                      if (!code) return;
+                      const res = await lookupCoupon(code);
+                      if (!res?.coupon) {
+                        toast.error("Invalid coupon");
+                        return;
+                      }
+                      const ok = await applyCoupon(res.coupon.code);
                       if (ok) {
-                        setCouponApplied(false);
-                        setCouponPreview(null);
-                        setCouponInput("");
-                        resetCouponLookup();
+                        setCouponPreview(res.coupon);
+                        setCouponApplied(true);
                       }
                     }}
-                    loading={removeLoading}
+                    loading={couponLookupLoading || applyLoading}
                   >
-                    Undo
+                    Apply
                   </Button>
                 </Row>
-              </Alert>
-            )}
-          </div>
+              )}
+
+              {/* No separate preview state; apply happens on button click */}
+
+              {couponApplied && (
+                <Alert variant="success" title="Coupon applied" className="mt-2">
+                  <Row gap={1} align="center" justify="space-between">
+                    <Typography.Text className="mb-0">
+                      <b>{couponPreview?.title || "Coupon"}</b> —
+                      {" "}
+                      {couponPreview?.discountType === "FLAT"
+                        ? `$${Number(couponPreview?.amount).toFixed(2)} off`
+                        : `${Number(couponPreview?.amount).toFixed(0)}% off`}
+                    </Typography.Text>
+                    <Button
+                      size="sm"
+                      outline
+                      onClick={async () => {
+                        const ok = await removeCoupon();
+                        if (ok) {
+                          setCouponApplied(false);
+                          setCouponPreview(null);
+                          setCouponInput("");
+                          resetCouponLookup();
+                        }
+                      }}
+                      loading={removeLoading}
+                    >
+                      Undo
+                    </Button>
+                  </Row>
+                </Alert>
+              )}
+            </div>
+          )}
           <PaymentElement
             paymentIntentClientSecret={stripePIClientSecret}
             total={price}
             eventStripeConnectedAccountId={event.stripeConnectedAccountId}
+            onFinish={() => {
+              setPaymentSucceeded(true);
+              // Revalidate registration consumer in case server finalizes
+              if (event?.id) mutate(`/api/events/${event.id}/registration/consumer`);
+            }}
           />
         </>
       ) : !instanceError && tiers?.length > 0 && pages?.length > 0 ? (
