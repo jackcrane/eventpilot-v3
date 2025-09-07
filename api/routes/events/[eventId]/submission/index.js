@@ -13,6 +13,8 @@ const bodySchema = z.object({
   values: z.record(z.string(), z.string()),
   pii: z.record(z.string(), z.any()).optional(),
   shifts: z.array(z.object({ id: z.string() })).optional(),
+  // Optional rrweb session to link conversion against
+  sessionId: z.string().optional().nullable(),
 });
 
 export const post = async (req, res) => {
@@ -20,7 +22,7 @@ export const post = async (req, res) => {
   if (!parseResult.success) {
     return res.status(400).json({ message: serializeError(parseResult) });
   }
-  const { values, pii, shifts } = parseResult.data;
+  const { values, pii, shifts, sessionId } = parseResult.data;
   const { eventId } = req.params;
   const instanceId = req.instanceId;
 
@@ -140,6 +142,22 @@ export const post = async (req, res) => {
         crmPersonId,
       },
     });
+
+    // If a sessionId was provided, link it to this volunteer registration and mark converted
+    if (sessionId) {
+      try {
+        await prisma.session.updateMany({
+          where: { id: sessionId, eventId: formResponse.eventId },
+          data: {
+            volunteerRegistrationId: formResponse.id,
+            converted: true,
+          },
+        });
+      } catch (e) {
+        // best-effort; do not fail submission if session linkage fails
+        console.warn("Failed to link session to volunteer registration", e);
+      }
+    }
 
     const event = await prisma.event.findUnique({
       where: { id: formResponse.eventId },

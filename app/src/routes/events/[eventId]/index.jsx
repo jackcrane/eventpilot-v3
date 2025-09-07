@@ -34,6 +34,7 @@ import { TeamJoinsCard } from "../../../../components/TeamJoinsCard/TeamJoinsCar
 import { VolunteerCapacityCard } from "../../../../components/VolunteerCapacityCard/VolunteerCapacityCard";
 import { CouponUsageCard } from "../../../../components/CouponUsageCard/CouponUsageCard";
 import { UpsellUsageCard } from "../../../../components/UpsellUsageCard/UpsellUsageCard";
+import RrwebPlayerTrigger from "../../../../components/RrwebPlayer/RrwebPlayerTrigger";
 
 const Divider = styled.div`
   background-color: var(--tblr-card-border-color);
@@ -46,7 +47,10 @@ export const Event = () => {
   const { eventId } = useParams();
   const { event, loading, error, refetch } = useEvent({ eventId });
   const { startTour } = useTourManager();
-  const [remainingOpen, setRemainingOpen] = useDbState(true, "remainingStepsOpen");
+  const [remainingOpen, setRemainingOpen] = useDbState(
+    true,
+    "remainingStepsOpen"
+  );
 
   const {
     eventStart,

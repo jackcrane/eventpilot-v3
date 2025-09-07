@@ -98,47 +98,50 @@ export const uploadFile = async ({
   file, // base64 string
   name, // file name
   contentType, // file content type
-  contentLength,
+  contentLength, // optional; will be ignored if wrong
   inboundEmailAttachmentId,
 }) => {
-  const buffer = Buffer.from(file, "base64");
+  // If there’s any chance of base64url input, normalize first:
+  const normalizeB64 = (s) => {
+    let t = s.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = t.length % 4;
+    return pad ? t + "=".repeat(4 - pad) : t;
+  };
 
-  const key = `${process.env.PROJECT_NAME}/${cuid()}.${name}`;
+  const normalized = normalizeB64(file);
+  const buffer = Buffer.from(normalized, "base64");
+  const byteLen = buffer.length;
+
+  // If a caller sent a wrong length, ignore it (or throw)
+  if (Number.isFinite(contentLength) && contentLength !== byteLen) {
+    // Option A: ignore and proceed with correct length
+    // Option B (stricter): throw new Error(`ContentLength mismatch: got ${contentLength}, expected ${byteLen}`);
+  }
+
+  const key = `${process.env.PROJECT_NAME}/${cuid()}-${name}`; // safer than inserting an extra '.'
 
   const command = new PutObjectCommand({
     Bucket: process.env.AWS_BUCKET,
     Key: key,
     Body: buffer,
     ContentType: contentType,
-    ContentLength: contentLength ?? buffer.length,
+    ContentLength: byteLen, // always correct
     ACL: "public-read",
   });
 
-  try {
-    await s3.send(command);
+  await s3.send(command);
 
-    const uploadedFile = await prisma.file.create({
-      data: {
-        key,
-        originalname: name,
-        mimetype: contentType,
-        contentType,
-        size: contentLength,
-        location: `${process.env.AWS_ENDPOINT}/${process.env.AWS_BUCKET}/${key}`,
-        inboundEmailAttachmentId,
-      },
-    });
+  const uploadedFile = await prisma.file.create({
+    data: {
+      key,
+      originalname: name,
+      mimetype: contentType,
+      contentType,
+      size: byteLen,
+      location: `${process.env.AWS_ENDPOINT}/${process.env.AWS_BUCKET}/${key}`,
+      inboundEmailAttachmentId,
+    },
+  });
 
-    return uploadedFile;
-  } catch (err) {
-    console.error("S3 upload error", err);
-    throw err;
-  }
+  return uploadedFile;
 };
-
-// uploadFile({
-//   file: "VGhpcyBpcyBhdHRhY2htZW50IGNvbnRlbnRzLCBiYXNlLTY0IGVuY29kZWQu",
-//   name: "test.txt",
-//   contentType: "text/plain",
-//   contentLength: 45,
-// });
