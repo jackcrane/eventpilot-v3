@@ -1,15 +1,125 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { EventPage } from "../../../../components/eventPage/EventPage";
 import { KanbanBoard } from "../../../../components/KanbanBoard/KanbanBoard";
+import { useParams } from "react-router-dom";
+import { useTodos } from "../../../../hooks/useTodos";
+import { Button, Input, Typography, useOffcanvas } from "tabler-react-2";
+
+const TITLE_MAP = {
+  not_started: "Not Started",
+  in_progress: "In Progress",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
 
 export const EventTodosPage = () => {
+  const { eventId } = useParams();
+  const { todos, loading, updateTodo, createTodo } = useTodos({ eventId });
+  const { offcanvas, OffcanvasElement, close } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 470, zIndex: 1051 },
+  });
+
+  const columns = useMemo(() => {
+    const base = {
+      not_started: { id: "not_started", title: TITLE_MAP.not_started, items: [] },
+      in_progress: { id: "in_progress", title: TITLE_MAP.in_progress, items: [] },
+      completed: { id: "completed", title: TITLE_MAP.completed, items: [] },
+      cancelled: { id: "cancelled", title: TITLE_MAP.cancelled, items: [] },
+    };
+    for (const t of todos || []) {
+      const statusKey = (t.status || "NOT_STARTED").toLowerCase();
+      const key = base[statusKey] ? statusKey : "not_started";
+      base[key].items.push({
+        id: t.id,
+        title: t.title,
+        subtitle: t?.comments?.length ? `${t.comments.length} comment${t.comments.length === 1 ? "" : "s"}` : undefined,
+        status: key,
+      });
+    }
+    return base;
+  }, [todos]);
+
+  const handleMove = async (item, fromId, toId) => {
+    if (!item?.id || fromId === toId) return;
+    const serverStatus = toId.toUpperCase();
+    await updateTodo(item.id, { status: serverStatus });
+  };
+
+  const openCreate = (statusKey) => {
+    offcanvas({
+      content: (
+        <TodoCreateForm
+          initialStatus={statusKey}
+          onClose={close}
+          onCreate={async (vals) => {
+            const ok = await createTodo(vals);
+            if (ok) close();
+          }}
+        />
+      ),
+    });
+  };
+
   return (
     <EventPage title="Todo List" description="Organize tasks across statuses.">
+      {OffcanvasElement}
       <div style={{ height: "calc(100dvh - 260px)" }}>
-        <KanbanBoard />
+        {loading ? (
+          <div style={{ padding: 16 }}>Loading...</div>
+        ) : (
+          <KanbanBoard
+            key={eventId}
+            initialColumns={columns}
+            onMove={handleMove}
+            onAdd={(colId) => openCreate(colId)}
+          />
+        )}
       </div>
     </EventPage>
   );
 };
 
 export default EventTodosPage;
+
+const toServerStatus = (key) => (key || "not_started").toUpperCase();
+
+const TodoCreateForm = ({ initialStatus = "not_started", onCreate, onClose }) => {
+  const [title, setTitle] = useState("");
+  const [details, setDetails] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    const t = title.trim();
+    if (!t) return;
+    setSaving(true);
+    try {
+      await onCreate?.({ title: t, content: details || "", status: toServerStatus(initialStatus) });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div>
+      <Typography.H5 className="mb-0 text-secondary">TODO</Typography.H5>
+      <Typography.H1>New Todo</Typography.H1>
+
+      <Input
+        label="Title"
+        placeholder="What needs to be done?"
+        value={title}
+        onChange={setTitle}
+      />
+      <Input
+        label="Details (optional)"
+        placeholder="Add a short description"
+        value={details}
+        onChange={setDetails}
+      />
+
+      <Button onClick={submit} loading={saving} variant="primary">
+        Create Todo
+      </Button>
+    </div>
+  );
+};

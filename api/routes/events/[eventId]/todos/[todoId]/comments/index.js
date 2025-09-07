@@ -14,7 +14,7 @@ export const get = [
   async (req, res) => {
     try {
       const todo = await prisma.todoItem.findUnique({
-        where: { id: req.params.todoId, eventId: req.event.id },
+        where: { id: req.params.todoId, eventId: req.params.eventId },
       });
       if (!todo) return res.status(404).json({ message: "Todo not found" });
 

@@ -5,9 +5,9 @@ import toast from "react-hot-toast";
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useTodoComments = ({ eventId, todoId }) => {
-  const key = eventId && todoId ? `/api/todos/${todoId}/comments` : null;
-  const todoKey = eventId && todoId ? `/api/todos/${todoId}` : null;
-  const listKey = eventId ? `/api/todos` : null;
+  const key = eventId && todoId ? `/api/events/${eventId}/todos/${todoId}/comments` : null;
+  const todoKey = eventId && todoId ? `/api/events/${eventId}/todos/${todoId}` : null;
+  const listKey = eventId ? `/api/events/${eventId}/todos` : null;
 
   const { data, error, isLoading, mutate: refetch } = useSWR(key, fetcher);
 
@@ -46,4 +46,3 @@ export const useTodoComments = ({ eventId, todoId }) => {
     addComment,
   };
 };
-

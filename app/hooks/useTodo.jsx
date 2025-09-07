@@ -17,8 +17,8 @@ const fetchSchema = async ([url]) => {
 };
 
 export const useTodo = ({ eventId, todoId }) => {
-  const key = eventId && todoId ? `/api/todos/${todoId}` : null;
-  const listKey = eventId ? `/api/todos` : null;
+  const key = eventId && todoId ? `/api/events/${eventId}/todos/${todoId}` : null;
+  const listKey = eventId ? `/api/events/${eventId}/todos` : null;
 
   const { data, error, isLoading, mutate: refetch } = useSWR(key, fetcher);
   const { data: schema } = useSWR(key ? [key, "schema"] : null, fetchSchema);
@@ -105,4 +105,3 @@ export const useTodo = ({ eventId, todoId }) => {
     deleteTodo,
   };
 };
-

@@ -16,7 +16,7 @@ const fetchSchema = async ([url]) => {
 };
 
 export const useTodos = ({ eventId }) => {
-  const key = eventId ? `/api/todos` : null;
+  const key = eventId ? `/api/events/${eventId}/todos` : null;
 
   const { data, error, isLoading, mutate: refetch } = useSWR(key, fetcher);
   const { data: schema } = useSWR(key ? [key, "schema"] : null, fetchSchema);
@@ -47,7 +47,7 @@ export const useTodos = ({ eventId }) => {
       });
 
       await refetch();
-      if (todo?.id) await mutate(`/api/todos/${todo.id}`);
+      if (todo?.id) await mutate(`/api/events/${eventId}/todos/${todo.id}`);
       return true;
     } catch (e) {
       return false;
@@ -63,7 +63,7 @@ export const useTodos = ({ eventId }) => {
         return false;
       }
 
-      const url = `/api/todos/${todoId}`;
+      const url = `/api/events/${eventId}/todos/${todoId}`;
       const promise = authFetch(url, {
         method: "PUT",
         body: JSON.stringify(parsed.data),
@@ -90,7 +90,7 @@ export const useTodos = ({ eventId }) => {
   const deleteTodo = async (todoId) => {
     if (!todoId || !eventId) return false;
     try {
-      const url = `/api/todos/${todoId}`;
+      const url = `/api/events/${eventId}/todos/${todoId}`;
       const promise = authFetch(url, { method: "DELETE" }).then(async (r) => {
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j?.message || "Request failed");
@@ -122,4 +122,3 @@ export const useTodos = ({ eventId }) => {
     deleteTodo,
   };
 };
-

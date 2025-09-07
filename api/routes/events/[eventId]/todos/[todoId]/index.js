@@ -10,7 +10,11 @@ export const get = [
   async (req, res) => {
     try {
       const todo = await prisma.todoItem.findUnique({
-        where: { id: req.params.todoId, eventId: req.event.id, deleted: false },
+        where: {
+          id: req.params.todoId,
+          eventId: req.params.eventId,
+          deleted: false,
+        },
         include: {
           comments: {
             include: { files: true },
@@ -34,7 +38,11 @@ export const put = [
   async (req, res) => {
     try {
       const existing = await prisma.todoItem.findUnique({
-        where: { id: req.params.todoId, eventId: req.event.id, deleted: false },
+        where: {
+          id: req.params.todoId,
+          eventId: req.params.eventId,
+          deleted: false,
+        },
       });
       if (!existing) return res.status(404).json({ message: "Not found" });
 
@@ -99,7 +107,11 @@ export const del = [
   async (req, res) => {
     try {
       const existing = await prisma.todoItem.findUnique({
-        where: { id: req.params.todoId, eventId: req.event.id, deleted: false },
+        where: {
+          id: req.params.todoId,
+          eventId: req.params.eventId,
+          deleted: false,
+        },
       });
       if (!existing) return res.status(404).json({ message: "Not found" });
 

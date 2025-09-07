@@ -23,12 +23,35 @@
   font-size: 14px;
 }
 
+.right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .count {
   background: #e5e7eb;
   color: #374151;
   border-radius: 9999px;
   font-size: 12px;
   padding: 2px 8px;
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+}
+
+.addBtn:hover {
+  background: #f9fafb;
 }
 
 .droppable {

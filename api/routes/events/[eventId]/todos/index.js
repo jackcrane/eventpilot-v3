@@ -25,7 +25,7 @@ export const get = [
       const todos = await prisma.todoItem.findMany({
         where: {
           deleted: false,
-          eventId: req.event.id,
+          eventId: req.params.eventId,
         },
         include: {
           comments: true,
@@ -59,10 +59,19 @@ export const post = [
           title: data.title,
           content: data.content ?? "",
           status: data.status,
-          volunteerRegistrationId: data.volunteerRegistrationId || null,
-          participantRegistrationId: data.participantRegistrationId || null,
-          sessionId: data.sessionId || null,
-          conversationId: data.conversationId || null,
+          volunteerRegistration: data.volunteerRegistrationId && {
+            connect: { id: data.volunteerRegistrationId },
+          },
+          participantRegistration: data.participantRegistrationId && {
+            connect: { id: data.participantRegistrationId },
+          },
+          session: data.sessionId && {
+            connect: { id: data.sessionId },
+          },
+          conversation: data.conversationId && {
+            connect: { id: data.conversationId },
+          },
+          event: { connect: { id: req.params.eventId } },
           logs: {
             create: {
               type: LogType.TODO_ITEM_CREATED,
