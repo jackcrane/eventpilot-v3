@@ -264,7 +264,6 @@ export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
 
       {tab === "logs" && (
         <div>
-          <Util.Hr text="Logs" />
           {!todo?.logs || todo.logs.length === 0 ? (
             <Typography.Text className="text-muted">
               No logs yet.
@@ -277,7 +276,6 @@ export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
 
       {tab === "associations" && (
         <div>
-          <Util.Hr text="Associations" />
           <TodoItemAssociations
             todo={todo}
             eventId={eventId}
