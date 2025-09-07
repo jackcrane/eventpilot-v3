@@ -44,6 +44,8 @@ export const get = [
         },
         include: {
           comments: true,
+          // Return associated volunteers (ids only) for lightweight hydration
+          VolunteerRegistration: { select: { id: true } },
         },
         orderBy: { updatedAt: "desc" },
       });
@@ -123,6 +125,7 @@ export const post = [
         },
         include: {
           comments: true,
+          VolunteerRegistration: { select: { id: true } },
         },
       });
 

@@ -23,6 +23,7 @@ export const get = [
           logs: {
             orderBy: { createdAt: "desc" },
           },
+          VolunteerRegistration: { select: { id: true } },
         },
       });
 
@@ -142,6 +143,7 @@ export const put = [
           logs: {
             orderBy: { createdAt: "desc" },
           },
+          VolunteerRegistration: { select: { id: true } },
         },
       });
 

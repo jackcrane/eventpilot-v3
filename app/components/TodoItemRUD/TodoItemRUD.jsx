@@ -18,6 +18,7 @@ import { DATETIME_FORMAT } from "../../util/Constants";
 import { isImage } from "../../util/isImage";
 import LogViewer from "../logTimeline/LogViewer";
 import { TodoItemAssociations } from "./TodoItemAssociations";
+import { Loading } from "../loading/Loading";
 
 const TITLE_MAP = {
   not_started: "Not Started",
@@ -25,7 +26,6 @@ const TITLE_MAP = {
   completed: "Completed",
   cancelled: "Cancelled",
 };
-
 
 export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
   const { todo, loading, updateTodo, deleteTodo, mutationLoading } = useTodo({
@@ -77,9 +77,7 @@ export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
     }
   };
 
-  
-
-  if (loading) return <div style={{ padding: 16 }}>Loading...</div>;
+  if (loading) return <Loading />;
   if (!todo) return <div style={{ padding: 16 }}>Not found</div>;
 
   return (
@@ -268,7 +266,9 @@ export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
         <div>
           <Util.Hr text="Logs" />
           {!todo?.logs || todo.logs.length === 0 ? (
-            <Typography.Text className="text-muted">No logs yet.</Typography.Text>
+            <Typography.Text className="text-muted">
+              No logs yet.
+            </Typography.Text>
           ) : (
             <LogViewer logs={todo.logs} dense />
           )}
@@ -278,7 +278,11 @@ export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
       {tab === "associations" && (
         <div>
           <Util.Hr text="Associations" />
-          <TodoItemAssociations todo={todo} eventId={eventId} />
+          <TodoItemAssociations
+            todo={todo}
+            eventId={eventId}
+            updateTodo={updateTodo}
+          />
         </div>
       )}
     </div>
