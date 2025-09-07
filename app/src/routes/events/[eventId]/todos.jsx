@@ -3,7 +3,13 @@ import { EventPage } from "../../../../components/eventPage/EventPage";
 import { KanbanBoard } from "../../../../components/KanbanBoard/KanbanBoard";
 import { useParams } from "react-router-dom";
 import { useTodos } from "../../../../hooks/useTodos";
-import { Button, Input, Typography, useOffcanvas } from "tabler-react-2";
+import {
+  Button,
+  Input,
+  Typography,
+  useOffcanvas,
+  DropdownInput,
+} from "tabler-react-2";
 
 const TITLE_MAP = {
   not_started: "Not Started",
@@ -21,8 +27,16 @@ export const EventTodosPage = () => {
 
   const columns = useMemo(() => {
     const base = {
-      not_started: { id: "not_started", title: TITLE_MAP.not_started, items: [] },
-      in_progress: { id: "in_progress", title: TITLE_MAP.in_progress, items: [] },
+      not_started: {
+        id: "not_started",
+        title: TITLE_MAP.not_started,
+        items: [],
+      },
+      in_progress: {
+        id: "in_progress",
+        title: TITLE_MAP.in_progress,
+        items: [],
+      },
       completed: { id: "completed", title: TITLE_MAP.completed, items: [] },
       cancelled: { id: "cancelled", title: TITLE_MAP.cancelled, items: [] },
     };
@@ -32,7 +46,9 @@ export const EventTodosPage = () => {
       base[key].items.push({
         id: t.id,
         title: t.title,
-        subtitle: t?.comments?.length ? `${t.comments.length} comment${t.comments.length === 1 ? "" : "s"}` : undefined,
+        subtitle: t?.comments?.length
+          ? `${t.comments.length} comment${t.comments.length === 1 ? "" : "s"}`
+          : undefined,
         status: key,
       });
     }
@@ -83,17 +99,22 @@ export default EventTodosPage;
 
 const toServerStatus = (key) => (key || "not_started").toUpperCase();
 
-const TodoCreateForm = ({ initialStatus = "not_started", onCreate, onClose }) => {
+const TodoCreateForm = ({
+  initialStatus = "not_started",
+  onCreate,
+  onClose,
+}) => {
   const [title, setTitle] = useState("");
   const [details, setDetails] = useState("");
   const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState(toServerStatus(initialStatus));
 
   const submit = async () => {
     const t = title.trim();
     if (!t) return;
     setSaving(true);
     try {
-      await onCreate?.({ title: t, content: details || "", status: toServerStatus(initialStatus) });
+      await onCreate?.({ title: t, content: details || "", status });
     } finally {
       setSaving(false);
     }
@@ -103,18 +124,44 @@ const TodoCreateForm = ({ initialStatus = "not_started", onCreate, onClose }) =>
     <div>
       <Typography.H5 className="mb-0 text-secondary">TODO</Typography.H5>
       <Typography.H1>New Todo</Typography.H1>
-
+      <DropdownInput
+        label="Status"
+        items={[
+          {
+            id: "NOT_STARTED",
+            value: "NOT_STARTED",
+            label: TITLE_MAP.not_started,
+          },
+          {
+            id: "IN_PROGRESS",
+            value: "IN_PROGRESS",
+            label: TITLE_MAP.in_progress,
+          },
+          { id: "COMPLETED", value: "COMPLETED", label: TITLE_MAP.completed },
+          { id: "CANCELLED", value: "CANCELLED", label: TITLE_MAP.cancelled },
+        ]}
+        value={status}
+        onChange={(i) => setStatus(i.value)}
+        className="mb-2"
+        required
+        aprops={{ style: { width: "100%", justifyContent: "space-between" } }}
+      />
       <Input
         label="Title"
         placeholder="What needs to be done?"
         value={title}
         onChange={setTitle}
+        required
       />
       <Input
-        label="Details (optional)"
+        label="Details"
         placeholder="Add a short description"
         value={details}
         onChange={setDetails}
+        useTextarea
+        inputProps={{
+          rows: 5,
+        }}
       />
 
       <Button onClick={submit} loading={saving} variant="primary">
