@@ -93,7 +93,11 @@ export const EventTodosPage = () => {
             onItemClick={(item) =>
               offcanvas({
                 content: (
-                  <TodoItemRUD eventId={eventId} todoId={item.id} onClose={close} />
+                  <TodoItemRUD
+                    eventId={eventId}
+                    todoId={item.id}
+                    onClose={close}
+                  />
                 ),
               })
             }
@@ -179,5 +183,3 @@ const TodoCreateForm = ({
     </div>
   );
 };
-
-// TodoDetailsPanel moved to components/TodoItemRUD/TodoItemRUD.jsx

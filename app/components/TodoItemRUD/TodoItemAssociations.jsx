@@ -3,6 +3,7 @@ import { Button, Typography, Input, useOffcanvas } from "tabler-react-2";
 import { useFormResponses } from "../../hooks/useFormResponses";
 import { Row } from "../../util/Flex";
 import { Loading } from "../loading/Loading";
+import { FormResponseRUD } from "../formResponseRUD/FormResponseRUD";
 // import { EntitySelector } from "../EntitySelector/EntitySelector";
 
 /**
@@ -42,6 +43,14 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
     close: closeSelectorPanel,
   } = useOffcanvas({
     offcanvasProps: { position: "end", size: 450, zIndex: 1052 },
+  });
+
+  // Offcanvas for viewing a volunteer's full response
+  const {
+    offcanvas: openViewerPanel,
+    OffcanvasElement: ViewerOffcanvasElement,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 450, zIndex: 1051 },
   });
 
   // Keep selection in sync when todo prop changes
@@ -223,6 +232,18 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
                   </div>
                   <Button
                     outline
+                    className="me-1"
+                    onClick={() =>
+                      openViewerPanel({
+                        content: <FormResponseRUD id={v.id} />,
+                      })
+                    }
+                    size="sm"
+                  >
+                    View
+                  </Button>
+                  <Button
+                    outline
                     variant="danger"
                     onClick={async () => {
                       const current = (todo?.VolunteerRegistration || []).map(
@@ -243,6 +264,7 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
       </div>
 
       {SelectorOffcanvasElement}
+      {ViewerOffcanvasElement}
     </div>
   );
 };
