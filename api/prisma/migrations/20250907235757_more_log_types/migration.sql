@@ -1,0 +1,18 @@
+-- AlterEnum
+-- This migration adds more than one value to an enum.
+-- With PostgreSQL versions 11 and earlier, this is not possible
+-- in a single migration. This can be worked around by creating
+-- multiple migrations, each migration adding only one value to
+-- the enum.
+
+
+ALTER TYPE "LogType" ADD VALUE 'TODO_ITEM_VOLUNTEER_CONNECTED';
+ALTER TYPE "LogType" ADD VALUE 'TODO_ITEM_VOLUNTEER_DISCONNECTED';
+ALTER TYPE "LogType" ADD VALUE 'TODO_ITEM_PARTICIPANT_CONNECTED';
+ALTER TYPE "LogType" ADD VALUE 'TODO_ITEM_PARTICIPANT_DISCONNECTED';
+ALTER TYPE "LogType" ADD VALUE 'TODO_ITEM_SESSION_CONNECTED';
+ALTER TYPE "LogType" ADD VALUE 'TODO_ITEM_SESSION_DISCONNECTED';
+ALTER TYPE "LogType" ADD VALUE 'TODO_ITEM_CONVERSATION_CONNECTED';
+ALTER TYPE "LogType" ADD VALUE 'TODO_ITEM_CONVERSATION_DISCONNECTED';
+ALTER TYPE "LogType" ADD VALUE 'TODO_ITEM_CRM_PERSON_CONNECTED';
+ALTER TYPE "LogType" ADD VALUE 'TODO_ITEM_CRM_PERSON_DISCONNECTED';

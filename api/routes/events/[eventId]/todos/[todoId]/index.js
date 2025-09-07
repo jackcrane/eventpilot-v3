@@ -46,6 +46,9 @@ export const put = [
           eventId: req.params.eventId,
           deleted: false,
         },
+        include: {
+          VolunteerRegistration: { select: { id: true } },
+        },
       });
       if (!existing) return res.status(404).json({ message: "Not found" });
 
@@ -58,15 +61,62 @@ export const put = [
       // Determine if status actually changes
       const statusChanged =
         typeof data.status !== "undefined" && data.status !== existing.status;
-      // Determine if there are any non-status updates being requested
-      const hasNonStatusChanges =
+      // Determine specific changes
+      const hasFieldChanges =
         typeof data.title !== "undefined" ||
-        typeof data.content !== "undefined" ||
-        Array.isArray(data.volunteerRegistrationIds) ||
+        typeof data.content !== "undefined";
+
+      // Compute volunteer connect/disconnect diffs if provided
+      const oldVolunteerIds = (existing.VolunteerRegistration || []).map(
+        (v) => v.id
+      );
+      const newVolunteerIds = Array.isArray(data.volunteerRegistrationIds)
+        ? data.volunteerRegistrationIds
+        : undefined;
+      const volunteersConnected = Array.isArray(newVolunteerIds)
+        ? newVolunteerIds.filter((id) => !oldVolunteerIds.includes(id))
+        : [];
+      const volunteersDisconnected = Array.isArray(newVolunteerIds)
+        ? oldVolunteerIds.filter((id) => !newVolunteerIds.includes(id))
+        : [];
+      const hasVolunteerChanges =
+        volunteersConnected.length > 0 || volunteersDisconnected.length > 0;
+
+      // Other association changes (keep generic UPDATED log for these)
+      const hasOtherAssociationChanges =
         Array.isArray(data.participantRegistrationIds) ||
         Array.isArray(data.sessionIds) ||
         Array.isArray(data.conversationIds) ||
         Array.isArray(data.crmPersonIds);
+
+      // Build logs array explicitly
+      const logsToCreate = [];
+      if (hasFieldChanges || hasOtherAssociationChanges) {
+        logsToCreate.push({
+          type: LogType.TODO_ITEM_UPDATED,
+          userId: req.user.id,
+          ip: req.ip || req.headers["x-forwarded-for"],
+          data,
+        });
+      }
+      if (hasVolunteerChanges) {
+        if (volunteersConnected.length > 0) {
+          logsToCreate.push({
+            type: LogType.TODO_ITEM_VOLUNTEER_CONNECTED,
+            userId: req.user.id,
+            ip: req.ip || req.headers["x-forwarded-for"],
+            data: { volunteerRegistrationIds: volunteersConnected },
+          });
+        }
+        if (volunteersDisconnected.length > 0) {
+          logsToCreate.push({
+            type: LogType.TODO_ITEM_VOLUNTEER_DISCONNECTED,
+            userId: req.user.id,
+            ip: req.ip || req.headers["x-forwarded-for"],
+            data: { volunteerRegistrationIds: volunteersDisconnected },
+          });
+        }
+      }
 
       // Build update data explicitly to support M:N set operations
       const updateData = {
@@ -104,20 +154,11 @@ export const put = [
               },
             }
           : {}),
-        // Only log a generic UPDATE if fields other than status changed.
-        // If the only change is status, log just the STATUS_CHANGED entry.
+        // Only log a generic UPDATED for field/other association changes.
+        // For volunteer diffs, emit specific CONNECTED/DISCONNECTED entries.
         logs: {
           create: [
-            ...(hasNonStatusChanges
-              ? [
-                  {
-                    type: LogType.TODO_ITEM_UPDATED,
-                    userId: req.user.id,
-                    ip: req.ip || req.headers["x-forwarded-for"],
-                    data,
-                  },
-                ]
-              : []),
+            ...logsToCreate,
             ...(statusChanged
               ? [
                   {
