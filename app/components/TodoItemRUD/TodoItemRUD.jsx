@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Typography, Button, DropdownInput, Util } from "tabler-react-2";
+import {
+  Typography,
+  Button,
+  DropdownInput,
+  Util,
+  SegmentedControl,
+} from "tabler-react-2";
 import { Input } from "tabler-react-2";
 import { Row } from "../../util/Flex";
 import { Icon } from "../../util/Icon";
@@ -18,6 +24,17 @@ const TITLE_MAP = {
   cancelled: "Cancelled",
 };
 
+const humanizeStatus = (s) => {
+  if (!s) return "";
+  const map = {
+    NOT_STARTED: TITLE_MAP.not_started,
+    IN_PROGRESS: TITLE_MAP.in_progress,
+    COMPLETED: TITLE_MAP.completed,
+    CANCELLED: TITLE_MAP.cancelled,
+  };
+  return map[s] || s;
+};
+
 export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
   const { todo, loading, updateTodo, deleteTodo, mutationLoading } = useTodo({
     eventId,
@@ -30,6 +47,7 @@ export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
   const [status, setStatus] = useState("NOT_STARTED");
   const [commentText, setCommentText] = useState("");
   const [pendingFiles, setPendingFiles] = useState([]); // { fileId, url }
+  const [tab, setTab] = useState("comments");
 
   const { upload, loading: uploading } = useFileUploader("/api/file", {
     onSuccessfulUpload: (data) => {
@@ -64,6 +82,87 @@ export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
     if (ok) {
       setCommentText("");
       setPendingFiles([]);
+    }
+  };
+
+  const mapLogToTimelineEvent = (log) => {
+    const common = {
+      time: moment(log.createdAt).format(DATETIME_FORMAT),
+    };
+    switch (log.type) {
+      case "TODO_ITEM_CREATED":
+        return {
+          title: "Created",
+          description: (
+            <Typography.Text className="mb-0">
+              Todo was created.
+            </Typography.Text>
+          ),
+          icon: <Icon i="plus" />,
+          iconBgColor: "green",
+          ...common,
+        };
+      case "TODO_ITEM_UPDATED":
+        return {
+          title: "Updated",
+          description: (
+            <Typography.Text className="mb-0">
+              Todo was updated.
+            </Typography.Text>
+          ),
+          icon: <Icon i="pencil" />,
+          iconBgColor: "blue",
+          ...common,
+        };
+      case "TODO_ITEM_STATUS_CHANGED": {
+        const from = log?.data?.from || "";
+        const to = log?.data?.to || "";
+        return {
+          title: "Status changed",
+          description: (
+            <Typography.Text className="mb-0">
+              {humanizeStatus(from)} → {humanizeStatus(to)}
+            </Typography.Text>
+          ),
+          icon: <Icon i="arrows-exchange" />,
+          iconBgColor: "yellow",
+          ...common,
+        };
+      }
+      case "TODO_ITEM_COMMENT_CREATED":
+        return {
+          title: "Comment added",
+          description: (
+            <Typography.Text className="mb-0">
+              A comment was added.
+            </Typography.Text>
+          ),
+          icon: <Icon i="notes" />,
+          iconBgColor: "green",
+          ...common,
+        };
+      case "TODO_ITEM_DELETED":
+        return {
+          title: "Deleted",
+          description: (
+            <Typography.Text className="mb-0">
+              Todo was deleted.
+            </Typography.Text>
+          ),
+          icon: <Icon i="trash" />,
+          iconBgColor: "red",
+          ...common,
+        };
+      default:
+        return {
+          title: log.type,
+          description: (
+            <Typography.Text className="mb-0">Event occurred.</Typography.Text>
+          ),
+          icon: <Icon i="info-circle" />,
+          iconBgColor: "gray",
+          ...common,
+        };
     }
   };
 
@@ -123,120 +222,218 @@ export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
         inputProps={{ rows: 6 }}
       />
 
-      <Typography.H3 className="mt-3">Comments</Typography.H3>
-      <div className="card p-2 mb-2">
-        <label className="form-label">Comment</label>
-        <textarea
-          className="form-control mb-2"
-          placeholder="Type your comment"
-          value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-          rows={3}
+      <div className="mt-3 mb-3">
+        <SegmentedControl
+          value={tab}
+          onChange={(e) => setTab(e.id)}
+          items={[
+            { id: "comments", label: "Comments" },
+            { id: "logs", label: "Logs" },
+            { id: "associations", label: "Associations" },
+          ]}
         />
-        {pendingFiles.length > 0 && (
-          <Row
-            gap={0.5}
-            align="center"
-            className="mb-2"
-            style={{ flexWrap: "wrap" }}
-          >
-            {pendingFiles.map((f) => (
-              <a
-                key={f.fileId}
-                href={f.url}
-                target="_blank"
-                rel="noreferrer"
-                className="badge bg-secondary-lt"
-                style={{ textDecoration: "none" }}
-              >
-                <Icon i="paperclip" />
-                <span style={{ marginLeft: 6 }}>Attachment</span>
-              </a>
-            ))}
-          </Row>
-        )}
-        <Row gap={0.5} align="center" justify="between">
-          <Row gap={0.5} align="center">
-            <label className="btn">
-              <Icon i="paperclip" /> Attach files
-              <input
-                type="file"
-                multiple
-                onChange={async (e) => {
-                  const files = Array.from(e.target.files || []);
-                  for (const file of files) {
-                    await upload([file]);
-                  }
-                  e.target.value = ""; // reset input
-                }}
-                style={{ display: "none" }}
-              />
-            </label>
-          </Row>
-          <Button
-            onClick={submitComment}
-            disabled={!commentText.trim() && pendingFiles.length === 0}
-            loading={uploading}
-          >
-            Post
-          </Button>
-        </Row>
       </div>
 
-      <Util.Hr text="Timeline" />
-      <div>
-        {comments.length === 0 ? (
-          <Typography.Text className="text-muted">
-            No comments yet.
-          </Typography.Text>
-        ) : (
-          <Timeline
-            dense
-            events={comments.map((c) => ({
-              title: "Comment",
-              description: (
-                <div>
-                  {c.text && (
-                    <Typography.Text className="mb-1">{c.text}</Typography.Text>
-                  )}
-                  {Array.isArray(c.files) && c.files.length > 0 && (
+      {tab === "comments" && (
+        <div>
+          <div className="card p-2 mb-2">
+            <label className="form-label">Comment</label>
+            <textarea
+              className="form-control mb-2"
+              placeholder="Type your comment"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              rows={3}
+            />
+            {pendingFiles.length > 0 && (
+              <Row
+                gap={0.5}
+                align="center"
+                className="mb-2"
+                style={{ flexWrap: "wrap" }}
+              >
+                {pendingFiles.map((f) => (
+                  <a
+                    key={f.fileId}
+                    href={f.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="badge bg-secondary-lt"
+                    style={{ textDecoration: "none" }}
+                  >
+                    <Icon i="paperclip" />
+                    <span style={{ marginLeft: 6 }}>Attachment</span>
+                  </a>
+                ))}
+              </Row>
+            )}
+            <Row gap={0.5} align="center" justify="between">
+              <Row gap={0.5} align="center">
+                <label className="btn">
+                  <Icon i="paperclip" /> Attach files
+                  <input
+                    type="file"
+                    multiple
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files || []);
+                      for (const file of files) {
+                        await upload([file]);
+                      }
+                      e.target.value = ""; // reset input
+                    }}
+                    style={{ display: "none" }}
+                  />
+                </label>
+              </Row>
+              <Button
+                onClick={submitComment}
+                disabled={!commentText.trim() && pendingFiles.length === 0}
+                loading={uploading}
+              >
+                Post
+              </Button>
+            </Row>
+          </div>
+
+          <Util.Hr text="Comments" />
+          <div>
+            {comments.length === 0 ? (
+              <Typography.Text className="text-muted">
+                No comments yet.
+              </Typography.Text>
+            ) : (
+              <Timeline
+                dense
+                events={comments.map((c) => ({
+                  title: "Comment",
+                  description: (
                     <div>
-                      {c.files.map((f) => (
-                        <div key={f.id} style={{ marginTop: 6 }}>
-                          {isImage(f.mimetype) && (
-                            <img
-                              src={f.location}
-                              alt={f.originalname}
-                              style={{ maxWidth: 300, maxHeight: 150 }}
-                              className="mb-1"
-                            />
-                          )}
-                          <Row gap={0.5} align="flex-start">
-                            <Icon i="download" />
-                            <a
-                              href={f.location}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              {f.originalname} ({f.mimetype})
-                            </a>
-                          </Row>
+                      {c.text && (
+                        <Typography.Text className="mb-1">
+                          {c.text}
+                        </Typography.Text>
+                      )}
+                      {Array.isArray(c.files) && c.files.length > 0 && (
+                        <div>
+                          {c.files.map((f) => (
+                            <div key={f.id} style={{ marginTop: 6 }}>
+                              {isImage(f.mimetype) && (
+                                <img
+                                  src={f.location}
+                                  alt={f.originalname}
+                                  style={{ maxWidth: 300, maxHeight: 150 }}
+                                  className="mb-1"
+                                />
+                              )}
+                              <Row gap={0.5} align="flex-start">
+                                <Icon i="download" />
+                                <a
+                                  href={f.location}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  {f.originalname} ({f.mimetype})
+                                </a>
+                              </Row>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
-                </div>
-              ),
-              time: moment(c.createdAt).format(DATETIME_FORMAT),
-              icon: <Icon i="notes" />,
-              iconBgColor: "green",
-            }))}
-          />
-        )}
-      </div>
+                  ),
+                  time: moment(c.createdAt).format(DATETIME_FORMAT),
+                  icon: <Icon i="notes" />,
+                  iconBgColor: "green",
+                }))}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === "logs" && (
+        <div>
+          <Util.Hr text="Logs" />
+          {!todo?.logs || todo.logs.length === 0 ? (
+            <Typography.Text className="text-muted">
+              No logs yet.
+            </Typography.Text>
+          ) : (
+            <Timeline
+              dense
+              events={todo.logs.map((l) => mapLogToTimelineEvent(l))}
+            />
+          )}
+        </div>
+      )}
+
+      {tab === "associations" && (
+        <div>
+          <Util.Hr text="Associations" />
+          <div className="card p-2">
+            <div className="mb-2">
+              <Typography.B className="mb-0">Conversation</Typography.B>
+              <div>
+                {todo?.conversationId ? (
+                  <a
+                    href={`/events/${eventId}/conversations/${todo.conversationId}`}
+                    className="text-primary"
+                  >
+                    Open conversation
+                  </a>
+                ) : (
+                  <Typography.Text className="text-muted">None</Typography.Text>
+                )}
+              </div>
+            </div>
+            <div className="mb-2">
+              <Typography.B className="mb-0">Session</Typography.B>
+              <div>
+                {todo?.sessionId ? (
+                  <a
+                    href={`/events/${eventId}/session/${todo.sessionId}`}
+                    className="text-primary"
+                  >
+                    Open session
+                  </a>
+                ) : (
+                  <Typography.Text className="text-muted">None</Typography.Text>
+                )}
+              </div>
+            </div>
+            <div className="mb-2">
+              <Typography.B className="mb-0">
+                Participant Registration
+              </Typography.B>
+              <div>
+                {todo?.participantRegistrationId ? (
+                  <Typography.Text className="mb-0">
+                    ID: {todo.participantRegistrationId}
+                  </Typography.Text>
+                ) : (
+                  <Typography.Text className="text-muted">None</Typography.Text>
+                )}
+              </div>
+            </div>
+            <div className="mb-0">
+              <Typography.B className="mb-0">
+                Volunteer Registration
+              </Typography.B>
+              <div>
+                {todo?.volunteerRegistrationId ? (
+                  <Typography.Text className="mb-0">
+                    ID: {todo.volunteerRegistrationId}
+                  </Typography.Text>
+                ) : (
+                  <Typography.Text className="text-muted">None</Typography.Text>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default TodoItemRUD;
-
