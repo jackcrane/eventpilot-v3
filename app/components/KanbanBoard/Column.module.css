@@ -1,0 +1,40 @@
+.column {
+  min-width: 280px;
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  color: #111827;
+  padding: 4px 6px 8px;
+}
+
+.title {
+  font-size: 14px;
+}
+
+.count {
+  background: #e5e7eb;
+  color: #374151;
+  border-radius: 9999px;
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+.droppable {
+  min-height: 120px;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background-color 120ms ease;
+}
+
+.droppable[data-over="true"] {
+  background: #eef2ff;
+}
+
