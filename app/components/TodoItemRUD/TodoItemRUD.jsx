@@ -16,6 +16,8 @@ import { Timeline } from "tabler-react-2";
 import moment from "moment";
 import { DATETIME_FORMAT } from "../../util/Constants";
 import { isImage } from "../../util/isImage";
+import LogViewer from "../logTimeline/LogViewer";
+import { TodoItemAssociations } from "./TodoItemAssociations";
 
 const TITLE_MAP = {
   not_started: "Not Started",
@@ -24,16 +26,6 @@ const TITLE_MAP = {
   cancelled: "Cancelled",
 };
 
-const humanizeStatus = (s) => {
-  if (!s) return "";
-  const map = {
-    NOT_STARTED: TITLE_MAP.not_started,
-    IN_PROGRESS: TITLE_MAP.in_progress,
-    COMPLETED: TITLE_MAP.completed,
-    CANCELLED: TITLE_MAP.cancelled,
-  };
-  return map[s] || s;
-};
 
 export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
   const { todo, loading, updateTodo, deleteTodo, mutationLoading } = useTodo({
@@ -85,86 +77,7 @@ export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
     }
   };
 
-  const mapLogToTimelineEvent = (log) => {
-    const common = {
-      time: moment(log.createdAt).format(DATETIME_FORMAT),
-    };
-    switch (log.type) {
-      case "TODO_ITEM_CREATED":
-        return {
-          title: "Created",
-          description: (
-            <Typography.Text className="mb-0">
-              Todo was created.
-            </Typography.Text>
-          ),
-          icon: <Icon i="plus" />,
-          iconBgColor: "green",
-          ...common,
-        };
-      case "TODO_ITEM_UPDATED":
-        return {
-          title: "Updated",
-          description: (
-            <Typography.Text className="mb-0">
-              Todo was updated.
-            </Typography.Text>
-          ),
-          icon: <Icon i="pencil" />,
-          iconBgColor: "blue",
-          ...common,
-        };
-      case "TODO_ITEM_STATUS_CHANGED": {
-        const from = log?.data?.from || "";
-        const to = log?.data?.to || "";
-        return {
-          title: "Status changed",
-          description: (
-            <Typography.Text className="mb-0">
-              {humanizeStatus(from)} → {humanizeStatus(to)}
-            </Typography.Text>
-          ),
-          icon: <Icon i="arrows-exchange" />,
-          iconBgColor: "yellow",
-          ...common,
-        };
-      }
-      case "TODO_ITEM_COMMENT_CREATED":
-        return {
-          title: "Comment added",
-          description: (
-            <Typography.Text className="mb-0">
-              A comment was added.
-            </Typography.Text>
-          ),
-          icon: <Icon i="notes" />,
-          iconBgColor: "green",
-          ...common,
-        };
-      case "TODO_ITEM_DELETED":
-        return {
-          title: "Deleted",
-          description: (
-            <Typography.Text className="mb-0">
-              Todo was deleted.
-            </Typography.Text>
-          ),
-          icon: <Icon i="trash" />,
-          iconBgColor: "red",
-          ...common,
-        };
-      default:
-        return {
-          title: log.type,
-          description: (
-            <Typography.Text className="mb-0">Event occurred.</Typography.Text>
-          ),
-          icon: <Icon i="info-circle" />,
-          iconBgColor: "gray",
-          ...common,
-        };
-    }
-  };
+  
 
   if (loading) return <div style={{ padding: 16 }}>Loading...</div>;
   if (!todo) return <div style={{ padding: 16 }}>Not found</div>;
@@ -355,14 +268,9 @@ export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
         <div>
           <Util.Hr text="Logs" />
           {!todo?.logs || todo.logs.length === 0 ? (
-            <Typography.Text className="text-muted">
-              No logs yet.
-            </Typography.Text>
+            <Typography.Text className="text-muted">No logs yet.</Typography.Text>
           ) : (
-            <Timeline
-              dense
-              events={todo.logs.map((l) => mapLogToTimelineEvent(l))}
-            />
+            <LogViewer logs={todo.logs} dense />
           )}
         </div>
       )}
@@ -370,66 +278,7 @@ export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
       {tab === "associations" && (
         <div>
           <Util.Hr text="Associations" />
-          <div className="card p-2">
-            <div className="mb-2">
-              <Typography.B className="mb-0">Conversation</Typography.B>
-              <div>
-                {todo?.conversationId ? (
-                  <a
-                    href={`/events/${eventId}/conversations/${todo.conversationId}`}
-                    className="text-primary"
-                  >
-                    Open conversation
-                  </a>
-                ) : (
-                  <Typography.Text className="text-muted">None</Typography.Text>
-                )}
-              </div>
-            </div>
-            <div className="mb-2">
-              <Typography.B className="mb-0">Session</Typography.B>
-              <div>
-                {todo?.sessionId ? (
-                  <a
-                    href={`/events/${eventId}/session/${todo.sessionId}`}
-                    className="text-primary"
-                  >
-                    Open session
-                  </a>
-                ) : (
-                  <Typography.Text className="text-muted">None</Typography.Text>
-                )}
-              </div>
-            </div>
-            <div className="mb-2">
-              <Typography.B className="mb-0">
-                Participant Registration
-              </Typography.B>
-              <div>
-                {todo?.participantRegistrationId ? (
-                  <Typography.Text className="mb-0">
-                    ID: {todo.participantRegistrationId}
-                  </Typography.Text>
-                ) : (
-                  <Typography.Text className="text-muted">None</Typography.Text>
-                )}
-              </div>
-            </div>
-            <div className="mb-0">
-              <Typography.B className="mb-0">
-                Volunteer Registration
-              </Typography.B>
-              <div>
-                {todo?.volunteerRegistrationId ? (
-                  <Typography.Text className="mb-0">
-                    ID: {todo.volunteerRegistrationId}
-                  </Typography.Text>
-                ) : (
-                  <Typography.Text className="text-muted">None</Typography.Text>
-                )}
-              </div>
-            </div>
-          </div>
+          <TodoItemAssociations todo={todo} eventId={eventId} />
         </div>
       )}
     </div>

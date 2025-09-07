@@ -7,3 +7,8 @@ export { CrmFileNoteCreated } from "./CrmFileNoteCreated";
 export { CrmPersonModified } from "./CrmPersonModified";
 export { EmailWebhookReceived } from "./EmailWebhookReceived";
 export { CrmPersonCreated } from "./CrmPersonCreated";
+export { TodoItemCreated } from "./TodoItemCreated";
+export { TodoItemUpdated } from "./TodoItemUpdated";
+export { TodoItemDeleted } from "./TodoItemDeleted";
+export { TodoItemCommentCreated } from "./TodoItemCommentCreated";
+export { TodoItemStatusChanged } from "./TodoItemStatusChanged";
