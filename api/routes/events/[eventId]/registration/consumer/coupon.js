@@ -124,7 +124,10 @@ export const post = [
         total,
         event,
         registrationId,
-        instanceId
+        instanceId,
+        undefined,
+        undefined,
+        baseTotal
       );
 
       return res.json({
@@ -219,7 +222,10 @@ export const del = [
         total,
         event,
         registrationId,
-        instanceId
+        instanceId,
+        undefined,
+        undefined,
+        baseTotal
       );
 
       return res.json({

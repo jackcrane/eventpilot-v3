@@ -49,7 +49,8 @@ export const registrationRequiresPayment = async (
       registrationId,
       instanceId,
       participantName,
-      participantEmail
+      participantEmail,
+      baseTotal
     );
     return [true, stripePIClientSecret, total];
   }
@@ -59,12 +60,13 @@ export const registrationRequiresPayment = async (
 };
 
 export const setupStripePI = async (
-  price,
+  price, // fee-inclusive amount (display/gross)
   event,
   registrationId,
   instanceId,
   participantName,
-  participantEmail
+  participantEmail,
+  baseTotal // pre-fee amount (what org should net before Stripe deducts)
 ) => {
   // Attempt to associate a Stripe Customer in the event's connected account
   let customerId = null;
@@ -117,6 +119,7 @@ export const setupStripePI = async (
         scope: "EVENTPILOT:REGISTRATION",
         registrationId,
         instanceId,
+        baseTotal: typeof baseTotal === "number" ? String(baseTotal) : undefined,
       },
     },
     {

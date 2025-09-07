@@ -230,7 +230,32 @@ export const post = [
 
           if (scope === "EVENTPILOT:REGISTRATION") {
             const { eventId, registrationId, instanceId } = metadata;
-            const receiptUrl = paymentIntent.charges.data[0].receipt_url;
+            const charge = paymentIntent.charges.data[0];
+            const receiptUrl = charge?.receipt_url;
+
+            // Determine net amount credited to the connected account (exclude Stripe fees)
+            let netAmount = paymentIntent.amount / 100;
+            try {
+              const eventRecord = await prisma.event.findUnique({ where: { id: eventId } });
+              const connectedAccount = eventRecord?.stripeConnectedAccountId || undefined;
+              const balanceTxId = charge?.balance_transaction;
+              if (balanceTxId && connectedAccount) {
+                const bt = await stripe.balanceTransactions.retrieve(balanceTxId, {
+                  stripeAccount: connectedAccount,
+                });
+                if (bt && typeof bt.net === "number") {
+                  netAmount = bt.net / 100; // cents to dollars
+                }
+              }
+            } catch (e) {
+              // Fallback: Try metadata baseTotal if present; otherwise use gross
+              const baseMeta = parseFloat(paymentIntent.metadata?.baseTotal);
+              if (!Number.isNaN(baseMeta) && baseMeta >= 0) {
+                netAmount = baseMeta;
+              } else {
+                console.warn("[STRIPE] Failed to retrieve balance transaction for net amount; falling back to gross", e);
+              }
+            }
 
             const instance = await prisma.eventInstance.findUnique({
               where: {
@@ -249,7 +274,7 @@ export const post = [
               eventId,
               instanceId: instance.id,
               registrationId,
-              amount: paymentIntent.amount / 100,
+              amount: netAmount,
               stripe_paymentIntentId: paymentIntent.id,
               crmPersonId,
             });
