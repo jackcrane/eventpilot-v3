@@ -68,8 +68,9 @@ model Conversation {
   logs           Logs[]
   participants   CrmPerson[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  TodoItem  TodoItem[]
 }
 
 model InboundEmail {
@@ -279,8 +280,10 @@ model File {
   inboundEmailAttachment   InboundEmailAttachment? @relation("FileAttachment")
   inboundEmailAttachmentId String?                 @unique
 
-  logs         Logs[]
-  SessionChunk SessionChunk[]
+  logs              Logs[]
+  SessionChunk      SessionChunk[]
+  TodoItemComment   TodoItemComment? @relation(fields: [todoItemCommentId], references: [id])
+  todoItemCommentId String?
 }
 
 /// Records rrweb consumer session captures and associations
@@ -292,7 +295,6 @@ model Session {
 
   instanceId String?
   instance   EventInstance? @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
 
   // Optional links to created records
   registrationId          String?
@@ -320,6 +322,7 @@ model Session {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   SessionChunk SessionChunk[]
+  TodoItem     TodoItem[]
 
   @@index([eventId, instanceId])
   @@index([registrationId])
@@ -620,9 +623,10 @@ model VolunteerRegistration {
   instanceId String
   instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
-  logs    Logs[]
-  shifts  VolunteerShiftSignup[]
-  Session Session[]
+  logs     Logs[]
+  shifts   VolunteerShiftSignup[]
+  Session  Session[]
+  TodoItem TodoItem[]
 
   @@map("FormResponse")
 }
@@ -1111,6 +1115,7 @@ model Registration {
 
   ledgerItems LedgerItem[]
   Session     Session[]
+  TodoItem    TodoItem[]
 }
 
 model RegistrationUpsell {
@@ -1302,8 +1307,10 @@ model Logs {
   ip   String?
   data Json?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  TodoItem   TodoItem? @relation(fields: [todoItemId], references: [id])
+  todoItemId String?
 }
 
 /// Saved CRM AI segment (prompt + AST), per event
@@ -1363,6 +1370,52 @@ model Configuration {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model TodoItem {
+  id      String         @id @default(cuid())
+  title   String
+  content String
+  status  TodoItemStatus @default(NOT_STARTED)
+
+  comments TodoItemComment[]
+  logs     Logs[]
+
+  volunteerRegistrationId String?
+  volunteerRegistration   VolunteerRegistration? @relation(fields: [volunteerRegistrationId], references: [id], onDelete: Cascade)
+
+  participantRegistrationId String?
+  participantRegistration   Registration? @relation(fields: [participantRegistrationId], references: [id], onDelete: Cascade)
+
+  sessionId String?
+  session   Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TodoItemComment {
+  id String @id @default(cuid())
+
+  todoItemId String
+  todoItem   TodoItem @relation(fields: [todoItemId], references: [id], onDelete: Cascade)
+
+  text String
+
+  files File[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TodoItemStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
 
 // LogTypes are in form NOUN_VERB
@@ -1447,4 +1500,9 @@ enum LogType {
   INSTANCE_DELETED
   CRM_NOTE_CREATED
   CRM_FILE_NOTE_CREATED
+  TODO_ITEM_CREATED
+  TODO_ITEM_UPDATED
+  TODO_ITEM_DELETED
+  TODO_ITEM_COMMENT_CREATED
+  TODO_ITEM_STATUS_CHANGED
 }
