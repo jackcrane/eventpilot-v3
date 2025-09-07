@@ -20,7 +20,9 @@ export const get = [
             include: { files: true },
             orderBy: { createdAt: "desc" },
           },
-          logs: true,
+          logs: {
+            orderBy: { createdAt: "desc" },
+          },
         },
       });
 
@@ -90,7 +92,9 @@ export const put = [
             include: { files: true },
             orderBy: { createdAt: "desc" },
           },
-          logs: true,
+          logs: {
+            orderBy: { createdAt: "desc" },
+          },
         },
       });
 
