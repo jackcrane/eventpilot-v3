@@ -19,6 +19,12 @@
   padding: 4px 6px 8px;
 }
 
+.titleWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .title {
   font-size: 14px;
 }

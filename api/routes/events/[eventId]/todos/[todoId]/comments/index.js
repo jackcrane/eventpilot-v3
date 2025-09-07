@@ -4,10 +4,15 @@ import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { LogType } from "@prisma/client";
 
-const commentSchema = z.object({
-  text: z.string().min(1),
-  fileIds: z.array(z.string()).optional().default([]),
-});
+// Allow either text OR at least one file
+const commentSchema = z
+  .object({
+    text: z.string().optional().default(""),
+    fileIds: z.array(z.string()).optional().default([]),
+  })
+  .refine((d) => d.text.trim().length > 0 || (Array.isArray(d.fileIds) && d.fileIds.length > 0), {
+    message: "Comment must include text or at least one file",
+  });
 
 export const get = [
   verifyAuth(["manager"]),
@@ -46,7 +51,7 @@ export const post = [
         return res.status(400).json({ message: serializeError(parsed) });
       }
 
-      const { text, fileIds = [] } = parsed.data;
+      const { text = "", fileIds = [] } = parsed.data;
 
       const comment = await prisma.todoItemComment.create({
         data: {

@@ -56,33 +56,31 @@ export const useTodos = ({ eventId }) => {
 
   const updateTodo = async (todoId, _data) => {
     if (!todoId || !eventId) return false;
+
+    // Optimistic update of the list cache
+    const listKey = key;
+    const url = `/api/events/${eventId}/todos/${todoId}`;
+    const prevTodos = data?.todos || [];
+    const nextTodos = prevTodos.map((t) => (t.id === todoId ? { ...t, ..._data } : t));
+
+    // Apply optimistic state
+    await mutate(listKey, { todos: nextTodos }, false);
+
     try {
-      const parsed = schema ? schema.safeParse(_data) : { success: true, data: _data };
-      if (!parsed.success) {
-        toast.error("Validation error");
-        return false;
-      }
+      const r = await authFetch(url, { method: "PUT", body: JSON.stringify(_data) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j?.message || "Request failed");
 
-      const url = `/api/events/${eventId}/todos/${todoId}`;
-      const promise = authFetch(url, {
-        method: "PUT",
-        body: JSON.stringify(parsed.data),
-      }).then(async (r) => {
-        const j = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(j?.message || "Request failed");
-        return j; // { todo }
-      });
+      // Update detail cache if requested elsewhere; succeed silently
+      if (j?.todo) await mutate(url, j, false);
 
-      await toast.promise(promise, {
-        loading: "Updating...",
-        success: "Updated",
-        error: (e) => e?.message || "Error",
-      });
-
-      await refetch();
-      await mutate(url);
+      // Revalidate list to ensure consistency
+      await mutate(listKey);
       return true;
     } catch (e) {
+      // Rollback on error
+      await mutate(listKey, { todos: prevTodos }, false);
+      toast.error(e?.message || "Update failed");
       return false;
     }
   };

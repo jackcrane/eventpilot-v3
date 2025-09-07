@@ -3,7 +3,7 @@ import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { LogType } from "@prisma/client";
 import { zerialize } from "zodex";
-import { todoSchema as todoUpdateSchema } from "../index.js";
+import { todoUpdateSchema } from "../index.js";
 
 export const get = [
   verifyAuth(["manager"]),

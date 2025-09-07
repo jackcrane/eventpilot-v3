@@ -7,7 +7,7 @@ import { initialColumns as demoColumns, COLUMN_ORDER } from "./kanbanData";
 // Public component: <KanbanBoard />
 // - Scaffolds 4 columns with drag-and-drop
 // - Not connected to data yet; uses local state
-export const KanbanBoard = ({ initialColumns, onChange, onMove, onAdd }) => {
+export const KanbanBoard = ({ initialColumns, onChange, onMove, onAdd, onItemClick }) => {
   const [columns, setColumns] = useState(
     () => initialColumns || demoColumns
   );
@@ -61,6 +61,7 @@ export const KanbanBoard = ({ initialColumns, onChange, onMove, onAdd }) => {
               column={columns[id]}
               count={counts[id] || 0}
               onAdd={onAdd}
+              onItemClick={onItemClick}
             />
           ))}
         </div>

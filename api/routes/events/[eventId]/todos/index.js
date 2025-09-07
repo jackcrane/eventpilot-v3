@@ -5,13 +5,25 @@ import { z } from "zod";
 import { LogType, TodoItemStatus } from "@prisma/client";
 import { zerialize } from "zodex";
 
-// Shared schema for creating/updating a todo item
-export const todoSchema = z.object({
+// Create schema: used for POST on collection
+export const todoCreateSchema = z.object({
   title: z.string().min(1),
   content: z.string().optional().default(""),
   status: z.nativeEnum(TodoItemStatus).optional(),
 
   // Optional links to other resources
+  volunteerRegistrationId: z.string().optional().nullable(),
+  participantRegistrationId: z.string().optional().nullable(),
+  sessionId: z.string().optional().nullable(),
+  conversationId: z.string().optional().nullable(),
+});
+
+// Update schema: all fields optional, no defaults applied to avoid unintended overwrites
+export const todoUpdateSchema = z.object({
+  title: z.string().min(1).optional(),
+  content: z.string().optional(),
+  status: z.nativeEnum(TodoItemStatus).optional(),
+
   volunteerRegistrationId: z.string().optional().nullable(),
   participantRegistrationId: z.string().optional().nullable(),
   sessionId: z.string().optional().nullable(),
@@ -47,7 +59,7 @@ export const post = [
   verifyAuth(["manager"]),
   async (req, res) => {
     try {
-      const parsed = todoSchema.safeParse(req.body);
+      const parsed = todoCreateSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ message: serializeError(parsed) });
       }
@@ -96,6 +108,6 @@ export const post = [
 
 export const query = [
   (req, res) => {
-    return res.json(zerialize(todoSchema));
+    return res.json(zerialize(todoCreateSchema));
   },
 ];
