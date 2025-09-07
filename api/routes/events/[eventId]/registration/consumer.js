@@ -171,6 +171,18 @@ export const post = [
             data: inserts,
           });
 
+          // Derive participant name/email from incoming responses (needed for CRM linking and pricing)
+          const nameFieldId = fieldTypes.find(
+            (f) => f.fieldType === "participantName"
+          )?.id;
+          const emailFieldId = fieldTypes.find(
+            (f) => f.fieldType === "participantEmail"
+          )?.id;
+          const participantName = nameFieldId ? responses[nameFieldId] : null;
+          const participantEmail = emailFieldId
+            ? responses[emailFieldId]
+            : null;
+
           // 2b) Link this registration to a CRM person immediately upon submission
           if (participantEmail) {
             let existingCrmPerson = await tx.crmPerson.findFirst({
@@ -303,18 +315,6 @@ export const post = [
               data: { couponId: found.id },
             });
           }
-
-          // Derive participant name/email from incoming responses (avoids DB reads inside tx)
-          const nameFieldId = fieldTypes.find(
-            (f) => f.fieldType === "participantName"
-          )?.id;
-          const emailFieldId = fieldTypes.find(
-            (f) => f.fieldType === "participantEmail"
-          )?.id;
-          const participantName = nameFieldId ? responses[nameFieldId] : null;
-          const participantEmail = emailFieldId
-            ? responses[emailFieldId]
-            : null;
 
           const [requiresPayment, stripePIClientSecret, price] =
             await registrationRequiresPayment(

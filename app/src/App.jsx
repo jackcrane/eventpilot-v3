@@ -39,6 +39,7 @@ import { TeamsPage } from "./routes/events/[eventId]/registration/teams";
 import { CouponsPage } from "./routes/events/[eventId]/registration/coupons";
 import { RegistrationsPage } from "./routes/events/[eventId]/registration/registrations";
 import { SelectedInstanceProvider } from "../contexts/SelectedInstanceContext";
+import { EventSessionPage } from "./routes/events/[eventId]/session/[sessionId]";
 const useNewConversationPage = true;
 
 export default () => {
@@ -92,6 +93,11 @@ export default () => {
 
             <Route path="/events/:eventId" element={<Event />} />
             <Route path="/events" element={<Events />} />
+
+            <Route
+              path="/events/:eventId/session/:sessionId"
+              element={<EventSessionPage />}
+            />
 
             <Route
               path="/events/:eventId/financials"

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import rrwebPlayer from "rrweb-player";
 import "rrweb-player/dist/style.css";
+import styles from "./RrwebPlayertrigger.module.css";
 
 export const RrwebPlayer = ({ events = [], config = {} }) => {
   const containerRef = useRef(null);
@@ -13,7 +14,7 @@ export const RrwebPlayer = ({ events = [], config = {} }) => {
       target: containerRef.current,
       props: {
         events,
-        width: 400,
+        // width: 400,
         skipInactive: true,
         inactiveColor: "var(--tblr-danger)",
 
@@ -28,5 +29,11 @@ export const RrwebPlayer = ({ events = [], config = {} }) => {
     };
   }, [events, config]);
 
-  return <div style={{ maxWidth: "100%" }} ref={containerRef} />;
+  return (
+    <div
+      style={{ maxWidth: "100%" }}
+      ref={containerRef}
+      className={styles.player}
+    />
+  );
 };
