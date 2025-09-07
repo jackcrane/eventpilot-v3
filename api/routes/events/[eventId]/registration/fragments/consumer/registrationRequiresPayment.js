@@ -31,34 +31,42 @@ export const registrationRequiresPayment = async (
     }
   }
 
-  let total = totalBefore - discount;
-  if (total < 0) total = 0;
+  // Base total after discounts
+  let baseTotal = totalBefore - discount;
+  if (baseTotal < 0) baseTotal = 0;
 
-  // Treat totals under 30 cents as free
-  const requiresPayment = total >= 0.3;
+  // Treat totals under $0.30 as free (no Stripe)
+  const requiresPayment = baseTotal >= 0.3;
 
+  // If payment required, add Stripe fee (2.9% + $0.30) on top
   if (requiresPayment) {
+    const withFees = baseTotal + baseTotal * 0.029 + 0.3;
+    // Round to cents for consistency with display
+    const total = Math.round(withFees * 100) / 100;
     const stripePIClientSecret = await setupStripePI(
       total,
       event,
       registrationId,
       instanceId,
       participantName,
-      participantEmail
+      participantEmail,
+      baseTotal
     );
     return [true, stripePIClientSecret, total];
   }
 
-  return [false, null, total];
+  // Free or micro-amounts (no Stripe fees applied)
+  return [false, null, baseTotal];
 };
 
 export const setupStripePI = async (
-  price,
+  price, // fee-inclusive amount (display/gross)
   event,
   registrationId,
   instanceId,
   participantName,
-  participantEmail
+  participantEmail,
+  baseTotal // pre-fee amount (what org should net before Stripe deducts)
 ) => {
   // Attempt to associate a Stripe Customer in the event's connected account
   let customerId = null;
@@ -99,7 +107,7 @@ export const setupStripePI = async (
 
   const pi = await stripe.paymentIntents.create(
     {
-      amount: price * 100,
+      amount: Math.round(price * 100),
       currency: "usd",
       // payment_method_types: ["card"],
       automatic_payment_methods: {
@@ -111,6 +119,7 @@ export const setupStripePI = async (
         scope: "EVENTPILOT:REGISTRATION",
         registrationId,
         instanceId,
+        baseTotal: typeof baseTotal === "number" ? String(baseTotal) : undefined,
       },
     },
     {

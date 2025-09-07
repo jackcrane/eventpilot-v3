@@ -102,107 +102,109 @@ export const post = [
       },
     });
 
-  try {
-    switch (event.type) {
-      case "customer.subscription.created":
-      case "customer.subscription.updated":
-      case "customer.subscription.deleted": {
-        const sub = event.data.object;
-        const status = sub.status; // active | trialing | past_due | canceled | unpaid | incomplete
+    try {
+      switch (event.type) {
+        case "customer.subscription.created":
+        case "customer.subscription.updated":
+        case "customer.subscription.deleted": {
+          const sub = event.data.object;
+          const status = sub.status; // active | trialing | past_due | canceled | unpaid | incomplete
 
-        // Prefer explicit linkage via metadata.eventId when present
-        let evt = null;
-        const eventId = sub.metadata?.eventId;
-        if (eventId) {
-          evt = await prisma.event.findFirst({ where: { id: eventId } });
-        }
-        if (!evt) {
-          evt = await prisma.event.findFirst({
-            where: { stripe_subscriptionId: sub.id },
-          });
-        }
+          // Prefer explicit linkage via metadata.eventId when present
+          let evt = null;
+          const eventId = sub.metadata?.eventId;
+          if (eventId) {
+            evt = await prisma.event.findFirst({ where: { id: eventId } });
+          }
+          if (!evt) {
+            evt = await prisma.event.findFirst({
+              where: { stripe_subscriptionId: sub.id },
+            });
+          }
 
-        if (evt) {
-          await prisma.event.update({
-            where: { id: evt.id },
-            data: {
-              stripe_subscriptionId: sub.id,
-              goodPaymentStanding: ["active", "trialing"].includes(status || ""),
-            },
-          });
-        }
-
-        break;
-      }
-
-      case "invoice.payment_succeeded": {
-        const inv = event.data.object;
-        const subscriptionId = inv.subscription;
-        if (typeof subscriptionId === "string") {
-          const evt = await prisma.event.findFirst({
-            where: { stripe_subscriptionId: subscriptionId },
-          });
           if (evt) {
             await prisma.event.update({
               where: { id: evt.id },
-              data: { goodPaymentStanding: true },
+              data: {
+                stripe_subscriptionId: sub.id,
+                goodPaymentStanding: ["active", "trialing"].includes(
+                  status || ""
+                ),
+              },
             });
           }
-        }
-        break;
-      }
 
-      case "invoice.payment_failed": {
-        const inv = event.data.object;
-        const subscriptionId = inv.subscription;
-        if (typeof subscriptionId === "string") {
-          const evt = await prisma.event.findFirst({
-            where: { stripe_subscriptionId: subscriptionId },
-          });
-          if (evt) {
-            await prisma.event.update({
-              where: { id: evt.id },
-              data: { goodPaymentStanding: false },
-            });
-          }
-        }
-        break;
-      }
-      case "payment_method.attached": {
-        const paymentMethod = event.data.object;
-        const customerId = paymentMethod.customer;
-
-        if (!customerId) {
-          console.warn("[STRIPE] Attached payment method has no customer ID");
           break;
         }
 
-        const evt = await prisma.event.findFirst({
-          where: { stripe_customerId: customerId },
-        });
+        case "invoice.payment_succeeded": {
+          const inv = event.data.object;
+          const subscriptionId = inv.subscription;
+          if (typeof subscriptionId === "string") {
+            const evt = await prisma.event.findFirst({
+              where: { stripe_subscriptionId: subscriptionId },
+            });
+            if (evt) {
+              await prisma.event.update({
+                where: { id: evt.id },
+                data: { goodPaymentStanding: true },
+              });
+            }
+          }
+          break;
+        }
 
-        await stripe.customers.update(customerId, {
-          invoice_settings: {
-            default_payment_method: paymentMethod.id,
-          },
-        });
+        case "invoice.payment_failed": {
+          const inv = event.data.object;
+          const subscriptionId = inv.subscription;
+          if (typeof subscriptionId === "string") {
+            const evt = await prisma.event.findFirst({
+              where: { stripe_subscriptionId: subscriptionId },
+            });
+            if (evt) {
+              await prisma.event.update({
+                where: { id: evt.id },
+                data: { goodPaymentStanding: false },
+              });
+            }
+          }
+          break;
+        }
+        case "payment_method.attached": {
+          const paymentMethod = event.data.object;
+          const customerId = paymentMethod.customer;
 
-        // Try to affiliate the log with a CRM person
-        const { crmPersonId } = await resolveAffiliations(paymentMethod);
-        await prisma.logs.create({
-          data: {
-            eventId: evt?.id,
-            crmPersonId,
-            type: LogType.STRIPE_PAYMENT_METHOD_ATTACHED,
-            data: paymentMethod,
-          },
-        });
+          if (!customerId) {
+            console.warn("[STRIPE] Attached payment method has no customer ID");
+            break;
+          }
 
-        console.log(
-          `[STRIPE] PaymentMethod ${paymentMethod.id} set as default for customer ${customerId}`
-        );
-        break;
-      }
+          const evt = await prisma.event.findFirst({
+            where: { stripe_customerId: customerId },
+          });
+
+          await stripe.customers.update(customerId, {
+            invoice_settings: {
+              default_payment_method: paymentMethod.id,
+            },
+          });
+
+          // Try to affiliate the log with a CRM person
+          const { crmPersonId } = await resolveAffiliations(paymentMethod);
+          await prisma.logs.create({
+            data: {
+              eventId: evt?.id,
+              crmPersonId,
+              type: LogType.STRIPE_PAYMENT_METHOD_ATTACHED,
+              data: paymentMethod,
+            },
+          });
+
+          console.log(
+            `[STRIPE] PaymentMethod ${paymentMethod.id} set as default for customer ${customerId}`
+          );
+          break;
+        }
 
         case "setup_intent.succeeded": {
           const setupIntent = event.data.object;
@@ -230,7 +232,41 @@ export const post = [
 
           if (scope === "EVENTPILOT:REGISTRATION") {
             const { eventId, registrationId, instanceId } = metadata;
-            const receiptUrl = paymentIntent.charges.data[0].receipt_url;
+            const charge = paymentIntent.charges.data[0];
+            const receiptUrl = charge?.receipt_url;
+
+            // Determine net amount credited to the connected account (exclude Stripe fees)
+            let netAmount = paymentIntent.amount / 100;
+            try {
+              const eventRecord = await prisma.event.findUnique({
+                where: { id: eventId },
+              });
+              const connectedAccount =
+                eventRecord?.stripeConnectedAccountId || undefined;
+              const balanceTxId = charge?.balance_transaction;
+              if (balanceTxId && connectedAccount) {
+                const bt = await stripe.balanceTransactions.retrieve(
+                  balanceTxId,
+                  {
+                    stripeAccount: connectedAccount,
+                  }
+                );
+                if (bt && typeof bt.net === "number") {
+                  netAmount = bt.net / 100; // cents to dollars
+                }
+              }
+            } catch (e) {
+              // Fallback: Try metadata baseTotal if present; otherwise use gross
+              const baseMeta = parseFloat(paymentIntent.metadata?.baseTotal);
+              if (!Number.isNaN(baseMeta) && baseMeta >= 0) {
+                netAmount = baseMeta;
+              } else {
+                console.warn(
+                  "[STRIPE] Failed to retrieve balance transaction for net amount; falling back to gross",
+                  e
+                );
+              }
+            }
 
             const instance = await prisma.eventInstance.findUnique({
               where: {
@@ -249,7 +285,7 @@ export const post = [
               eventId,
               instanceId: instance.id,
               registrationId,
-              amount: paymentIntent.amount / 100,
+              amount: netAmount,
               stripe_paymentIntentId: paymentIntent.id,
               crmPersonId,
             });
@@ -263,9 +299,9 @@ export const post = [
           break;
         }
 
-      default:
-        console.log(`[STRIPE] Unhandled event type ${event.type}`);
-    }
+        default:
+          console.log(`[STRIPE] Unhandled event type ${event.type}`);
+      }
 
       response.json({ received: true });
     } catch (error) {

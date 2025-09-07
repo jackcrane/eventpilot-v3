@@ -86,39 +86,48 @@ export const post = [
         if (discount > eligible) discount = eligible;
       }
 
-      let total = totalBefore - discount;
-      if (total < 0) total = 0;
+      // Base total after discount
+      let baseTotal = totalBefore - discount;
+      if (baseTotal < 0) baseTotal = 0;
 
-      const requiresPayment = total >= 0.3;
+      // Treat totals under $0.30 as free
+      const requiresPayment = baseTotal >= 0.3;
 
       if (!requiresPayment) {
         const { crmPersonId } = await finalizeRegistration({
           registrationId,
           eventId,
-          amount: total,
+          amount: baseTotal,
           instanceId,
         });
-        if (total > 0) {
+        if (baseTotal > 0) {
           await createLedgerItemForRegistration({
             eventId,
             instanceId,
             registrationId,
-            amount: total,
+            amount: baseTotal,
             crmPersonId,
           });
         }
         return res.json({
           finalized: true,
           requiresPayment: false,
-          price: total,
+          price: baseTotal,
         });
       }
+
+      // Add Stripe fees on paid transactions (2.9% + $0.30)
+      const withFees = baseTotal + baseTotal * 0.029 + 0.3;
+      const total = Math.round(withFees * 100) / 100;
 
       const clientSecret = await setupStripePI(
         total,
         event,
         registrationId,
-        instanceId
+        instanceId,
+        undefined,
+        undefined,
+        baseTotal
       );
 
       return res.json({
@@ -179,37 +188,44 @@ export const del = [
         (sum, u) => sum + (u.priceSnapshot || 0) * (u.quantity || 1),
         0
       );
-      const total = registrationTotal + upsellsTotal;
-      const requiresPayment = total >= 0.3;
+      const baseTotal = registrationTotal + upsellsTotal;
+      const requiresPayment = baseTotal >= 0.3;
 
       if (!requiresPayment) {
         const { crmPersonId } = await finalizeRegistration({
           registrationId,
           eventId,
-          amount: total,
+          amount: baseTotal,
           instanceId,
         });
-        if (total > 0) {
+        if (baseTotal > 0) {
           await createLedgerItemForRegistration({
             eventId,
             instanceId,
             registrationId,
-            amount: total,
+            amount: baseTotal,
             crmPersonId,
           });
         }
         return res.json({
           finalized: true,
           requiresPayment: false,
-          price: total,
+          price: baseTotal,
         });
       }
+
+      // Add Stripe fees on paid transactions (2.9% + $0.30)
+      const withFees = baseTotal + baseTotal * 0.029 + 0.3;
+      const total = Math.round(withFees * 100) / 100;
 
       const clientSecret = await setupStripePI(
         total,
         event,
         registrationId,
-        instanceId
+        instanceId,
+        undefined,
+        undefined,
+        baseTotal
       );
 
       return res.json({
