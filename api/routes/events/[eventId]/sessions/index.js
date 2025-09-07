@@ -1,5 +1,4 @@
 import { prisma } from "#prisma";
-import { uploadFile } from "#file";
 
 /**
  * POST /api/events/:eventId/sessions
