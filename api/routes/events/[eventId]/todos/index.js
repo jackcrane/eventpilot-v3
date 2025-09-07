@@ -11,11 +11,12 @@ export const todoCreateSchema = z.object({
   content: z.string().optional().default(""),
   status: z.nativeEnum(TodoItemStatus).optional(),
 
-  // Optional links to other resources
-  volunteerRegistrationId: z.string().optional().nullable(),
-  participantRegistrationId: z.string().optional().nullable(),
-  sessionId: z.string().optional().nullable(),
-  conversationId: z.string().optional().nullable(),
+  // Optional links to other resources (many-to-many)
+  volunteerRegistrationIds: z.array(z.string()).optional(),
+  participantRegistrationIds: z.array(z.string()).optional(),
+  sessionIds: z.array(z.string()).optional(),
+  conversationIds: z.array(z.string()).optional(),
+  crmPersonIds: z.array(z.string()).optional(),
 });
 
 // Update schema: all fields optional, no defaults applied to avoid unintended overwrites
@@ -24,10 +25,12 @@ export const todoUpdateSchema = z.object({
   content: z.string().optional(),
   status: z.nativeEnum(TodoItemStatus).optional(),
 
-  volunteerRegistrationId: z.string().optional().nullable(),
-  participantRegistrationId: z.string().optional().nullable(),
-  sessionId: z.string().optional().nullable(),
-  conversationId: z.string().optional().nullable(),
+  // When provided, these replace the full set
+  volunteerRegistrationIds: z.array(z.string()).optional(),
+  participantRegistrationIds: z.array(z.string()).optional(),
+  sessionIds: z.array(z.string()).optional(),
+  conversationIds: z.array(z.string()).optional(),
+  crmPersonIds: z.array(z.string()).optional(),
 });
 
 export const get = [
@@ -71,18 +74,43 @@ export const post = [
           title: data.title,
           content: data.content ?? "",
           status: data.status,
-          volunteerRegistration: data.volunteerRegistrationId && {
-            connect: { id: data.volunteerRegistrationId },
-          },
-          participantRegistration: data.participantRegistrationId && {
-            connect: { id: data.participantRegistrationId },
-          },
-          session: data.sessionId && {
-            connect: { id: data.sessionId },
-          },
-          conversation: data.conversationId && {
-            connect: { id: data.conversationId },
-          },
+          ...(Array.isArray(data.volunteerRegistrationIds) &&
+          data.volunteerRegistrationIds.length
+            ? {
+                VolunteerRegistration: {
+                  connect: data.volunteerRegistrationIds.map((id) => ({ id })),
+                },
+              }
+            : {}),
+          ...(Array.isArray(data.participantRegistrationIds) &&
+          data.participantRegistrationIds.length
+            ? {
+                Registration: {
+                  connect: data.participantRegistrationIds.map((id) => ({ id })),
+                },
+              }
+            : {}),
+          ...(Array.isArray(data.sessionIds) && data.sessionIds.length
+            ? {
+                Session: {
+                  connect: data.sessionIds.map((id) => ({ id })),
+                },
+              }
+            : {}),
+          ...(Array.isArray(data.conversationIds) && data.conversationIds.length
+            ? {
+                Conversation: {
+                  connect: data.conversationIds.map((id) => ({ id })),
+                },
+              }
+            : {}),
+          ...(Array.isArray(data.crmPersonIds) && data.crmPersonIds.length
+            ? {
+                CrmPerson: {
+                  connect: data.crmPersonIds.map((id) => ({ id })),
+                },
+              }
+            : {}),
           event: { connect: { id: req.params.eventId } },
           logs: {
             create: {

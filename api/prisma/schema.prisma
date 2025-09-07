@@ -801,6 +801,7 @@ model CrmPerson {
   conversations Conversation[]
   registrations Registration[]
   ledgerItems   LedgerItem[]
+  TodoItem      TodoItem[]
   deleted       Boolean        @default(false)
 
   fieldValues CrmPersonField[]
@@ -1382,17 +1383,12 @@ model TodoItem {
   comments TodoItemComment[]
   logs     Logs[]
 
-  volunteerRegistrationId String?
-  volunteerRegistration   VolunteerRegistration? @relation(fields: [volunteerRegistrationId], references: [id], onDelete: Cascade)
-
-  participantRegistrationId String?
-  participantRegistration   Registration? @relation(fields: [participantRegistrationId], references: [id], onDelete: Cascade)
-
-  sessionId String?
-  session   Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  conversationId String?
-  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  // Many-to-many associations
+  VolunteerRegistration VolunteerRegistration[]
+  Registration          Registration[]
+  Session               Session[]
+  Conversation          Conversation[]
+  CrmPerson             CrmPerson[]
 
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)

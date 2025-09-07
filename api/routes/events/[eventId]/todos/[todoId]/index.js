@@ -54,39 +54,86 @@ export const put = [
       }
 
       const data = parsed.data;
-      let statusChanged = false;
-      if (
-        typeof data.status !== "undefined" &&
-        data.status !== existing.status
-      ) {
-        statusChanged = true;
-      }
+      // Determine if status actually changes
+      const statusChanged =
+        typeof data.status !== "undefined" && data.status !== existing.status;
+      // Determine if there are any non-status updates being requested
+      const hasNonStatusChanges =
+        typeof data.title !== "undefined" ||
+        typeof data.content !== "undefined" ||
+        Array.isArray(data.volunteerRegistrationIds) ||
+        Array.isArray(data.participantRegistrationIds) ||
+        Array.isArray(data.sessionIds) ||
+        Array.isArray(data.conversationIds) ||
+        Array.isArray(data.crmPersonIds);
+
+      // Build update data explicitly to support M:N set operations
+      const updateData = {
+        ...(typeof data.title !== "undefined" ? { title: data.title } : {}),
+        ...(typeof data.content !== "undefined" ? { content: data.content } : {}),
+        ...(typeof data.status !== "undefined" ? { status: data.status } : {}),
+        ...(Array.isArray(data.volunteerRegistrationIds)
+          ? {
+              VolunteerRegistration: {
+                set: data.volunteerRegistrationIds.map((id) => ({ id })),
+              },
+            }
+          : {}),
+        ...(Array.isArray(data.participantRegistrationIds)
+          ? {
+              Registration: {
+                set: data.participantRegistrationIds.map((id) => ({ id })),
+              },
+            }
+          : {}),
+        ...(Array.isArray(data.sessionIds)
+          ? { Session: { set: data.sessionIds.map((id) => ({ id })) } }
+          : {}),
+        ...(Array.isArray(data.conversationIds)
+          ? {
+              Conversation: {
+                set: data.conversationIds.map((id) => ({ id })),
+              },
+            }
+          : {}),
+        ...(Array.isArray(data.crmPersonIds)
+          ? {
+              CrmPerson: {
+                set: data.crmPersonIds.map((id) => ({ id })),
+              },
+            }
+          : {}),
+        // Only log a generic UPDATE if fields other than status changed.
+        // If the only change is status, log just the STATUS_CHANGED entry.
+        logs: {
+          create: [
+            ...(hasNonStatusChanges
+              ? [
+                  {
+                    type: LogType.TODO_ITEM_UPDATED,
+                    userId: req.user.id,
+                    ip: req.ip || req.headers["x-forwarded-for"],
+                    data,
+                  },
+                ]
+              : []),
+            ...(statusChanged
+              ? [
+                  {
+                    type: LogType.TODO_ITEM_STATUS_CHANGED,
+                    userId: req.user.id,
+                    ip: req.ip || req.headers["x-forwarded-for"],
+                    data: { from: existing.status, to: data.status },
+                  },
+                ]
+              : []),
+          ],
+        },
+      };
 
       const updated = await prisma.todoItem.update({
         where: { id: req.params.todoId },
-        data: {
-          ...data,
-          logs: {
-            create: [
-              {
-                type: LogType.TODO_ITEM_UPDATED,
-                userId: req.user.id,
-                ip: req.ip || req.headers["x-forwarded-for"],
-                data,
-              },
-              ...(statusChanged
-                ? [
-                    {
-                      type: LogType.TODO_ITEM_STATUS_CHANGED,
-                      userId: req.user.id,
-                      ip: req.ip || req.headers["x-forwarded-for"],
-                      data: { from: existing.status, to: data.status },
-                    },
-                  ]
-                : []),
-            ],
-          },
-        },
+        data: updateData,
         include: {
           comments: {
             include: { files: true },
