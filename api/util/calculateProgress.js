@@ -1,5 +1,5 @@
 import { prisma } from "#prisma";
-import { stripe } from "#stripe";
+import { getStripeAccountStatus } from "#util/getStripeAccountStatus.js";
 
 export const calculateProgress = async (eventId, instanceId) => {
   // weights for each step shown in the event dash
@@ -87,20 +87,13 @@ export const calculateProgress = async (eventId, instanceId) => {
     prisma.gmailConnection.findUnique({ where: { eventId } }).then((r) => !!r),
   ]);
 
-  // Determine if Stripe onboarding is completed.
-  let stripeOnboarded = false;
-  try {
-    if (event?.stripeConnectedAccountId) {
-      const acct = await stripe.accounts.retrieve(
-        event.stripeConnectedAccountId
-      );
-      stripeOnboarded = !!acct?.details_submitted;
-    }
-  } catch (e) {
-    console.error("Error checking Stripe onboarding:", e);
-    // if Stripe call fails, treat as not onboarded, but do not crash dashboard
-    stripeOnboarded = false;
-  }
+  // Determine Stripe status (onboarding + payouts)
+  const {
+    onboarded: stripeOnboarded,
+    payoutsEnabled: stripePayoutsEnabled,
+  } = await getStripeAccountStatus(
+    event?.stripeConnectedAccountId
+  );
 
   // derive booleans
   const wantsWorkspace = !!event?.wantsWorkspaceAccount;
@@ -115,7 +108,8 @@ export const calculateProgress = async (eventId, instanceId) => {
     tiersPeriods: tierCount > 0 && periodCount > 0,
     teams: teamCount > 0,
     coupons: couponCount > 0,
-    stripeConnect: stripeOnboarded,
+    // Hide the dashboard card only when payouts are enabled
+    stripeConnect: stripePayoutsEnabled,
     // Only require Gmail if the event opted to connect Google during setup
     gmail: showGmailStep ? gmailConnected : true,
   };

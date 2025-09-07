@@ -1,5 +1,5 @@
 import { prisma } from "#prisma";
-import { stripe } from "#stripe";
+import { getStripeAccountStatus } from "#util/getStripeAccountStatus.js";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { mapInputToInsert } from "./fragments/consumer/mapInputToInsert";
@@ -84,18 +84,9 @@ export const get = [
     });
 
     // Determine if payouts (Stripe) are fully configured
-    let payoutsEnabled = false;
-    try {
-      if (event?.stripeConnectedAccountId) {
-        const acct = await stripe.accounts.retrieve(
-          event.stripeConnectedAccountId
-        );
-        payoutsEnabled = !!acct?.details_submitted;
-      }
-      // eslint-disable-next-line no-unused-vars
-    } catch (e) {
-      payoutsEnabled = false;
-    }
+    const { payoutsEnabled } = await getStripeAccountStatus(
+      event?.stripeConnectedAccountId
+    );
 
     res.json({ tiers, payoutsEnabled });
   },
