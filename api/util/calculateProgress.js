@@ -88,12 +88,9 @@ export const calculateProgress = async (eventId, instanceId) => {
   ]);
 
   // Determine Stripe status (onboarding + payouts)
-  const {
-    onboarded: stripeOnboarded,
-    payoutsEnabled: stripePayoutsEnabled,
-  } = await getStripeAccountStatus(
-    event?.stripeConnectedAccountId
-  );
+  // eslint-disable-next-line
+  const { onboarded: stripeOnboarded, payoutsEnabled: stripePayoutsEnabled } =
+    await getStripeAccountStatus(event?.stripeConnectedAccountId);
 
   // derive booleans
   const wantsWorkspace = !!event?.wantsWorkspaceAccount;
