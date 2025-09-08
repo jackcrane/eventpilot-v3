@@ -225,7 +225,9 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
   const participantSelectorItems = useMemo(() => {
     const nameField =
       participantFields.find((f) => f.fieldType === "participantName") ||
-      participantFields.find((f) => (f.label || "").toLowerCase().includes("name")) ||
+      participantFields.find((f) =>
+        (f.label || "").toLowerCase().includes("name")
+      ) ||
       null;
     const emailField =
       participantFields.find((f) => f.fieldType === "participantEmail") ||
@@ -233,8 +235,11 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
       null;
 
     return participantRegistrations.map((r) => {
+      console.log(r);
       const fallbackName = nameField ? r?.responses?.[nameField.id] : undefined;
-      const fallbackEmail = emailField ? r?.responses?.[emailField.id] : undefined;
+      const fallbackEmail = emailField
+        ? r?.responses?.[emailField.id]
+        : undefined;
       return {
         id: r.id,
         title: r.flat?.name || fallbackName || "Participant",
@@ -347,7 +352,11 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
           </div>
 
           <Row justify="end" gap={0.5} className="mt-2">
-            <Button outline onClick={closeParticipantSelectorPanel} disabled={saving}>
+            <Button
+              outline
+              onClick={closeParticipantSelectorPanel}
+              disabled={saving}
+            >
               Cancel
             </Button>
             <Button onClick={apply} loading={saving} variant="primary">
@@ -372,7 +381,10 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
         <Row justify="space-between" align="center" className="mb-1">
           <div>
             <Typography.B className="mb-1">Volunteers</Typography.B>
-            <Typography.Text className="text-muted mb-2" style={{ fontSize: 12 }}>
+            <Typography.Text
+              className="text-muted mb-2"
+              style={{ fontSize: 12 }}
+            >
               Linked volunteer registrations for this todo.
             </Typography.Text>
           </div>
@@ -439,7 +451,10 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
         <Row justify="space-between" align="center" className="mb-1">
           <div>
             <Typography.B className="mb-1">Participants</Typography.B>
-            <Typography.Text className="text-muted mb-2" style={{ fontSize: 12 }}>
+            <Typography.Text
+              className="text-muted mb-2"
+              style={{ fontSize: 12 }}
+            >
               Linked participant registrations for this todo.
             </Typography.Text>
           </div>
@@ -457,18 +472,30 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
                 const reg = participantRegistrations.find((x) => x.id === r.id);
                 // Fallbacks if flat is missing
                 const nameField =
-                  participantFields.find((f) => f.fieldType === "participantName") ||
-                  participantFields.find((f) => (f.label || "").toLowerCase().includes("name")) ||
+                  participantFields.find(
+                    (f) => f.fieldType === "participantName"
+                  ) ||
+                  participantFields.find((f) =>
+                    (f.label || "").toLowerCase().includes("name")
+                  ) ||
                   null;
                 const emailField =
-                  participantFields.find((f) => f.fieldType === "participantEmail") ||
-                  participantFields.find((f) => (f.type || "").toLowerCase() === "email") ||
+                  participantFields.find(
+                    (f) => f.fieldType === "participantEmail"
+                  ) ||
+                  participantFields.find(
+                    (f) => (f.type || "").toLowerCase() === "email"
+                  ) ||
                   null;
-                const fallbackName = nameField ? reg?.responses?.[nameField.id] : undefined;
-                const fallbackEmail = emailField ? reg?.responses?.[emailField.id] : undefined;
+                const fallbackName = nameField
+                  ? reg?.responses?.[nameField.id]
+                  : undefined;
+                const fallbackEmail = emailField
+                  ? reg?.responses?.[emailField.id]
+                  : undefined;
                 const name = reg?.flat?.name || fallbackName;
                 const email = reg?.flat?.email || fallbackEmail;
-                
+
                 return (
                   <div
                     key={r.id}
@@ -482,7 +509,9 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
                       outline
                       variant="danger"
                       onClick={async () => {
-                        const current = (todo?.Registration || []).map((x) => x.id);
+                        const current = (todo?.Registration || []).map(
+                          (x) => x.id
+                        );
                         const next = current.filter((id) => id !== r.id);
                         await saveParticipants(next);
                       }}
