@@ -36,7 +36,7 @@ const uploadFiles = async (url, { arg }) => {
 };
 
 export const useFileUploader = (endpoint, options) => {
-  const { onSuccessfulUpload } = options || {};
+  const { onSuccessfulUpload, maxFileSize } = options || {};
 
   const { trigger, data, error, isMutating } = useSWRMutation(
     endpoint,
@@ -55,6 +55,23 @@ export const useFileUploader = (endpoint, options) => {
   const upload = async (files) => {
     if (!files || (Array.isArray(files) && files.length === 0)) {
       throw { message: "No files provided", status: 400 };
+    }
+
+    const maxBytes = Number.isFinite(maxFileSize)
+      ? maxFileSize
+      : 5 * 1024 * 1024; // default 5MB
+    const list = Array.from(files);
+
+    // Pre-validate file sizes client-side to avoid server roundtrip
+    const tooLarge = list.filter((f) => typeof f.size === "number" && f.size > maxBytes);
+    if (tooLarge.length > 0) {
+      const maxMb = Math.round((maxBytes / (1024 * 1024)) * 10) / 10;
+      const names = tooLarge.map((f) => f.name || "file").join(", ");
+      const msg = tooLarge.length === 1
+        ? `${names} exceeds the ${maxMb} MB limit`
+        : `${tooLarge.length} files exceed the ${maxMb} MB limit: ${names}`;
+      toast.error(msg);
+      return null;
     }
 
     // await the actual result…
