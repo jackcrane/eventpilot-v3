@@ -64,7 +64,7 @@ export const EventPage = ({
       href: `${base}/todos`,
       text: "Todo List",
       active: isActive(`${base}/todos`),
-      icon: <Icon i="list-check" size={18} color="var(--tblr-cyan)" />,
+      icon: <Icon i="list-check" size={18} color="var(--tblr-green)" />,
     },
     {
       type: "item",
