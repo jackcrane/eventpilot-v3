@@ -600,7 +600,7 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
         </div>
       </div>
 
-      <div className="card p-2">
+      <div className="card p-2 mb-2">
         <Row justify="space-between" align="center" className="mb-1">
           <div>
             <Typography.B className="mb-1">CRM Contacts</Typography.B>
@@ -634,6 +634,15 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
                       <div className="fw-bold">{name || "Contact"}</div>
                       <div className="text-muted small">{email || p.id}</div>
                     </div>
+                    <Button
+                      outline
+                      className="me-1"
+                      href={`/events/${eventId}/crm/${p.id}`}
+                      target="_blank"
+                      size="sm"
+                    >
+                      View
+                    </Button>
                     <Button
                       outline
                       variant="danger"
