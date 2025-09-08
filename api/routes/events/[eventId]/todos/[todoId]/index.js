@@ -25,6 +25,7 @@ export const get = [
           },
           VolunteerRegistration: { select: { id: true } },
           Registration: { select: { id: true } },
+          CrmPerson: { select: { id: true } },
         },
       });
 
@@ -49,6 +50,8 @@ export const put = [
         },
         include: {
           VolunteerRegistration: { select: { id: true } },
+          Registration: { select: { id: true } },
+          CrmPerson: { select: { id: true } },
         },
       });
       if (!existing) return res.status(404).json({ message: "Not found" });
@@ -97,12 +100,25 @@ export const put = [
       const hasParticipantChanges =
         participantsConnected.length > 0 || participantsDisconnected.length > 0;
 
+      // Compute CRM person connect/disconnect diffs if provided
+      const oldCrmIds = (existing.CrmPerson || []).map((p) => p.id);
+      const newCrmIds = Array.isArray(data.crmPersonIds)
+        ? data.crmPersonIds
+        : undefined;
+      const crmConnected = Array.isArray(newCrmIds)
+        ? newCrmIds.filter((id) => !oldCrmIds.includes(id))
+        : [];
+      const crmDisconnected = Array.isArray(newCrmIds)
+        ? oldCrmIds.filter((id) => !newCrmIds.includes(id))
+        : [];
+      const hasCrmChanges =
+        crmConnected.length > 0 || crmDisconnected.length > 0;
+
       // Other association changes (keep generic UPDATED log for these)
       const hasOtherAssociationChanges =
         Array.isArray(data.participantRegistrationIds) ||
         Array.isArray(data.sessionIds) ||
-        Array.isArray(data.conversationIds) ||
-        Array.isArray(data.crmPersonIds);
+        Array.isArray(data.conversationIds);
 
       // Build logs array explicitly
       const logsToCreate = [];
@@ -148,6 +164,25 @@ export const put = [
             userId: req.user.id,
             ip: req.ip || req.headers["x-forwarded-for"],
             data: { participantRegistrationIds: participantsDisconnected },
+          });
+        }
+      }
+
+      if (hasCrmChanges) {
+        if (crmConnected.length > 0) {
+          logsToCreate.push({
+            type: LogType.TODO_ITEM_CRM_PERSON_CONNECTED,
+            userId: req.user.id,
+            ip: req.ip || req.headers["x-forwarded-for"],
+            data: { crmPersonIds: crmConnected },
+          });
+        }
+        if (crmDisconnected.length > 0) {
+          logsToCreate.push({
+            type: LogType.TODO_ITEM_CRM_PERSON_DISCONNECTED,
+            userId: req.user.id,
+            ip: req.ip || req.headers["x-forwarded-for"],
+            data: { crmPersonIds: crmDisconnected },
           });
         }
       }
@@ -220,6 +255,7 @@ export const put = [
           },
           VolunteerRegistration: { select: { id: true } },
           Registration: { select: { id: true } },
+          CrmPerson: { select: { id: true } },
         },
       });
 
