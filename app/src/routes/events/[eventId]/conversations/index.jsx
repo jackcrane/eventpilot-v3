@@ -1,5 +1,4 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useConversations } from "../../../../../hooks/useConversations";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
 import { Empty } from "../../../../../components/empty/Empty";
 import { useEvent } from "../../../../../hooks/useEvent";
@@ -15,13 +14,14 @@ import { Typography, Alert, useOffcanvas, Button } from "tabler-react-2";
 import { ConversationCompose } from "../../../../../components/conversationView/ConversationCompose";
 import { EmailForwardWizard } from "../../../../../components/EmailForwardWizard/EmailForwardWizard";
 import { TriPanelLayout } from "../../../../../components/TriPanelLayout/TriPanelLayout";
+import { useThreads } from "../../../../../hooks/useThreads";
 
 export const Conversations = () => {
   const { eventId, conversationId } = useParams();
   const navigate = useNavigate();
   const { width } = useWindowSize();
   const { event, loading: eventLoading } = useEvent({ eventId });
-  const { loading, conversations } = useConversations({ eventId });
+  const { loading, threads } = useThreads({ eventId });
   const { offcanvas, OffcanvasElement } = useOffcanvas({
     offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
   });
@@ -53,7 +53,7 @@ export const Conversations = () => {
     >
       {OffcanvasElement}
 
-      {conversations?.length === 0 && (
+      {threads?.length === 0 && (
         <Empty
           title="No conversations yet"
           text={`You haven't had any conversations yet. Any emails sent to ${event?.computedExternalContactEmail} will be automatically converted into conversations and appear here.`}
@@ -62,15 +62,17 @@ export const Conversations = () => {
         />
       )}
 
-      {conversations?.length > 0 && (
+      {threads?.length > 0 && (
         <TriPanelLayout
           leftTitle={"Conversations"}
           leftChildren={
-            <ConversationListing
-              search={true}
-              conversations={conversations}
-              compose={true}
-            />
+            <div style={{ maxWidth: 300 }}>
+              <ConversationListing
+                search={true}
+                conversations={threads}
+                compose={true}
+              />
+            </div>
           }
           centerTitle={"Conversation"}
           centerChildren={

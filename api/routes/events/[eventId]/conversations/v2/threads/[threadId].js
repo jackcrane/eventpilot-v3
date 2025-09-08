@@ -11,6 +11,7 @@ import { signAttachment } from "#util/signedUrl";
 import { prisma } from "#prisma";
 import { sendEmailEvent } from "#sse";
 import { upsertConversationCrmPerson } from "#util/upsertConversationCrmPerson";
+import { zerialize } from "zodex";
 
 // Lightweight RFC 5322-ish address list parser for dedupe/linking
 const parseAddressList = (value) => {
@@ -193,16 +194,16 @@ export const post = [
             // eslint-disable-next-line
           } catch (_) {}
 
-          emailRecord = await prisma.email.create({
+          const emailRecord = await prisma.email.create({
             data: {
-              conversation: { connect: { id: threadId } },
-              messageId: msgId || undefined,
+              conversationId: threadId,
+              messageId: msgId ?? undefined,
               from,
               to,
               subject,
-              htmlBody: parse.data.html || null,
-              textBody: parse.data.text || null,
-              crmPersonId: crmPersonId || null,
+              htmlBody: parse?.data?.html ?? null,
+              textBody: parse?.data?.text ?? null,
+              ...(crmPersonId ? { crmPersonId } : {}),
             },
           });
 
@@ -344,5 +345,11 @@ export const patch = [
       console.error("[conversations v2 thread options]", e);
       return res.status(500).json({ message: "Internal server error" });
     }
+  },
+];
+
+export const query = [
+  (req, res) => {
+    return res.json(zerialize(sendSchema));
   },
 ];

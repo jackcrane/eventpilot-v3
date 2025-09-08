@@ -30,7 +30,6 @@ import { CrmPersonPage } from "./routes/events/[eventId]/crm/[personId]";
 import { EmailPage } from "./routes/email/[emailId]";
 import { Conversations } from "./routes/events/[eventId]/conversations";
 import { NewEventPage } from "./routes/events/new";
-import { ConversationPage } from "./routes/events/[eventId]/conversations/[conversationId].new";
 import { RegistrationBuilder } from "./routes/events/[eventId]/registration/builder";
 import { FinancialsPage } from "./routes/events/[eventId]/financials";
 import { RegistrationFormBuilderPage } from "./routes/events/[eventId]/registration/forms";
@@ -180,7 +179,7 @@ export default () => {
               element={<Conversations />}
             />
             <Route
-              path="/events/:eventId/conversations/:conversationId"
+              path="/events/:eventId/conversations/:threadId"
               element={<Conversations />}
             />
             {/* 404 error */}

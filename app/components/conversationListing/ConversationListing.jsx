@@ -5,7 +5,7 @@ import { useWindowSize } from "react-use";
 import { Input, Button, Util, Typography } from "tabler-react-2";
 import { useEffect, useState } from "react";
 import { Icon } from "../../util/Icon";
-import { useConversation } from "../../hooks/useConversation";
+import { useThread } from "../../hooks/useThread";
 
 export const ConversationListing = ({
   conversations,
@@ -13,53 +13,31 @@ export const ConversationListing = ({
   compose: _allowCompose = false,
   fullWidth = false,
 }) => {
-  const { width } = useWindowSize();
   const [query, setQuery] = useState("");
-  const { eventId, conversationId } = useParams();
-  const navigate = useNavigate();
-  const [allowSent, setAllowSent] = useState(false);
-  const { conversation, loading: conversationLoading } = useConversation({
-    eventId,
-    conversationId,
-  });
+  const { eventId } = useParams();
 
-  useEffect(() => {
-    if (conversation && !conversationLoading) {
-      console.log(conversation);
-      console.log("Setting allowSent to", conversation.sent);
-      if (conversation.sent) setAllowSent(true);
-    }
-  }, [conversation]);
-
-  const search = (conversations) => {
-    const lowerQuery = query.toLowerCase();
-
-    return conversations.filter((conversation) => {
-      const subjectMatch = conversation.subject
-        ?.toLowerCase()
-        .includes(lowerQuery);
-      const participantMatch = conversation.participants.some((p) => {
-        return (
-          p.name?.toLowerCase().includes(lowerQuery) ||
-          p.email?.toLowerCase().includes(lowerQuery)
-        );
-      });
-      let sentMatch = true;
-      if (!allowSent) {
-        sentMatch = conversation.sent === allowSent;
-      }
-
-      return (subjectMatch || participantMatch) && sentMatch;
-    });
+  const search = (threads) => {
+    // const lowerQuery = query.toLowerCase();
+    // return threads.filter((thread) => {
+    //   const subjectMatch = thread.subject?.toLowerCase().includes(lowerQuery);
+    //   const participantMatch = thread.participants.some((p) => {
+    //     return (
+    //       p.name?.toLowerCase().includes(lowerQuery) ||
+    //       p.email?.toLowerCase().includes(lowerQuery)
+    //     );
+    //   });
+    //   let sentMatch = true;
+    //   if (!allowSent) {
+    //     sentMatch = thread.sent === allowSent;
+    //   }
+    //   return (subjectMatch || participantMatch) && sentMatch;
+    // });
+    return threads;
   };
 
   return (
     <div style={{ overflowX: "auto" }}>
-      <Col
-        style={{ maxWidth: fullWidth || width < 500 ? "100%" : 300 }}
-        gap={1}
-        align="stretch"
-      >
+      <Col gap={1} align="stretch">
         {_allowSearch && (
           <div>
             <Input
@@ -80,7 +58,7 @@ export const ConversationListing = ({
             </Row>
           </Button>
         )}
-        {_allowSearch && <Util.Hr />}
+        {/* {_allowSearch && <Util.Hr />}
         <Button onClick={() => setAllowSent(!allowSent)}>
           <Row gap={1} align="center">
             {allowSent
@@ -88,17 +66,18 @@ export const ConversationListing = ({
               : "Include sent conversations"}
           </Row>
         </Button>
-        {(_allowSearch || _allowCompose) && <Util.Hr />}
+        {(_allowSearch || _allowCompose) && <Util.Hr />} */}
 
-        <Typography.Text className="text-muted mb-0">
+        {/* <Typography.Text className="text-muted mb-0">
           {search(conversations).length === conversations.length
             ? `Showing all ${conversations.length} conversations`
             : `Showing ${search(conversations).length} of ${
                 conversations.length
               } conversations`}
-        </Typography.Text>
+        </Typography.Text> */}
+
         {search(conversations).map((convo) => (
-          <Link to={`/events/${convo.eventId}/conversations/${convo.id}`}>
+          <Link to={`/events/${eventId}/conversations/${convo.id}`}>
             <ConversationPreview key={convo.id} conversation={convo} />
           </Link>
         ))}

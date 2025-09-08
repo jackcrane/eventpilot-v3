@@ -8,50 +8,25 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Icon } from "../../util/Icon";
 import { HideWhenSmaller, ShowWhenSmaller } from "../media/Media";
+import { useThread } from "../../hooks/useThread";
 
 export const ConversationView = ({ conversationId, onBack }) => {
-  const { eventId } = useParams();
-  const {
-    conversation,
-    loading,
-    sendMessage,
-    mutationLoading,
-    deleteConversation,
-    DeleteConfirmElement,
-  } = useConversation({
-    eventId,
-    conversationId,
-  });
-  const [to, setTo] = useState("");
+  const { eventId, threadId } = useParams();
   const [message, setMessage] = useState("");
-  const navigate = useNavigate();
-
-  let setToToDefaultFirstEmail = () => {
-    let inboundEmails = conversation?.emails?.filter(
-      (email) => email.type === "INBOUND"
-    );
-    const originalSender =
-      inboundEmails?.[inboundEmails.length - 1]?.from?.email;
-    setTo(originalSender);
-  };
-
-  useEffect(() => {
-    setToToDefaultFirstEmail();
-  }, [conversation]);
-
-  if (!!loading || !conversation) return <Loading gradient={false} />;
+  const {
+    thread,
+    messages,
+    loading,
+    sendToThread,
+    mutationLoading,
+    deleteThread,
+    DeleteConfirmElement,
+  } = useThread({ eventId, threadId });
 
   const handleSubmit = async () => {
-    if (to === "") toast.error("You must enter a recipient");
-    // Make sure the to is an email
-    if (!to.includes("@")) toast.error("You must enter a valid email");
     if (message === "") toast.error("You must enter a message");
-
-    const ok = await sendMessage(message, to);
-    if (ok) {
-      setToToDefaultFirstEmail();
-      setMessage("");
-    }
+    const ok = await sendToThread({ text: message });
+    if (ok) setMessage("");
   };
 
   return (
@@ -74,11 +49,11 @@ export const ConversationView = ({ conversationId, onBack }) => {
             CONVERSATION
           </Typography.H5>
           <Typography.H1 style={{ textAlign: "left" }}>
-            {conversation?.subject}
+            {thread?.subject}
           </Typography.H1>
         </div>
       </Row>
-      <Row gap={1} align="flex-start">
+      {/* <Row gap={1} align="flex-start">
         <span className="text-muted mb-0">Participants</span>
         <Typography.Text className="mb-0">
           {[
@@ -86,17 +61,10 @@ export const ConversationView = ({ conversationId, onBack }) => {
             "EventPilot",
           ].join(", ")}
         </Typography.Text>
-      </Row>
+      </Row> */}
       <Util.Hr />
       <Card className="mb-2">
         <Typography.H2>Send a message to this conversation</Typography.H2>
-        <Input
-          label="To"
-          placeholder="Message"
-          required
-          value={to}
-          onChange={setTo}
-        />
         <Input
           useTextarea={true}
           label="Message"
@@ -109,7 +77,7 @@ export const ConversationView = ({ conversationId, onBack }) => {
           Send
         </Button>
       </Card>
-      {conversation?.emails.map((email) => (
+      {messages?.map((email) => (
         <div className="mb-2" key={email.id}>
           <EmailPreview key={email.id} emailId={email.id} showIcon={true} />
         </div>
