@@ -24,6 +24,7 @@ export const get = [
             orderBy: { createdAt: "desc" },
           },
           VolunteerRegistration: { select: { id: true } },
+          Registration: { select: { id: true } },
         },
       });
 
@@ -82,6 +83,20 @@ export const put = [
       const hasVolunteerChanges =
         volunteersConnected.length > 0 || volunteersDisconnected.length > 0;
 
+      // Compute participant connect/disconnect diffs if provided
+      const oldParticipantIds = (existing.Registration || []).map((r) => r.id);
+      const newParticipantIds = Array.isArray(data.participantRegistrationIds)
+        ? data.participantRegistrationIds
+        : undefined;
+      const participantsConnected = Array.isArray(newParticipantIds)
+        ? newParticipantIds.filter((id) => !oldParticipantIds.includes(id))
+        : [];
+      const participantsDisconnected = Array.isArray(newParticipantIds)
+        ? oldParticipantIds.filter((id) => !newParticipantIds.includes(id))
+        : [];
+      const hasParticipantChanges =
+        participantsConnected.length > 0 || participantsDisconnected.length > 0;
+
       // Other association changes (keep generic UPDATED log for these)
       const hasOtherAssociationChanges =
         Array.isArray(data.participantRegistrationIds) ||
@@ -114,6 +129,25 @@ export const put = [
             userId: req.user.id,
             ip: req.ip || req.headers["x-forwarded-for"],
             data: { volunteerRegistrationIds: volunteersDisconnected },
+          });
+        }
+      }
+
+      if (hasParticipantChanges) {
+        if (participantsConnected.length > 0) {
+          logsToCreate.push({
+            type: LogType.TODO_ITEM_PARTICIPANT_CONNECTED,
+            userId: req.user.id,
+            ip: req.ip || req.headers["x-forwarded-for"],
+            data: { participantRegistrationIds: participantsConnected },
+          });
+        }
+        if (participantsDisconnected.length > 0) {
+          logsToCreate.push({
+            type: LogType.TODO_ITEM_PARTICIPANT_DISCONNECTED,
+            userId: req.user.id,
+            ip: req.ip || req.headers["x-forwarded-for"],
+            data: { participantRegistrationIds: participantsDisconnected },
           });
         }
       }
@@ -185,6 +219,7 @@ export const put = [
             orderBy: { createdAt: "desc" },
           },
           VolunteerRegistration: { select: { id: true } },
+          Registration: { select: { id: true } },
         },
       });
 
