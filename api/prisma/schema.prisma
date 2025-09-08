@@ -68,8 +68,9 @@ model Conversation {
   logs           Logs[]
   participants   CrmPerson[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  TodoItem  TodoItem[]
 }
 
 model InboundEmail {
@@ -279,8 +280,10 @@ model File {
   inboundEmailAttachment   InboundEmailAttachment? @relation("FileAttachment")
   inboundEmailAttachmentId String?                 @unique
 
-  logs         Logs[]
-  SessionChunk SessionChunk[]
+  logs              Logs[]
+  SessionChunk      SessionChunk[]
+  TodoItemComment   TodoItemComment? @relation(fields: [todoItemCommentId], references: [id])
+  todoItemCommentId String?
 }
 
 /// Records rrweb consumer session captures and associations
@@ -292,7 +295,6 @@ model Session {
 
   instanceId String?
   instance   EventInstance? @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
 
   // Optional links to created records
   registrationId          String?
@@ -320,6 +322,7 @@ model Session {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   SessionChunk SessionChunk[]
+  TodoItem     TodoItem[]
 
   @@index([eventId, instanceId])
   @@index([registrationId])
@@ -436,6 +439,7 @@ model Event {
   // Configuration 1:1
   configuration Configuration?
   Session       Session[]
+  TodoItem      TodoItem[]
 }
 
 model GmailConnection {
@@ -620,9 +624,10 @@ model VolunteerRegistration {
   instanceId String
   instance   EventInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
-  logs    Logs[]
-  shifts  VolunteerShiftSignup[]
-  Session Session[]
+  logs     Logs[]
+  shifts   VolunteerShiftSignup[]
+  Session  Session[]
+  TodoItem TodoItem[]
 
   @@map("FormResponse")
 }
@@ -796,6 +801,7 @@ model CrmPerson {
   conversations Conversation[]
   registrations Registration[]
   ledgerItems   LedgerItem[]
+  TodoItem      TodoItem[]
   deleted       Boolean        @default(false)
 
   fieldValues CrmPersonField[]
@@ -1111,6 +1117,7 @@ model Registration {
 
   ledgerItems LedgerItem[]
   Session     Session[]
+  TodoItem    TodoItem[]
 }
 
 model RegistrationUpsell {
@@ -1302,8 +1309,10 @@ model Logs {
   ip   String?
   data Json?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  TodoItem   TodoItem? @relation(fields: [todoItemId], references: [id])
+  todoItemId String?
 }
 
 /// Saved CRM AI segment (prompt + AST), per event
@@ -1363,6 +1372,51 @@ model Configuration {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model TodoItem {
+  id      String         @id @default(cuid())
+  title   String
+  content String
+  status  TodoItemStatus @default(NOT_STARTED)
+
+  comments TodoItemComment[]
+  logs     Logs[]
+
+  // Many-to-many associations
+  VolunteerRegistration VolunteerRegistration[]
+  Registration          Registration[]
+  Session               Session[]
+  Conversation          Conversation[]
+  CrmPerson             CrmPerson[]
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+}
+
+model TodoItemComment {
+  id String @id @default(cuid())
+
+  todoItemId String
+  todoItem   TodoItem @relation(fields: [todoItemId], references: [id], onDelete: Cascade)
+
+  text String
+
+  files File[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TodoItemStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
 
 // LogTypes are in form NOUN_VERB
@@ -1447,4 +1501,19 @@ enum LogType {
   INSTANCE_DELETED
   CRM_NOTE_CREATED
   CRM_FILE_NOTE_CREATED
+  TODO_ITEM_CREATED
+  TODO_ITEM_UPDATED
+  TODO_ITEM_DELETED
+  TODO_ITEM_COMMENT_CREATED
+  TODO_ITEM_STATUS_CHANGED
+  TODO_ITEM_VOLUNTEER_CONNECTED
+  TODO_ITEM_VOLUNTEER_DISCONNECTED
+  TODO_ITEM_PARTICIPANT_CONNECTED
+  TODO_ITEM_PARTICIPANT_DISCONNECTED
+  TODO_ITEM_SESSION_CONNECTED
+  TODO_ITEM_SESSION_DISCONNECTED
+  TODO_ITEM_CONVERSATION_CONNECTED
+  TODO_ITEM_CONVERSATION_DISCONNECTED
+  TODO_ITEM_CRM_PERSON_CONNECTED
+  TODO_ITEM_CRM_PERSON_DISCONNECTED
 }

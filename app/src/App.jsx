@@ -40,6 +40,7 @@ import { CouponsPage } from "./routes/events/[eventId]/registration/coupons";
 import { RegistrationsPage } from "./routes/events/[eventId]/registration/registrations";
 import { SelectedInstanceProvider } from "../contexts/SelectedInstanceContext";
 import { EventSessionPage } from "./routes/events/[eventId]/session/[sessionId]";
+import { EventTodosPage } from "./routes/events/[eventId]/todos";
 const useNewConversationPage = true;
 
 export default () => {
@@ -93,6 +94,11 @@ export default () => {
 
             <Route path="/events/:eventId" element={<Event />} />
             <Route path="/events" element={<Events />} />
+
+            <Route
+              path="/events/:eventId/todos"
+              element={<EventTodosPage />}
+            />
 
             <Route
               path="/events/:eventId/session/:sessionId"
