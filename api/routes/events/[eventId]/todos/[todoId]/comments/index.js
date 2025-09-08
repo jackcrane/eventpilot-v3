@@ -10,9 +10,14 @@ const commentSchema = z
     text: z.string().optional().default(""),
     fileIds: z.array(z.string()).optional().default([]),
   })
-  .refine((d) => d.text.trim().length > 0 || (Array.isArray(d.fileIds) && d.fileIds.length > 0), {
-    message: "Comment must include text or at least one file",
-  });
+  .refine(
+    (d) =>
+      d.text.trim().length > 0 ||
+      (Array.isArray(d.fileIds) && d.fileIds.length > 0),
+    {
+      message: "Comment must include text or at least one file",
+    }
+  );
 
 export const get = [
   verifyAuth(["manager"]),

@@ -89,7 +89,9 @@ export const post = [
           data.participantRegistrationIds.length
             ? {
                 Registration: {
-                  connect: data.participantRegistrationIds.map((id) => ({ id })),
+                  connect: data.participantRegistrationIds.map((id) => ({
+                    id,
+                  })),
                 },
               }
             : {}),
