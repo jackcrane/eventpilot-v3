@@ -12,3 +12,5 @@ export { TodoItemUpdated } from "./TodoItemUpdated";
 export { TodoItemDeleted } from "./TodoItemDeleted";
 export { TodoItemCommentCreated } from "./TodoItemCommentCreated";
 export { TodoItemStatusChanged } from "./TodoItemStatusChanged";
+export { TodoItemVolunteerConnected } from "./TodoItemVolunteerConnected";
+export { TodoItemVolunteerDisconnected } from "./TodoItemVolunteerDisconnected";
