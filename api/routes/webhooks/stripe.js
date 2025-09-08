@@ -279,6 +279,7 @@ export const post = [
               eventId,
               receiptUrl,
               paymentIntent,
+              instanceId,
             });
 
             await createLedgerItemForRegistration({

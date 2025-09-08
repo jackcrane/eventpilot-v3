@@ -40,6 +40,7 @@
     "react-router-dom": "^7.1.1",
     "react-use": "^17.6.0",
     "remark-gfm": "^4.0.1",
+    "rrweb-player": "^1.0.0-alpha.4",
     "styled-components": "^6.1.14",
     "swr": "^2.3.0",
     "tabler-react-2": "0.1.152",

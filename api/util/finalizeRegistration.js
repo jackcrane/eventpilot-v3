@@ -13,7 +13,7 @@ export const finalizeRegistration = async ({
   paymentIntent,
   // Optional: if provided (and there is no paymentIntent), we will create a ledger item
   // amount,
-  // instanceId,
+  instanceId,
 }) => {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -48,7 +48,8 @@ export const finalizeRegistration = async ({
 
   const { name, email } = await getNameAndEmailFromRegistration(
     registrationId,
-    eventId
+    eventId,
+    instanceId
   );
 
   await sendEmail({

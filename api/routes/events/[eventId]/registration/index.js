@@ -11,10 +11,11 @@ const flattenResponse = (response) => {
   };
 };
 
-export const getOrderedFields = async (eventId) => {
+export const getOrderedFields = async (eventId, instanceId) => {
   const fields = await prisma.registrationField.findMany({
     where: {
       eventId,
+      instanceId,
       deleted: false,
       page: { deleted: false },
       type: {
@@ -45,7 +46,10 @@ export const get = [
       },
     });
 
-    const factory = await NameAndEmailFromRegistrationFactory.prepare(eventId);
+    const factory = await NameAndEmailFromRegistrationFactory.prepare(
+      eventId,
+      req.instanceId
+    );
 
     registrations = registrations.map((r) => {
       const { name, email } = factory.getNameAndEmail(r);
@@ -62,7 +66,7 @@ export const get = [
       };
     });
 
-    const fields = await getOrderedFields(eventId);
+    const fields = await getOrderedFields(eventId, req.instanceId);
 
     res.json({ registrations, fields });
   },
