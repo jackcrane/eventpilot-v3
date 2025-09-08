@@ -2,11 +2,13 @@ import { prisma } from "#prisma";
 
 export const getNameAndEmailFromRegistration = async (
   registrationId,
-  eventId
+  eventId,
+  instanceId
 ) => {
   const fields = await prisma.registrationField.findMany({
     where: {
       eventId,
+      instanceId,
       deleted: false,
       fieldType: {
         in: ["participantName", "participantEmail"],
@@ -25,6 +27,7 @@ export const getNameAndEmailFromRegistration = async (
   const responses = await prisma.registrationFieldResponse.findMany({
     where: {
       registrationId,
+      instanceId,
       fieldId: {
         in: fields.map((f) => f.id),
       },
@@ -44,10 +47,11 @@ export class NameAndEmailFromRegistrationFactory {
   }
 
   // load the two field-IDs once per event
-  static prepare = async (eventId) => {
+  static prepare = async (eventId, instanceId) => {
     const fields = await prisma.registrationField.findMany({
       where: {
         eventId,
+        instanceId,
         deleted: false,
         fieldType: { in: ["participantName", "participantEmail"] },
         page: { deleted: false },
