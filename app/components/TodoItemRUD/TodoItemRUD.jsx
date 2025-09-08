@@ -41,7 +41,7 @@ export const TodoItemRUD = ({ eventId, todoId, onClose }) => {
   const [pendingFiles, setPendingFiles] = useState([]); // { fileId, url }
   const [tab, setTab] = useState("comments");
 
-  const { upload, loading: uploading } = useFileUploader("/api/file", {
+  const { upload, loading: uploading } = useFileUploader("/api/file/any", {
     onSuccessfulUpload: (data) => {
       if (!data?.fileId) return;
       setPendingFiles((prev) => [

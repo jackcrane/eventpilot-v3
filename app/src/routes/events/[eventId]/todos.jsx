@@ -3,12 +3,14 @@ import { EventPage } from "../../../../components/eventPage/EventPage";
 import { KanbanBoard } from "../../../../components/KanbanBoard/KanbanBoard";
 import { useParams } from "react-router-dom";
 import { useTodos } from "../../../../hooks/useTodos";
+import { Icon } from "../../../../util/Icon";
 import {
   Button,
   Input,
   Typography,
   useOffcanvas,
   DropdownInput,
+  Badge,
 } from "tabler-react-2";
 // Inline item panel extracted to components/TodoItemRUD
 import { TodoItemRUD } from "../../../../components/TodoItemRUD/TodoItemRUD";
@@ -45,12 +47,50 @@ export const EventTodosPage = () => {
     for (const t of todos || []) {
       const statusKey = (t.status || "NOT_STARTED").toLowerCase();
       const key = base[statusKey] ? statusKey : "not_started";
+      const commentCount = Array.isArray(t?.comments) ? t.comments.length : 0;
+      const volunteerCount = Array.isArray(t?.VolunteerRegistration)
+        ? t.VolunteerRegistration.length
+        : 0;
+      const crmCount = Array.isArray(t?.CrmPerson) ? t.CrmPerson.length : 0;
+      const registrationCount = Array.isArray(t?.Registration)
+        ? t.Registration.length
+        : 0;
+
+      const badges = [];
+      if (commentCount > 0)
+        badges.push(
+          <Badge key="comments" soft color="blue">
+            <Icon i="message-circle" /> {commentCount}
+          </Badge>
+        );
+      if (volunteerCount > 0)
+        badges.push(
+          <Badge key="volunteers" soft color="red">
+            <Icon i="heart" /> {volunteerCount}
+          </Badge>
+        );
+      if (crmCount > 0)
+        badges.push(
+          <Badge key="crm" soft color="purple">
+            <Icon i="user" /> {crmCount}
+          </Badge>
+        );
+      if (registrationCount > 0)
+        badges.push(
+          <Badge key="registrations" soft color="orange">
+            <Icon i="ticket" /> {registrationCount}
+          </Badge>
+        );
+
       base[key].items.push({
         id: t.id,
         title: t.title,
-        subtitle: t?.comments?.length
-          ? `${t.comments.length} comment${t.comments.length === 1 ? "" : "s"}`
-          : undefined,
+        subtitle:
+          badges.length > 0 ? (
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              {badges}
+            </div>
+          ) : undefined,
         status: key,
       });
     }

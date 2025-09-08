@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Button, Typography, Input, useOffcanvas } from "tabler-react-2";
 import { useFormResponses } from "../../hooks/useFormResponses";
 import { useRegistrations } from "../../hooks/useRegistrations";
+import { useCrmPersons } from "../../hooks/useCrmPersons";
 import { Row } from "../../util/Flex";
 import { Loading } from "../loading/Loading";
 import { FormResponseRUD } from "../formResponseRUD/FormResponseRUD";
@@ -18,6 +19,9 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
     fields: participantFields = [],
     loading: participantsLoading,
   } = useRegistrations({ eventId });
+
+  // CRM Persons
+  const { crmPersons = [], loading: crmLoading } = useCrmPersons({ eventId });
 
   // Resolve likely name/email fields for display
   const nameField = useMemo(() => {
@@ -50,6 +54,14 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
     initialSelectedParticipants
   );
 
+  const initialSelectedCrmPersons = useMemo(() => {
+    const ids = (todo?.CrmPerson || []).map((p) => p.id);
+    return new Set(ids);
+  }, [todo]);
+  const [selectedCrmPersons, setSelectedCrmPersons] = useState(
+    initialSelectedCrmPersons
+  );
+
   // Nested offcanvas for the volunteer selector
   const {
     offcanvas: openSelectorPanel,
@@ -75,6 +87,14 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
     offcanvasProps: { position: "end", size: 450, zIndex: 1052 },
   });
 
+  const {
+    offcanvas: openCrmSelectorPanel,
+    OffcanvasElement: CrmSelectorOffcanvasElement,
+    close: closeCrmSelectorPanel,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 450, zIndex: 1052 },
+  });
+
   // Keep selection in sync when todo prop changes
   useEffect(() => {
     setSelected(initialSelected);
@@ -83,6 +103,10 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
   useEffect(() => {
     setSelectedParticipants(initialSelectedParticipants);
   }, [initialSelectedParticipants]);
+
+  useEffect(() => {
+    setSelectedCrmPersons(initialSelectedCrmPersons);
+  }, [initialSelectedCrmPersons]);
 
   const selectorItems = useMemo(() => {
     return responses.map((r) => {
@@ -375,6 +399,147 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
     if (ok) setSelectedParticipants(new Set(ids));
   };
 
+  const crmSelectorItems = useMemo(() => {
+    return crmPersons.map((p) => {
+      const email = Array.isArray(p.emails) && p.emails.length > 0 ? p.emails[0]?.email : undefined;
+      return {
+        id: p.id,
+        title: p.name || "Contact",
+        subtitle: email || undefined,
+      };
+    });
+  }, [crmPersons]);
+
+  const openCrmSelector = () => {
+    const initial = new Set(Array.from(initialSelectedCrmPersons));
+
+    const CrmSelectorPanel = () => {
+      const [localSelected, setLocalSelected] = useState(initial);
+      const [filter, setFilter] = useState("");
+      const [saving, setSaving] = useState(false);
+
+      const filtered = useMemo(() => {
+        const q = filter.trim().toLowerCase();
+        if (!q) return crmSelectorItems;
+        return crmSelectorItems.filter((i) => {
+          const t = `${i.title || ""} ${i.subtitle || ""}`.toLowerCase();
+          return t.includes(q) || (i.id || "").toLowerCase().includes(q);
+        });
+      }, [crmSelectorItems, filter]);
+
+      // Limit number of rendered contacts for performance
+      const MAX_RENDER = 200;
+      const visible = filtered.slice(0, MAX_RENDER);
+      const isCropped = filtered.length > MAX_RENDER;
+
+      const toggle = (id) => {
+        setLocalSelected((prev) => {
+          const n = new Set(prev);
+          if (n.has(id)) n.delete(id);
+          else n.add(id);
+          return n;
+        });
+      };
+
+      const apply = async () => {
+        setSaving(true);
+        try {
+          await saveCrmPersons(Array.from(localSelected));
+          closeCrmSelectorPanel();
+        } finally {
+          setSaving(false);
+        }
+      };
+
+      return (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            maxHeight: "calc(100dvh)",
+          }}
+        >
+          <div>
+            <Typography.H5 className="mb-0 text-secondary">CRM</Typography.H5>
+            <Typography.H1>Select Contacts</Typography.H1>
+            <Input
+              placeholder="Search by name or email"
+              value={filter}
+              onChange={setFilter}
+            />
+          </div>
+
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: "auto",
+              marginTop: 8,
+              maxHeight: "calc(100dvh - 200px)",
+              borderBottomWidth: 1,
+              borderBottomStyle: "solid",
+              borderBottomColor: "var(--tblr-border-color)",
+              borderTopWidth: 1,
+              borderTopStyle: "solid",
+              borderTopColor: "var(--tblr-border-color)",
+            }}
+          >
+            {filtered.length === 0 ? (
+              <Typography.Text className="text-muted">No results</Typography.Text>
+            ) : (
+              <div className="list-group list-group-flush border-0">
+                {visible.map((it) => (
+                  <label
+                    key={it.id}
+                    className="list-group-item d-flex align-items-center border-0"
+                    style={{ cursor: "pointer" }}
+                  >
+                    <input
+                      className="form-check-input m-0 me-2"
+                      type="checkbox"
+                      checked={localSelected.has(it.id)}
+                      onChange={() => toggle(it.id)}
+                    />
+                    <div className="flex-fill">
+                      <div className="fw-bold">{it.title || it.id}</div>
+                      {it.subtitle && (
+                        <div className="text-muted small">{it.subtitle}</div>
+                      )}
+                    </div>
+                  </label>
+                ))}
+                {isCropped && (
+                  <div className="list-group-item border-0 p-2">
+                    <Typography.Text className="text-muted small">
+                      Some contacts were hidden. Please refine your search
+                    </Typography.Text>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <Row justify="end" gap={0.5} className="mt-2">
+            <Button outline onClick={closeCrmSelectorPanel} disabled={saving}>
+              Cancel
+            </Button>
+            <Button onClick={apply} loading={saving} variant="primary">
+              Save
+            </Button>
+          </Row>
+        </div>
+      );
+    };
+
+    openCrmSelectorPanel({ content: <CrmSelectorPanel /> });
+  };
+
+  const saveCrmPersons = async (ids) => {
+    const ok = await updateTodo({ crmPersonIds: ids });
+    if (ok) setSelectedCrmPersons(new Set(ids));
+  };
+
   return (
     <div>
       <div className="card p-2 mb-2">
@@ -434,6 +599,69 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
                         );
                         const next = current.filter((id) => id !== v.id);
                         await save(next);
+                      }}
+                      size="sm"
+                    >
+                      Disconnect
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card p-2 mb-2">
+        <Row justify="space-between" align="center" className="mb-1">
+          <div>
+            <Typography.B className="mb-1">CRM Contacts</Typography.B>
+            <Typography.Text
+              className="text-muted mb-2"
+              style={{ fontSize: 12 }}
+            >
+              Linked CRM contacts for this todo.
+            </Typography.Text>
+          </div>
+          <Button onClick={openCrmSelector}>Add or remove</Button>
+        </Row>
+
+        <div style={{ maxHeight: 260, overflowY: "auto" }}>
+          {crmLoading ? (
+            <Loading text="Loading contacts..." />
+          ) : (todo?.CrmPerson || []).length === 0 ? (
+            <Typography.Text className="text-muted">None</Typography.Text>
+          ) : (
+            <div className="list-group list-group-flush border-0">
+              {(todo?.CrmPerson || []).map((p) => {
+                const match = crmPersons.find((x) => x.id === p.id);
+                const email = Array.isArray(match?.emails) && match.emails.length > 0 ? match.emails[0]?.email : undefined;
+                const name = match?.name;
+                return (
+                  <div
+                    key={p.id}
+                    className="list-group-item border-0 p-2 d-flex align-items-center"
+                  >
+                    <div className="flex-fill">
+                      <div className="fw-bold">{name || "Contact"}</div>
+                      <div className="text-muted small">{email || p.id}</div>
+                    </div>
+                    <Button
+                      outline
+                      className="me-1"
+                      href={`/events/${eventId}/crm/${p.id}`}
+                      target="_blank"
+                      size="sm"
+                    >
+                      View
+                    </Button>
+                    <Button
+                      outline
+                      variant="danger"
+                      onClick={async () => {
+                        const current = (todo?.CrmPerson || []).map((x) => x.id);
+                        const next = current.filter((id) => id !== p.id);
+                        await saveCrmPersons(next);
                       }}
                       size="sm"
                     >
@@ -526,10 +754,12 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
           )}
         </div>
 
-        {SelectorOffcanvasElement}
-        {ViewerOffcanvasElement}
-        {ParticipantSelectorOffcanvasElement}
       </div>
+
+      {SelectorOffcanvasElement}
+      {ViewerOffcanvasElement}
+      {ParticipantSelectorOffcanvasElement}
+      {CrmSelectorOffcanvasElement}
     </div>
   );
 };

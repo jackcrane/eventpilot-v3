@@ -14,3 +14,7 @@ export { TodoItemCommentCreated } from "./TodoItemCommentCreated";
 export { TodoItemStatusChanged } from "./TodoItemStatusChanged";
 export { TodoItemVolunteerConnected } from "./TodoItemVolunteerConnected";
 export { TodoItemVolunteerDisconnected } from "./TodoItemVolunteerDisconnected";
+export { TodoItemCrmPersonConnected } from "./TodoItemCrmPersonConnected";
+export { TodoItemCrmPersonDisconnected } from "./TodoItemCrmPersonDisconnected";
+export { TodoItemParticipantConnected } from "./TodoItemParticipantConnected";
+export { TodoItemParticipantDisconnected } from "./TodoItemParticipantDisconnected";

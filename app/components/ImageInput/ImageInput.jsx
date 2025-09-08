@@ -8,6 +8,7 @@ export const ImageInput = ({
   value,
   onSuccessfulUpload = () => {},
   accept = "image/*",
+  maxFileSize,
   className = "",
   style = {},
   ...props
@@ -23,6 +24,7 @@ export const ImageInput = ({
       setPreview(data.url);
       onSuccessfulUpload(data);
     },
+    maxFileSize,
   });
 
   const handleChange = (e) => {

@@ -31,6 +31,7 @@ export const upload =
     fieldName = "files",
     maxFileSize = 5 * 1024 * 1024, // Default 5MB
     allowedMimeTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"],
+    allowAll = false, // when true, accept any mimetype
   } = {}) =>
   (req, res, next) => {
     const dynamicUpload = multer({
@@ -44,6 +45,10 @@ export const upload =
       }),
       limits: { fileSize: maxFileSize },
       fileFilter: (req, file, cb) => {
+        if (allowAll === true) {
+          cb(null, true);
+          return;
+        }
         if (allowedMimeTypes.includes(file.mimetype)) {
           cb(null, true);
         } else {

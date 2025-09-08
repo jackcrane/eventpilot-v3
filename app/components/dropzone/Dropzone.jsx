@@ -9,6 +9,7 @@ export const Dropzone = ({
   onSuccessfulUpload = () => {},
   style,
   accept,
+  maxFileSize,
   label,
   required,
   hint,
@@ -23,6 +24,7 @@ export const Dropzone = ({
       setUploaded(true);
       onSuccessfulUpload(data);
     },
+    maxFileSize,
   });
 
   const handleFileChange = (e) => {
