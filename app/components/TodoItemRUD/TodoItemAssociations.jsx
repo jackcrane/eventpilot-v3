@@ -427,6 +427,11 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
         });
       }, [crmSelectorItems, filter]);
 
+      // Limit number of rendered contacts for performance
+      const MAX_RENDER = 200;
+      const visible = filtered.slice(0, MAX_RENDER);
+      const isCropped = filtered.length > MAX_RENDER;
+
       const toggle = (id) => {
         setLocalSelected((prev) => {
           const n = new Set(prev);
@@ -484,7 +489,7 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
               <Typography.Text className="text-muted">No results</Typography.Text>
             ) : (
               <div className="list-group list-group-flush border-0">
-                {filtered.map((it) => (
+                {visible.map((it) => (
                   <label
                     key={it.id}
                     className="list-group-item d-flex align-items-center border-0"
@@ -504,6 +509,13 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
                     </div>
                   </label>
                 ))}
+                {isCropped && (
+                  <div className="list-group-item border-0 p-2">
+                    <Typography.Text className="text-muted small">
+                      Some contacts were hidden. Please refine your search
+                    </Typography.Text>
+                  </div>
+                )}
               </div>
             )}
           </div>
