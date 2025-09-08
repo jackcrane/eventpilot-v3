@@ -14,6 +14,7 @@ import { useWindowSize } from "react-use";
 import { Typography, Alert, useOffcanvas, Button } from "tabler-react-2";
 import { ConversationCompose } from "../../../../../components/conversationView/ConversationCompose";
 import { EmailForwardWizard } from "../../../../../components/EmailForwardWizard/EmailForwardWizard";
+import { TriPanelLayout } from "../../../../../components/TriPanelLayout/TriPanelLayout";
 
 export const Conversations = () => {
   const { eventId, conversationId } = useParams();
@@ -51,36 +52,6 @@ export const Conversations = () => {
       }
     >
       {OffcanvasElement}
-      {event?.useHostedEmail === false && event?.willForwardEmail === false ? (
-        <Alert variant="danger" className="mt-3" title="Emails are disabled">
-          <Typography.Text className="mb-0">
-            Your event is configured to not use EventPilot's email inbox. This
-            is because you have chosen to not use EventPilot's hosted email, and
-            you have not chosen to set up a forwarding rule to forward emails to
-            EventPilot from gmail or outlook.
-          </Typography.Text>
-        </Alert>
-      ) : event?.useHostedEmail === false &&
-        event?.willForwardEmail === true &&
-        conversations?.length === 0 ? (
-        <Alert
-          variant="warning"
-          className="mt-3"
-          title="Emails are not set up yet"
-        >
-          <Typography.Text className="mb-0">
-            Your event is configured to accept automatically forwarded emails
-            from Gmail or Outlook, but we haven't received anything yet.
-          </Typography.Text>
-          <Button
-            onClick={() => offcanvas({ content: <EmailForwardWizard /> })}
-            variant="yellow"
-            className="mt-3"
-          >
-            Set up forwarding
-          </Button>
-        </Alert>
-      ) : null}
 
       {conversations?.length === 0 && (
         <Empty
@@ -92,44 +63,26 @@ export const Conversations = () => {
       )}
 
       {conversations?.length > 0 && (
-        <Row align="flex-start" gap={2} wrap={false}>
-          {showListing && (
-            <HideWhenSmaller style={{ width: width < breakpoint && "100%" }}>
-              <ConversationListing
-                search={true}
-                conversations={conversations}
-                compose={true}
-                fullWidth={width < breakpoint}
-              />
-            </HideWhenSmaller>
-          )}
-
-          {showView && (
-            <div style={{ width: "100%", flex: 1 }}>
-              {conversationId === "compose" ? (
-                <ConversationCompose
-                  onBack={width < breakpoint ? handleBack : undefined}
-                />
-              ) : (
-                <ConversationView
-                  conversationId={conversationId}
-                  onBack={width < breakpoint ? handleBack : undefined}
-                />
-              )}
-            </div>
-          )}
-
-          {!conversationId && width >= breakpoint && (
-            <div style={{ width: "100%", flex: 1 }}>
-              <Empty
-                gradient={false}
-                title="Pick a conversation"
-                icon="message"
-                text="Pick a conversation from the list on the left to view."
-              />
-            </div>
-          )}
-        </Row>
+        <TriPanelLayout
+          leftTitle={"Conversations"}
+          leftChildren={
+            <ConversationListing
+              search={true}
+              conversations={conversations}
+              compose={true}
+            />
+          }
+          centerTitle={"Conversation"}
+          centerChildren={
+            conversationId === "compose" ? (
+              <ConversationCompose />
+            ) : (
+              <ConversationView conversationId={conversationId} />
+            )
+          }
+          rightTitle={"Compose"}
+          rightChildren={"Placeholder"}
+        />
       )}
     </EventPage>
   );

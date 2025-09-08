@@ -77,20 +77,6 @@ export const ConversationView = ({ conversationId, onBack }) => {
             {conversation?.subject}
           </Typography.H1>
         </div>
-        <HideWhenSmaller w={500}>
-          <Button
-            variant="danger"
-            outline
-            loading={mutationLoading}
-            onClick={() =>
-              deleteConversation(() =>
-                navigate(`/events/${eventId}/conversations`)
-              )
-            }
-          >
-            Delete Conversation
-          </Button>
-        </HideWhenSmaller>
       </Row>
       <Row gap={1} align="flex-start">
         <span className="text-muted mb-0">Participants</span>
@@ -101,21 +87,6 @@ export const ConversationView = ({ conversationId, onBack }) => {
           ].join(", ")}
         </Typography.Text>
       </Row>
-      <ShowWhenSmaller w={500}>
-        <Util.Hr />
-        <Button
-          variant="danger"
-          outline
-          loading={mutationLoading}
-          onClick={() =>
-            deleteConversation(() =>
-              navigate(`/events/${eventId}/conversations`)
-            )
-          }
-        >
-          Delete Conversation
-        </Button>
-      </ShowWhenSmaller>
       <Util.Hr />
       <Card className="mb-2">
         <Typography.H2>Send a message to this conversation</Typography.H2>

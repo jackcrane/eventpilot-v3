@@ -95,10 +95,7 @@ export default () => {
             <Route path="/events/:eventId" element={<Event />} />
             <Route path="/events" element={<Events />} />
 
-            <Route
-              path="/events/:eventId/todos"
-              element={<EventTodosPage />}
-            />
+            <Route path="/events/:eventId/todos" element={<EventTodosPage />} />
 
             <Route
               path="/events/:eventId/session/:sessionId"
@@ -184,13 +181,7 @@ export default () => {
             />
             <Route
               path="/events/:eventId/conversations/:conversationId"
-              element={
-                !useNewConversationPage ? (
-                  <Conversations />
-                ) : (
-                  <ConversationPage />
-                )
-              }
+              element={<Conversations />}
             />
             {/* 404 error */}
             <Route
