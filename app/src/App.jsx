@@ -41,6 +41,7 @@ import { RegistrationsPage } from "./routes/events/[eventId]/registration/regist
 import { SelectedInstanceProvider } from "../contexts/SelectedInstanceContext";
 import { EventSessionPage } from "./routes/events/[eventId]/session/[sessionId]";
 import { EventTodosPage } from "./routes/events/[eventId]/todos";
+import { WaitlistPage } from "./routes/waitlist";
 const useNewConversationPage = true;
 
 export default () => {
@@ -75,6 +76,7 @@ export default () => {
         <Router>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/waitlist" element={<WaitlistPage />} />
             {loggedIn ? (
               <>
                 <Route path="/me" element={<UserProfile />} />
@@ -95,10 +97,7 @@ export default () => {
             <Route path="/events/:eventId" element={<Event />} />
             <Route path="/events" element={<Events />} />
 
-            <Route
-              path="/events/:eventId/todos"
-              element={<EventTodosPage />}
-            />
+            <Route path="/events/:eventId/todos" element={<EventTodosPage />} />
 
             <Route
               path="/events/:eventId/session/:sessionId"
