@@ -41,7 +41,7 @@ export const post = [
         result.data;
 
       // Persist to DB
-      const record = await prisma.waitlist.create({
+      await prisma.waitlist.create({
         data: {
           name,
           email,
