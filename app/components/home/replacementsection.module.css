@@ -1,0 +1,21 @@
+.label {
+  font-size: 1.4rem;
+}
+
+.onlyDesktop {
+  display: inline-flex;
+}
+
+.onlyMobile {
+  display: none !important; /* ensure hidden on desktop despite inline styles */
+}
+
+@media (max-width: 768px) {
+  .onlyDesktop {
+    display: none !important; /* override Icon's inline display */
+  }
+  .onlyMobile {
+    display: inline-flex !important; /* show on mobile */
+    align-self: flex-start; /* left align the down arrow */
+  }
+}
