@@ -37,7 +37,9 @@ export const Home = () => {
         </Typography.H4>
       </ImageSection>
       <ImageSection src={<ThatsMeSection />} isNode>
-        <Typography.H3>The right tools at the right place.</Typography.H3>
+        <Typography.H3 id="versus">
+          The right tools at the right place.
+        </Typography.H3>
         <Typography.H4>
           EventPilot is designed to replace your disjointed collection of
           services and applications, bringing everything under one roof.

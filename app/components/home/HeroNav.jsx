@@ -5,15 +5,16 @@ import styles from "./HeroNav.module.css";
 export const HeroNav = ({
   items = [
     { label: "Overview", href: "#" },
-    { label: "Features", href: "#" },
-    { label: "Docs", href: "#" },
-    { label: "Contact", href: "#" },
+    { label: "Versus...", href: "#versus" },
+    { label: "Docs", href: "https://docs.eventpilot.dev" },
+    { label: "Contact", href: "mailto:support@geteventpilot.com" },
   ],
 }) => {
   const navRef = useRef(null);
   const hovRef = useRef(null);
   const itemRefs = useMemo(() => items.map(() => ({ current: null })), [items]);
   const [box, setBox] = useState({ x: 0, w: 0, visible: false });
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Recompute on resize
   useEffect(() => {
@@ -64,42 +65,98 @@ export const HeroNav = ({
     return bestI;
   };
 
+  // Close mobile menu on outside click or Escape
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDocClick = (e) => {
+      if (!navRef.current) return;
+      if (navRef.current.contains(e.target)) return; // clicks inside nav are fine
+      setMenuOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
   return (
-    <nav
-      ref={navRef}
-      className={styles.heroNav}
-      aria-label="Top navigation"
-      onPointerMove={(e) => {
-        const i = nearestIndexFromPointer(e);
-        if (i != null) updateToIndex(i);
-      }}
-      onPointerLeave={() => {
-        const nav = navRef.current;
-        if (nav) nav.__lastVisible = false;
-        setBox((b) => ({ ...b, visible: false }));
-      }}
-    >
-      <div
-        ref={hovRef}
-        className={styles.heroNav__hover}
-        style={{
-          transform: `translateX(${box.x}px)`,
-          width: box.w,
-          opacity: box.visible ? 1 : 0,
+    <div className={styles.heroNavWrapper}>
+      <nav
+        ref={navRef}
+        className={styles.heroNav}
+        aria-label="Top navigation"
+        onPointerMove={(e) => {
+          const i = nearestIndexFromPointer(e);
+          if (i != null) updateToIndex(i);
         }}
-        aria-hidden
-      />
-      {items.map((item, i) => (
-        <a
-          key={item.label}
-          ref={(el) => (itemRefs[i].current = el)}
-          href={item.href}
-          className={styles.heroNav__item}
-          onFocus={() => updateToIndex(i)}
+        onPointerLeave={() => {
+          const nav = navRef.current;
+          if (nav) nav.__lastVisible = false;
+          setBox((b) => ({ ...b, visible: false }));
+        }}
+      >
+        {/* Desktop hover highlight */}
+        <div
+          ref={hovRef}
+          className={styles.heroNav__hover}
+          style={{
+            transform: `translateX(${box.x}px)`,
+            width: box.w,
+            opacity: box.visible ? 1 : 0,
+          }}
+          aria-hidden
+        />
+
+        {/* Desktop items */}
+        <div className={styles.heroNav__items}>
+          {items.map((item, i) => (
+            <a
+              key={item.label}
+              ref={(el) => (itemRefs[i].current = el)}
+              href={item.href}
+              className={styles.heroNav__item}
+              onFocus={() => updateToIndex(i)}
+            >
+              {item.label}
+            </a>
+          ))}
+        </div>
+
+        {/* Mobile hamburger trigger */}
+        <button
+          type="button"
+          className={styles.hamburger}
+          aria-label="Open navigation menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
         >
-          {item.label}
-        </a>
-      ))}
-    </nav>
+          <span className={styles.hamburger__bar} />
+          <span className={styles.hamburger__bar} />
+          <span className={styles.hamburger__bar} />
+        </button>
+      </nav>
+
+      {/* Mobile dropdown menu */}
+      {menuOpen && (
+        <div className={styles.mobileMenu} role="menu">
+          {items.map((item) => (
+            <a
+              key={item.label}
+              href={item.href}
+              className={styles.mobileMenu__item}
+              role="menuitem"
+              onClick={() => setMenuOpen(false)}
+            >
+              {item.label}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
