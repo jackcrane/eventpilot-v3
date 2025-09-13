@@ -1,6 +1,7 @@
 // HeroNav.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./HeroNav.module.css";
+import { Icon } from "../../util/Icon";
 
 export const HeroNav = ({
   items = [
@@ -135,9 +136,7 @@ export const HeroNav = ({
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
         >
-          <span className={styles.hamburger__bar} />
-          <span className={styles.hamburger__bar} />
-          <span className={styles.hamburger__bar} />
+          <Icon i="menu" size={24} />
         </button>
       </nav>
 
