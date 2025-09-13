@@ -1,5 +1,5 @@
 import { Typography } from "tabler-react-2";
-import { Col, Row } from "../../util/Flex";
+import { Col, Row, Responsive } from "../../util/Flex";
 import {
   SiAirtable,
   SiAirtableHex,
@@ -33,7 +33,12 @@ const LogoRow = ({ logo, name }) => {
 export const ReplacementSection = () => {
   return (
     <div>
-      <Row gap={4}>
+      <Responsive
+        gap={4}
+        defaultDirection="row"
+        rowAlign="center"
+        colAlign="stretch"
+      >
         <Col gap={2} align="flex-start" style={{ flex: 1 }}>
           <Typography.H3 className={styles.label}>
             Before EventPilot
@@ -71,7 +76,9 @@ export const ReplacementSection = () => {
             name="Airtable (Database)"
           />
         </Col>
-        <Icon i={"arrow-right"} size={32} />
+        {/* Arrow between columns: right on desktop, down on mobile */}
+        <Icon i={"arrow-right"} size={32} className={styles.onlyDesktop} />
+        <Icon i={"arrow-down"} size={32} className={styles.onlyMobile} />
         <Col gap={2} align="flex-start" style={{ flex: 1 }}>
           <Typography.H3 className={styles.label}>
             With EventPilot
@@ -87,7 +94,7 @@ export const ReplacementSection = () => {
             name="EventPilot (Everything)"
           />
         </Col>
-      </Row>
+      </Responsive>
     </div>
   );
 };

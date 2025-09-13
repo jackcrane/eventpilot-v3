@@ -33,6 +33,33 @@
   margin-top: 60px;
 }
 
+.heroHeadline {
+  max-width: 600px;
+  font-size: 4rem;
+  line-height: 0.9;
+  font-weight: 700;
+  letter-spacing: -2px;
+  color: black;
+}
+
+@media (max-width: 430px) {
+  .heroHeadline {
+    font-size: 3.75rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .heroHeadline {
+    font-size: 3.5rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .heroHeadline {
+    font-size: 3.25rem;
+  }
+}
+
 .heroRow {
   padding: 10px 0px;
 }

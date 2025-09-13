@@ -9,15 +9,7 @@ export const HeroText = () => {
     <Section>
       <div className={styles.heroText}>
         <Typography.H1
-          style={{
-            maxWidth: 600,
-            fontSize: "4rem",
-            lineHeight: "0.9",
-            fontWeight: 700,
-            letterSpacing: -2,
-            color: "black",
-          }}
-          className="mb-4"
+          className={classNames("mb-4", styles.heroHeadline)}
         >
           Simplifying event management for every organizer
         </Typography.H1>
