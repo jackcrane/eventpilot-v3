@@ -259,7 +259,6 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
       null;
 
     return participantRegistrations.map((r) => {
-      console.log(r);
       const fallbackName = nameField ? r?.responses?.[nameField.id] : undefined;
       const fallbackEmail = emailField
         ? r?.responses?.[emailField.id]
@@ -401,7 +400,10 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
 
   const crmSelectorItems = useMemo(() => {
     return crmPersons.map((p) => {
-      const email = Array.isArray(p.emails) && p.emails.length > 0 ? p.emails[0]?.email : undefined;
+      const email =
+        Array.isArray(p.emails) && p.emails.length > 0
+          ? p.emails[0]?.email
+          : undefined;
       return {
         id: p.id,
         title: p.name || "Contact",
@@ -486,7 +488,9 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
             }}
           >
             {filtered.length === 0 ? (
-              <Typography.Text className="text-muted">No results</Typography.Text>
+              <Typography.Text className="text-muted">
+                No results
+              </Typography.Text>
             ) : (
               <div className="list-group list-group-flush border-0">
                 {visible.map((it) => (
@@ -635,7 +639,10 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
             <div className="list-group list-group-flush border-0">
               {(todo?.CrmPerson || []).map((p) => {
                 const match = crmPersons.find((x) => x.id === p.id);
-                const email = Array.isArray(match?.emails) && match.emails.length > 0 ? match.emails[0]?.email : undefined;
+                const email =
+                  Array.isArray(match?.emails) && match.emails.length > 0
+                    ? match.emails[0]?.email
+                    : undefined;
                 const name = match?.name;
                 return (
                   <div
@@ -659,7 +666,9 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
                       outline
                       variant="danger"
                       onClick={async () => {
-                        const current = (todo?.CrmPerson || []).map((x) => x.id);
+                        const current = (todo?.CrmPerson || []).map(
+                          (x) => x.id
+                        );
                         const next = current.filter((id) => id !== p.id);
                         await saveCrmPersons(next);
                       }}
@@ -753,7 +762,6 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
             </div>
           )}
         </div>
-
       </div>
 
       {SelectorOffcanvasElement}

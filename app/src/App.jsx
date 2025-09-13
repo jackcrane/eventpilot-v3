@@ -28,9 +28,7 @@ import { EventSettingsBillingPage } from "./routes/events/[eventId]/settings/bil
 import { EventCrm } from "./routes/events/[eventId]/crm";
 import { CrmPersonPage } from "./routes/events/[eventId]/crm/[personId]";
 import { EmailPage } from "./routes/email/[emailId]";
-import { Conversations } from "./routes/events/[eventId]/conversations";
 import { NewEventPage } from "./routes/events/new";
-import { ConversationPage } from "./routes/events/[eventId]/conversations/[conversationId].new";
 import { RegistrationBuilder } from "./routes/events/[eventId]/registration/builder";
 import { FinancialsPage } from "./routes/events/[eventId]/financials";
 import { RegistrationFormBuilderPage } from "./routes/events/[eventId]/registration/forms";
@@ -42,7 +40,7 @@ import { SelectedInstanceProvider } from "../contexts/SelectedInstanceContext";
 import { EventSessionPage } from "./routes/events/[eventId]/session/[sessionId]";
 import { EventTodosPage } from "./routes/events/[eventId]/todos";
 import { WaitlistPage } from "./routes/waitlist";
-const useNewConversationPage = true;
+// legacy conversations UI has been removed in favor of Gmail-based flow
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -177,20 +175,7 @@ export default () => {
               element={<CrmPersonPage />}
             />
 
-            <Route
-              path="/events/:eventId/conversations"
-              element={<Conversations />}
-            />
-            <Route
-              path="/events/:eventId/conversations/:conversationId"
-              element={
-                !useNewConversationPage ? (
-                  <Conversations />
-                ) : (
-                  <ConversationPage />
-                )
-              }
-            />
+            {/** Conversations legacy routes removed */}
             {/* 404 error */}
             <Route
               path="*"

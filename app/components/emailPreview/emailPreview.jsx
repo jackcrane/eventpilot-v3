@@ -11,7 +11,14 @@ import { useEvent } from "../../hooks/useEvent";
 import { Loading } from "../loading/Loading";
 import { useState } from "react";
 import { Badge } from "tabler-react-2/dist/badge";
-import { STATUS_MAP } from "../conversationView/ConversationPreview";
+// Email status mapping for badges/icons
+const STATUS_MAP = {
+  RECEIVED: { color: "blue", icon: "mail-exclamation", text: "Received" },
+  OPENED: { color: "success", icon: "mail-opened", text: "Opened" },
+  BOUNCED: { color: "danger", icon: "mail-off", text: "Bounced" },
+  DELIVERED: { color: "teal", icon: "mail-check", text: "Delivered" },
+  SENT: { color: "warning", icon: "mail-share", text: "Sending" },
+};
 import { escape } from "lodash";
 
 export const extractInitialsFromName = (name) => {

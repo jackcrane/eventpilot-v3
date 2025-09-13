@@ -7,7 +7,6 @@ import { Icon } from "../../util/Icon";
 import { useEvent } from "../../hooks/useEvent";
 import { Loading } from "../loading/Loading";
 import { Sidenav } from "../sidenav/Sidenav";
-import { useConversations } from "../../hooks/useConversations";
 import { useStripeExpress } from "../../hooks/useStripeExpress";
 
 export const EventPage = ({
