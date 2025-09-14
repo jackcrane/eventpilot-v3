@@ -7,6 +7,7 @@ import { EventPage } from "../../../../../components/eventPage/EventPage";
 import { TriPanelLayout } from "../../../../../components/TriPanelLayout/TriPanelLayout";
 import { useConversationThreads } from "../../../../../hooks/useConversationThreads";
 import { useConversationThread } from "../../../../../hooks/useConversationThread";
+import { Icon } from "../../../../../util/Icon";
 
 export const EventConversationsPage = () => {
   const { eventId } = useParams();
@@ -31,6 +32,15 @@ export const EventConversationsPage = () => {
     setSearchParams(next, { replace: false });
   };
 
+  const sortedThreads = useMemo(() => {
+    if (!threads?.length) return [];
+    return [...threads].sort((a, b) => {
+      const ad = new Date(a?.lastMessage?.internalDate || a?.lastInternalDate || 0).getTime();
+      const bd = new Date(b?.lastMessage?.internalDate || b?.lastInternalDate || 0).getTime();
+      return bd - ad; // newest first
+    });
+  }, [threads]);
+
   const leftList = (
     <div
       style={{
@@ -47,12 +57,12 @@ export const EventConversationsPage = () => {
           Failed to load inbox
         </Typography.Text>
       )}
-      {!threadsLoading && !threadsError && threads.length === 0 && (
+      {!threadsLoading && !threadsError && sortedThreads.length === 0 && (
         <Typography.Text className="text-muted">
           No threads found
         </Typography.Text>
       )}
-      {threads.map((t) => {
+      {sortedThreads.map((t) => {
         const active = t.id === selectedThreadId;
         const unread = Boolean(t.isUnread);
         return (
@@ -138,10 +148,17 @@ export const EventConversationsPage = () => {
     </div>
   );
 
+  const sortedMessages = useMemo(() => {
+    if (!messages?.length) return [];
+    return [...messages].sort((a, b) => {
+      const ad = new Date(a?.internalDate || 0).getTime();
+      const bd = new Date(b?.internalDate || 0).getTime();
+      return bd - ad; // newest first
+    });
+  }, [messages]);
+
   const centerList = (
-    <div
-      style={{ display: "flex", flexDirection: "column", gap: 10, padding: 10 }}
-    >
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {!selectedThreadId && (
         <div className="card" style={{ padding: 20 }}>
           <Typography.Text className="mb-0 text-muted">
@@ -157,9 +174,8 @@ export const EventConversationsPage = () => {
           No messages in this thread.
         </Typography.Text>
       )}
-      {selectedThreadId &&
-        !threadLoading &&
-        messages?.map((m) => (
+      {selectedThreadId && !threadLoading &&
+        sortedMessages.map((m) => (
           <Card
             key={m.id}
             title={
@@ -207,6 +223,66 @@ export const EventConversationsPage = () => {
                 {m.textBody || m.snippet || "(no content)"}
               </Typography.Text>
             )}
+
+            {Array.isArray(m.attachments) && m.attachments.length > 0 ? (
+              <div style={{ marginTop: 10 }}>
+                <Typography.Text className="mb-0">
+                  <span className="text-muted">Attachments:</span>{" "}
+                </Typography.Text>
+                <Row gap={1} align="flex-start">
+                  {m.attachments.map((a) => {
+                    const isImage = String(a?.mimeType || "").startsWith("image/");
+                    const label = a?.filename || "attachment";
+                    return (
+                      <a
+                        key={a.attachmentId}
+                        href={a.downloadUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="card"
+                        style={{
+                          padding: 8,
+                          maxWidth: 520,
+                          overflow: "hidden",
+                          display: "inline-block",
+                          boxShadow: "none",
+                          transition: "none",
+                          textDecoration: "none",
+                          filter: "none",
+                        }}
+                        title={label}
+                      >
+                        <Row gap={1} align="center">
+                          {isImage ? (
+                            <img
+                              src={a.downloadUrl}
+                              alt={label}
+                              style={{
+                                maxWidth: 120,
+                                maxHeight: 120,
+                                objectFit: "cover",
+                                borderRadius: 4,
+                              }}
+                            />
+                          ) : (
+                            <Icon i="file" size={48} />
+                          )}
+                          <Col gap={0.25} align="flex-start">
+                            <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
+                              {label}
+                            </Typography.Text>
+                            <Typography.Text className="mb-0 text-muted" style={{ textAlign: "left" }}>
+                              {a?.mimeType || ""}
+                              {typeof a?.size === "number" ? `, ${a.size} bytes` : ""}
+                            </Typography.Text>
+                          </Col>
+                        </Row>
+                      </a>
+                    );
+                  })}
+                </Row>
+              </div>
+            ) : null}
           </Card>
         ))}
     </div>

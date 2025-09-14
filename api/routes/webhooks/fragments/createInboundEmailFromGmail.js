@@ -107,6 +107,7 @@ export const createInboundEmailFromGmail = async (
 
   // Attachments (optional)
   try {
+    const cidToUrl = new Map();
     if (message.attachments && message.attachments.length) {
       for (const a of message.attachments) {
         try {
@@ -131,9 +132,44 @@ export const createInboundEmailFromGmail = async (
             where: { id: created.id },
             data: { fileId: uploadedFile.id },
           });
+          // Track Content-ID mapping to the uploaded file's public URL
+          if (a.contentId) {
+            const key = String(a.contentId).replace(/^<|>$/g, "");
+            cidToUrl.set(key, uploadedFile.location);
+          }
         } catch (err) {
           console.error(`[${reqId}] error saving gmail attachment:`, err);
         }
+      }
+    }
+
+    // If the HTML body references cid: images, rewrite them to S3 URLs
+    if (cidToUrl.size > 0 && createdInboundEmail.htmlBody) {
+      const rewriteCid = (html) => {
+        let out = html;
+        out = out.replace(/src=["']cid:([^"']+)["']/gi, (m, p1) => {
+          const cid = String(p1).replace(/^<|>$/g, "");
+          const url = cidToUrl.get(cid);
+          return url ? `src="${url}"` : m;
+        });
+        out = out.replace(/url\((['"]?)cid:([^'"\)]+)\1\)/gi, (m, q, p1) => {
+          const cid = String(p1).replace(/^<|>$/g, "");
+          const url = cidToUrl.get(cid);
+          return url ? `url(${q || ''}${url}${q || ''})` : m;
+        });
+        return out;
+      };
+      try {
+        const updatedHtml = rewriteCid(createdInboundEmail.htmlBody);
+        if (updatedHtml !== createdInboundEmail.htmlBody) {
+          await prisma.inboundEmail.update({
+            where: { id: createdInboundEmail.id },
+            data: { htmlBody: updatedHtml },
+          });
+          createdInboundEmail.htmlBody = updatedHtml; // keep local copy in sync
+        }
+      } catch (err) {
+        console.error(`[${reqId}] error rewriting cid URLs:`, err);
       }
     }
   } catch (err) {

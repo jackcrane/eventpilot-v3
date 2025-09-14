@@ -87,15 +87,25 @@ export const extractBodiesAndAttachments = (payload) => {
     } else if (mime === "text/html" && !acc.html && part.body?.data) {
       acc.html = decodeBase64Url(part.body.data);
     }
+
+    // Collect attachments, including inline images without filenames.
+    // Capture Content-ID if present so we can rewrite cid: URLs.
+    const headers = Array.isArray(part?.headers) ? part.headers : [];
+    const contentIdHeader = headers.find(
+      (h) => String(h?.name || "").toLowerCase() === "content-id"
+    );
+    const contentId = contentIdHeader?.value || null; // Often in the form <abcdef>
     const filename = part.filename || "";
-    if (filename && part.body?.attachmentId) {
+    if (part.body?.attachmentId) {
       acc.attachments.push({
-        filename,
+        filename: filename || null,
         mimeType: mime || null,
         attachmentId: part.body.attachmentId,
-        size: part.body.size || null,
+        size: typeof part.body.size === "number" ? part.body.size : null,
+        contentId,
       });
     }
+
     (part.parts || []).forEach(dig);
   };
 

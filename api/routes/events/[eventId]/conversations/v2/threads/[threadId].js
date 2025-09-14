@@ -2,12 +2,10 @@ import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
 import {
   getGmailClientForEvent,
-  getThreadWithMessages,
   sendThreadReply,
   trashThread,
   setThreadUnread,
 } from "#util/google";
-import { signAttachment } from "#util/signedUrl";
 import { prisma } from "#prisma";
 import { sendEmailEvent } from "#sse";
 import { upsertConversationCrmPerson } from "#util/upsertConversationCrmPerson";
@@ -66,41 +64,117 @@ export const get = [
   async (req, res) => {
     const { eventId, threadId } = req.params;
     try {
-      const { gmail } = await getGmailClientForEvent(eventId);
-      const result = await getThreadWithMessages(gmail, threadId);
-      // Attach download URLs for attachments per message
-      const messages = (result.messages || []).map((m) => ({
-        ...m,
+      // Fetch conversation and messages from DB only
+      const conversation = await prisma.conversation.findFirst({
+        where: { id: threadId, eventId },
+        include: {
+          inboundEmails: {
+            orderBy: { receivedAt: "asc" },
+            include: {
+              from: true,
+              to: true,
+              cc: true,
+              bcc: true,
+              attachments: { include: { file: true } },
+            },
+          },
+          outboundEmails: {
+            orderBy: { createdAt: "asc" },
+          },
+        },
+      });
+      if (!conversation) {
+        return res.status(404).json({ message: "Thread not found" });
+      }
+
+      const toStr = (parts) =>
+        Array.isArray(parts)
+          ? parts
+              .map((p) =>
+                p?.email ? `${p.name ? p.name + " " : ""}<${p.email}>` : ""
+              )
+              .filter(Boolean)
+              .join(", ")
+          : "";
+
+      const stripHtml = (html) =>
+        String(html || "")
+          .replace(/<style[\s\S]*?<\/style>/gi, " ")
+          .replace(/<script[\s\S]*?<\/script>/gi, " ")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+      const inboundMsgs = conversation.inboundEmails.map((m) => ({
+        id: m.id,
+        threadId: conversation.id,
+        labelIds: m.read === false ? ["UNREAD"] : [],
+        snippet: m.textBody || stripHtml(m.htmlBody) || null,
+        internalDate: m.receivedAt,
+        sizeEstimate: null,
+        headers: {
+          subject: m.subject || "",
+          from: m.from
+            ? `${m.from.name ? m.from.name + " " : ""}<${m.from.email}>`
+            : "",
+          to: toStr(m.to),
+          cc: toStr(m.cc),
+          bcc: toStr(m.bcc),
+          date: m.receivedAt ? new Date(m.receivedAt).toUTCString() : null,
+          messageId: m.messageId || m.id,
+          references: null,
+          inReplyTo: null,
+        },
+        textBody: m.textBody,
+        htmlBody: m.htmlBody,
         attachments: (m.attachments || []).map((a) => ({
-          ...a,
-          downloadUrl: (() => {
-            const sig = signAttachment({
-              eventId,
-              messageId: m.id,
-              attachmentId: a.attachmentId,
-            });
-            return `/api/events/${eventId}/conversations/v2/messages/${m.id}/attachments/${encodeURIComponent(
-              a.attachmentId
-            )}?sig=${encodeURIComponent(sig)}`;
-          })(),
+          filename: a.file?.originalname || "attachment",
+          mimeType: a.file?.contentType || a.file?.mimetype || null,
+          attachmentId: a.fileId || a.id,
+          size: a.file?.size || null,
+          downloadUrl: a.file?.location || null,
         })),
       }));
-      return res.status(200).json({ ...result, messages });
+
+      const outboundMsgs = conversation.outboundEmails.map((m) => ({
+        id: m.id,
+        threadId: conversation.id,
+        labelIds: [],
+        snippet: m.textBody || stripHtml(m.htmlBody) || null,
+        internalDate: m.createdAt,
+        sizeEstimate: null,
+        headers: {
+          subject: m.subject || "",
+          from: m.from || "",
+          to: m.to || "",
+          cc: "",
+          bcc: "",
+          date: m.createdAt ? new Date(m.createdAt).toUTCString() : null,
+          messageId: m.messageId || m.id,
+          references: null,
+          inReplyTo: null,
+        },
+        textBody: m.textBody,
+        htmlBody: m.htmlBody,
+        attachments: [],
+      }));
+
+      const all = [...inboundMsgs, ...outboundMsgs].sort(
+        (a, b) => new Date(a.internalDate) - new Date(b.internalDate)
+      );
+
+      const last = all[all.length - 1] || null;
+      const thread = {
+        id: conversation.id,
+        historyId: null,
+        messagesCount: all.length,
+        subject: last?.headers?.subject || null,
+        lastInternalDate: last?.internalDate || null,
+        isUnread: conversation.inboundEmails.some((e) => e.read === false),
+      };
+
+      return res.status(200).json({ thread, messages: all });
     } catch (e) {
-      if (e?.code === "NO_GMAIL_CONNECTION") {
-        return res
-          .status(404)
-          .json({ message: "Gmail not connected for this event" });
-      }
-      const msg = String(e?.message || "");
-      if (
-        msg.includes("invalid_grant") ||
-        msg.includes("invalid_credentials")
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Gmail connection expired; please reconnect" });
-      }
       console.error("[conversations v2 thread get]", e);
       return res.status(500).json({ message: "Internal server error" });
     }

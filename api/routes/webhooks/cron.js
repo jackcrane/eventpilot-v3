@@ -33,13 +33,14 @@ export const post = async (req, res) => {
         do {
           const list = await gmail.users.messages.list({
             userId: "me",
-            q: "newer_than:2d -in:chats",
+            q: "newer_than:1d -in:chats",
             pageToken: pageToken || undefined,
           });
           pageToken = list.data.nextPageToken || null;
           const msgs = list.data.messages || [];
           if (!msgs.length) continue;
           for (const m of msgs) {
+            console.log(`[CRON][GMAIL] processing message ${m.id}`);
             try {
               const full = await gmail.users.messages.get({
                 userId: "me",
