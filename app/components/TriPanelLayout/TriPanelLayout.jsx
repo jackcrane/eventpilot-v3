@@ -10,6 +10,12 @@ export const TriPanelLayout = ({
   leftIcon,
   leftTitle,
   leftChildren,
+  /** NEW (optional): tabs in the left panel: [{ title, content, icon }] */
+  leftTabs,
+  /** Optional fixed width for left sidebar (e.g., 320 or '340px') */
+  leftWidth,
+  /** Optional max-width for left sidebar if not using leftWidth */
+  leftMaxWidth,
   centerIcon,
   centerTitle,
   centerChildren,
@@ -21,6 +27,8 @@ export const TriPanelLayout = ({
   rightChildren,
   /** NEW (optional): tabs in the center panel: [{ title, content, icon }] */
   centerTabs,
+  /** NEW (optional): tabs in the right panel: [{ title, content, icon }] */
+  rightTabs,
 }) => {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
@@ -34,6 +42,12 @@ export const TriPanelLayout = ({
   // Center panel tab state
   const hasCenterTabs = Array.isArray(centerTabs) && centerTabs.length > 0;
   const [centerActiveIndex, setCenterActiveIndex] = useState(0);
+
+  // Left/right panel tab state
+  const hasLeftTabs = Array.isArray(leftTabs) && leftTabs.length > 0;
+  const hasRightTabs = Array.isArray(rightTabs) && rightTabs.length > 0;
+  const [leftActiveIndex, setLeftActiveIndex] = useState(0);
+  const [rightActiveIndex, setRightActiveIndex] = useState(0);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 1100);
@@ -53,17 +67,76 @@ export const TriPanelLayout = ({
     return centerChildren;
   };
 
+  // Active left content (tabs or legacy)
+  const renderLeftContent = () => {
+    if (hasLeftTabs) {
+      const active =
+        leftTabs[Math.max(0, Math.min(leftActiveIndex, leftTabs.length - 1))];
+      return active?.content ?? null;
+    }
+    return leftChildren;
+  };
+
+  // Active right content (tabs or legacy)
+  const renderRightContent = () => {
+    if (hasRightTabs) {
+      const active =
+        rightTabs[
+          Math.max(0, Math.min(rightActiveIndex, rightTabs.length - 1))
+        ];
+      return active?.content ?? null;
+    }
+    return rightChildren;
+  };
+
   return (
     <div className={styles.container}>
       {!isMobile && !leftCollapsed && (
-        <div className={classNames(styles.sidebar, styles.sidebarLeft)}>
-          <div className={styles.title}>
-            <Row gap={1}>
-              <Icon i={leftIcon} size={18} />
-              <Typography.H3 className="mb-0">{leftTitle}</Typography.H3>
-            </Row>
-          </div>
-          <div className={styles.content}>{leftChildren}</div>
+        <div
+          className={classNames(styles.sidebar, styles.sidebarLeft)}
+          style={
+            leftWidth || leftMaxWidth
+              ? {
+                  flex: "0 0 auto",
+                  flexBasis:
+                    typeof leftWidth === "number" ? `${leftWidth}px` : leftWidth,
+                  maxWidth:
+                    typeof (leftMaxWidth || leftWidth) === "number"
+                      ? `${leftMaxWidth || leftWidth}px`
+                      : leftMaxWidth || leftWidth,
+                }
+              : undefined
+          }
+        >
+          {hasLeftTabs ? (
+            <div className={styles.tabs}>
+              {leftTabs.map((t, idx) => (
+                <button
+                  key={`${t.title}-${idx}`}
+                  type="button"
+                  onClick={() => setLeftActiveIndex(idx)}
+                  className={classNames(
+                    styles.tabButton,
+                    idx === leftActiveIndex && styles.tabButtonActive
+                  )}
+                  title={t.title}
+                >
+                  <Row gap={1} align="center">
+                    {t.icon ? <Icon i={t.icon} size={16} /> : null}
+                    <Typography.H3 className="mb-0">{t.title}</Typography.H3>
+                  </Row>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.title}>
+              <Row gap={1}>
+                <Icon i={leftIcon} size={18} />
+                <Typography.H3 className="mb-0">{leftTitle}</Typography.H3>
+              </Row>
+            </div>
+          )}
+          <div className={styles.content}>{renderLeftContent()}</div>
         </div>
       )}
 
@@ -175,18 +248,92 @@ export const TriPanelLayout = ({
                 </button>
               </div>
               <div className={styles.content}>
-                {sideActiveTab === "left" ? leftChildren : rightChildren}
+                {sideActiveTab === "left" ? (
+                  hasLeftTabs ? (
+                    <>
+                      <div className={styles.tabs}>
+                        {leftTabs.map((t, idx) => (
+                          <button
+                            key={`${t.title}-${idx}`}
+                            type="button"
+                            onClick={() => setLeftActiveIndex(idx)}
+                            className={classNames(
+                              styles.tabButton,
+                              idx === leftActiveIndex && styles.tabButtonActive
+                            )}
+                            title={t.title}
+                          >
+                            <Row gap={1} align="center">
+                              {t.icon ? <Icon i={t.icon} size={16} /> : null}
+                              <Typography.H3 className="mb-0">{t.title}</Typography.H3>
+                            </Row>
+                          </button>
+                        ))}
+                      </div>
+                      {renderLeftContent()}
+                    </>
+                  ) : (
+                    leftChildren
+                  )
+                ) : hasRightTabs ? (
+                  <>
+                    <div className={styles.tabs}>
+                      {rightTabs.map((t, idx) => (
+                        <button
+                          key={`${t.title}-${idx}`}
+                          type="button"
+                          onClick={() => setRightActiveIndex(idx)}
+                          className={classNames(
+                            styles.tabButton,
+                            idx === rightActiveIndex && styles.tabButtonActive
+                          )}
+                          title={t.title}
+                        >
+                          <Row gap={1} align="center">
+                            {t.icon ? <Icon i={t.icon} size={16} /> : null}
+                            <Typography.H3 className="mb-0">{t.title}</Typography.H3>
+                          </Row>
+                        </button>
+                      ))}
+                    </div>
+                    {renderRightContent()}
+                  </>
+                ) : (
+                  rightChildren
+                )}
               </div>
             </>
           ) : (
             <>
-              <div className={styles.title}>
-                <Row gap={1}>
-                  <Icon i={rightIcon} size={18} />
-                  <Typography.H3 className="mb-0">{rightTitle}</Typography.H3>
-                </Row>
-              </div>
-              <div className={styles.content}>{rightChildren}</div>
+              {hasRightTabs ? (
+                <div className={styles.tabs}>
+                  {rightTabs.map((t, idx) => (
+                    <button
+                      key={`${t.title}-${idx}`}
+                      type="button"
+                      onClick={() => setRightActiveIndex(idx)}
+                      className={classNames(
+                        styles.tabButton,
+                        idx === rightActiveIndex && styles.tabButtonActive
+                      )}
+                      title={t.title}
+                    >
+                      <Row gap={1} align="center">
+                        {t.icon ? <Icon i={t.icon} size={16} /> : null}
+                        <Typography.H3 className="mb-0">{t.title}</Typography.H3>
+                      </Row>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.title}>
+                  <Row gap={1}>
+                    <Icon i={rightIcon} size={18} />
+                    <Typography.H3 className="mb-0">{rightTitle}</Typography.H3>
+                  </Row>
+                </div>
+              )}
+              <div className={styles.content}>{renderRightContent()}</div>
             </>
           )}
         </div>
