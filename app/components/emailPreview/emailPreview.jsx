@@ -9,6 +9,7 @@ import { Icon } from "../../util/Icon";
 import eventpilotLogo from "../../assets/logo-sharp.png";
 import { useEvent } from "../../hooks/useEvent";
 import { Loading } from "../loading/Loading";
+import { SafeHtml } from "../SafeHtml/SafeHtml";
 import { useState } from "react";
 import { Badge } from "tabler-react-2/dist/badge";
 // Email status mapping for badges/icons
@@ -290,14 +291,7 @@ export const EmailPreview = ({ emailId, showIcon = false }) => {
           </Row>
         }
       >
-        <div
-          dangerouslySetInnerHTML={{ __html: renderHtml }}
-          style={{
-            whiteSpace: "pre-wrap",
-            overflowWrap: "break-word",
-            wordBreak: "break-word",
-          }}
-        />
+        <SafeHtml html={renderHtml} />
       </Card>
     </div>
   );

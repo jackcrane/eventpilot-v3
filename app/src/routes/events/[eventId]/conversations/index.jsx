@@ -23,6 +23,7 @@ import { Icon } from "../../../../../util/Icon";
 import { Loading } from "../../../../../components/loading/Loading";
 import { Empty } from "../../../../../components/empty/Empty";
 import toast from "react-hot-toast";
+import { SafeHtml } from "../../../../../components/SafeHtml/SafeHtml";
 
 // Format bytes into human-friendly units (b, kb, mb, gb)
 const formatBytes = (bytes) => {
@@ -803,14 +804,7 @@ export const EventConversationsPage = () => {
             }
           >
             {m.htmlBody ? (
-              <div
-                dangerouslySetInnerHTML={{ __html: m.htmlBody }}
-                style={{
-                  whiteSpace: "pre-wrap",
-                  overflowWrap: "break-word",
-                  wordBreak: "break-word",
-                }}
-              />
+              <SafeHtml html={m.htmlBody} />
             ) : (
               <Typography.Text style={{ whiteSpace: "pre-wrap" }}>
                 {m.textBody || m.snippet || "(no content)"}
