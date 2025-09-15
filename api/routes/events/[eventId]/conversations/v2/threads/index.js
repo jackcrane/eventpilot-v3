@@ -19,13 +19,15 @@ export const get = [
     );
 
     try {
+      // Tokenize query for AND matching and highlighting
+      const tokens = String(q || "")
+        .split(/\s+/)
+        .map((t) => t.trim())
+        .filter(Boolean);
+
       // Build DB-side search across all messages, recipients, and attachment names
       const buildWhere = () => {
         if (!q) return { eventId };
-        const tokens = String(q)
-          .split(/\s+/)
-          .map((t) => t.trim())
-          .filter(Boolean);
         const clauseFor = (token) => {
           const insensitive = { contains: token, mode: "insensitive" };
           return {
@@ -129,6 +131,18 @@ export const get = [
           .replace(/\s+/g, " ")
           .trim();
 
+      // Helper: scoring
+      const scoreFor = (text = "", weightsPerToken = 1) => {
+        if (!tokens.length) return 0;
+        const lc = String(text || "").toLowerCase();
+        let s = 0;
+        for (const t of tokens) {
+          if (!t) continue;
+          if (lc.includes(t.toLowerCase())) s += weightsPerToken;
+        }
+        return s;
+      };
+
       const summaries = convs
         .map((c) => {
           const lastIn = c.inboundEmails[0] || null;
@@ -170,9 +184,14 @@ export const get = [
             firstMessageId: null,
             isUnread: (unreadMap.get(c.id) || 0) > 0,
             hasAttachments,
+            // base relevance score; attachments and other signals added later
+            _relevance: tokens.length
+              ? scoreFor(subject, 5) + scoreFor(fromStr, 3) + scoreFor(snippet, 2)
+              : 0,
           };
         })
         .sort((a, b) => {
+          // preliminary recency ordering; final sort after attachments scoring
           const ad = a.lastMessage.internalDate
             ? new Date(a.lastMessage.internalDate).getTime()
             : 0;
@@ -182,14 +201,91 @@ export const get = [
           return bd - ad;
         });
 
-      // Database already filtered by q; summaries covers latest details
-      const filtered = summaries;
+      // If searching, augment results with matched attachment names and boost relevance
+      let augmented = summaries;
+      if (tokens.length && summaries.length) {
+        const ids = summaries.map((s) => s.id);
+        // Fetch inbound attachment matches across the conversations
+        const [inMatches, outMatches] = await Promise.all([
+          prisma.inboundEmailAttachment.findMany({
+            where: {
+              inboundEmail: { conversationId: { in: ids } },
+              OR: tokens.map((t) => ({
+                file: { is: { originalname: { contains: t, mode: "insensitive" } } },
+              })),
+            },
+            include: {
+              file: { select: { originalname: true } },
+              inboundEmail: { select: { conversationId: true } },
+            },
+          }),
+          prisma.outboundEmailAttachment.findMany({
+            where: {
+              email: { conversationId: { in: ids } },
+              OR: tokens.map((t) => ({
+                file: { is: { originalname: { contains: t, mode: "insensitive" } } },
+              })),
+            },
+            include: {
+              file: { select: { originalname: true } },
+              email: { select: { conversationId: true } },
+            },
+          }),
+        ]);
+
+        const attachmentMap = new Map(); // convId -> Set(names)
+        for (const m of inMatches) {
+          const cid = m?.inboundEmail?.conversationId;
+          const name = m?.file?.originalname;
+          if (!cid || !name) continue;
+          if (!attachmentMap.has(cid)) attachmentMap.set(cid, new Set());
+          attachmentMap.get(cid).add(name);
+        }
+        for (const m of outMatches) {
+          const cid = m?.email?.conversationId;
+          const name = m?.file?.originalname;
+          if (!cid || !name) continue;
+          if (!attachmentMap.has(cid)) attachmentMap.set(cid, new Set());
+          attachmentMap.get(cid).add(name);
+        }
+
+        augmented = summaries.map((s) => {
+          const names = Array.from(attachmentMap.get(s.id) || []);
+          const attachScore = names.length ? 2 : 0; // base boost if any match
+          // extra boost per token present in any of the names
+          let perToken = 0;
+          for (const t of tokens) {
+            const tl = t.toLowerCase();
+            if (names.some((n) => String(n).toLowerCase().includes(tl))) perToken += 2;
+          }
+          return {
+            ...s,
+            matchedAttachments: names.slice(0, 5), // cap for payload size
+            _relevance: s._relevance + attachScore + perToken,
+          };
+        });
+      }
+
+      // Database already filtered by q; order by relevance then recency when searching
+      const filtered = augmented.sort((a, b) => {
+        if (tokens.length) {
+          const diff = (b._relevance || 0) - (a._relevance || 0);
+          if (diff !== 0) return diff;
+        }
+        const ad = a.lastMessage.internalDate
+          ? new Date(a.lastMessage.internalDate).getTime()
+          : 0;
+        const bd = b.lastMessage.internalDate
+          ? new Date(b.lastMessage.internalDate).getTime()
+          : 0;
+        return bd - ad;
+      });
 
       const limited = filtered.slice(0, maxResults);
 
       // Remove server-only helper before returning
       return res.status(200).json({
-        threads: limited,
+        threads: limited.map(({ _relevance, ...t }) => t),
         nextPageToken: null,
         resultSizeEstimate: totalCount,
       });

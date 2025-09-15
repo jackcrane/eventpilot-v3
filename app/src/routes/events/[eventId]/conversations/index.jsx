@@ -78,6 +78,34 @@ export const EventConversationsPage = () => {
     }
   );
 
+  const tokens = useMemo(
+    () =>
+      String(query || "")
+        .split(/\s+/)
+        .map((t) => t.trim())
+        .filter(Boolean),
+    [query]
+  );
+
+  const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const tokensLower = useMemo(() => tokens.map((t) => t.toLowerCase()), [tokens]);
+  const highlightText = (text) => {
+    if (!text) return "";
+    if (!tokens.length) return text;
+    const pattern = new RegExp(`(${tokens.map(escapeRegExp).join("|")})`, "gi");
+    const parts = String(text).split(pattern);
+    return parts.map((part, i) => {
+      if (tokensLower.includes(String(part).toLowerCase())) {
+        return (
+          <mark key={`m-${i}`} style={{ background: "#ffed8a", padding: 0 }}>
+            {part}
+          </mark>
+        );
+      }
+      return <span key={`t-${i}`}>{part}</span>;
+    });
+  };
+
   const handleSelectThread = (id) => {
     const next = new URLSearchParams(searchParams);
     next.set("threadId", id);
@@ -98,6 +126,7 @@ export const EventConversationsPage = () => {
 
   const sortedThreads = useMemo(() => {
     if (!threads?.length) return [];
+    if (tokens.length) return threads; // rely on server relevance ordering when searching
     return [...threads].sort((a, b) => {
       const ad = new Date(
         a?.lastMessage?.internalDate || a?.lastInternalDate || 0
@@ -107,7 +136,7 @@ export const EventConversationsPage = () => {
       ).getTime();
       return bd - ad; // newest first
     });
-  }, [threads]);
+  }, [threads, tokens.length]);
 
   const leftList = (
     <div
@@ -187,7 +216,7 @@ export const EventConversationsPage = () => {
                       maxWidth: "100%",
                     }}
                   >
-                    {t.lastMessage?.subject || "(no subject)"}
+                    {highlightText(t.lastMessage?.subject || "(no subject)")}
                   </Typography.H3>
                 </Row>
                 <Typography.Text
@@ -199,7 +228,7 @@ export const EventConversationsPage = () => {
                     maxWidth: "100%",
                   }}
                 >
-                  {t.lastMessage?.from || ""}
+                  {highlightText(t.lastMessage?.from || "")}
                 </Typography.Text>
                 {t.snippet ? (
                   <Typography.Text
@@ -212,7 +241,27 @@ export const EventConversationsPage = () => {
                       maxWidth: "100%",
                     }}
                   >
-                    {t.snippet}
+                    {highlightText(t.snippet)}
+                  </Typography.Text>
+                ) : null}
+                {Array.isArray(t.matchedAttachments) && t.matchedAttachments.length > 0 ? (
+                  <Typography.Text
+                    className="mb-0"
+                    style={{
+                      color: "var(--tblr-muted)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      maxWidth: "100%",
+                    }}
+                  >
+                    <span className="text-muted">Attachments: </span>
+                    {t.matchedAttachments.map((name, idx) => (
+                      <React.Fragment key={`${t.id}-att-${idx}`}>
+                        {idx > 0 ? ", " : null}
+                        {highlightText(name)}
+                      </React.Fragment>
+                    ))}
                   </Typography.Text>
                 ) : null}
               </Col>
