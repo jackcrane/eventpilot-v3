@@ -11,6 +11,7 @@ import { useFileUploader } from "../../../../../../hooks/useFileUploader";
 import { useConversationReply } from "../../../../../../hooks/useConversationReply";
 import { useConversationCompose } from "../../../../../../hooks/useConversationCompose";
 import { useConversationThreadUnread } from "../../../../../../hooks/useConversationThreadUnread";
+import { useConversationThreadDelete } from "../../../../../../hooks/useConversationThreadDelete";
 import { useTodos } from "../../../../../../hooks/useTodos";
 import { TodoCreateForm } from "../../../../../../components/TodoCreateForm/TodoCreateForm";
 
@@ -66,6 +67,13 @@ export const Conversation = ({
     markAsUnread,
     mutationLoading: updatingThread,
   } = useConversationThreadUnread({ eventId, threadId: selectedThreadId });
+
+  // Delete action (trash thread)
+  const {
+    deleteThread,
+    mutationLoading: deletingThread,
+    DeleteConfirmElement,
+  } = useConversationThreadDelete({ eventId, threadId: selectedThreadId });
 
   // Todos actions
   const { createTodo } = useTodos({ eventId });
@@ -135,6 +143,7 @@ export const Conversation = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {DeleteConfirmElement}
       {OffcanvasElement}
       {!selectedThreadId && !composeMode && (
         <Empty
@@ -476,6 +485,33 @@ export const Conversation = ({
                 }
               >
                 Create a new Todo item
+              </Button>
+              <Button
+                size="sm"
+                color="danger"
+                outline
+                onClick={async () => {
+                  const ok = await deleteThread({
+                    onOptimistic: () => {
+                      navigate(`/events/${eventId}/conversations`);
+                    },
+                    onSuccess: async () => {
+                      try {
+                        await refetchThreads?.();
+                      } catch (_) {}
+                    },
+                  });
+                  if (!ok) return;
+                }}
+                disabled={deletingThread}
+                loading={deletingThread}
+              >
+                <span
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                >
+                  <Icon i="trash" />
+                  Delete
+                </span>
               </Button>
             </div>
           </div>
