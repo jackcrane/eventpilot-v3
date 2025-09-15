@@ -11,6 +11,7 @@ import { getOrCreateConversation } from "./fragments/getOrCreateConversation.js"
 import {
   createInboundEmailFromGmail,
   buildCrmBodyFromGmailMessage,
+  parseAddressList,
 } from "./fragments/createInboundEmailFromGmail.js";
 import { createOutboundEmailFromGmail } from "./fragments/createOutboundEmailFromGmail.js";
 import { processCrmPersonRelationships } from "./fragments/processCrmPersonRelationships.js";
@@ -63,19 +64,24 @@ export const post = async (req, res) => {
               };
               const attachments = bodiesAndAtts.attachments || [];
               const msgId = headers["message-id"] || payload.id;
-              const from = headers["from"] || "";
-              const to = headers["to"] || "";
-              const cc = headers["cc"] || "";
-              const isFromSelf = String(from)
-                .toLowerCase()
-                .includes(String(conn.email).toLowerCase());
-              const isToSelf =
-                String(to)
-                  .toLowerCase()
-                  .includes(String(conn.email).toLowerCase()) ||
-                String(cc)
-                  .toLowerCase()
-                  .includes(String(conn.email).toLowerCase());
+          const from = headers["from"] || "";
+          const to = headers["to"] || "";
+          const cc = headers["cc"] || "";
+          const normalizeMailbox = (addr) => {
+            if (!addr) return "";
+            const [local, domain] = String(addr).toLowerCase().split("@");
+            if (!domain) return String(addr).toLowerCase();
+            const localNorm = local.includes("+") ? local.split("+")[0] : local;
+            return `${localNorm}@${domain}`;
+          };
+          const selfNorm = normalizeMailbox(conn.email || "");
+          const fromList = parseAddressList(from).map((e) => e.Email);
+          const toList = parseAddressList(to).map((e) => e.Email);
+          const ccList = parseAddressList(cc).map((e) => e.Email);
+          const isFromSelf = fromList.some((a) => normalizeMailbox(a) === selfNorm);
+          const isToSelf = [...toList, ...ccList].some(
+            (a) => normalizeMailbox(a) === selfNorm
+          );
 
               // Inbound: external -> our connected address
               if (!isFromSelf && isToSelf) {
@@ -181,6 +187,19 @@ export const post = async (req, res) => {
                   );
                   try {
                     sendEmailEvent(conn.eventId, createdOut);
+                    // eslint-disable-next-line
+                  } catch (_) {}
+                } else {
+                  // Mark existing immediate persist as confirmed by Gmail
+                  try {
+                    await prisma.logs.create({
+                      data: {
+                        type: "EMAIL_VERIFIED",
+                        eventId: conn.eventId,
+                        email: { connect: { id: existsOut.id } },
+                        data: { source: "gmail_cron" },
+                      },
+                    });
                     // eslint-disable-next-line
                   } catch (_) {}
                 }

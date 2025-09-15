@@ -163,6 +163,51 @@ export const mapGmailMessage = (m) => {
   };
 };
 
+// Very lightweight parser for RFC 5322 address lists
+// Returns array of { email, name }
+export const parseAddressList = (value) => {
+  if (!value) return [];
+  const parts = [];
+  let cur = "";
+  let depth = 0;
+  let inQuotes = false;
+  for (const ch of String(value)) {
+    if (ch === '"') inQuotes = !inQuotes;
+    if (!inQuotes) {
+      if (ch === "<") depth++;
+      if (ch === ">" && depth > 0) depth--;
+    }
+    if (ch === "," && !inQuotes && depth === 0) {
+      parts.push(cur.trim());
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur.trim()) parts.push(cur.trim());
+
+  return parts
+    .map((p) => {
+      const m = p.match(/^(.*)<([^>]+)>\s*$/);
+      if (m) {
+        const name = m[1].trim().replace(/^"|"$/g, "");
+        const email = m[2].trim();
+        return { email, name: name || email };
+      }
+      const email = p.replace(/^"|"$/g, "").trim();
+      return { email, name: email };
+    })
+    .filter((e) => /@/.test(e.email));
+};
+
+const normalizeMailbox = (addr) => {
+  if (!addr) return "";
+  const [local, domain] = String(addr).toLowerCase().split("@");
+  if (!domain) return String(addr).toLowerCase();
+  const localNorm = local.includes("+") ? local.split("+")[0] : local;
+  return `${localNorm}@${domain}`;
+};
+
 export const summarizeThreadFromMessages = (data) => {
   const messages = data.messages || [];
   const count = messages.length;
@@ -321,28 +366,62 @@ export const sendThreadReply = async (
     err.code = "THREAD_NOT_FOUND";
     throw err;
   }
-  const last = msgs[msgs.length - 1];
-  const lastPayload = last.payload;
+  // Prefer replying to the most recent message NOT sent by the connected mailbox.
+  // This avoids replying back to ourselves on subsequent replies and handles aliases/plus addressing.
+  const selfNorm = normalizeMailbox(connectionEmail || "");
+  const pick = [...msgs]
+    .reverse()
+    .find((m) => {
+      const fromHdr = getHeader(m.payload, "From") || "";
+      const fromAddr = parseAddressList(fromHdr)[0]?.email || fromHdr;
+      const fromNorm = normalizeMailbox(fromAddr);
+      return fromNorm !== selfNorm;
+    }) || msgs[msgs.length - 1];
+
+  const lastPayload = pick.payload;
   const lastMsgId = getHeader(lastPayload, "Message-ID");
   const lastRefs = getHeader(lastPayload, "References");
   const lastSubject = getHeader(lastPayload, "Subject") || "";
   const replyToHdr = getHeader(lastPayload, "Reply-To");
   const fromHdr = getHeader(lastPayload, "From");
 
-  const recipients = arrify(to?.length ? to : replyToHdr || fromHdr).join(", ");
-  if (!recipients) {
+  // Determine recipients: prefer explicit arg, else Reply-To, else From; filter out our own address.
+  let recipients = null;
+  if (to && (Array.isArray(to) ? to.length : String(to).trim().length)) {
+    const list = Array.isArray(to) ? to : [to];
+    const parsed = list
+      .flatMap((t) => parseAddressList(t))
+      .map((e) => e.email);
+    recipients = parsed.join(", ");
+  } else {
+    const baseList = parseAddressList(replyToHdr || fromHdr).map((e) => e.email);
+    const filtered = baseList.filter((addr) => normalizeMailbox(addr) !== selfNorm);
+    recipients = filtered.join(", ");
+  }
+  if (!recipients || !recipients.trim()) {
     const err = new Error("No recipients resolved for reply");
     err.code = "NO_RECIPIENTS";
     throw err;
   }
+  // Filter our own address from cc/bcc if present
+  const ccStr = arrify(cc)
+    .flatMap((t) => parseAddressList(t))
+    .map((e) => e.email)
+    .filter((addr) => normalizeMailbox(addr) !== selfNorm)
+    .join(", ");
+  const bccStr = arrify(bcc)
+    .flatMap((t) => parseAddressList(t))
+    .map((e) => e.email)
+    .filter((addr) => normalizeMailbox(addr) !== selfNorm)
+    .join(", ");
   let subj = subject || lastSubject || "";
   if (!/^\s*re:/i.test(subj) && lastSubject) subj = `Re: ${subj}`;
 
   const mime = buildReplyMime({
     from: connectionEmail,
     recipients,
-    cc,
-    bcc,
+    cc: ccStr || undefined,
+    bcc: bccStr || undefined,
     subject: subj,
     text,
     html,

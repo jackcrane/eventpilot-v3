@@ -1,12 +1,13 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import moment from "moment";
-import { Typography, Card, Badge, Button } from "tabler-react-2";
+import { Typography, Card, Badge, Button, Input } from "tabler-react-2";
 import { Row, Col } from "../../../../../util/Flex";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
 import { TriPanelLayout } from "../../../../../components/TriPanelLayout/TriPanelLayout";
 import { useConversationThreads } from "../../../../../hooks/useConversationThreads";
 import { useConversationThread } from "../../../../../hooks/useConversationThread";
+import { useConversationReply } from "../../../../../hooks/useConversationReply";
 import { Icon } from "../../../../../util/Icon";
 import { Loading } from "../../../../../components/loading/Loading";
 import { Empty } from "../../../../../components/empty/Empty";
@@ -20,13 +21,22 @@ export const EventConversationsPage = () => {
     threads,
     loading: threadsLoading,
     error: threadsError,
+    refetch: refetchThreads,
   } = useConversationThreads({ eventId, maxResults: 20 });
 
   const {
     thread,
     messages,
     loading: threadLoading,
+    refetch: refetchThread,
   } = useConversationThread({ eventId, threadId: selectedThreadId });
+
+  const { sendReply, mutationLoading: sendingReply } = useConversationReply({
+    eventId,
+    threadId: selectedThreadId,
+  });
+
+  const [replyBody, setReplyBody] = useState("");
 
   const handleSelectThread = (id) => {
     const next = new URLSearchParams(searchParams);
@@ -285,6 +295,40 @@ export const EventConversationsPage = () => {
             ) : null}
           </Card>
         ))}
+
+      {selectedThreadId && !threadLoading && (
+        <Card title="Reply">
+          <Input
+            placeholder="Write your reply..."
+            value={replyBody}
+            onChange={(e) => setReplyBody(e)}
+            useTextarea
+          />
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+            <Button
+              color="primary"
+              onClick={async () => {
+                if (!replyBody.trim()) return;
+                const ok = await sendReply({ text: replyBody });
+                if (ok) {
+                  setReplyBody("");
+                  // refresh thread and list to show the new email
+                  try {
+                    await Promise.all([
+                      refetchThread?.(),
+                      refetchThreads?.(),
+                    ]);
+                  } catch (_) {}
+                }
+              }}
+              disabled={!replyBody.trim() || sendingReply}
+              loading={sendingReply}
+            >
+              Send
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 

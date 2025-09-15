@@ -229,6 +229,7 @@ export const post = [
           (acc, h) => ({ ...acc, [String(h.name).toLowerCase()]: h.value }),
           {}
         );
+        const headerMsgId = headers["message-id"] || null;
         const from = headers["from"] || connection.email;
         const to =
           headers["to"] ||
@@ -237,10 +238,16 @@ export const post = [
             : parse.data.to || "");
         const subject = headers["subject"] || parse.data.subject || "";
 
+        // Prefer RFC Message-ID, fall back to Gmail message id (sentId)
+        const persistedMessageId = msgId || headerMsgId || sentId;
+
         // Dedupe by messageId
-        const exists = msgId
+        const exists = persistedMessageId
           ? await prisma.email.findFirst({
-              where: { messageId: msgId, conversationId: threadId },
+              where: {
+                messageId: persistedMessageId,
+                conversationId: threadId,
+              },
             })
           : null;
         let emailRecord = exists;
@@ -269,14 +276,22 @@ export const post = [
 
           emailRecord = await prisma.email.create({
             data: {
-              conversation: { connect: { id: threadId } },
-              messageId: msgId || undefined,
+              // conversation: { connect: { id: threadId } },
+              conversationId: threadId,
+              messageId: persistedMessageId || sentId || `${Date.now()}`,
               from,
               to,
               subject,
               htmlBody: parse.data.html || null,
               textBody: parse.data.text || null,
               crmPersonId: crmPersonId || null,
+              logs: {
+                create: {
+                  type: "EMAIL_SENT",
+                  eventId,
+                  data: { source: "immediate", confirmed: false },
+                },
+              },
             },
           });
 
