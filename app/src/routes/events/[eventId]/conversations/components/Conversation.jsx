@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Typography, Card, Button, Input, Spinner, useOffcanvas } from "tabler-react-2";
+import {
+  Typography,
+  Card,
+  Button,
+  Input,
+  Spinner,
+  useOffcanvas,
+} from "tabler-react-2";
 import { Row, Col } from "../../../../../../util/Flex";
 import { Icon } from "../../../../../../util/Icon";
 import { Loading } from "../../../../../../components/loading/Loading";
@@ -10,8 +17,7 @@ import { Message } from "./Message";
 import { useFileUploader } from "../../../../../../hooks/useFileUploader";
 import { useConversationReply } from "../../../../../../hooks/useConversationReply";
 import { useConversationCompose } from "../../../../../../hooks/useConversationCompose";
-import { useConversationThreadUnread } from "../../../../../../hooks/useConversationThreadUnread";
-import { useConversationThreadDelete } from "../../../../../../hooks/useConversationThreadDelete";
+import { useConversationThread } from "../../../../../../hooks/useConversationThread";
 import { useTodos } from "../../../../../../hooks/useTodos";
 import { TodoCreateForm } from "../../../../../../components/TodoCreateForm/TodoCreateForm";
 
@@ -62,18 +68,15 @@ export const Conversation = ({
   });
   const { sendNewMessage, mutationLoading: sendingNew } =
     useConversationCompose({ eventId });
+  // Combined thread actions (unread toggle + delete)
   const {
     markAsRead,
     markAsUnread,
-    mutationLoading: updatingThread,
-  } = useConversationThreadUnread({ eventId, threadId: selectedThreadId });
-
-  // Delete action (trash thread)
-  const {
+    updatingThread,
     deleteThread,
-    mutationLoading: deletingThread,
+    deletingThread,
     DeleteConfirmElement,
-  } = useConversationThreadDelete({ eventId, threadId: selectedThreadId });
+  } = useConversationThread({ eventId, threadId: selectedThreadId });
 
   // Todos actions
   const { createTodo } = useTodos({ eventId });
@@ -466,16 +469,22 @@ export const Conversation = ({
                   offcanvas({
                     content: (
                       <TodoCreateForm
-                        initialCrmPeople={Array.isArray(participants) ? participants : []}
+                        initialCrmPeople={
+                          Array.isArray(participants) ? participants : []
+                        }
                         showCrmSection
-                        linkedEmail={{ id: selectedThreadId, subject: thread?.subject || "(no subject)" }}
+                        linkedEmail={{
+                          id: selectedThreadId,
+                          subject: thread?.subject || "(no subject)",
+                        }}
                         onClose={close}
                         onCreate={async (vals, { linkEmail } = {}) => {
                           const ok = await createTodo({
                             ...vals,
-                            conversationIds: linkEmail !== false && selectedThreadId
-                              ? [selectedThreadId]
-                              : undefined,
+                            conversationIds:
+                              linkEmail !== false && selectedThreadId
+                                ? [selectedThreadId]
+                                : undefined,
                           });
                           if (ok) close();
                         }}
@@ -484,7 +493,8 @@ export const Conversation = ({
                   })
                 }
               >
-                Create a new Todo item
+                <Icon i="plus" />
+                Todo item
               </Button>
               <Button
                 size="sm"
@@ -507,7 +517,11 @@ export const Conversation = ({
                 loading={deletingThread}
               >
                 <span
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
                 >
                   <Icon i="trash" />
                   Delete
