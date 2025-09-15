@@ -8,6 +8,7 @@ import {
   Button,
   Input,
   Spinner,
+  Util,
 } from "tabler-react-2";
 import { Row, Col } from "../../../../../util/Flex";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
@@ -30,6 +31,8 @@ export const EventConversationsPage = () => {
     loading: threadsLoading,
     error: threadsError,
     refetch: refetchThreads,
+    loadOlder,
+    mutationLoading: loadingOlder,
   } = useConversationThreads({ eventId, maxResults: 20 });
 
   const {
@@ -198,6 +201,25 @@ export const EventConversationsPage = () => {
           </button>
         );
       })}
+      <Util.Hr
+        text={
+          <Button
+            size="sm"
+            onClick={() => loadOlder()}
+            disabled={threadsLoading || loadingOlder}
+          >
+            {loadingOlder ? (
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
+                <Spinner size={"sm"} /> Loading older messages
+              </span>
+            ) : (
+              "Load older messages"
+            )}
+          </Button>
+        }
+      />
     </div>
   );
 
@@ -357,7 +379,9 @@ export const EventConversationsPage = () => {
                                 top: 0,
                                 bottom: 0,
                                 left: 0,
-                                width: `${Math.round((f.progress || 0) * 100)}%`,
+                                width: `${Math.round(
+                                  (f.progress || 0) * 100
+                                )}%`,
                                 background: "var(--tblr-primary)",
                                 opacity: 0.15,
                                 zIndex: 0,

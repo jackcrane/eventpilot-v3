@@ -1,4 +1,6 @@
 import useSWR, { mutate } from "swr";
+import useSWRMutation from "swr/mutation";
+import toast from "react-hot-toast";
 import { authFetch } from "../util/url";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
@@ -26,6 +28,38 @@ export const useConversationThreads = ({
 
   const { data, error, isLoading } = useSWR(key, fetcher);
 
+  // Mutation: load older messages window (1 week before oldest saved)
+  const backfillKey = eventId
+    ? `/api/events/${eventId}/conversations/v2/load-older`
+    : null;
+  const { trigger: triggerBackfill, isMutating: isBackfilling } = useSWRMutation(
+    backfillKey,
+    async (url) => {
+      const res = await authFetch(url, { method: "POST" });
+      if (!res.ok) {
+        const msg = await res.text().catch(() => "Failed to load older messages");
+        throw new Error(msg || "Failed to load older messages");
+      }
+      return res.json();
+    }
+  );
+
+  const loadOlder = async () => {
+    if (!backfillKey) return false;
+    try {
+      const p = triggerBackfill();
+      await toast.promise(p, {
+        loading: "Loading older messages...",
+        success: (d) => `Loaded ${Number(d?.processed || 0)} messages`,
+        error: (e) => e?.message || "Failed to load older messages",
+      });
+      if (key) await mutate(key);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   return {
     threads: data?.threads || [],
     nextPageToken: data?.nextPageToken || null,
@@ -33,6 +67,7 @@ export const useConversationThreads = ({
     loading: isLoading,
     error,
     refetch: () => (key ? mutate(key) : undefined),
+    loadOlder,
+    mutationLoading: isBackfilling,
   };
 };
-
