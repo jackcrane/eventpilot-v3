@@ -459,9 +459,15 @@ export const Conversation = ({
                       <TodoCreateForm
                         initialCrmPeople={Array.isArray(participants) ? participants : []}
                         showCrmSection
+                        linkedEmail={{ id: selectedThreadId, subject: thread?.subject || "(no subject)" }}
                         onClose={close}
-                        onCreate={async (vals) => {
-                          const ok = await createTodo(vals);
+                        onCreate={async (vals, { linkEmail } = {}) => {
+                          const ok = await createTodo({
+                            ...vals,
+                            conversationIds: linkEmail !== false && selectedThreadId
+                              ? [selectedThreadId]
+                              : undefined,
+                          });
                           if (ok) close();
                         }}
                       />

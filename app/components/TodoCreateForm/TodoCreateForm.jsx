@@ -16,12 +16,19 @@ export const TodoCreateForm = ({
   onClose,
   initialCrmPeople = [],
   showCrmSection = false,
+  linkedEmail, // { id, subject }
+  // backwards-compat: deprecated
+  linkedEmailSubject,
+  linkedEmailId,
 }) => {
   const [title, setTitle] = useState("");
   const [details, setDetails] = useState("");
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(toServerStatus(initialStatus));
   const [people, setPeople] = useState(initialCrmPeople);
+  const initialEmailId = linkedEmail?.id || linkedEmailId || null;
+  const initialEmailSubject = linkedEmail?.subject || linkedEmailSubject || null;
+  const [linkEmail, setLinkEmail] = useState(Boolean(initialEmailId));
 
   const submit = async () => {
     const t = title.trim();
@@ -33,7 +40,7 @@ export const TodoCreateForm = ({
         content: details || "",
         status,
         crmPersonIds: people.map((p) => p.id).filter(Boolean),
-      });
+      }, { linkEmail: linkEmail });
     } finally {
       setSaving(false);
     }
@@ -141,6 +148,56 @@ export const TodoCreateForm = ({
           ) : (
             <Typography.Text className="mb-1 text-muted">None</Typography.Text>
           )}
+          {/* Linked Emails, no extra Hr between sections */}
+          {initialEmailId ? (
+            <>
+              <label className="form-label mt-2">Linked Emails</label>
+              {linkEmail ? (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <span
+                    className="badge"
+                    style={{
+                      background: "var(--tblr-gray-200)",
+                      color: "var(--tblr-dark)",
+                      padding: "4px 8px",
+                      borderRadius: 6,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      maxWidth: 300,
+                    }}
+                    title={initialEmailSubject || initialEmailId}
+                  >
+                    <span
+                      style={{
+                        maxWidth: 260,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {initialEmailSubject || initialEmailId}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-link p-0"
+                      title="Remove"
+                      onClick={() => setLinkEmail(false)}
+                      style={{
+                        color: "var(--tblr-dark)",
+                        textDecoration: "none",
+                        lineHeight: 1,
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                </div>
+              ) : (
+                <Typography.Text className="mb-1 text-muted">None</Typography.Text>
+              )}
+            </>
+          ) : null}
         </>
       )}
     </div>

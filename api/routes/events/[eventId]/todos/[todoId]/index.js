@@ -25,6 +25,7 @@ export const get = [
           },
           VolunteerRegistration: { select: { id: true } },
           Registration: { select: { id: true } },
+          Conversation: { select: { id: true } },
           CrmPerson: { select: { id: true } },
         },
       });
@@ -255,6 +256,7 @@ export const put = [
           },
           VolunteerRegistration: { select: { id: true } },
           Registration: { select: { id: true } },
+          Conversation: { select: { id: true } },
           CrmPerson: { select: { id: true } },
         },
       });
