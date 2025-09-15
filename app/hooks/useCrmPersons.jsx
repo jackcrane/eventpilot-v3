@@ -9,10 +9,22 @@ const fetcher = (url) =>
     return r.json();
   });
 
-export const useCrmPersons = ({ eventId, page, size } = {}) => {
+export const useCrmPersons = ({ eventId, page, size, orderBy, order, q, filters } = {}) => {
   const baseKey = `/api/events/${eventId}/crm/person`;
-  const key = page && size ? `${baseKey}?page=${page}&size=${size}` : baseKey;
-  const { data, error, isLoading, mutate } = useSWR(key, fetcher);
+  const params = new URLSearchParams();
+  if (page && size) {
+    params.set("page", String(page));
+    params.set("size", String(size));
+  }
+  if (orderBy) params.set("orderBy", String(orderBy));
+  if (order) params.set("order", String(order));
+  if (q && String(q).trim()) params.set("q", String(q).trim());
+  if (Array.isArray(filters) && filters.length) params.set("filters", JSON.stringify(filters));
+  const qs = params.toString();
+  const key = qs ? `${baseKey}?${qs}` : baseKey;
+  const { data, error, isLoading, isValidating, mutate } = useSWR(key, fetcher, {
+    keepPreviousData: true,
+  });
   const [mutationLoading, setMutationLoading] = useState(false);
 
   // state for trimmed imports
@@ -116,6 +128,7 @@ export const useCrmPersons = ({ eventId, page, size } = {}) => {
     total: data?.total ?? (Array.isArray(data?.crmPersons) ? data.crmPersons.length : 0),
     imports,
     loading: isLoading,
+    validating: isValidating,
     mutationLoading,
     error,
     refetch: () => mutate(),

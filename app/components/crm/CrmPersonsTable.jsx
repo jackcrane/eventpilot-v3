@@ -15,6 +15,10 @@ export const CrmPersonsTable = ({
   totalRows: controlledTotal,
   onSetPage,
   onSetSize,
+  // Controlled sorting props (server-side)
+  orderBy,
+  order,
+  onSetOrder,
 }) => {
   const [page, setPage] = useState(1);
   const [localSize, setLocalSize] = useState(pageSize);
@@ -110,10 +114,55 @@ export const CrmPersonsTable = ({
     [allOnPageSelected, selected]
   );
 
-  const enhancedColumns = useMemo(
-    () => [selectionColumn, ...columns],
-    [selectionColumn, columns]
+  // Server-side sorting support (when orderBy/order provided)
+  const controlledSorting = !!orderBy && !!order && typeof onSetOrder === "function";
+  const canServerSort = (col) => {
+    if (!controlledSorting) return false;
+    if (col?.sortable === false) return false;
+    const acc = col?.accessor;
+    if (typeof acc !== "string") return false;
+    if (["name", "createdAt", "updatedAt", "source"].includes(acc)) return true;
+    if (acc.startsWith?.("fields.")) return true;
+    return false;
+  };
+  const sortIndicator = (active, dir) => (
+    <span style={{ marginLeft: 6, opacity: 0.7 }}>
+      {active ? (dir === "asc" ? "▲" : "▼") : "↕"}
+    </span>
   );
+  const serverSortWrappedColumns = useMemo(() => {
+    if (!controlledSorting) return columns;
+    return columns.map((col) => {
+      if (!canServerSort(col)) return { ...col, sortable: false };
+      const acc = col.accessor;
+      const isActive = acc === orderBy;
+      const nextOrder = isActive ? (order === "asc" ? "desc" : "asc") : "asc";
+      const onClick = (e) => {
+        e?.preventDefault?.();
+        onSetOrder && onSetOrder(acc, nextOrder);
+      };
+      return {
+        ...col,
+        sortable: false,
+        label: (
+          <span
+            role="button"
+            onClick={onClick}
+            style={{ cursor: "pointer", userSelect: "none" }}
+            title={isActive ? `Sorted ${order}` : "Click to sort"}
+          >
+            {col.label}
+            {sortIndicator(isActive, order)}
+          </span>
+        ),
+      };
+    });
+  }, [columns, controlledSorting, orderBy, order, onSetOrder]);
+
+  const enhancedColumns = useMemo(() => {
+    const cols = controlledSorting ? serverSortWrappedColumns : columns;
+    return [selectionColumn, ...cols];
+  }, [selectionColumn, serverSortWrappedColumns, columns, controlledSorting]);
 
   if (!data || data.length === 0) return null;
 

@@ -1,5 +1,5 @@
 // EventCrm.jsx
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { EventPage } from "../../../../components/eventPage/EventPage";
 import { useCrm } from "../../../../hooks/useCrm";
@@ -19,6 +19,7 @@ import { CrmHeaderActions } from "../../../../components/crm/CrmHeaderActions";
 import { CrmFilterBar } from "../../../../components/crm/CrmFilterBar";
 import { CrmImportProgressAlerts } from "../../../../components/crm/CrmImportProgressAlerts";
 import { CrmPersonsTable } from "../../../../components/crm/CrmPersonsTable";
+import toast from "react-hot-toast";
 
 const switchTypeForIcon = (type) => {
   switch (type) {
@@ -42,9 +43,11 @@ const switchTypeForIcon = (type) => {
 export const EventCrm = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
-  const { crmFields, loading: fieldsLoading } = useCrm({ eventId });
+  const { crmFields, loading: fieldsLoading, validating: fieldsValidating } = useCrm({ eventId });
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(25);
+  const [orderBy, setOrderBy] = useState("createdAt");
+  const [order, setOrder] = useState("desc");
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
     offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
   });
@@ -352,20 +355,36 @@ export const EventCrm = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedSegments, currentSavedId]);
 
-  // Determine if we should use server pagination (no filters/AI/search)
-  const usingAdvancedFilters =
-    !!aiResults || (filters || []).length > 0 || (search || "").trim() !== "";
+  // Determine if AI is active; AI uses a separate endpoint
+  const usingAi = !!aiResults;
+
+  // Build server filter payload from UI filters
+  const serverFilters = useMemo(() => {
+    if (!filters || !filters.length) return [];
+    const dynamicMap = new Map((crmFields || []).map((f) => [f.label, f.id]));
+    return filters.map((f) => {
+      const label = f?.field?.label;
+      const fieldId = dynamicMap.get(label);
+      const path = fieldId ? `fields.${fieldId}` : label; // built-in labels pass through
+      return { path, operation: f?.operation, value: f?.value ?? null };
+    });
+  }, [filters, crmFields]);
 
   // Fetch CRM persons, optionally paginated when not using advanced filters
   const {
     crmPersons,
     total: totalRows,
     loading: personsLoading,
+    validating: personsValidating,
     imports,
   } = useCrmPersons({
     eventId,
-    page: usingAdvancedFilters ? undefined : page,
-    size: usingAdvancedFilters ? undefined : size,
+    page: usingAi ? undefined : page,
+    size: usingAi ? undefined : size,
+    orderBy: usingAi ? undefined : orderBy,
+    order: usingAi ? undefined : order,
+    q: usingAi ? undefined : search,
+    filters: usingAi ? undefined : serverFilters,
   });
 
   const filteredPersons = useMemo(() => {
@@ -528,10 +547,33 @@ export const EventCrm = () => {
     .sort((a, b) => a.order - b.order)
     .map(({ id, label, show, order, ...rest }) => ({ label, ...rest }));
 
+  // Only show full-page loading on first load; thereafter show a toast during revalidations
+  const [hasInitialLoaded, setHasInitialLoaded] = useState(false);
+  const loadingToastId = useRef(null);
+
+  useEffect(() => {
+    if (!hasInitialLoaded && !fieldsLoading && !personsLoading) {
+      setHasInitialLoaded(true);
+    }
+  }, [hasInitialLoaded, fieldsLoading, personsLoading]);
+
+  useEffect(() => {
+    if (!hasInitialLoaded) return;
+    const busy = fieldsLoading || personsLoading || fieldsValidating || personsValidating;
+    if (busy) {
+      if (!loadingToastId.current) {
+        loadingToastId.current = toast.loading("Refreshing contacts...");
+      }
+    } else if (loadingToastId.current) {
+      toast.dismiss(loadingToastId.current);
+      loadingToastId.current = null;
+    }
+  }, [hasInitialLoaded, fieldsLoading, personsLoading, fieldsValidating, personsValidating]);
+
   return (
     <EventPage
       title="CRM"
-      loading={fieldsLoading || personsLoading}
+      loading={!hasInitialLoaded && (fieldsLoading || personsLoading)}
       docsLink="https://docs.geteventpilot.com/docs/pages/crm/"
       description={
         "This is the contacts page. It is a powerful CRM for managing your event's contacts."
@@ -551,50 +593,48 @@ export const EventCrm = () => {
 
       <Util.Hr style={{ margin: "1rem 0" }} />
 
-      {crmPersons?.length > 0 && (
-        <CrmFilterBar
-          search={search}
-          setSearch={setSearch}
-          filterFieldDefs={filterFieldDefs}
-          setFilters={setFilters}
-          initialFilters={dbFilters?.manual?.filters || []}
-          showAiBadge={dbFilters?.ai?.enabled || aiResults}
-          aiTitle={
-            savedTitle || dbFilters?.ai?.title || lastPrompt || "AI Filter"
-          }
-          aiCollapsed={aiCollapsed}
-          onToggleAi={() => setAiCollapsed((c) => !c)}
-          onRefineAi={openAiRefineOffcanvasRefactored}
-          onClearAi={() => {
-            setAiResults(null);
-            setCurrentSavedId(null);
-            setSavedTitle("");
-            setLastAst(null);
-            setLastPrompt("");
-            setDbFilters((prev) => ({
-              ...(prev || {}),
-              ai: {
-                enabled: false,
-                savedSegmentId: null,
-                ast: null,
-                title: "",
-              },
-            }));
-          }}
-          onAskAi={openAiOffcanvasRefactored}
-        />
-      )}
+      <CrmFilterBar
+        search={search}
+        setSearch={setSearch}
+        filterFieldDefs={filterFieldDefs}
+        setFilters={setFilters}
+        initialFilters={dbFilters?.manual?.filters || []}
+        showAiBadge={dbFilters?.ai?.enabled || aiResults}
+        aiTitle={
+          savedTitle || dbFilters?.ai?.title || lastPrompt || "AI Filter"
+        }
+        aiCollapsed={aiCollapsed}
+        onToggleAi={() => setAiCollapsed((c) => !c)}
+        onRefineAi={openAiRefineOffcanvasRefactored}
+        onClearAi={() => {
+          setAiResults(null);
+          setCurrentSavedId(null);
+          setSavedTitle("");
+          setLastAst(null);
+          setLastPrompt("");
+          setDbFilters((prev) => ({
+            ...(prev || {}),
+            ai: {
+              enabled: false,
+              savedSegmentId: null,
+              ast: null,
+              title: "",
+            },
+          }));
+        }}
+        onAskAi={openAiOffcanvasRefactored}
+      />
 
-      {crmPersons?.length === 0 && (
+      {(!usingAi && !search?.trim() && (serverFilters || []).length === 0 && (totalRows || 0) === 0) && (
         <Empty text="You don't have any CRM responses yet." />
       )}
 
       <CrmImportProgressAlerts imports={imports} />
 
       <CrmPersonsTable
-        data={usingAdvancedFilters ? filteredPersons : crmPersons}
+        data={usingAi ? filteredPersons : crmPersons}
         columns={visibleColumns}
-        {...(!usingAdvancedFilters
+        {...(!usingAi
           ? {
               page,
               size,
@@ -602,6 +642,13 @@ export const EventCrm = () => {
               onSetPage: setPage,
               onSetSize: (n) => {
                 setSize(n);
+                setPage(1);
+              },
+              orderBy,
+              order,
+              onSetOrder: (ob, ord) => {
+                setOrderBy(ob);
+                setOrder(ord);
                 setPage(1);
               },
             }

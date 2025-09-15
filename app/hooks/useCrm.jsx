@@ -8,7 +8,7 @@ const fetcher = (url) => authFetch(url).then((r) => r.json());
 export const useCrm = ({ eventId }) => {
   const key = `/api/events/${eventId}/crm`;
 
-  const { data, error, isLoading } = useSWR(key, fetcher);
+  const { data, error, isLoading, isValidating } = useSWR(key, fetcher);
   
   
   
@@ -18,6 +18,7 @@ export const useCrm = ({ eventId }) => {
     crmFields: data?.crmFields,
     crmPersons: data?.crmPersons,
     loading: isLoading,
+    validating: isValidating,
     error,
     refetch: () => mutate(key)
   };
