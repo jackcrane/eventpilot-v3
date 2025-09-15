@@ -59,9 +59,7 @@ export const useConversationEvents = ({ eventId, onEmail } = {}) => {
                 size="sm"
                 onClick={() =>
                   threadId
-                    ? navigate(
-                        `/events/${eventId}/conversations?threadId=${threadId}`
-                      )
+                    ? navigate(`/events/${eventId}/conversations/${threadId}`)
                     : null
                 }
               >

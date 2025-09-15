@@ -147,6 +147,10 @@ export default () => {
             />
 
             <Route
+              path="/events/:eventId/conversations/:threadId"
+              element={<EventConversationsPage />}
+            />
+            <Route
               path="/events/:eventId/conversations"
               element={<EventConversationsPage />}
             />

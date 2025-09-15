@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import moment from "moment";
 import {
   Typography,
@@ -42,9 +42,11 @@ const formatBytes = (bytes) => {
 };
 
 export const EventConversationsPage = () => {
-  const { eventId } = useParams();
+  const { eventId, threadId: threadIdParam } = useParams();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedThreadId = searchParams.get("threadId") || null;
+  // Prefer path param, but fall back to query param for backward compatibility
+  const selectedThreadId = threadIdParam || searchParams.get("threadId") || null;
   const initialQ = searchParams.get("q") || "";
   const [query, setQuery] = useState(initialQ);
   useEffect(() => {
@@ -197,9 +199,12 @@ export const EventConversationsPage = () => {
   };
 
   const handleSelectThread = (id) => {
+    // Preserve existing search params (like q), but move threadId into the path
     const next = new URLSearchParams(searchParams);
-    next.set("threadId", id);
-    setSearchParams(next, { replace: false });
+    next.delete("threadId");
+    const qs = next.toString();
+    const url = `/events/${eventId}/conversations/${id}${qs ? `?${qs}` : ""}`;
+    navigate(url);
   };
 
   // Write q to the URL when it changes (debounced by simple timeout)
