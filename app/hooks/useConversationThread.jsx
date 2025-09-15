@@ -15,9 +15,9 @@ export const useConversationThread = ({ eventId, threadId } = {}) => {
   return {
     thread: data?.thread || null,
     messages: data?.messages || [],
+    responseRecipient: data?.responseRecipient || "",
     loading: isLoading,
     error,
     refetch: () => (key ? mutate(key) : undefined),
   };
 };
-

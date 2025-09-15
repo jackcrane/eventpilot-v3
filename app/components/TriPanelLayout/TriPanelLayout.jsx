@@ -187,7 +187,12 @@ export const TriPanelLayout = ({
           ) : (
             <Row gap={1}>
               <Icon i={centerIcon} size={18} />
-              <Typography.H3 className="mb-0">{centerTitle}</Typography.H3>
+              <Typography.H3
+                className={classNames("mb-0", styles.centerTitleText)}
+                title={typeof centerTitle === "string" ? centerTitle : undefined}
+              >
+                {centerTitle}
+              </Typography.H3>
             </Row>
           )}
 

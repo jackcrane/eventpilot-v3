@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import moment from "moment";
 import {
@@ -35,6 +35,7 @@ export const EventConversationsPage = () => {
   const {
     thread,
     messages,
+    responseRecipient,
     loading: threadLoading,
     refetch: refetchThread,
   } = useConversationThread({ eventId, threadId: selectedThreadId });
@@ -45,6 +46,15 @@ export const EventConversationsPage = () => {
   });
 
   const [replyBody, setReplyBody] = useState("");
+  const [replyTo, setReplyTo] = useState("");
+  useEffect(() => {
+    // Initialize the recipient when thread changes or new data arrives
+    if (selectedThreadId) {
+      setReplyTo(responseRecipient || "");
+    } else {
+      setReplyTo("");
+    }
+  }, [selectedThreadId, responseRecipient]);
   const [pendingFiles, setPendingFiles] = useState([]); // { id, fileId?, url?, name, size, type, uploading, progress? }
   const EMAIL_ATTACHMENT_MAX_BYTES = 18 * 1024 * 1024; // Keep in sync with server default
   const encodedSize = (n) => Math.ceil(Number(n || 0) / 3) * 4;
@@ -222,6 +232,12 @@ export const EventConversationsPage = () => {
             {thread?.subject || "(no subject)"}
           </Typography.H2>
           <Card title="Reply">
+            <Input
+              label="To"
+              placeholder="Recipient email(s)"
+              value={replyTo}
+              onChange={(e) => setReplyTo(e)}
+            />
             <Input
               placeholder="Write your reply..."
               value={replyBody}
@@ -421,6 +437,7 @@ export const EventConversationsPage = () => {
                 onClick={async () => {
                   if (!replyBody.trim()) return;
                   const ok = await sendReply({
+                    to: replyTo || undefined,
                     text: replyBody,
                     fileIds: pendingFiles
                       .filter((f) => !f.uploading && f.fileId)
@@ -428,6 +445,7 @@ export const EventConversationsPage = () => {
                   });
                   if (ok) {
                     setReplyBody("");
+                    setReplyTo(responseRecipient || "");
                     setPendingFiles([]);
                     // refresh thread and list to show the new email
                     try {

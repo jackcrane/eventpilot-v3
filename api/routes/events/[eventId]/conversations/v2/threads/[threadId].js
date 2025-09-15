@@ -1,6 +1,10 @@
 import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
-import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  HeadObjectCommand,
+} from "@aws-sdk/client-s3";
 import {
   getGmailClientForEvent,
   sendThreadReply,
@@ -182,7 +186,38 @@ export const get = [
         isUnread: conversation.inboundEmails.some((e) => e.read === false),
       };
 
-      return res.status(200).json({ thread, messages: all });
+      // Determine default response recipient, mirroring sendThreadReply behavior:
+      // pick the most recent message not from our own mailbox and use its From (minus our own address).
+      const normalizeMailbox = (addr) => {
+        if (!addr) return "";
+        const [local, domain] = String(addr).toLowerCase().split("@");
+        if (!domain) return String(addr).toLowerCase();
+        const localNorm = local.includes("+") ? local.split("+")[0] : local;
+        return `${localNorm}@${domain}`;
+      };
+      let selfEmail = null;
+      try {
+        const conn = await prisma.gmailConnection.findUnique({
+          where: { eventId },
+        });
+        selfEmail = conn?.email || null;
+      } catch (_) {}
+      const selfNorm = normalizeMailbox(selfEmail || "");
+      const pick =
+        [...all].reverse().find((m) => {
+          const fromHdr = m?.headers?.from || "";
+          const fromList = parseAddressList(fromHdr).map((e) => e.Email);
+          return fromList.some((addr) => normalizeMailbox(addr) !== selfNorm);
+        }) || last;
+      let responseRecipient = "";
+      if (pick?.headers?.from) {
+        const recs = parseAddressList(pick.headers.from)
+          .filter((e) => normalizeMailbox(e.Email) !== selfNorm)
+          .map((e) => `${e.Email}`);
+        responseRecipient = recs.join(", ");
+      }
+
+      return res.status(200).json({ thread, messages: all, responseRecipient });
     } catch (e) {
       console.error("[conversations v2 thread get]", e);
       return res.status(500).json({ message: "Internal server error" });
@@ -254,7 +289,11 @@ export const post = [
 
           for (const f of withSizes) {
             const size = f.sizeResolved ?? f.size ?? 0;
-            if (!Number.isFinite(size) || size <= 0 || encodedSize(size) > MAX_ATTACH_BYTES) {
+            if (
+              !Number.isFinite(size) ||
+              size <= 0 ||
+              encodedSize(size) > MAX_ATTACH_BYTES
+            ) {
               linkFiles.push(f);
             } else {
               attachableFiles.push(f);
@@ -266,13 +305,13 @@ export const post = [
               attachments: attachableFiles.map((f) => ({
                 id: f.id,
                 name: f.originalname || "attachment",
-                size: (f.sizeResolved ?? f.size) ?? null,
+                size: f.sizeResolved ?? f.size ?? null,
                 sizeSource: Number(f.size ?? 0) > 0 ? "db" : "s3",
               })),
               links: linkFiles.map((f) => ({
                 id: f.id,
                 name: f.originalname || "attachment",
-                size: (f.sizeResolved ?? f.size) ?? null,
+                size: f.sizeResolved ?? f.size ?? null,
                 url: f.location || null,
                 sizeSource: Number(f.size ?? 0) > 0 ? "db" : "s3",
               })),
@@ -380,7 +419,9 @@ export const post = [
             cc: parse.data.cc,
             bcc: parse.data.bcc,
             subject: parse.data.subject,
-            attachmentsCount: Array.isArray(attachments) ? attachments.length : 0,
+            attachmentsCount: Array.isArray(attachments)
+              ? attachments.length
+              : 0,
             linkOnlyCount: Array.isArray(linkFiles) ? linkFiles.length : 0,
           },
           e
