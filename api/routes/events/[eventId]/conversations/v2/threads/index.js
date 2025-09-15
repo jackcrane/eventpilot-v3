@@ -19,22 +19,98 @@ export const get = [
     );
 
     try {
-      // Pull conversations and derive summaries from DB only
-      const convs = await prisma.conversation.findMany({
-        where: { eventId },
-        include: {
-          inboundEmails: {
-            orderBy: { receivedAt: "desc" },
-            take: 1,
-            include: { from: true, attachments: { include: { file: true } } },
+      // Build DB-side search across all messages, recipients, and attachment names
+      const buildWhere = () => {
+        if (!q) return { eventId };
+        const tokens = String(q)
+          .split(/\s+/)
+          .map((t) => t.trim())
+          .filter(Boolean);
+        const clauseFor = (token) => {
+          const insensitive = { contains: token, mode: "insensitive" };
+          return {
+            OR: [
+              // Inbound email fields and relations
+              {
+                inboundEmails: {
+                  some: {
+                    OR: [
+                      { subject: insensitive },
+                      { textBody: insensitive },
+                      { htmlBody: insensitive },
+                      { from: { is: { email: insensitive } } },
+                      { from: { is: { name: insensitive } } },
+                      { to: { some: { email: insensitive } } },
+                      { to: { some: { name: insensitive } } },
+                      { cc: { some: { email: insensitive } } },
+                      { cc: { some: { name: insensitive } } },
+                      { bcc: { some: { email: insensitive } } },
+                      { bcc: { some: { name: insensitive } } },
+                      {
+                        attachments: {
+                          some: { file: { is: { originalname: insensitive } } },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              // Outbound email fields and relations
+              {
+                outboundEmails: {
+                  some: {
+                    OR: [
+                      { subject: insensitive },
+                      { textBody: insensitive },
+                      { htmlBody: insensitive },
+                      { from: insensitive },
+                      { to: insensitive },
+                      {
+                        attachments: {
+                          some: { file: { is: { originalname: insensitive } } },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          };
+        };
+        return {
+          eventId,
+          AND: tokens.length ? tokens.map((t) => clauseFor(t)) : [clauseFor(String(q))],
+        };
+      };
+
+      const where = buildWhere();
+
+      // Count matching conversations for resultSizeEstimate
+      const [totalCount, convs] = await Promise.all([
+        prisma.conversation.count({ where }),
+        prisma.conversation.findMany({
+          where,
+          include: {
+            inboundEmails: {
+              orderBy: { receivedAt: "desc" },
+              take: 1,
+              include: {
+                from: true,
+                to: true,
+                cc: true,
+                bcc: true,
+                attachments: { include: { file: true } },
+              },
+            },
+            outboundEmails: {
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              include: { attachments: { include: { file: true } } },
+            },
+            _count: { select: { inboundEmails: true, outboundEmails: true } },
           },
-          outboundEmails: {
-            orderBy: { createdAt: "desc" },
-            take: 1,
-          },
-          _count: { select: { inboundEmails: true, outboundEmails: true } },
-        },
-      });
+        }),
+      ]);
 
       // Precompute unread flags in batch
       const ids = convs.map((c) => c.id);
@@ -73,7 +149,8 @@ export const get = [
             : (lastOut?.textBody || stripHtml(lastOut?.htmlBody));
           const snippet = String(text || "").slice(0, 200);
           const hasAttachments = Boolean(
-            (lastIn?.attachments || []).length > 0
+            (lastIn?.attachments || []).length > 0 ||
+              (lastOut?.attachments || []).length > 0
           );
           return {
             id: c.id,
@@ -105,23 +182,16 @@ export const get = [
           return bd - ad;
         });
 
-      const filtered = q
-        ? summaries.filter((s) => {
-            const Q = String(q).toLowerCase();
-            return (
-              String(s.lastMessage.subject || "").toLowerCase().includes(Q) ||
-              String(s.lastMessage.from || "").toLowerCase().includes(Q) ||
-              String(s.snippet || "").toLowerCase().includes(Q)
-            );
-          })
-        : summaries;
+      // Database already filtered by q; summaries covers latest details
+      const filtered = summaries;
 
       const limited = filtered.slice(0, maxResults);
 
+      // Remove server-only helper before returning
       return res.status(200).json({
         threads: limited,
         nextPageToken: null,
-        resultSizeEstimate: filtered.length,
+        resultSizeEstimate: totalCount,
       });
     } catch (e) {
       console.error("[conversations v2 threads]", e);

@@ -25,6 +25,14 @@ export const EventConversationsPage = () => {
   const { eventId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedThreadId = searchParams.get("threadId") || null;
+  const initialQ = searchParams.get("q") || "";
+  const [query, setQuery] = useState(initialQ);
+  useEffect(() => {
+    // Keep local state in sync if URL changes externally
+    const urlQ = searchParams.get("q") || "";
+    if (urlQ !== query) setQuery(urlQ);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const {
     threads,
@@ -33,7 +41,7 @@ export const EventConversationsPage = () => {
     refetch: refetchThreads,
     loadOlder,
     mutationLoading: loadingOlder,
-  } = useConversationThreads({ eventId, maxResults: 20 });
+  } = useConversationThreads({ eventId, q: query || undefined, maxResults: 20 });
 
   const {
     thread,
@@ -76,6 +84,18 @@ export const EventConversationsPage = () => {
     setSearchParams(next, { replace: false });
   };
 
+  // Write q to the URL when it changes (debounced by simple timeout)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const next = new URLSearchParams(searchParams);
+      if (query) next.set("q", query);
+      else next.delete("q");
+      setSearchParams(next, { replace: true });
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
   const sortedThreads = useMemo(() => {
     if (!threads?.length) return [];
     return [...threads].sort((a, b) => {
@@ -99,6 +119,11 @@ export const EventConversationsPage = () => {
         boxSizing: "border-box",
       }}
     >
+      <Input
+        placeholder="Search subject, sender, recipients, content, attachments"
+        value={query}
+        onChange={(v) => setQuery(v)}
+      />
       {threadsLoading && (
         <Loading
           title="Loading inbox"
