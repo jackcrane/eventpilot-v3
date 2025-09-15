@@ -212,6 +212,7 @@ export const EventConversationsPage = () => {
             thread={thread}
             messages={messages}
             responseRecipient={responseRecipient}
+            participants={participants}
             threadLoading={threadLoading}
             refetchThread={refetchThread}
             refetchThreads={refetchThreads}

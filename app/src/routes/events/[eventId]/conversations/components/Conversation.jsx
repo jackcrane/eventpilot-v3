@@ -1,14 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Typography,
-  Card,
-  Button,
-  Input,
-  Spinner,
-  useOffcanvas,
-  DropdownInput,
-} from "tabler-react-2";
+import { Typography, Card, Button, Input, Spinner, useOffcanvas } from "tabler-react-2";
 import { Row, Col } from "../../../../../../util/Flex";
 import { Icon } from "../../../../../../util/Icon";
 import { Loading } from "../../../../../../components/loading/Loading";
@@ -20,6 +12,7 @@ import { useConversationReply } from "../../../../../../hooks/useConversationRep
 import { useConversationCompose } from "../../../../../../hooks/useConversationCompose";
 import { useConversationThreadUnread } from "../../../../../../hooks/useConversationThreadUnread";
 import { useTodos } from "../../../../../../hooks/useTodos";
+import { TodoCreateForm } from "../../../../../../components/TodoCreateForm/TodoCreateForm";
 
 //
 
@@ -29,6 +22,7 @@ export const Conversation = ({
   thread,
   messages,
   responseRecipient,
+  participants,
   threadLoading,
   refetchThread,
   refetchThreads,
@@ -463,6 +457,8 @@ export const Conversation = ({
                   offcanvas({
                     content: (
                       <TodoCreateForm
+                        initialCrmPeople={Array.isArray(participants) ? participants : []}
+                        showCrmSection
                         onClose={close}
                         onCreate={async (vals) => {
                           const ok = await createTodo(vals);
@@ -729,76 +725,6 @@ export const Conversation = ({
       {selectedThreadId &&
         !threadLoading &&
         sortedMessages.map((m) => <Message key={m.id} message={m} />)}
-    </div>
-  );
-};
-
-const TITLE_MAP = {
-  NOT_STARTED: "Not Started",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-};
-
-const TodoCreateForm = ({ onCreate, onClose }) => {
-  const [title, setTitle] = useState("");
-  const [details, setDetails] = useState("");
-  const [status, setStatus] = useState("NOT_STARTED");
-  const [saving, setSaving] = useState(false);
-
-  const submit = async () => {
-    const t = title.trim();
-    if (!t) return;
-    setSaving(true);
-    try {
-      await onCreate?.({ title: t, content: details || "", status });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div>
-      <Typography.H5 className="mb-0 text-secondary">TODO</Typography.H5>
-      <Typography.H1>New Todo</Typography.H1>
-      <DropdownInput
-        label="Status"
-        items={[
-          { id: "NOT_STARTED", value: "NOT_STARTED", label: TITLE_MAP.NOT_STARTED },
-          { id: "IN_PROGRESS", value: "IN_PROGRESS", label: TITLE_MAP.IN_PROGRESS },
-          { id: "COMPLETED", value: "COMPLETED", label: TITLE_MAP.COMPLETED },
-          { id: "CANCELLED", value: "CANCELLED", label: TITLE_MAP.CANCELLED },
-        ]}
-        value={status}
-        onChange={(i) => setStatus(i.value)}
-        className="mb-2"
-        required
-        aprops={{ style: { width: "100%", justifyContent: "space-between" } }}
-      />
-      <Input
-        label="Title"
-        placeholder="What needs to be done?"
-        value={title}
-        onChange={setTitle}
-        required
-      />
-      <Input
-        label="Details"
-        placeholder="Add a short description"
-        value={details}
-        onChange={setDetails}
-        useTextarea
-        inputProps={{ rows: 5 }}
-      />
-
-      <div style={{ display: "flex", gap: 8 }}>
-        <Button variant="subtle" onClick={onClose} disabled={saving}>
-          Cancel
-        </Button>
-        <Button onClick={submit} loading={saving} variant="primary">
-          Create Todo
-        </Button>
-      </div>
     </div>
   );
 };
