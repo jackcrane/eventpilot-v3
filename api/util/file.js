@@ -1,4 +1,8 @@
-import { S3Client, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  HeadObjectCommand,
+} from "@aws-sdk/client-s3";
 import cuid from "cuid";
 import multer from "multer";
 import multerS3 from "multer-s3";
@@ -73,8 +77,14 @@ export const upload =
       }
 
       try {
-        const { originalname, mimetype, size: sizeRaw, location, key, contentType } =
-          req.file;
+        const {
+          originalname,
+          mimetype,
+          size: sizeRaw,
+          location,
+          key,
+          contentType,
+        } = req.file;
         const userId = req.user?.id || null;
 
         // Resolve accurate object size from S3 if multer didn't provide it
@@ -82,7 +92,10 @@ export const upload =
         if (!(Number.isFinite(resolvedSize) && resolvedSize > 0) && key) {
           try {
             const head = await s3.send(
-              new HeadObjectCommand({ Bucket: process.env.AWS_BUCKET, Key: key })
+              new HeadObjectCommand({
+                Bucket: process.env.AWS_BUCKET,
+                Key: key,
+              })
             );
             const len = Number(head?.ContentLength || 0);
             if (Number.isFinite(len) && len > 0) resolvedSize = len;

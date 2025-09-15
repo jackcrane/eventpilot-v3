@@ -1,5 +1,9 @@
 import { prisma } from "#prisma";
-import { getGmailClientForEvent, getHeader, extractBodiesAndAttachments } from "#util/google";
+import {
+  getGmailClientForEvent,
+  getHeader,
+  extractBodiesAndAttachments,
+} from "#util/google";
 import { getOrCreateConversation } from "./getOrCreateConversation.js";
 import {
   createInboundEmailFromGmail,
@@ -69,7 +73,9 @@ export const ingestGmailWindowForEvent = async ({ eventId, q, reqId }) => {
         const fromList = parseAddressList(from).map((e) => e.Email);
         const toList = parseAddressList(to).map((e) => e.Email);
         const ccList = parseAddressList(cc).map((e) => e.Email);
-        const isFromSelf = fromList.some((a) => normalizeMailbox(a) === selfNorm);
+        const isFromSelf = fromList.some(
+          (a) => normalizeMailbox(a) === selfNorm
+        );
         const isToSelf = [...toList, ...ccList].some(
           (a) => normalizeMailbox(a) === selfNorm
         );
@@ -128,7 +134,10 @@ export const ingestGmailWindowForEvent = async ({ eventId, q, reqId }) => {
             reqId
           );
 
-          const crmBody = buildCrmBodyFromGmailMessage(message, connection?.email);
+          const crmBody = buildCrmBodyFromGmailMessage(
+            message,
+            connection?.email
+          );
           await processCrmPersonRelationships(
             crmBody,
             eventId,

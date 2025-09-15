@@ -1,7 +1,11 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { z } from "zod";
-import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  HeadObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getGmailClientForEvent, sendNewEmail } from "#util/google";
 import { sendEmailEvent } from "#sse";
 import { upsertConversationCrmPerson } from "#util/upsertConversationCrmPerson";
@@ -410,16 +414,27 @@ export const post = [
               const len = Number(head?.ContentLength ?? 0);
               return Number.isFinite(len) ? len : 0;
             } catch (e) {
-              console.error("[gmail compose attachments size head error]", { fileId: f.id, key: f.key }, e);
+              console.error(
+                "[gmail compose attachments size head error]",
+                { fileId: f.id, key: f.key },
+                e
+              );
               return 0;
             }
           };
           const withSizes = await Promise.all(
-            files.map(async (f) => ({ ...f, sizeResolved: await resolveSize(f) }))
+            files.map(async (f) => ({
+              ...f,
+              sizeResolved: await resolveSize(f),
+            }))
           );
           for (const f of withSizes) {
             const size = f.sizeResolved ?? f.size ?? 0;
-            if (!Number.isFinite(size) || size <= 0 || encodedSize(size) > MAX_ATTACH_BYTES) {
+            if (
+              !Number.isFinite(size) ||
+              size <= 0 ||
+              encodedSize(size) > MAX_ATTACH_BYTES
+            ) {
               linkFiles.push(f);
             } else {
               attachableFiles.push(f);
@@ -467,7 +482,8 @@ export const post = [
                 const buf = await toBuffer(resp.Body);
                 return {
                   filename: f.originalname || "attachment",
-                  contentType: f.contentType || f.mimetype || "application/octet-stream",
+                  contentType:
+                    f.contentType || f.mimetype || "application/octet-stream",
                   data: buf,
                 };
               } catch (e) {
@@ -483,17 +499,25 @@ export const post = [
       }
 
       // If there are link-only files, append download links to body
-      const linkItems = linkFiles.map((f) => ({ name: f.originalname || "attachment", url: f.location }));
+      const linkItems = linkFiles.map((f) => ({
+        name: f.originalname || "attachment",
+        url: f.location,
+      }));
       const appendLinkText = linkItems.length
-        ? `\n\nAttachments available as downloads:\n` + linkItems.map((i) => `- ${i.name}: ${i.url}`).join("\n")
+        ? `\n\nAttachments available as downloads:\n` +
+          linkItems.map((i) => `- ${i.name}: ${i.url}`).join("\n")
         : "";
       const appendLinkHtml = linkItems.length
         ? `\n\n<hr/><p><strong>Attachments available as downloads:</strong></p><ul>` +
-          linkItems.map((i) => `<li><a href=\"${i.url}\">${i.name}</a></li>`).join("") +
+          linkItems
+            .map((i) => `<li><a href=\"${i.url}\">${i.name}</a></li>`)
+            .join("") +
           `</ul>`
         : "";
       const bodyText = (parsed.data.text || "") + appendLinkText;
-      const bodyHtml = parsed.data.html ? parsed.data.html + appendLinkHtml : undefined;
+      const bodyHtml = parsed.data.html
+        ? parsed.data.html + appendLinkHtml
+        : undefined;
 
       let result;
       try {
@@ -508,8 +532,13 @@ export const post = [
         });
       } catch (e) {
         const msg = String(e?.message || "");
-        if (msg.includes("invalid_grant") || msg.includes("invalid_credentials")) {
-          return res.status(400).json({ message: "Gmail connection expired; please reconnect" });
+        if (
+          msg.includes("invalid_grant") ||
+          msg.includes("invalid_credentials")
+        ) {
+          return res
+            .status(400)
+            .json({ message: "Gmail connection expired; please reconnect" });
         }
         console.error("[conversations v2 compose post]", e);
         throw e;
@@ -526,7 +555,9 @@ export const post = [
             create: { id: threadId, event: { connect: { id: eventId } } },
           });
         } else {
-          const conv = await prisma.conversation.create({ data: { event: { connect: { id: eventId } } } });
+          const conv = await prisma.conversation.create({
+            data: { event: { connect: { id: eventId } } },
+          });
           conversationId = conv.id;
         }
       } catch (e) {
@@ -535,18 +566,25 @@ export const post = [
 
       let emailRecord = null;
       try {
-        const persistedMessageId = result.messageId || result.sentId || `${Date.now()}`;
+        const persistedMessageId =
+          result.messageId || result.sentId || `${Date.now()}`;
         emailRecord = await prisma.email.create({
           data: {
             conversationId: conversationId,
             messageId: persistedMessageId,
             from: connection.email,
-            to: Array.isArray(parsed.data.to) ? parsed.data.to.join(", ") : parsed.data.to || "",
+            to: Array.isArray(parsed.data.to)
+              ? parsed.data.to.join(", ")
+              : parsed.data.to || "",
             subject: parsed.data.subject || "",
             htmlBody: bodyHtml || null,
             textBody: bodyText || null,
             logs: {
-              create: { type: "EMAIL_SENT", eventId, data: { source: "immediate", confirmed: false } },
+              create: {
+                type: "EMAIL_SENT",
+                eventId,
+                data: { source: "immediate", confirmed: false },
+              },
             },
           },
         });
@@ -554,31 +592,46 @@ export const post = [
         try {
           const outData = [];
           for (const f of attachableFiles) {
-            outData.push({ emailId: emailRecord.id, fileId: f.id, deliveryMode: "ATTACHMENT" });
+            outData.push({
+              emailId: emailRecord.id,
+              fileId: f.id,
+              deliveryMode: "ATTACHMENT",
+            });
           }
           for (const f of linkFiles) {
-            outData.push({ emailId: emailRecord.id, fileId: f.id, deliveryMode: "LINK" });
+            outData.push({
+              emailId: emailRecord.id,
+              fileId: f.id,
+              deliveryMode: "LINK",
+            });
           }
-          if (outData.length) await prisma.outboundEmailAttachment.createMany({ data: outData });
+          if (outData.length)
+            await prisma.outboundEmailAttachment.createMany({ data: outData });
         } catch (e) {
           console.error("[gmail compose persist outbound attachments]", e);
         }
 
         // Ensure conversation participants from recipients
         try {
-          const recipients = Array.isArray(parsed.data.to) ? parsed.data.to : [parsed.data.to];
+          const recipients = Array.isArray(parsed.data.to)
+            ? parsed.data.to
+            : [parsed.data.to];
           for (const r of recipients) {
             const emails = String(r)
-              .split(',')
+              .split(",")
               .map((s) => s.trim())
               .filter(Boolean);
             for (const e of emails) {
-              try { await upsertConversationCrmPerson(e, conversationId, eventId); } catch (_) {}
+              try {
+                await upsertConversationCrmPerson(e, conversationId, eventId);
+              } catch (_) {}
             }
           }
         } catch (_) {}
 
-        try { sendEmailEvent(eventId, emailRecord); } catch (_) {}
+        try {
+          sendEmailEvent(eventId, emailRecord);
+        } catch (_) {}
       } catch (e) {
         console.error("[gmail compose immediate persist]", e);
       }
@@ -591,7 +644,9 @@ export const post = [
       });
     } catch (e) {
       if (e?.code === "NO_GMAIL_CONNECTION") {
-        return res.status(404).json({ message: "Gmail not connected for this event" });
+        return res
+          .status(404)
+          .json({ message: "Gmail not connected for this event" });
       }
       if (e?.code === "NO_RECIPIENTS") {
         return res.status(400).json({ message: "No recipients provided" });

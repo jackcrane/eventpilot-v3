@@ -29,7 +29,8 @@ export const post = [
       });
 
       let oldestDate = null;
-      if (oldestInbound?.receivedAt) oldestDate = new Date(oldestInbound.receivedAt);
+      if (oldestInbound?.receivedAt)
+        oldestDate = new Date(oldestInbound.receivedAt);
       if (oldestOutbound?.createdAt) {
         const od = new Date(oldestOutbound.createdAt);
         if (!oldestDate || od < oldestDate) oldestDate = od;
@@ -48,14 +49,27 @@ export const post = [
         reqId: req.id,
       });
 
-      return res.status(200).json({ success: true, processed, range: { after: after.toISOString(), before: before.toISOString() } });
+      return res
+        .status(200)
+        .json({
+          success: true,
+          processed,
+          range: { after: after.toISOString(), before: before.toISOString() },
+        });
     } catch (e) {
       if (e?.code === "NO_GMAIL_CONNECTION") {
-        return res.status(404).json({ message: "Gmail not connected for this event" });
+        return res
+          .status(404)
+          .json({ message: "Gmail not connected for this event" });
       }
       const msg = String(e?.message || "");
-      if (msg.includes("invalid_grant") || msg.includes("invalid_credentials")) {
-        return res.status(400).json({ message: "Gmail connection expired; please reconnect" });
+      if (
+        msg.includes("invalid_grant") ||
+        msg.includes("invalid_credentials")
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Gmail connection expired; please reconnect" });
       }
       console.error("[conversations v2 load-older]", e);
       return res.status(500).json({ message: "Internal server error" });

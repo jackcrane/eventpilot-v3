@@ -1,6 +1,10 @@
 import { getGmailClientForEvent } from "#util/google";
 import { verifyAttachment } from "#util/signedUrl";
-import { S3Client, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  HeadObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 
 // Flatten MIME tree with parent links (root included)
 const flattenParts = (root) => {
@@ -236,7 +240,8 @@ export const get = [
         // Then the meta part mimeType
         (metaType && !/^multipart\//i.test(metaType) ? metaType : null) ||
         // Fallback by extension
-        (extMap[ext] || null) ||
+        extMap[ext] ||
+        null ||
         // Ultimate fallback
         "application/octet-stream";
 
