@@ -8,6 +8,8 @@ import { TriPanelLayout } from "../../../../../components/TriPanelLayout/TriPane
 import { useConversationThreads } from "../../../../../hooks/useConversationThreads";
 import { useConversationThread } from "../../../../../hooks/useConversationThread";
 import { Icon } from "../../../../../util/Icon";
+import { Loading } from "../../../../../components/loading/Loading";
+import { Empty } from "../../../../../components/empty/Empty";
 
 export const EventConversationsPage = () => {
   const { eventId } = useParams();
@@ -51,16 +53,16 @@ export const EventConversationsPage = () => {
         boxSizing: "border-box",
       }}
     >
-      {threadsLoading && <Typography.Text>Loading inbox…</Typography.Text>}
+      {threadsLoading && (
+        <Loading title="Loading inbox" text="Fetching your threads…" gradient={false} />
+      )}
       {!threadsLoading && threadsError && (
         <Typography.Text className="text-danger">
           Failed to load inbox
         </Typography.Text>
       )}
       {!threadsLoading && !threadsError && sortedThreads.length === 0 && (
-        <Typography.Text className="text-muted">
-          No threads found
-        </Typography.Text>
+        <Empty title="No conversations" text="You don't have any conversations yet." gradient={false} />
       )}
       {sortedThreads.map((t) => {
         const active = t.id === selectedThreadId;
@@ -160,19 +162,17 @@ export const EventConversationsPage = () => {
   const centerList = (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {!selectedThreadId && (
-        <div className="card" style={{ padding: 20 }}>
-          <Typography.Text className="mb-0 text-muted">
-            Select a conversation from the inbox to view messages.
-          </Typography.Text>
-        </div>
+        <Empty
+          title="No conversation selected"
+          text="Select a conversation from the inbox to view messages."
+          gradient={false}
+        />
       )}
       {selectedThreadId && threadLoading && (
-        <Typography.Text>Loading conversation…</Typography.Text>
+        <Loading title="Loading conversation" text="Fetching messages…" gradient={false} />
       )}
       {selectedThreadId && !threadLoading && messages?.length === 0 && (
-        <Typography.Text className="text-muted">
-          No messages in this thread.
-        </Typography.Text>
+        <Empty title="No messages" text="This conversation has no messages." gradient={false} />
       )}
       {selectedThreadId && !threadLoading &&
         sortedMessages.map((m) => (
