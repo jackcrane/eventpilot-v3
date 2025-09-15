@@ -1,15 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import moment from "moment";
-import {
-  Typography,
-  Card,
-  Badge,
-  Button,
-  Input,
-  Spinner,
-  Util,
-} from "tabler-react-2";
+import { Typography, Card, Button, Input, Spinner } from "tabler-react-2";
 import { Row, Col } from "../../../../../util/Flex";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
 import { TriPanelLayout } from "../../../../../components/TriPanelLayout/TriPanelLayout";
@@ -27,6 +19,7 @@ import toast from "react-hot-toast";
 import { SafeHtml } from "../../../../../components/SafeHtml/SafeHtml";
 import { useCrmLedger } from "../../../../../hooks/useCrmLedger";
 import { NotesCrm } from "../../../../../components/NotesCrm/NotesCrm";
+import { ThreadListing } from "./ThreadListing";
 
 // Format bytes into human-friendly units (b, kb, mb, gb)
 const formatBytes = (bytes) => {
@@ -176,36 +169,7 @@ export const EventConversationsPage = () => {
     }
   );
 
-  const tokens = useMemo(
-    () =>
-      String(query || "")
-        .split(/\s+/)
-        .map((t) => t.trim())
-        .filter(Boolean),
-    [query]
-  );
-
-  const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const tokensLower = useMemo(
-    () => tokens.map((t) => t.toLowerCase()),
-    [tokens]
-  );
-  const highlightText = (text) => {
-    if (!text) return "";
-    if (!tokens.length) return text;
-    const pattern = new RegExp(`(${tokens.map(escapeRegExp).join("|")})`, "gi");
-    const parts = String(text).split(pattern);
-    return parts.map((part, i) => {
-      if (tokensLower.includes(String(part).toLowerCase())) {
-        return (
-          <mark key={`m-${i}`} style={{ background: "#ffed8a", padding: 0 }}>
-            {part}
-          </mark>
-        );
-      }
-      return <span key={`t-${i}`}>{part}</span>;
-    });
-  };
+  // listing search handled in ThreadListing; query state stays here
 
   const handleSelectThread = (id) => {
     // Preserve existing search params (like q), but move threadId into the path
@@ -228,262 +192,18 @@ export const EventConversationsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
-  const sortedThreads = useMemo(() => {
-    if (!threads?.length) return [];
-    if (tokens.length) return threads; // rely on server relevance ordering when searching
-    return [...threads].sort((a, b) => {
-      const ad = new Date(
-        a?.lastMessage?.internalDate || a?.lastInternalDate || 0
-      ).getTime();
-      const bd = new Date(
-        b?.lastMessage?.internalDate || b?.lastInternalDate || 0
-      ).getTime();
-      return bd - ad; // newest first
-    });
-  }, [threads, tokens.length]);
-
-  const leftList = (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        width: "100%",
-        boxSizing: "border-box",
-      }}
-    >
-      <div style={{ display: "flex", gap: 8 }}>
-        <Button
-          color="primary"
-          size="sm"
-          onClick={() => {
-            setComposeMode(true);
-            setComposeTo("");
-            setComposeSubject("");
-            setComposeBody("");
-            setPendingFiles([]);
-            // Clear selected thread by navigating to base conversations path (preserve q)
-            const next = new URLSearchParams(searchParams);
-            next.delete("threadId");
-            const qs = next.toString();
-            const url = `/events/${eventId}/conversations${qs ? `?${qs}` : ""}`;
-            navigate(url);
-          }}
-        >
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <Icon i="pencil" /> Compose
-          </span>
-        </Button>
-      </div>
-      <Input
-        placeholder="Search subject, sender, recipients, content, attachments"
-        value={query}
-        onChange={(v) => setQuery(v)}
-      />
-      {threadsLoading && (
-        <Loading
-          title="Loading inbox"
-          text="Fetching your threads…"
-          gradient={false}
-        />
-      )}
-      {!threadsLoading && threadsError && (
-        <Typography.Text className="text-danger">
-          Failed to load inbox
-        </Typography.Text>
-      )}
-      {!threadsLoading && !threadsError && sortedThreads.length === 0 && (
-        <Empty
-          title="No conversations"
-          text="You don't have any conversations yet."
-          gradient={false}
-        />
-      )}
-      {sortedThreads.map((t) => {
-        const active = t.id === selectedThreadId;
-        const unread = Boolean(t.isUnread);
-        return (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => {
-              setComposeMode(false);
-              handleSelectThread(t.id);
-            }}
-            className="card"
-            style={{
-              textAlign: "left",
-              padding: 10,
-              borderColor: active ? "var(--tblr-primary)" : undefined,
-              outline: "none",
-              cursor: "pointer",
-              width: "100%",
-              display: "block",
-            }}
-          >
-            <Row
-              align="flex-start"
-              gap={0.5}
-              style={{ minWidth: 0, width: "100%" }}
-            >
-              <Col align="flex-start" style={{ minWidth: 0, width: "100%" }}>
-                {/* Top row: subject + attachments on the left, time on the right */}
-                <Row
-                  gap={0.5}
-                  align="center"
-                  justify="space-between"
-                  style={{ minWidth: 0, width: "100%" }}
-                >
-                  <Row
-                    gap={0.5}
-                    align="center"
-                    style={{
-                      minWidth: 0,
-                      flex: "1 1 auto",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {unread && (
-                      <span
-                        aria-label="unread"
-                        title="Unread"
-                        style={{
-                          display: "inline-block",
-                          width: 10,
-                          height: 10,
-                          borderRadius: 9999,
-                          background: "var(--tblr-primary)",
-                          flex: "0 0 auto",
-                        }}
-                      />
-                    )}
-                    <Typography.H3
-                      className="mb-0"
-                      style={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        maxWidth: "100%",
-                        flex: "1 1 auto",
-                      }}
-                    >
-                      {highlightText(t.lastMessage?.subject || "(no subject)")}
-                    </Typography.H3>
-                    {(() => {
-                      const attachmentsCount =
-                        typeof t?.attachmentsCount === "number"
-                          ? t.attachmentsCount
-                          : Array.isArray(t?.matchedAttachments)
-                          ? t.matchedAttachments.length
-                          : 0;
-                      return attachmentsCount > 0 ? (
-                        <Badge
-                          soft
-                          title={`${attachmentsCount} attachment${
-                            attachmentsCount === 1 ? "" : "s"
-                          }`}
-                        >
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 6,
-                            }}
-                          >
-                            <Icon i="paperclip" /> {attachmentsCount}
-                          </span>
-                        </Badge>
-                      ) : null;
-                    })()}
-                  </Row>
-                  <Typography.Text
-                    className="mb-0 text-muted"
-                    style={{
-                      marginLeft: 8,
-                      textAlign: "right",
-                      whiteSpace: "nowrap",
-                      flex: "0 0 auto",
-                    }}
-                  >
-                    {t.lastMessage?.internalDate
-                      ? moment(t.lastMessage.internalDate).fromNow()
-                      : ""}
-                  </Typography.Text>
-                </Row>
-
-                {/* Full-width rows: from + preview + matched attachment names */}
-                <Typography.Text
-                  className="mb-0 text-muted"
-                  style={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    maxWidth: "100%",
-                  }}
-                >
-                  {highlightText(t.lastMessage?.from || "")}
-                </Typography.Text>
-                {t.snippet ? (
-                  <Typography.Text
-                    className="mb-0"
-                    style={{
-                      color: "var(--tblr-muted)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      maxWidth: "100%",
-                    }}
-                  >
-                    {highlightText(t.snippet)}
-                  </Typography.Text>
-                ) : null}
-                {Array.isArray(t.matchedAttachments) &&
-                t.matchedAttachments.length > 0 ? (
-                  <Typography.Text
-                    className="mb-0"
-                    style={{
-                      color: "var(--tblr-muted)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      maxWidth: "100%",
-                    }}
-                  >
-                    <span className="text-muted">Attachments: </span>
-                    {t.matchedAttachments.map((name, idx) => (
-                      <React.Fragment key={`${t.id}-att-${idx}`}>
-                        {idx > 0 ? ", " : null}
-                        {highlightText(name)}
-                      </React.Fragment>
-                    ))}
-                  </Typography.Text>
-                ) : null}
-              </Col>
-            </Row>
-          </button>
-        );
-      })}
-      <Util.Hr
-        text={
-          <Button
-            size="sm"
-            onClick={() => loadOlder()}
-            disabled={threadsLoading || loadingOlder}
-          >
-            {loadingOlder ? (
-              <span
-                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                <Spinner size={"sm"} /> Loading older messages
-              </span>
-            ) : (
-              "Load older messages"
-            )}
-          </Button>
-        }
-      />
-    </div>
-  );
+  const handleCompose = () => {
+    setComposeMode(true);
+    setComposeTo("");
+    setComposeSubject("");
+    setComposeBody("");
+    setPendingFiles([]);
+    const next = new URLSearchParams(searchParams);
+    next.delete("threadId");
+    const qs = next.toString();
+    const url = `/events/${eventId}/conversations${qs ? `?${qs}` : ""}`;
+    navigate(url);
+  };
 
   const sortedMessages = useMemo(() => {
     if (!messages?.length) return [];
@@ -1214,7 +934,24 @@ export const EventConversationsPage = () => {
       <TriPanelLayout
         leftIcon="inbox"
         leftTitle="Inbox"
-        leftChildren={leftList}
+        leftChildren={
+          <ThreadListing
+            eventId={eventId}
+            threads={threads}
+            threadsLoading={threadsLoading}
+            threadsError={threadsError}
+            selectedThreadId={selectedThreadId}
+            query={query}
+            onQueryChange={setQuery}
+            onSelectThread={(id) => {
+              setComposeMode(false);
+              handleSelectThread(id);
+            }}
+            onCompose={handleCompose}
+            loadOlder={loadOlder}
+            loadingOlder={loadingOlder}
+          />
+        }
         leftWidth={300}
         centerIcon="messages"
         centerTitle={thread?.subject || "Conversation"}
