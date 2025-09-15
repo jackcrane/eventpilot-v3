@@ -340,7 +340,11 @@ export const get = [
 
       // Remove server-only helper before returning
       return res.status(200).json({
-        threads: limited.map(({ _relevance, ...t }) => t),
+        threads: limited.map((t) => {
+          const out = { ...t };
+          delete out._relevance;
+          return out;
+        }),
         nextPageToken: null,
         resultSizeEstimate: totalCount,
       });
@@ -510,7 +514,7 @@ export const post = [
       const appendLinkHtml = linkItems.length
         ? `\n\n<hr/><p><strong>Attachments available as downloads:</strong></p><ul>` +
           linkItems
-            .map((i) => `<li><a href=\"${i.url}\">${i.name}</a></li>`)
+            .map((i) => `<li><a href="${i.url}">${i.name}</a></li>`)
             .join("") +
           `</ul>`
         : "";

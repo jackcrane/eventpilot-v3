@@ -156,6 +156,7 @@ export const createInboundEmailFromGmail = async (
           const url = cidToUrl.get(cid);
           return url ? `src="${url}"` : m;
         });
+        // eslint-disable-next-line no-useless-escape
         out = out.replace(/url\((['"]?)cid:([^'"\)]+)\1\)/gi, (m, q, p1) => {
           const cid = String(p1).replace(/^<|>$/g, "");
           const url = cidToUrl.get(cid);
