@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Typography, Card, Button, Input, Spinner } from "tabler-react-2";
+import {
+  Typography,
+  Card,
+  Button,
+  Input,
+  Spinner,
+  useOffcanvas,
+  DropdownInput,
+} from "tabler-react-2";
 import { Row, Col } from "../../../../../../util/Flex";
 import { Icon } from "../../../../../../util/Icon";
 import { Loading } from "../../../../../../components/loading/Loading";
@@ -11,6 +19,7 @@ import { useFileUploader } from "../../../../../../hooks/useFileUploader";
 import { useConversationReply } from "../../../../../../hooks/useConversationReply";
 import { useConversationCompose } from "../../../../../../hooks/useConversationCompose";
 import { useConversationThreadUnread } from "../../../../../../hooks/useConversationThreadUnread";
+import { useTodos } from "../../../../../../hooks/useTodos";
 
 //
 
@@ -27,6 +36,11 @@ export const Conversation = ({
   setComposeMode,
 }) => {
   const navigate = useNavigate();
+
+  // Offcanvas for creating a Todo
+  const { offcanvas, OffcanvasElement, close } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 470, zIndex: 1051 },
+  });
 
   // Reply state
   const [replyBody, setReplyBody] = useState("");
@@ -51,12 +65,16 @@ export const Conversation = ({
     eventId,
     threadId: selectedThreadId,
   });
-  const { sendNewMessage, mutationLoading: sendingNew } = useConversationCompose({ eventId });
+  const { sendNewMessage, mutationLoading: sendingNew } =
+    useConversationCompose({ eventId });
   const {
     markAsRead,
     markAsUnread,
     mutationLoading: updatingThread,
   } = useConversationThreadUnread({ eventId, threadId: selectedThreadId });
+
+  // Todos actions
+  const { createTodo } = useTodos({ eventId });
 
   // Initialize replyTo when thread or default recipient changes
   useEffect(() => {
@@ -123,6 +141,7 @@ export const Conversation = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {OffcanvasElement}
       {!selectedThreadId && !composeMode && (
         <Empty
           title="No conversation selected"
@@ -230,13 +249,17 @@ export const Conversation = ({
               }}
             >
               {pendingFiles?.length ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 4 }}
+                >
                   <Typography.Text className="mb-0 text-muted">
-                    {pendingFiles.length} file{pendingFiles.length === 1 ? "" : "s"} ready
+                    {pendingFiles.length} file
+                    {pendingFiles.length === 1 ? "" : "s"} ready
                   </Typography.Text>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {pendingFiles.map((f, idx) => {
-                      const willLink = encodedSize(f?.size || 0) > EMAIL_ATTACHMENT_MAX_BYTES;
+                      const willLink =
+                        encodedSize(f?.size || 0) > EMAIL_ATTACHMENT_MAX_BYTES;
                       return (
                         <span
                           key={`${f.id || f.fileId || idx}`}
@@ -262,7 +285,9 @@ export const Conversation = ({
                                 top: 0,
                                 bottom: 0,
                                 left: 0,
-                                width: `${Math.round((f.progress || 0) * 100)}%`,
+                                width: `${Math.round(
+                                  (f.progress || 0) * 100
+                                )}%`,
                                 background: "var(--tblr-primary)",
                                 opacity: 0.15,
                                 zIndex: 0,
@@ -270,7 +295,11 @@ export const Conversation = ({
                               }}
                             />
                           )}
-                          {f.uploading ? <Spinner size={"sm"} /> : <Icon i="paperclip" />}
+                          {f.uploading ? (
+                            <Spinner size={"sm"} />
+                          ) : (
+                            <Icon i="paperclip" />
+                          )}
                           <span
                             style={{
                               display: "inline-block",
@@ -287,7 +316,9 @@ export const Conversation = ({
                           <span
                             style={{
                               fontWeight: 600,
-                              color: willLink ? "var(--tblr-red)" : "var(--tblr-green)",
+                              color: willLink
+                                ? "var(--tblr-red)"
+                                : "var(--tblr-green)",
                               position: "relative",
                               zIndex: 1,
                             }}
@@ -298,11 +329,18 @@ export const Conversation = ({
                             type="button"
                             onClick={() =>
                               setPendingFiles((prev) =>
-                                prev.filter((p) => (p.id || p.fileId) !== (f.id || f.fileId))
+                                prev.filter(
+                                  (p) =>
+                                    (p.id || p.fileId) !== (f.id || f.fileId)
+                                )
                               )
                             }
                             className="btn btn-icon btn-link"
-                            style={{ color: "var(--tblr-dark)", position: "relative", zIndex: 1 }}
+                            style={{
+                              color: "var(--tblr-dark)",
+                              position: "relative",
+                              zIndex: 1,
+                            }}
                           >
                             <Icon i="x" />
                           </button>
@@ -313,7 +351,13 @@ export const Conversation = ({
                 </div>
               ) : null}
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: 10,
+              }}
+            >
               <Button
                 variant="subtle"
                 onClick={() => {
@@ -344,8 +388,11 @@ export const Conversation = ({
                     setComposeSubject("");
                     setComposeBody("");
                     setPendingFiles([]);
-                    try { await refetchThreads?.(); } catch (_) {}
-                    if (threadId) navigate(`/events/${eventId}/conversations/${threadId}`);
+                    try {
+                      await refetchThreads?.();
+                    } catch (_) {}
+                    if (threadId)
+                      navigate(`/events/${eventId}/conversations/${threadId}`);
                   }
                 }}
                 disabled={
@@ -364,37 +411,72 @@ export const Conversation = ({
         </>
       )}
 
-      {selectedThreadId && !threadLoading && (
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button
-            size="sm"
-            onClick={async () => {
-              const unread = Boolean(thread?.isUnread);
-              const ok = unread ? await markAsRead() : await markAsUnread();
-              if (ok) {
-                try {
-                  await Promise.all([refetchThread?.(), refetchThreads?.()]);
-                } catch (_) {}
-              }
-            }}
-            disabled={updatingThread}
-            loading={updatingThread}
-          >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Icon i={thread?.isUnread ? "mail-opened" : "mail"} />
-              {thread?.isUnread ? "Mark as read" : "Mark as unread"}
-            </span>
-          </Button>
-        </div>
-      )}
-
       {selectedThreadId && threadLoading && (
-        <Loading title="Loading conversation" text="Fetching messages…" gradient={false} />
+        <Loading
+          title="Loading conversation"
+          text="Fetching messages…"
+          gradient={false}
+        />
       )}
 
       {selectedThreadId && !threadLoading && (
         <>
-          <Typography.H2 className="mb-0">{thread?.subject || "(no subject)"}</Typography.H2>
+          <div>
+            <Typography.H2 className="mb-0">
+              {thread?.subject || "(no subject)"}
+            </Typography.H2>
+            <div
+              style={{ display: "flex", justifyContent: "flex-start", gap: 8 }}
+            >
+              <Button
+                size="sm"
+                onClick={async () => {
+                  const unread = Boolean(thread?.isUnread);
+                  const ok = unread ? await markAsRead() : await markAsUnread();
+                  if (ok) {
+                    try {
+                      await Promise.all([
+                        refetchThread?.(),
+                        refetchThreads?.(),
+                      ]);
+                    } catch (_) {}
+                  }
+                }}
+                disabled={updatingThread}
+                loading={updatingThread}
+              >
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Icon i={thread?.isUnread ? "mail-opened" : "mail"} />
+                  {thread?.isUnread ? "Mark as read" : "Mark as unread"}
+                </span>
+              </Button>
+              <Button
+                size="sm"
+                color="success"
+                onClick={() =>
+                  offcanvas({
+                    content: (
+                      <TodoCreateForm
+                        onClose={close}
+                        onCreate={async (vals) => {
+                          const ok = await createTodo(vals);
+                          if (ok) close();
+                        }}
+                      />
+                    ),
+                  })
+                }
+              >
+                Create a new Todo item
+              </Button>
+            </div>
+          </div>
           <Card title="Reply">
             <Input
               label="To"
@@ -460,10 +542,14 @@ export const Conversation = ({
                           )
                         );
                       } else {
-                        setPendingFiles((prev) => prev.filter((p) => p.id !== tempId));
+                        setPendingFiles((prev) =>
+                          prev.filter((p) => p.id !== tempId)
+                        );
                       }
                     } catch (_) {
-                      setPendingFiles((prev) => prev.filter((p) => p.id !== tempId));
+                      setPendingFiles((prev) =>
+                        prev.filter((p) => p.id !== tempId)
+                      );
                     }
                   }
                   e.target.value = ""; // reset input
@@ -481,13 +567,17 @@ export const Conversation = ({
               }}
             >
               {pendingFiles?.length ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 4 }}
+                >
                   <Typography.Text className="mb-0 text-muted">
-                    {pendingFiles.length} file{pendingFiles.length === 1 ? "" : "s"} ready
+                    {pendingFiles.length} file
+                    {pendingFiles.length === 1 ? "" : "s"} ready
                   </Typography.Text>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {pendingFiles.map((f, idx) => {
-                      const willLink = encodedSize(f?.size || 0) > EMAIL_ATTACHMENT_MAX_BYTES;
+                      const willLink =
+                        encodedSize(f?.size || 0) > EMAIL_ATTACHMENT_MAX_BYTES;
                       return (
                         <span
                           key={`${f.id || f.fileId || idx}`}
@@ -513,7 +603,9 @@ export const Conversation = ({
                                 top: 0,
                                 bottom: 0,
                                 left: 0,
-                                width: `${Math.round((f.progress || 0) * 100)}%`,
+                                width: `${Math.round(
+                                  (f.progress || 0) * 100
+                                )}%`,
                                 background: "var(--tblr-primary)",
                                 opacity: 0.15,
                                 zIndex: 0,
@@ -521,7 +613,11 @@ export const Conversation = ({
                               }}
                             />
                           )}
-                          {f.uploading ? <Spinner size={"sm"} /> : <Icon i="paperclip" />}
+                          {f.uploading ? (
+                            <Spinner size={"sm"} />
+                          ) : (
+                            <Icon i="paperclip" />
+                          )}
                           <span
                             style={{
                               display: "inline-block",
@@ -538,7 +634,9 @@ export const Conversation = ({
                           <span
                             style={{
                               fontWeight: 600,
-                              color: willLink ? "var(--tblr-red)" : "var(--tblr-green)",
+                              color: willLink
+                                ? "var(--tblr-red)"
+                                : "var(--tblr-green)",
                               position: "relative",
                               zIndex: 1,
                             }}
@@ -549,7 +647,10 @@ export const Conversation = ({
                             type="button"
                             onClick={() =>
                               setPendingFiles((prev) =>
-                                prev.filter((p) => (p.id || p.fileId) !== (f.id || f.fileId))
+                                prev.filter(
+                                  (p) =>
+                                    (p.id || p.fileId) !== (f.id || f.fileId)
+                                )
                               )
                             }
                             className="btn btn-link p-0"
@@ -572,7 +673,13 @@ export const Conversation = ({
                 </div>
               ) : null}
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginTop: 10,
+              }}
+            >
               <Button
                 color="primary"
                 onClick={async () => {
@@ -589,7 +696,10 @@ export const Conversation = ({
                     setReplyTo(responseRecipient || "");
                     setPendingFiles([]);
                     try {
-                      await Promise.all([refetchThread?.(), refetchThreads?.()]);
+                      await Promise.all([
+                        refetchThread?.(),
+                        refetchThreads?.(),
+                      ]);
                     } catch (_) {}
                   }
                 }}
@@ -616,8 +726,79 @@ export const Conversation = ({
         />
       )}
 
-      {selectedThreadId && !threadLoading &&
+      {selectedThreadId &&
+        !threadLoading &&
         sortedMessages.map((m) => <Message key={m.id} message={m} />)}
+    </div>
+  );
+};
+
+const TITLE_MAP = {
+  NOT_STARTED: "Not Started",
+  IN_PROGRESS: "In Progress",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+};
+
+const TodoCreateForm = ({ onCreate, onClose }) => {
+  const [title, setTitle] = useState("");
+  const [details, setDetails] = useState("");
+  const [status, setStatus] = useState("NOT_STARTED");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    const t = title.trim();
+    if (!t) return;
+    setSaving(true);
+    try {
+      await onCreate?.({ title: t, content: details || "", status });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div>
+      <Typography.H5 className="mb-0 text-secondary">TODO</Typography.H5>
+      <Typography.H1>New Todo</Typography.H1>
+      <DropdownInput
+        label="Status"
+        items={[
+          { id: "NOT_STARTED", value: "NOT_STARTED", label: TITLE_MAP.NOT_STARTED },
+          { id: "IN_PROGRESS", value: "IN_PROGRESS", label: TITLE_MAP.IN_PROGRESS },
+          { id: "COMPLETED", value: "COMPLETED", label: TITLE_MAP.COMPLETED },
+          { id: "CANCELLED", value: "CANCELLED", label: TITLE_MAP.CANCELLED },
+        ]}
+        value={status}
+        onChange={(i) => setStatus(i.value)}
+        className="mb-2"
+        required
+        aprops={{ style: { width: "100%", justifyContent: "space-between" } }}
+      />
+      <Input
+        label="Title"
+        placeholder="What needs to be done?"
+        value={title}
+        onChange={setTitle}
+        required
+      />
+      <Input
+        label="Details"
+        placeholder="Add a short description"
+        value={details}
+        onChange={setDetails}
+        useTextarea
+        inputProps={{ rows: 5 }}
+      />
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <Button variant="subtle" onClick={onClose} disabled={saving}>
+          Cancel
+        </Button>
+        <Button onClick={submit} loading={saving} variant="primary">
+          Create Todo
+        </Button>
+      </div>
     </div>
   );
 };
