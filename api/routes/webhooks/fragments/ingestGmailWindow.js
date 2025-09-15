@@ -42,6 +42,10 @@ export const ingestGmailWindowForEvent = async ({ eventId, q, reqId }) => {
           format: "full",
         });
         const payload = full?.data || {};
+        const labelIds = Array.isArray(payload?.labelIds)
+          ? payload.labelIds
+          : [];
+        const isUnread = labelIds.includes("UNREAD");
         const part = payload?.payload;
         const bodiesAndAtts = extractBodiesAndAttachments(part);
         const bodies = {
@@ -77,6 +81,13 @@ export const ingestGmailWindowForEvent = async ({ eventId, q, reqId }) => {
             select: { id: true },
           });
           if (exists) {
+            // Sync read state from Gmail for existing message
+            try {
+              await prisma.inboundEmail.update({
+                where: { id: exists.id },
+                data: { read: !isUnread },
+              });
+            } catch (_) {}
             processed++;
             continue;
           }
@@ -111,6 +122,8 @@ export const ingestGmailWindowForEvent = async ({ eventId, q, reqId }) => {
               conversationId: conversation.id,
               message,
               connectionEmail: connection?.email,
+              // Gmail is source of truth for read state
+              read: !isUnread,
             },
             reqId
           );

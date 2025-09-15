@@ -23,6 +23,21 @@ import { Loading } from "../../../../../components/loading/Loading";
 import { Empty } from "../../../../../components/empty/Empty";
 import toast from "react-hot-toast";
 
+// Format bytes into human-friendly units (b, kb, mb, gb)
+const formatBytes = (bytes) => {
+  const n = Number(bytes || 0);
+  if (!Number.isFinite(n)) return "";
+  const abs = Math.abs(n);
+  if (abs < 1024) return `${n} b`;
+  const kb = n / 1024;
+  if (abs < 1024 * 1024) return `${kb >= 10 ? Math.round(kb) : kb.toFixed(1)} kb`;
+  const mb = n / (1024 * 1024);
+  if (abs < 1024 * 1024 * 1024)
+    return `${mb >= 10 ? Math.round(mb) : mb.toFixed(1)} mb`;
+  const gb = n / (1024 * 1024 * 1024);
+  return `${gb >= 10 ? Math.round(gb) : gb.toFixed(1)} gb`;
+};
+
 export const EventConversationsPage = () => {
   const { eventId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -278,10 +293,28 @@ export const EventConversationsPage = () => {
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
                       maxWidth: "100%",
+                      flex: "1 1 auto",
                     }}
                   >
                     {highlightText(t.lastMessage?.subject || "(no subject)")}
                   </Typography.H3>
+                  {(() => {
+                    const attachmentsCount =
+                      typeof t?.attachmentsCount === "number"
+                        ? t.attachmentsCount
+                        : Array.isArray(t?.matchedAttachments)
+                        ? t.matchedAttachments.length
+                        : 0;
+                    return attachmentsCount > 0 ? (
+                      <Badge soft title={`${attachmentsCount} attachment${attachmentsCount === 1 ? "" : "s"}`}>
+                        <span
+                          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                        >
+                          <Icon i="paperclip" /> {attachmentsCount}
+                        </span>
+                      </Badge>
+                    ) : null;
+                  })()}
                 </Row>
                 <Typography.Text
                   className="mb-0 text-muted"
@@ -671,10 +704,12 @@ export const EventConversationsPage = () => {
             key={m.id}
             title={
               <Col align="flex-start" gap={0.25}>
-                <Typography.H3 className="mb-0">
-                  <span className="text-muted">From:</span>{" "}
-                  {m.headers?.from || ""}
-                </Typography.H3>
+                <Row gap={0.5} align="center" justify="space-between" style={{ width: "100%" }}>
+                  <Typography.H3 className="mb-0">
+                    <span className="text-muted">From:</span>{" "}
+                    {m.headers?.from || ""}
+                  </Typography.H3>
+                </Row>
                 <Row gap={0.5} align="center">
                   <Typography.Text className="mb-0 text-muted">
                     To:
@@ -693,6 +728,66 @@ export const EventConversationsPage = () => {
                       : ""}
                   </Typography.Text>
                 </Row>
+                {Array.isArray(m.attachments) && m.attachments.length > 0 ? (
+                  <>
+                    <Typography.Text className="mb-0">
+                      <span className="text-muted">Attachments:</span>{" "}
+                    </Typography.Text>
+                    <Row gap={1} align="flex-start" style={{ overflowX: "auto", paddingBottom: 4 }}>
+                      {m.attachments.map((a) => {
+                        const isImage = String(a?.mimeType || "").startsWith("image/");
+                        const label = a?.filename || "attachment";
+                        return (
+                          <a
+                            key={a.attachmentId}
+                            href={a.downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="card"
+                            style={{
+                              padding: 8,
+                              maxWidth: 520,
+                              overflow: "hidden",
+                              display: "inline-block",
+                              flex: "0 0 auto",
+                              boxShadow: "none",
+                              transition: "none",
+                              textDecoration: "none",
+                              filter: "none",
+                            }}
+                            title={label}
+                          >
+                            <Row gap={1} align="center">
+                              {isImage ? (
+                                <img
+                                  src={a.downloadUrl}
+                                  alt={label}
+                                  style={{
+                                    maxWidth: 120,
+                                    maxHeight: 120,
+                                    objectFit: "cover",
+                                    borderRadius: 4,
+                                  }}
+                                />
+                              ) : (
+                                <Icon i="file" size={48} />
+                              )}
+                              <Col gap={0.25} align="flex-start">
+                                <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
+                                  {label}
+                                </Typography.Text>
+                                <Typography.Text className="mb-0 text-muted" style={{ textAlign: "left" }}>
+                                  {a?.mimeType || ""}
+                                  {typeof a?.size === "number" ? `, ${formatBytes(a.size)}` : ""}
+                                </Typography.Text>
+                              </Col>
+                            </Row>
+                          </a>
+                        );
+                      })}
+                    </Row>
+                  </>
+                ) : null}
               </Col>
             }
           >
@@ -710,76 +805,7 @@ export const EventConversationsPage = () => {
                 {m.textBody || m.snippet || "(no content)"}
               </Typography.Text>
             )}
-
-            {Array.isArray(m.attachments) && m.attachments.length > 0 ? (
-              <div style={{ marginTop: 10 }}>
-                <Typography.Text className="mb-0">
-                  <span className="text-muted">Attachments:</span>{" "}
-                </Typography.Text>
-                <Row gap={1} align="flex-start">
-                  {m.attachments.map((a) => {
-                    const isImage = String(a?.mimeType || "").startsWith(
-                      "image/"
-                    );
-                    const label = a?.filename || "attachment";
-                    return (
-                      <a
-                        key={a.attachmentId}
-                        href={a.downloadUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="card"
-                        style={{
-                          padding: 8,
-                          maxWidth: 520,
-                          overflow: "hidden",
-                          display: "inline-block",
-                          boxShadow: "none",
-                          transition: "none",
-                          textDecoration: "none",
-                          filter: "none",
-                        }}
-                        title={label}
-                      >
-                        <Row gap={1} align="center">
-                          {isImage ? (
-                            <img
-                              src={a.downloadUrl}
-                              alt={label}
-                              style={{
-                                maxWidth: 120,
-                                maxHeight: 120,
-                                objectFit: "cover",
-                                borderRadius: 4,
-                              }}
-                            />
-                          ) : (
-                            <Icon i="file" size={48} />
-                          )}
-                          <Col gap={0.25} align="flex-start">
-                            <Typography.Text
-                              className="mb-0"
-                              style={{ textAlign: "left" }}
-                            >
-                              {label}
-                            </Typography.Text>
-                            <Typography.Text
-                              className="mb-0 text-muted"
-                              style={{ textAlign: "left" }}
-                            >
-                              {a?.mimeType || ""}
-                              {typeof a?.size === "number"
-                                ? `, ${a.size} bytes`
-                                : ""}
-                            </Typography.Text>
-                          </Col>
-                        </Row>
-                      </a>
-                    );
-                  })}
-                </Row>
-              </div>
-            ) : null}
+            {/* Attachments are now rendered in the header/title section above */}
           </Card>
         ))}
     </div>

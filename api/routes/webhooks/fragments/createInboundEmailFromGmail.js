@@ -55,6 +55,8 @@ export const createInboundEmailFromGmail = async (
     conversationId,
     message, // from mapGmailMessage
     connectionEmail, // exclude this from CRM person matching
+    // When ingesting from Gmail, allow caller to set read state from labelIds
+    read, // boolean | undefined
   },
   reqId = ""
 ) => {
@@ -101,6 +103,8 @@ export const createInboundEmailFromGmail = async (
       textBody: message.textBody || null,
       htmlBody: message.htmlBody || null,
       strippedTextReply: null,
+      // Allow ingest pipeline to set read state to reflect Gmail as source of truth
+      ...(typeof read === "boolean" ? { read } : {}),
     },
     include: { from: true },
   });

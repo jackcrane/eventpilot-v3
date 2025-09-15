@@ -81,7 +81,9 @@ export const get = [
         };
         return {
           eventId,
-          AND: tokens.length ? tokens.map((t) => clauseFor(t)) : [clauseFor(String(q))],
+          AND: tokens.length
+            ? tokens.map((t) => clauseFor(t))
+            : [clauseFor(String(q))],
         };
       };
 
@@ -121,7 +123,43 @@ export const get = [
         where: { conversationId: { in: ids }, read: false },
         _count: { _all: true },
       });
-      const unreadMap = new Map(unread.map((u) => [u.conversationId, u._count._all]));
+      const unreadMap = new Map(
+        unread.map((u) => [u.conversationId, u._count._all])
+      );
+
+      // Precompute attachments count per conversation (inbound + outbound)
+      // Note: limited to current page of conversations; acceptable for UI list
+      const [inboundCounts, outboundCounts] = await Promise.all([
+        prisma.inboundEmail.findMany({
+          where: { conversationId: { in: ids } },
+          select: {
+            conversationId: true,
+            _count: { select: { attachments: true } },
+          },
+        }),
+        prisma.email.findMany({
+          where: { conversationId: { in: ids } },
+          select: {
+            conversationId: true,
+            _count: { select: { attachments: true } },
+          },
+        }),
+      ]);
+      const attachCountMap = new Map();
+      for (const row of inboundCounts) {
+        const prev = attachCountMap.get(row.conversationId) || 0;
+        attachCountMap.set(
+          row.conversationId,
+          prev + (row._count?.attachments || 0)
+        );
+      }
+      for (const row of outboundCounts) {
+        const prev = attachCountMap.get(row.conversationId) || 0;
+        attachCountMap.set(
+          row.conversationId,
+          prev + (row._count?.attachments || 0)
+        );
+      }
 
       const stripHtml = (html) =>
         String(html || "")
@@ -154,13 +192,13 @@ export const get = [
           const lastDate = isInNewer ? dIn : dOut;
           const subject = (lastIn?.subject || lastOut?.subject || "").trim();
           const fromStr = isInNewer
-            ? (lastIn?.from
-                ? `${lastIn.from.name ? lastIn.from.name + " " : ""}<${lastIn.from.email}>`
-                : "")
+            ? lastIn?.from
+              ? `${lastIn.from.name ? lastIn.from.name + " " : ""}<${lastIn.from.email}>`
+              : ""
             : lastOut?.from || "";
           const text = isInNewer
-            ? (lastIn?.textBody || stripHtml(lastIn?.htmlBody))
-            : (lastOut?.textBody || stripHtml(lastOut?.htmlBody));
+            ? lastIn?.textBody || stripHtml(lastIn?.htmlBody)
+            : lastOut?.textBody || stripHtml(lastOut?.htmlBody);
           const snippet = String(text || "").slice(0, 200);
           const hasAttachments = Boolean(
             (lastIn?.attachments || []).length > 0 ||
@@ -184,9 +222,12 @@ export const get = [
             firstMessageId: null,
             isUnread: (unreadMap.get(c.id) || 0) > 0,
             hasAttachments,
+            attachmentsCount: attachCountMap.get(c.id) || 0,
             // base relevance score; attachments and other signals added later
             _relevance: tokens.length
-              ? scoreFor(subject, 5) + scoreFor(fromStr, 3) + scoreFor(snippet, 2)
+              ? scoreFor(subject, 5) +
+                scoreFor(fromStr, 3) +
+                scoreFor(snippet, 2)
               : 0,
           };
         })
@@ -211,7 +252,9 @@ export const get = [
             where: {
               inboundEmail: { conversationId: { in: ids } },
               OR: tokens.map((t) => ({
-                file: { is: { originalname: { contains: t, mode: "insensitive" } } },
+                file: {
+                  is: { originalname: { contains: t, mode: "insensitive" } },
+                },
               })),
             },
             include: {
@@ -223,7 +266,9 @@ export const get = [
             where: {
               email: { conversationId: { in: ids } },
               OR: tokens.map((t) => ({
-                file: { is: { originalname: { contains: t, mode: "insensitive" } } },
+                file: {
+                  is: { originalname: { contains: t, mode: "insensitive" } },
+                },
               })),
             },
             include: {
@@ -256,7 +301,8 @@ export const get = [
           let perToken = 0;
           for (const t of tokens) {
             const tl = t.toLowerCase();
-            if (names.some((n) => String(n).toLowerCase().includes(tl))) perToken += 2;
+            if (names.some((n) => String(n).toLowerCase().includes(tl)))
+              perToken += 2;
           }
           return {
             ...s,

@@ -20,8 +20,9 @@ import {
 } from "@icons-pack/react-simple-icons";
 import styles from "./replacementsection.module.css";
 import { Icon } from "../../util/Icon";
+import ico from "../../assets/ico.png";
 
-const LogoRow = ({ logo, name }) => {
+const LogoRow = ({ logo, name, size = 24 }) => {
   return (
     <Row gap={1} align="center">
       {logo}
@@ -84,13 +85,7 @@ export const ReplacementSection = () => {
             With EventPilot
           </Typography.H3>
           <LogoRow
-            logo={
-              <img
-                src="/assets/ico.png"
-                alt="EventPilot Logo"
-                style={{ width: 24 }}
-              />
-            }
+            logo={<img src={ico} alt="EventPilot Logo" style={{ width: 24 }} />}
             name="EventPilot (Everything)"
           />
         </Col>
