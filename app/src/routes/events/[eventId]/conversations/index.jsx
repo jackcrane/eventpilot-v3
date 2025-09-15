@@ -32,7 +32,8 @@ const formatBytes = (bytes) => {
   const abs = Math.abs(n);
   if (abs < 1024) return `${n} b`;
   const kb = n / 1024;
-  if (abs < 1024 * 1024) return `${kb >= 10 ? Math.round(kb) : kb.toFixed(1)} kb`;
+  if (abs < 1024 * 1024)
+    return `${kb >= 10 ? Math.round(kb) : kb.toFixed(1)} kb`;
   const mb = n / (1024 * 1024);
   if (abs < 1024 * 1024 * 1024)
     return `${mb >= 10 ? Math.round(mb) : mb.toFixed(1)} mb`;
@@ -60,7 +61,11 @@ export const EventConversationsPage = () => {
     refetch: refetchThreads,
     loadOlder,
     mutationLoading: loadingOlder,
-  } = useConversationThreads({ eventId, q: query || undefined, maxResults: 20 });
+  } = useConversationThreads({
+    eventId,
+    q: query || undefined,
+    maxResults: 20,
+  });
 
   const {
     thread,
@@ -170,7 +175,10 @@ export const EventConversationsPage = () => {
   );
 
   const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const tokensLower = useMemo(() => tokens.map((t) => t.toLowerCase()), [tokens]);
+  const tokensLower = useMemo(
+    () => tokens.map((t) => t.toLowerCase()),
+    [tokens]
+  );
   const highlightText = (text) => {
     if (!text) return "";
     if (!tokens.length) return text;
@@ -279,55 +287,91 @@ export const EventConversationsPage = () => {
               style={{ minWidth: 0, width: "100%" }}
             >
               <Col align="flex-start" style={{ minWidth: 0, width: "100%" }}>
+                {/* Top row: subject + attachments on the left, time on the right */}
                 <Row
                   gap={0.5}
                   align="center"
+                  justify="space-between"
                   style={{ minWidth: 0, width: "100%" }}
                 >
-                  {unread && (
-                    <span
-                      aria-label="unread"
-                      title="Unread"
-                      style={{
-                        display: "inline-block",
-                        width: 10,
-                        height: 10,
-                        borderRadius: 9999,
-                        background: "var(--tblr-primary)",
-                        flex: "0 0 auto",
-                      }}
-                    />
-                  )}
-                  <Typography.H3
-                    className="mb-0"
+                  <Row
+                    gap={0.5}
+                    align="center"
                     style={{
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      maxWidth: "100%",
+                      minWidth: 0,
                       flex: "1 1 auto",
+                      overflow: "hidden",
                     }}
                   >
-                    {highlightText(t.lastMessage?.subject || "(no subject)")}
-                  </Typography.H3>
-                  {(() => {
-                    const attachmentsCount =
-                      typeof t?.attachmentsCount === "number"
-                        ? t.attachmentsCount
-                        : Array.isArray(t?.matchedAttachments)
-                        ? t.matchedAttachments.length
-                        : 0;
-                    return attachmentsCount > 0 ? (
-                      <Badge soft title={`${attachmentsCount} attachment${attachmentsCount === 1 ? "" : "s"}`}>
-                        <span
-                          style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                    {unread && (
+                      <span
+                        aria-label="unread"
+                        title="Unread"
+                        style={{
+                          display: "inline-block",
+                          width: 10,
+                          height: 10,
+                          borderRadius: 9999,
+                          background: "var(--tblr-primary)",
+                          flex: "0 0 auto",
+                        }}
+                      />
+                    )}
+                    <Typography.H3
+                      className="mb-0"
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        maxWidth: "100%",
+                        flex: "1 1 auto",
+                      }}
+                    >
+                      {highlightText(t.lastMessage?.subject || "(no subject)")}
+                    </Typography.H3>
+                    {(() => {
+                      const attachmentsCount =
+                        typeof t?.attachmentsCount === "number"
+                          ? t.attachmentsCount
+                          : Array.isArray(t?.matchedAttachments)
+                          ? t.matchedAttachments.length
+                          : 0;
+                      return attachmentsCount > 0 ? (
+                        <Badge
+                          soft
+                          title={`${attachmentsCount} attachment${
+                            attachmentsCount === 1 ? "" : "s"
+                          }`}
                         >
-                          <Icon i="paperclip" /> {attachmentsCount}
-                        </span>
-                      </Badge>
-                    ) : null;
-                  })()}
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            <Icon i="paperclip" /> {attachmentsCount}
+                          </span>
+                        </Badge>
+                      ) : null;
+                    })()}
+                  </Row>
+                  <Typography.Text
+                    className="mb-0 text-muted"
+                    style={{
+                      marginLeft: 8,
+                      textAlign: "right",
+                      whiteSpace: "nowrap",
+                      flex: "0 0 auto",
+                    }}
+                  >
+                    {t.lastMessage?.internalDate
+                      ? moment(t.lastMessage.internalDate).fromNow()
+                      : ""}
+                  </Typography.Text>
                 </Row>
+
+                {/* Full-width rows: from + preview + matched attachment names */}
                 <Typography.Text
                   className="mb-0 text-muted"
                   style={{
@@ -353,7 +397,8 @@ export const EventConversationsPage = () => {
                     {highlightText(t.snippet)}
                   </Typography.Text>
                 ) : null}
-                {Array.isArray(t.matchedAttachments) && t.matchedAttachments.length > 0 ? (
+                {Array.isArray(t.matchedAttachments) &&
+                t.matchedAttachments.length > 0 ? (
                   <Typography.Text
                     className="mb-0"
                     style={{
@@ -374,14 +419,6 @@ export const EventConversationsPage = () => {
                   </Typography.Text>
                 ) : null}
               </Col>
-              <Typography.Text
-                className="mb-0 text-muted"
-                style={{ marginLeft: "auto", textAlign: "right", whiteSpace: "nowrap" }}
-              >
-                {t.lastMessage?.internalDate
-                  ? moment(t.lastMessage.internalDate).fromNow()
-                  : ""}
-              </Typography.Text>
             </Row>
           </button>
         );
@@ -442,7 +479,9 @@ export const EventConversationsPage = () => {
             disabled={updatingThread}
             loading={updatingThread}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
               <Icon i={thread?.isUnread ? "mail-opened" : "mail"} />
               {thread?.isUnread ? "Mark as read" : "Mark as unread"}
             </span>
@@ -474,6 +513,73 @@ export const EventConversationsPage = () => {
               onChange={(e) => setReplyBody(e)}
               useTextarea
             />
+            <label className="btn">
+              Attach files
+              <input
+                type="file"
+                multiple
+                onChange={async (e) => {
+                  const files = Array.from(e.target.files || []);
+                  for (const file of files) {
+                    const tempId = `temp-${Date.now()}-${Math.random()
+                      .toString(36)
+                      .slice(2, 8)}`;
+                    setPendingFiles((prev) => [
+                      ...prev,
+                      {
+                        id: tempId,
+                        fileId: null,
+                        url: null,
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        uploading: true,
+                        progress: 0,
+                      },
+                    ]);
+                    try {
+                      const result = await uploadFile([file], {
+                        onProgress: ({ progress }) => {
+                          setPendingFiles((prev) =>
+                            prev.map((p) =>
+                              p.id === tempId
+                                ? { ...p, progress: Number(progress || 0) }
+                                : p
+                            )
+                          );
+                        },
+                      });
+                      if (result?.fileId) {
+                        setPendingFiles((prev) =>
+                          prev.map((p) =>
+                            p.id === tempId
+                              ? {
+                                  ...p,
+                                  id: result.fileId,
+                                  fileId: result.fileId,
+                                  url: result.url,
+                                  uploading: false,
+                                  progress: 1,
+                                }
+                              : p
+                          )
+                        );
+                      } else {
+                        setPendingFiles((prev) =>
+                          prev.filter((p) => p.id !== tempId)
+                        );
+                      }
+                    } catch (_) {
+                      setPendingFiles((prev) =>
+                        prev.filter((p) => p.id !== tempId)
+                      );
+                    }
+                  }
+                  e.target.value = ""; // reset input
+                }}
+                style={{ display: "none" }}
+              />
+            </label>
             <div
               style={{
                 marginTop: 8,
@@ -483,73 +589,6 @@ export const EventConversationsPage = () => {
                 flexWrap: "wrap",
               }}
             >
-              <label className="btn">
-                Attach files
-                <input
-                  type="file"
-                  multiple
-                  onChange={async (e) => {
-                    const files = Array.from(e.target.files || []);
-                    for (const file of files) {
-                      const tempId = `temp-${Date.now()}-${Math.random()
-                        .toString(36)
-                        .slice(2, 8)}`;
-                      setPendingFiles((prev) => [
-                        ...prev,
-                        {
-                          id: tempId,
-                          fileId: null,
-                          url: null,
-                          name: file.name,
-                          size: file.size,
-                          type: file.type,
-                          uploading: true,
-                          progress: 0,
-                        },
-                      ]);
-                      try {
-                        const result = await uploadFile([file], {
-                          onProgress: ({ progress }) => {
-                            setPendingFiles((prev) =>
-                              prev.map((p) =>
-                                p.id === tempId
-                                  ? { ...p, progress: Number(progress || 0) }
-                                  : p
-                              )
-                            );
-                          },
-                        });
-                        if (result?.fileId) {
-                          setPendingFiles((prev) =>
-                            prev.map((p) =>
-                              p.id === tempId
-                                ? {
-                                    ...p,
-                                    id: result.fileId,
-                                    fileId: result.fileId,
-                                    url: result.url,
-                                    uploading: false,
-                                    progress: 1,
-                                  }
-                                : p
-                            )
-                          );
-                        } else {
-                          setPendingFiles((prev) =>
-                            prev.filter((p) => p.id !== tempId)
-                          );
-                        }
-                      } catch (_) {
-                        setPendingFiles((prev) =>
-                          prev.filter((p) => p.id !== tempId)
-                        );
-                      }
-                    }
-                    e.target.value = ""; // reset input
-                  }}
-                  style={{ display: "none" }}
-                />
-              </label>
               {pendingFiles?.length ? (
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: 4 }}
@@ -715,8 +754,13 @@ export const EventConversationsPage = () => {
           <Card
             key={m.id}
             title={
-              <Col align="flex-start" gap={0.25}>
-                <Row gap={0.5} align="center" justify="space-between" style={{ width: "100%" }}>
+              <Col align="flex-start" gap={0.25} style={{ width: "100%" }}>
+                <Row
+                  gap={0.5}
+                  align="center"
+                  justify="space-between"
+                  style={{ width: "100%" }}
+                >
                   <Typography.H3 className="mb-0">
                     <span className="text-muted">From:</span>{" "}
                     {m.headers?.from || ""}
@@ -745,9 +789,19 @@ export const EventConversationsPage = () => {
                     <Typography.Text className="mb-0">
                       <span className="text-muted">Attachments:</span>{" "}
                     </Typography.Text>
-                    <Row gap={1} align="flex-start" style={{ overflowX: "auto", paddingBottom: 4 }}>
+                    <Row
+                      gap={1}
+                      align="flex-start"
+                      style={{
+                        overflowX: "auto",
+                        paddingBottom: 4,
+                        width: "100%",
+                      }}
+                    >
                       {m.attachments.map((a) => {
-                        const isImage = String(a?.mimeType || "").startsWith("image/");
+                        const isImage = String(a?.mimeType || "").startsWith(
+                          "image/"
+                        );
                         const label = a?.filename || "attachment";
                         return (
                           <a
@@ -785,12 +839,20 @@ export const EventConversationsPage = () => {
                                 <Icon i="file" size={48} />
                               )}
                               <Col gap={0.25} align="flex-start">
-                                <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
+                                <Typography.Text
+                                  className="mb-0"
+                                  style={{ textAlign: "left" }}
+                                >
                                   {label}
                                 </Typography.Text>
-                                <Typography.Text className="mb-0 text-muted" style={{ textAlign: "left" }}>
+                                <Typography.Text
+                                  className="mb-0 text-muted"
+                                  style={{ textAlign: "left" }}
+                                >
                                   {a?.mimeType || ""}
-                                  {typeof a?.size === "number" ? `, ${formatBytes(a.size)}` : ""}
+                                  {typeof a?.size === "number"
+                                    ? `, ${formatBytes(a.size)}`
+                                    : ""}
                                 </Typography.Text>
                               </Col>
                             </Row>
