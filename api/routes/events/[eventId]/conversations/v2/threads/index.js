@@ -1,5 +1,10 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
+import { z } from "zod";
+import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { getGmailClientForEvent, sendNewEmail } from "#util/google";
+import { sendEmailEvent } from "#sse";
+import { upsertConversationCrmPerson } from "#util/upsertConversationCrmPerson";
 
 // GET /api/events/:eventId/conversations/v2/threads
 // Query params:
@@ -337,6 +342,261 @@ export const get = [
       });
     } catch (e) {
       console.error("[conversations v2 threads]", e);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  },
+];
+
+// POST /api/events/:eventId/conversations/v2/threads
+// Send a brand-new outbound email to start a conversation
+const composeSchema = z
+  .object({
+    to: z.union([z.string(), z.array(z.string())]),
+    cc: z.union([z.string(), z.array(z.string())]).optional(),
+    bcc: z.union([z.string(), z.array(z.string())]).optional(),
+    subject: z.string().optional(),
+    text: z.string().optional(),
+    html: z.string().optional(),
+    fileIds: z.array(z.string()).optional(),
+  })
+  .refine((v) => Boolean(v.text || v.html), {
+    message: "Either text or html body is required",
+    path: ["text"],
+  });
+
+export const post = [
+  verifyAuth(["manager"]),
+  async (req, res) => {
+    const { eventId } = req.params;
+    try {
+      const parsed = composeSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.message });
+      }
+
+      const { gmail, connection } = await getGmailClientForEvent(eventId);
+
+      // Classify fileIds into attachments vs link-only based on size (encoded <= 18MB)
+      const MAX_ATTACH_BYTES = Number(18 * 1024 * 1024);
+      const fileIds = Array.isArray(parsed.data.fileIds)
+        ? parsed.data.fileIds.filter(Boolean)
+        : [];
+      let attachableFiles = [];
+      let linkFiles = [];
+      if (fileIds.length) {
+        try {
+          const files = await prisma.file.findMany({
+            where: { id: { in: fileIds } },
+          });
+          const s3ForHead = new S3Client({
+            credentials: {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+            },
+            region: process.env.AWS_REGION,
+            endpoint: process.env.AWS_ENDPOINT,
+          });
+          const encodedSize = (n) => Math.ceil(Number(n || 0) / 3) * 4;
+          const resolveSize = async (f) => {
+            const n = Number(f?.size ?? 0);
+            if (Number.isFinite(n) && n > 0) return n;
+            try {
+              const head = await s3ForHead.send(
+                new HeadObjectCommand({
+                  Bucket: process.env.AWS_BUCKET,
+                  Key: f.key,
+                })
+              );
+              const len = Number(head?.ContentLength ?? 0);
+              return Number.isFinite(len) ? len : 0;
+            } catch (e) {
+              console.error("[gmail compose attachments size head error]", { fileId: f.id, key: f.key }, e);
+              return 0;
+            }
+          };
+          const withSizes = await Promise.all(
+            files.map(async (f) => ({ ...f, sizeResolved: await resolveSize(f) }))
+          );
+          for (const f of withSizes) {
+            const size = f.sizeResolved ?? f.size ?? 0;
+            if (!Number.isFinite(size) || size <= 0 || encodedSize(size) > MAX_ATTACH_BYTES) {
+              linkFiles.push(f);
+            } else {
+              attachableFiles.push(f);
+            }
+          }
+        } catch (e) {
+          console.error("[gmail compose attachments classify error]", e);
+        }
+      }
+
+      // Fetch S3 content only for the attachable set
+      let attachments = [];
+      if (attachableFiles.length) {
+        try {
+          const s3 = new S3Client({
+            credentials: {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+            },
+            region: process.env.AWS_REGION,
+            endpoint: process.env.AWS_ENDPOINT,
+          });
+          const toBuffer = async (body) => {
+            if (!body) return Buffer.from("");
+            if (typeof body.transformToByteArray === "function") {
+              const arr = await body.transformToByteArray();
+              return Buffer.from(arr);
+            }
+            return new Promise((resolve, reject) => {
+              const chunks = [];
+              body.on("data", (c) => chunks.push(Buffer.from(c)));
+              body.on("error", reject);
+              body.on("end", () => resolve(Buffer.concat(chunks)));
+            });
+          };
+          attachments = await Promise.all(
+            attachableFiles.map(async (f) => {
+              try {
+                const resp = await s3.send(
+                  new GetObjectCommand({
+                    Bucket: process.env.AWS_BUCKET,
+                    Key: f.key,
+                  })
+                );
+                const buf = await toBuffer(resp.Body);
+                return {
+                  filename: f.originalname || "attachment",
+                  contentType: f.contentType || f.mimetype || "application/octet-stream",
+                  data: buf,
+                };
+              } catch (e) {
+                console.error("[gmail compose attachment fetch]", e);
+                return null;
+              }
+            })
+          );
+          attachments = attachments.filter(Boolean);
+        } catch (e) {
+          console.error("[gmail compose attachments fetch error]", e);
+        }
+      }
+
+      // If there are link-only files, append download links to body
+      const linkItems = linkFiles.map((f) => ({ name: f.originalname || "attachment", url: f.location }));
+      const appendLinkText = linkItems.length
+        ? `\n\nAttachments available as downloads:\n` + linkItems.map((i) => `- ${i.name}: ${i.url}`).join("\n")
+        : "";
+      const appendLinkHtml = linkItems.length
+        ? `\n\n<hr/><p><strong>Attachments available as downloads:</strong></p><ul>` +
+          linkItems.map((i) => `<li><a href=\"${i.url}\">${i.name}</a></li>`).join("") +
+          `</ul>`
+        : "";
+      const bodyText = (parsed.data.text || "") + appendLinkText;
+      const bodyHtml = parsed.data.html ? parsed.data.html + appendLinkHtml : undefined;
+
+      let result;
+      try {
+        result = await sendNewEmail(gmail, connection.email, {
+          to: parsed.data.to,
+          cc: parsed.data.cc,
+          bcc: parsed.data.bcc,
+          subject: parsed.data.subject,
+          text: bodyText,
+          html: bodyHtml,
+          attachments,
+        });
+      } catch (e) {
+        const msg = String(e?.message || "");
+        if (msg.includes("invalid_grant") || msg.includes("invalid_credentials")) {
+          return res.status(400).json({ message: "Gmail connection expired; please reconnect" });
+        }
+        console.error("[conversations v2 compose post]", e);
+        throw e;
+      }
+
+      // Persist conversation and outbound email immediately for UI consistency
+      const threadId = result.threadId || null;
+      let conversationId = threadId;
+      try {
+        if (threadId) {
+          await prisma.conversation.upsert({
+            where: { id: threadId },
+            update: {},
+            create: { id: threadId, event: { connect: { id: eventId } } },
+          });
+        } else {
+          const conv = await prisma.conversation.create({ data: { event: { connect: { id: eventId } } } });
+          conversationId = conv.id;
+        }
+      } catch (e) {
+        console.error("[gmail compose persist conversation]", e);
+      }
+
+      let emailRecord = null;
+      try {
+        const persistedMessageId = result.messageId || result.sentId || `${Date.now()}`;
+        emailRecord = await prisma.email.create({
+          data: {
+            conversationId: conversationId,
+            messageId: persistedMessageId,
+            from: connection.email,
+            to: Array.isArray(parsed.data.to) ? parsed.data.to.join(", ") : parsed.data.to || "",
+            subject: parsed.data.subject || "",
+            htmlBody: bodyHtml || null,
+            textBody: bodyText || null,
+            logs: {
+              create: { type: "EMAIL_SENT", eventId, data: { source: "immediate", confirmed: false } },
+            },
+          },
+        });
+        // Persist attachments/link records
+        try {
+          const outData = [];
+          for (const f of attachableFiles) {
+            outData.push({ emailId: emailRecord.id, fileId: f.id, deliveryMode: "ATTACHMENT" });
+          }
+          for (const f of linkFiles) {
+            outData.push({ emailId: emailRecord.id, fileId: f.id, deliveryMode: "LINK" });
+          }
+          if (outData.length) await prisma.outboundEmailAttachment.createMany({ data: outData });
+        } catch (e) {
+          console.error("[gmail compose persist outbound attachments]", e);
+        }
+
+        // Ensure conversation participants from recipients
+        try {
+          const recipients = Array.isArray(parsed.data.to) ? parsed.data.to : [parsed.data.to];
+          for (const r of recipients) {
+            const emails = String(r)
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean);
+            for (const e of emails) {
+              try { await upsertConversationCrmPerson(e, conversationId, eventId); } catch (_) {}
+            }
+          }
+        } catch (_) {}
+
+        try { sendEmailEvent(eventId, emailRecord); } catch (_) {}
+      } catch (e) {
+        console.error("[gmail compose immediate persist]", e);
+      }
+
+      return res.status(200).json({
+        success: true,
+        messageId: result.messageId,
+        id: result.sentId,
+        threadId: conversationId,
+      });
+    } catch (e) {
+      if (e?.code === "NO_GMAIL_CONNECTION") {
+        return res.status(404).json({ message: "Gmail not connected for this event" });
+      }
+      if (e?.code === "NO_RECIPIENTS") {
+        return res.status(400).json({ message: "No recipients provided" });
+      }
+      console.error("[conversations v2 threads compose]", e);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

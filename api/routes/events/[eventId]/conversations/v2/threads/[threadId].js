@@ -70,7 +70,7 @@ export const get = [
   async (req, res) => {
     const { eventId, threadId } = req.params;
     try {
-      // Fetch conversation and messages from DB only
+      // Fetch conversation, messages, and linked CRM participants
       const conversation = await prisma.conversation.findFirst({
         where: { id: threadId, eventId },
         include: {
@@ -87,6 +87,13 @@ export const get = [
           outboundEmails: {
             orderBy: { createdAt: "asc" },
             include: { attachments: { include: { file: true } } },
+          },
+          participants: {
+            where: { deleted: false },
+            include: {
+              emails: { where: { deleted: false } },
+              phones: { where: { deleted: false } },
+            },
           },
         },
       });
@@ -217,7 +224,25 @@ export const get = [
         responseRecipient = recs.join(", ");
       }
 
-      return res.status(200).json({ thread, messages: all, responseRecipient });
+      // Map participants to a compact payload for the client details panel
+      const participants = (conversation.participants || []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        emails: (p.emails || []).map((e) => ({
+          id: e.id,
+          email: e.email,
+          label: e.label || null,
+        })),
+        phones: (p.phones || []).map((ph) => ({
+          id: ph.id,
+          phone: ph.phone,
+          label: ph.label || null,
+        })),
+      }));
+
+      return res
+        .status(200)
+        .json({ thread, messages: all, responseRecipient, participants });
     } catch (e) {
       console.error("[conversations v2 thread get]", e);
       return res.status(500).json({ message: "Internal server error" });

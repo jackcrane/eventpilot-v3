@@ -16,6 +16,7 @@ export const useConversationThread = ({ eventId, threadId } = {}) => {
     thread: data?.thread || null,
     messages: data?.messages || [],
     responseRecipient: data?.responseRecipient || "",
+    participants: Array.isArray(data?.participants) ? data.participants : [],
     loading: isLoading,
     error,
     refetch: () => (key ? mutate(key) : undefined),

@@ -40,40 +40,43 @@ export const useConversationEvents = ({ eventId, onEmail } = {}) => {
           k.startsWith(`/api/events/${eventId}/conversations/v2/threads`)
         );
 
-        // Basic toast for visibility
-        const subj = payload?.subject || payload?.headers?.subject || "New email";
-        const threadId =
-          payload?.conversationId ||
-          payload?.conversation?.id ||
-          payload?.threadId ||
-          null;
-        toast(
-          typeof subj === "string" ? (
-            <Row gap={1} align="center">
-              <Icon i="mail" size={24} />
-              <span>
-                <b>New email received: </b>
-                <span>{subj}</span>
-              </span>
-              <Button
-                size="sm"
-                onClick={() =>
-                  threadId
-                    ? navigate(`/events/${eventId}/conversations/${threadId}`)
-                    : null
-                }
-              >
-                View
-              </Button>
-            </Row>
-          ) : (
-            "New email received"
-          ),
-          {
-            position: "bottom-right",
-            duration: 6000,
-          }
-        );
+        // Show toast only for inbound emails. Inbound payloads include `receivedAt`.
+        const isInbound = Boolean(payload && payload.receivedAt);
+        if (isInbound) {
+          const subj = payload?.subject || payload?.headers?.subject || "New email";
+          const threadId =
+            payload?.conversationId ||
+            payload?.conversation?.id ||
+            payload?.threadId ||
+            null;
+          toast(
+            typeof subj === "string" ? (
+              <Row gap={1} align="center">
+                <Icon i="mail" size={24} />
+                <span>
+                  <b>New email received: </b>
+                  <span>{subj}</span>
+                </span>
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    threadId
+                      ? navigate(`/events/${eventId}/conversations/${threadId}`)
+                      : null
+                  }
+                >
+                  View
+                </Button>
+              </Row>
+            ) : (
+              "New email received"
+            ),
+            {
+              position: "bottom-right",
+              duration: 6000,
+            }
+          );
+        }
 
         onEmail?.(payload);
 

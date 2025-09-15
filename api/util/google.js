@@ -500,6 +500,82 @@ export const sendThreadReply = async (
   };
 };
 
+export const sendNewEmail = async (
+  gmail,
+  connectionEmail,
+  { to, cc, bcc, subject, text, html, attachments }
+) => {
+  // Build recipients string; require at least one
+  const list = arrify(to).flatMap((t) => parseAddressList(t)).map((e) => e.email);
+  const recipients = list.join(", ");
+  if (!recipients || !recipients.trim()) {
+    const err = new Error("No recipients provided");
+    err.code = "NO_RECIPIENTS";
+    throw err;
+  }
+
+  // Filter our own address from cc/bcc if present
+  const selfNorm = normalizeMailbox(connectionEmail || "");
+  const ccStr = arrify(cc)
+    .flatMap((t) => parseAddressList(t))
+    .map((e) => e.email)
+    .filter((addr) => normalizeMailbox(addr) !== selfNorm)
+    .join(", ");
+  const bccStr = arrify(bcc)
+    .flatMap((t) => parseAddressList(t))
+    .map((e) => e.email)
+    .filter((addr) => normalizeMailbox(addr) !== selfNorm)
+    .join(", ");
+
+  // Reuse reply MIME builder without reply headers
+  const mime = buildReplyMime({
+    from: connectionEmail,
+    recipients,
+    cc: ccStr || undefined,
+    bcc: bccStr || undefined,
+    subject: subject || "",
+    text,
+    html,
+    lastMsgId: undefined,
+    lastRefs: undefined,
+    attachments: Array.isArray(attachments) ? attachments : [],
+  });
+  const raw = toBase64Url(mime);
+
+  let sent;
+  try {
+    sent = await gmail.users.messages.send({
+      userId: "me",
+      requestBody: { raw },
+    });
+  } catch (e) {
+    console.error(
+      "[gmail users.messages.send (new) error]",
+      { hasAttachments: Array.isArray(attachments) && attachments.length > 0 },
+      e
+    );
+    throw e;
+  }
+
+  const sentId = sent?.data?.id;
+  let meta = null;
+  if (sentId) {
+    const g = await gmail.users.messages.get({
+      userId: "me",
+      id: sentId,
+      format: "metadata",
+      metadataHeaders: ["Message-ID", "Date"],
+    });
+    meta = g.data || null;
+  }
+  return {
+    sent,
+    sentId: sentId || null,
+    threadId: sent?.data?.threadId || null,
+    messageId: meta ? getHeader(meta.payload, "Message-ID") : null,
+  };
+};
+
 export const trashThread = async (gmail, threadId, permanent = false) => {
   if (permanent) {
     await gmail.users.threads.delete({ userId: "me", id: threadId });
