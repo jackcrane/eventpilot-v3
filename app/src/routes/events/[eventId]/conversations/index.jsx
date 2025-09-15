@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import moment from "moment";
 import {
@@ -16,10 +16,12 @@ import { TriPanelLayout } from "../../../../../components/TriPanelLayout/TriPane
 import { useConversationThreads } from "../../../../../hooks/useConversationThreads";
 import { useConversationThread } from "../../../../../hooks/useConversationThread";
 import { useConversationReply } from "../../../../../hooks/useConversationReply";
+import { useConversationThreadUnread } from "../../../../../hooks/useConversationThreadUnread";
 import { useFileUploader } from "../../../../../hooks/useFileUploader";
 import { Icon } from "../../../../../util/Icon";
 import { Loading } from "../../../../../components/loading/Loading";
 import { Empty } from "../../../../../components/empty/Empty";
+import toast from "react-hot-toast";
 
 export const EventConversationsPage = () => {
   const { eventId } = useParams();
@@ -55,6 +57,59 @@ export const EventConversationsPage = () => {
     eventId,
     threadId: selectedThreadId,
   });
+  const {
+    markAsRead,
+    markAsUnread,
+    mutationLoading: updatingThread,
+  } = useConversationThreadUnread({ eventId, threadId: selectedThreadId });
+
+  // Track per-selection auto mark state to avoid repeated triggers
+  const autoMarkRef = useRef({ threadId: null, marked: false });
+  useEffect(() => {
+    autoMarkRef.current = { threadId: selectedThreadId, marked: false };
+  }, [selectedThreadId]);
+
+  // When opening an unread thread, mark as read in background and offer Undo
+  useEffect(() => {
+    const shouldAutoMark =
+      selectedThreadId &&
+      !threadLoading &&
+      thread?.isUnread &&
+      autoMarkRef.current.threadId === selectedThreadId &&
+      !autoMarkRef.current.marked &&
+      !updatingThread;
+    if (!shouldAutoMark) return;
+    autoMarkRef.current.marked = true;
+    (async () => {
+      const ok = await markAsRead({ silent: true });
+      if (ok) {
+        try {
+          await Promise.all([refetchThread?.(), refetchThreads?.()]);
+        } catch (_) {}
+        const tid = toast((t) => (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span>Message marked as read</span>
+            <Button
+              size="sm"
+              onClick={async () => {
+                toast.dismiss(t.id);
+                const undone = await markAsUnread({ silent: true });
+                if (undone) {
+                  try {
+                    await Promise.all([refetchThread?.(), refetchThreads?.()]);
+                  } catch (_) {}
+                  toast.success("Undone");
+                }
+              }}
+            >
+              Undo
+            </Button>
+          </div>
+        ));
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedThreadId, threadLoading, thread?.isUnread, updatingThread]);
 
   const [replyBody, setReplyBody] = useState("");
   const [replyTo, setReplyTo] = useState("");
@@ -203,9 +258,18 @@ export const EventConversationsPage = () => {
                   style={{ minWidth: 0, width: "100%" }}
                 >
                   {unread && (
-                    <Badge color="blue" soft>
-                      Unread
-                    </Badge>
+                    <span
+                      aria-label="unread"
+                      title="Unread"
+                      style={{
+                        display: "inline-block",
+                        width: 10,
+                        height: 10,
+                        borderRadius: 9999,
+                        background: "var(--tblr-primary)",
+                        flex: "0 0 auto",
+                      }}
+                    />
                   )}
                   <Typography.H3
                     className="mb-0"
@@ -265,8 +329,10 @@ export const EventConversationsPage = () => {
                   </Typography.Text>
                 ) : null}
               </Col>
-              <div style={{ flex: 1 }} />
-              <Typography.Text className="mb-0 text-muted">
+              <Typography.Text
+                className="mb-0 text-muted"
+                style={{ marginLeft: "auto", textAlign: "right", whiteSpace: "nowrap" }}
+              >
                 {t.lastMessage?.internalDate
                   ? moment(t.lastMessage.internalDate).fromNow()
                   : ""}
@@ -314,6 +380,29 @@ export const EventConversationsPage = () => {
           text="Select a conversation from the inbox to view messages."
           gradient={false}
         />
+      )}
+      {selectedThreadId && !threadLoading && (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            size="sm"
+            onClick={async () => {
+              const unread = Boolean(thread?.isUnread);
+              const ok = unread ? await markAsRead() : await markAsUnread();
+              if (ok) {
+                try {
+                  await Promise.all([refetchThread?.(), refetchThreads?.()]);
+                } catch (_) {}
+              }
+            }}
+            disabled={updatingThread}
+            loading={updatingThread}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Icon i={thread?.isUnread ? "mail-opened" : "mail"} />
+              {thread?.isUnread ? "Mark as read" : "Mark as unread"}
+            </span>
+          </Button>
+        </div>
       )}
       {selectedThreadId && threadLoading && (
         <Loading

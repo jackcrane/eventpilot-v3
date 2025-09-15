@@ -661,6 +661,14 @@ export const patch = [
       }
       const { gmail } = await getGmailClientForEvent(eventId);
       const modified = await setThreadUnread(gmail, threadId, unread);
+
+      // Keep database in sync for UI: flip read flags on inbound emails in this thread
+      try {
+        await prisma.inboundEmail.updateMany({
+          where: { conversationId: threadId, eventId },
+          data: { read: !unread },
+        });
+      } catch (_) {}
       return res
         .status(200)
         .json({ success: true, threadId, unread, modified });
