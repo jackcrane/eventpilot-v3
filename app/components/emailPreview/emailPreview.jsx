@@ -54,7 +54,9 @@ export const EmailPreviewPrompt = ({ emailId, onClick }) => {
       e.preventDefault();
       try {
         onClick(emailId);
-      } catch (_) {}
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 

@@ -124,6 +124,7 @@ export const get = [
         await s3.send(new HeadObjectCommand({ Bucket: s3Bucket, Key: s3Key }));
         return res.redirect(302, s3Location);
       } catch (_) {
+        void _;
         // Not found; continue
       }
 
@@ -265,6 +266,7 @@ export const get = [
         );
         return res.redirect(302, s3Location);
       } catch (err) {
+        console.error("Failed to upload attachment to S3", err);
         res.setHeader("Content-Type", contentType);
         res.setHeader("Content-Length", Buffer.byteLength(buffer));
         const disposition = contentType.startsWith("image/")

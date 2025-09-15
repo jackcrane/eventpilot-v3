@@ -197,7 +197,7 @@ export const get = [
           const dIn = lastIn?.receivedAt ? new Date(lastIn.receivedAt) : null;
           const dOut = lastOut?.createdAt ? new Date(lastOut.createdAt) : null;
           const isInNewer = dIn && (!dOut || dIn > dOut);
-          const last = isInNewer ? lastIn : lastOut;
+          // const last = isInNewer ? lastIn : lastOut;
           const lastDate = isInNewer ? dIn : dOut;
           const subject = (lastIn?.subject || lastOut?.subject || "").trim();
           const fromStr = isInNewer
@@ -624,14 +624,20 @@ export const post = [
             for (const e of emails) {
               try {
                 await upsertConversationCrmPerson(e, conversationId, eventId);
-              } catch (_) {}
+              } catch (err) {
+                console.error(err);
+              }
             }
           }
-        } catch (_) {}
+        } catch (err) {
+          console.error(err);
+        }
 
         try {
           sendEmailEvent(eventId, emailRecord);
-        } catch (_) {}
+        } catch (err) {
+          console.error(err);
+        }
       } catch (e) {
         console.error("[gmail compose immediate persist]", e);
       }

@@ -56,7 +56,9 @@ export const EventConversationsPage = () => {
     onEmail: async () => {
       try {
         await Promise.all([refetchThread?.(), refetchThreads?.()]);
-      } catch (_) {}
+      } catch (e) {
+        console.error(e);
+      }
     },
   });
   const [composeMode, setComposeMode] = useState(false);

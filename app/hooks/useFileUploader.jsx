@@ -98,7 +98,7 @@ export const useFileUploader = (endpoint, options) => {
             }
             const instance = localStorage.getItem("instance");
             if (instance) xhr.setRequestHeader("X-Instance", instance);
-          } catch (_) {}
+          } catch (e) { console.error(e); }
 
           xhr.upload.onprogress = (evt) => {
             if (!evt || !evt.lengthComputable) return;
@@ -108,7 +108,7 @@ export const useFileUploader = (endpoint, options) => {
                 total: evt.total,
                 progress: Math.max(0, Math.min(1, evt.loaded / evt.total)),
               });
-            } catch (_) {}
+            } catch (e) { console.error(e); }
           };
           xhr.onerror = () => {
             reject("Network error during upload");
@@ -132,7 +132,8 @@ export const useFileUploader = (endpoint, options) => {
                 const body = JSON.parse(xhr.responseText || "{}");
                 const message = body?.message || xhr.statusText || "Upload failed";
                 return reject(message);
-              } catch (_) {
+              } catch (e) {
+                console.error(e);
                 return reject(xhr.statusText || "Upload failed");
               }
             }

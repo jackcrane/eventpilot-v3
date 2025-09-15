@@ -109,7 +109,9 @@ export const Conversation = ({
       if (ok) {
         try {
           await Promise.all([refetchThread?.(), refetchThreads?.()]);
-        } catch (_) {}
+        } catch (e) {
+          console.error(e);
+        }
         toast((t) => (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span>Message marked as read</span>
@@ -121,7 +123,9 @@ export const Conversation = ({
                 if (undone) {
                   try {
                     await Promise.all([refetchThread?.(), refetchThreads?.()]);
-                  } catch (_) {}
+                  } catch (e) {
+                    console.error(e);
+                  }
                   toast.success("Undone");
                 }
               }}
@@ -234,7 +238,8 @@ export const Conversation = ({
                           prev.filter((p) => p.id !== tempId)
                         );
                       }
-                    } catch (_) {
+                    } catch (e) {
+                      console.error(e);
                       setPendingFiles((prev) =>
                         prev.filter((p) => p.id !== tempId)
                       );
@@ -396,7 +401,9 @@ export const Conversation = ({
                     setPendingFiles([]);
                     try {
                       await refetchThreads?.();
-                    } catch (_) {}
+                    } catch (e) {
+                      console.error(e);
+                    }
                     if (threadId)
                       navigate(`/events/${eventId}/conversations/${threadId}`);
                   }
@@ -445,7 +452,9 @@ export const Conversation = ({
                         refetchThread?.(),
                         refetchThreads?.(),
                       ]);
-                    } catch (_) {}
+                    } catch (e) {
+                      console.error(e);
+                    }
                   }
                 }}
                 disabled={updatingThread}
@@ -506,9 +515,11 @@ export const Conversation = ({
                       navigate(`/events/${eventId}/conversations`);
                     },
                     onSuccess: async () => {
-                      try {
-                        await refetchThreads?.();
-                      } catch (_) {}
+                    try {
+                      await refetchThreads?.();
+                    } catch (e) {
+                      console.error(e);
+                    }
                     },
                   });
                   if (!ok) return;
@@ -598,7 +609,8 @@ export const Conversation = ({
                           prev.filter((p) => p.id !== tempId)
                         );
                       }
-                    } catch (_) {
+                    } catch (e) {
+                      console.error(e);
                       setPendingFiles((prev) =>
                         prev.filter((p) => p.id !== tempId)
                       );
@@ -752,7 +764,9 @@ export const Conversation = ({
                         refetchThread?.(),
                         refetchThreads?.(),
                       ]);
-                    } catch (_) {}
+                    } catch (e) {
+                      console.error(e);
+                    }
                   }
                 }}
                 disabled={

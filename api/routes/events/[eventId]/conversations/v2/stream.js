@@ -12,7 +12,7 @@ export const get = [
       if (token && !req.headers.authorization) {
         req.headers.authorization = `Bearer ${token}`;
       }
-    } catch (_) {}
+    } catch (e) { console.error(e); }
     next();
   },
   verifyAuth(["manager"]),
@@ -39,7 +39,7 @@ export const get = [
         res.write(`event: email\n`);
         res.write(`data: ${data}\n\n`);
       } catch (e) {
-        // best-effort; ignore
+        console.error(e);
       }
     };
 
@@ -49,20 +49,20 @@ export const get = [
     const heartbeat = setInterval(() => {
       try {
         res.write(": ping\n\n");
-      } catch (_) {}
+      } catch (e) { console.error(e); }
     }, 25000);
 
     // Cleanup when the client disconnects
     req.on("close", () => {
       try {
         clearInterval(heartbeat);
-      } catch (_) {}
+      } catch (e) { console.error(e); }
       try {
         ee.off("email", onEmail);
-      } catch (_) {}
+      } catch (e) { console.error(e); }
       try {
         res.end();
-      } catch (_) {}
+      } catch (e) { console.error(e); }
     });
   },
 ];

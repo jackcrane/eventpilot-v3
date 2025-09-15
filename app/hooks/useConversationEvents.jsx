@@ -82,7 +82,7 @@ export const useConversationEvents = ({ eventId, onEmail } = {}) => {
 
         next(null, payload);
       } catch (e) {
-        // ignore parse errors
+        console.error(e);
       }
     };
 
@@ -91,13 +91,17 @@ export const useConversationEvents = ({ eventId, onEmail } = {}) => {
       // Close and let SWR decide about resubscribe
       try {
         es.close();
-      } catch (_) {}
+      } catch (e) {
+        console.error(e);
+      }
     };
 
     return () => {
       try {
         es.close();
-      } catch (_) {}
+      } catch (e) {
+        console.error(e);
+      }
     };
   });
 

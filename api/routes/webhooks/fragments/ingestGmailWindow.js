@@ -93,7 +93,9 @@ export const ingestGmailWindowForEvent = async ({ eventId, q, reqId }) => {
                 where: { id: exists.id },
                 data: { read: !isUnread },
               });
-            } catch (_) {}
+            } catch (e) {
+              console.error(e);
+            }
             processed++;
             continue;
           }
@@ -147,7 +149,9 @@ export const ingestGmailWindowForEvent = async ({ eventId, q, reqId }) => {
 
           try {
             sendEmailEvent(eventId, created);
-          } catch (_) {}
+          } catch (e) {
+            console.error(e);
+          }
           processed++;
           continue;
         }
@@ -196,7 +200,9 @@ export const ingestGmailWindowForEvent = async ({ eventId, q, reqId }) => {
             );
             try {
               sendEmailEvent(eventId, createdOut);
-            } catch (_) {}
+            } catch (e) {
+              console.error(e);
+            }
             processed++;
           } else {
             try {
@@ -208,7 +214,9 @@ export const ingestGmailWindowForEvent = async ({ eventId, q, reqId }) => {
                   data: { source: "gmail_ingest_window" },
                 },
               });
-            } catch (_) {}
+            } catch (e) {
+              console.error(e);
+            }
           }
         }
       } catch (err) {

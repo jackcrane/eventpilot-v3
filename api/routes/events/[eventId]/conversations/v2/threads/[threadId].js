@@ -208,7 +208,9 @@ export const get = [
           where: { eventId },
         });
         selfEmail = conn?.email || null;
-      } catch (_) {}
+      } catch (e) {
+        console.error(e);
+      }
       const selfNorm = normalizeMailbox(selfEmail || "");
       const pick =
         [...all].reverse().find((m) => {
@@ -346,8 +348,8 @@ export const post = [
               `attachments=${summary.attachments.length}, links=${summary.links.length}`,
               summary
             );
-          } catch (_) {
-            // Best-effort logging; ignore logging failures
+          } catch (e) {
+            console.error(e);
           }
         } catch (e) {
           console.error("[gmail reply attachments classify error]", e);
@@ -478,7 +480,7 @@ export const post = [
             });
             meta = m?.data || null;
             // eslint-disable-next-line
-          } catch (_) {}
+          } catch (e) { console.error(e); }
         }
 
         const headers = (meta?.payload?.headers || []).reduce(
@@ -528,7 +530,7 @@ export const post = [
               }
             }
             // eslint-disable-next-line
-          } catch (_) {}
+          } catch (e) { console.error(e); }
 
           emailRecord = await prisma.email.create({
             data: {
@@ -584,13 +586,13 @@ export const post = [
               await upsertConversationCrmPerson(r.Email, threadId, eventId);
             }
             // eslint-disable-next-line
-          } catch (_) {}
+          } catch (e) { console.error(e); }
 
           // SSE fan-out
           try {
             sendEmailEvent(eventId, emailRecord);
             // eslint-disable-next-line
-          } catch (_) {}
+          } catch (e) { console.error(e); }
         }
       } catch (e) {
         // Non-fatal; cron will reconcile
@@ -693,7 +695,7 @@ export const patch = [
           where: { conversationId: threadId, eventId },
           data: { read: !unread },
         });
-      } catch (_) {}
+      } catch (e) { console.error(e); }
       return res
         .status(200)
         .json({ success: true, threadId, unread, modified });

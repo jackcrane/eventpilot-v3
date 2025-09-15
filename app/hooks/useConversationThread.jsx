@@ -57,7 +57,8 @@ export const useConversationThread = ({ eventId, threadId } = {}) => {
       }
       await revalidateRelated();
       return true;
-    } catch {
+    } catch (e) {
+      console.error(e);
       return false;
     }
   };
@@ -125,12 +126,16 @@ export const useConversationThread = ({ eventId, threadId } = {}) => {
         if (prevDetail) {
           await mutate(key, () => prevDetail, { revalidate: false });
         }
-      } catch (_) {}
+      } catch (e2) {
+        console.error(e2);
+      }
       try {
         await mutate(
           (k) => typeof k === "string" && k.startsWith(`/api/events/${eventId}/conversations/v2/threads`)
         );
-      } catch (_) {}
+      } catch (e3) {
+        console.error(e3);
+      }
       return false;
     }
   };

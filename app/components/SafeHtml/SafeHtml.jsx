@@ -36,8 +36,8 @@ export const SafeHtml = ({ html, className, style }) => {
           doc.body?.scrollHeight || 0
         );
         if (newHeight && newHeight !== height) setHeight(newHeight);
-      } catch (_) {
-        // Access can fail if same-origin isn't allowed; ignore
+      } catch (e) {
+        console.error(e);
       }
     };
 
@@ -51,7 +51,9 @@ export const SafeHtml = ({ html, className, style }) => {
           try {
             a.setAttribute("target", "_blank");
             a.setAttribute("rel", "noopener noreferrer");
-          } catch (_) {}
+          } catch (e) {
+            console.error(e);
+          }
         });
         // Recalculate height when images load
         doc.querySelectorAll("img").forEach((img) => {
@@ -62,14 +64,16 @@ export const SafeHtml = ({ html, className, style }) => {
         observer.observe(doc.body, { childList: true, subtree: true, attributes: true, characterData: true });
         // Cleanup on next load/unmount
         iframe.__epCleanup = () => {
-          try { observer.disconnect(); } catch (_) {}
+          try { observer.disconnect(); } catch (e) { console.error(e); }
           try {
             doc.querySelectorAll("img").forEach((img) => {
               img.removeEventListener("load", adjustHeight);
             });
-          } catch (_) {}
+          } catch (e) { console.error(e); }
         };
-      } catch (_) {}
+      } catch (e) {
+        console.error(e);
+      }
     };
 
     iframe.addEventListener("load", onLoad);
@@ -77,8 +81,8 @@ export const SafeHtml = ({ html, className, style }) => {
     adjustHeight();
 
     return () => {
-      try { iframe.removeEventListener("load", onLoad); } catch (_) {}
-      try { if (iframe.__epCleanup) iframe.__epCleanup(); } catch (_) {}
+      try { iframe.removeEventListener("load", onLoad); } catch (e) { console.error(e); }
+      try { if (iframe.__epCleanup) iframe.__epCleanup(); } catch (e) { console.error(e); }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [srcDoc]);
@@ -95,4 +99,3 @@ export const SafeHtml = ({ html, className, style }) => {
     />
   );
 };
-
