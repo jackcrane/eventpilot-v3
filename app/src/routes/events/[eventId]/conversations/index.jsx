@@ -17,6 +17,7 @@ import { useConversationThreads } from "../../../../../hooks/useConversationThre
 import { useConversationThread } from "../../../../../hooks/useConversationThread";
 import { useConversationReply } from "../../../../../hooks/useConversationReply";
 import { useConversationThreadUnread } from "../../../../../hooks/useConversationThreadUnread";
+import { useConversationEvents } from "../../../../../hooks/useConversationEvents";
 import { useFileUploader } from "../../../../../hooks/useFileUploader";
 import { Icon } from "../../../../../util/Icon";
 import { Loading } from "../../../../../components/loading/Loading";
@@ -83,6 +84,16 @@ export const EventConversationsPage = () => {
   useEffect(() => {
     autoMarkRef.current = { threadId: selectedThreadId, marked: false };
   }, [selectedThreadId]);
+
+  // Subscribe to inbound/outbound email events for this event; refresh lists/details + toast
+  useConversationEvents({
+    eventId,
+    onEmail: async () => {
+      try {
+        await Promise.all([refetchThread?.(), refetchThreads?.()]);
+      } catch (_) {}
+    },
+  });
 
   // When opening an unread thread, mark as read in background and offer Undo
   useEffect(() => {
