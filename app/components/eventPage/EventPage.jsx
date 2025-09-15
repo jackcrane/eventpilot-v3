@@ -7,7 +7,6 @@ import { Icon } from "../../util/Icon";
 import { useEvent } from "../../hooks/useEvent";
 import { Loading } from "../loading/Loading";
 import { Sidenav } from "../sidenav/Sidenav";
-import { useConversations } from "../../hooks/useConversations";
 import { useStripeExpress } from "../../hooks/useStripeExpress";
 
 export const EventPage = ({
@@ -73,13 +72,15 @@ export const EventPage = ({
       active: isActive(`${base}/crm`),
       icon: <Icon i="briefcase-2" size={18} color="var(--tblr-purple)" />,
     },
-    // {
-    //   type: "item",
-    //   href: `${base}/conversations`,
-    //   text: "Conversations",
-    //   active: isActive(`${base}/conversations`),
-    //   icon: <Icon i="message" size={18} color="var(--tblr-green)" />,
-    // },
+    {
+      type: "item",
+      href: `${base}/conversations`,
+      text: "Conversations",
+      active:
+        isActive(`${base}/conversations`) ||
+        pathname.startsWith(`${base}/conversations/`),
+      icon: <Icon i="mail" size={18} color="var(--tblr-green)" />,
+    },
     {
       type: "dropdown",
       text: "Registration",

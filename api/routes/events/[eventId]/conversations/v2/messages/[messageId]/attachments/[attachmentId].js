@@ -1,5 +1,10 @@
 import { getGmailClientForEvent } from "#util/google";
 import { verifyAttachment } from "#util/signedUrl";
+import {
+  S3Client,
+  HeadObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 
 // Flatten MIME tree with parent links (root included)
 const flattenParts = (root) => {
@@ -100,6 +105,29 @@ export const get = [
     }
 
     try {
+      // Prepare S3 client and deterministic key for this attachment
+      const s3 = new S3Client({
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        },
+        region: process.env.AWS_REGION,
+        endpoint: process.env.AWS_ENDPOINT,
+      });
+      const s3Bucket = process.env.AWS_BUCKET;
+      const safe = (s) => String(s || "").replace(/[^a-zA-Z0-9._-]+/g, "-");
+      const s3Key = `${process.env.PROJECT_NAME}/gmail/${safe(eventId)}/${safe(messageId)}/${safe(attachmentId)}`;
+      const s3Location = `${process.env.AWS_ENDPOINT}/${s3Bucket}/${s3Key}`;
+
+      // If already present in S3, redirect immediately
+      try {
+        await s3.send(new HeadObjectCommand({ Bucket: s3Bucket, Key: s3Key }));
+        return res.redirect(302, s3Location);
+      } catch (_) {
+        void _;
+        // Not found; continue
+      }
+
       const { gmail } = await getGmailClientForEvent(eventId);
 
       // 1) Pull raw attachment (base64url) + its reported size
@@ -165,6 +193,7 @@ export const get = [
 
       // 7) Promote to a metadata source (ancestor) if the leaf lacks headers/filename
       const metaPart = findMetadataSource(leafNode, indexByPart);
+      const leafPart = leafNode.part;
 
       // 8) Resolve filename
       const headers = metaPart?.headers || [];
@@ -178,37 +207,44 @@ export const get = [
       filename = filename.replace(/\r|\n/g, "");
 
       // 9) Resolve content type
-      let contentType = "application/octet-stream";
-      if (ctRaw?.trim()) {
-        contentType = ctRaw.trim();
-      } else if (metaPart?.mimeType) {
-        contentType = String(metaPart.mimeType).trim() || contentType;
-      } else {
-        const ext = (filename.split(".").pop() || "").toLowerCase();
-        const map = {
-          jpg: "image/jpeg",
-          jpeg: "image/jpeg",
-          png: "image/png",
-          gif: "image/gif",
-          webp: "image/webp",
-          svg: "image/svg+xml",
-          pdf: "application/pdf",
-          txt: "text/plain",
-          html: "text/html",
-          csv: "text/csv",
-          json: "application/json",
-          xml: "application/xml",
-          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-          doc: "application/msword",
-          xls: "application/vnd.ms-excel",
-          ppt: "application/vnd.ms-powerpoint",
-          zip: "application/zip",
-          gz: "application/gzip",
-        };
-        if (map[ext]) contentType = map[ext];
-      }
+      const ext = (filename.split(".").pop() || "").toLowerCase();
+      const extMap = {
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        gif: "image/gif",
+        webp: "image/webp",
+        svg: "image/svg+xml",
+        pdf: "application/pdf",
+        txt: "text/plain",
+        html: "text/html",
+        csv: "text/csv",
+        json: "application/json",
+        xml: "application/xml",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        doc: "application/msword",
+        xls: "application/vnd.ms-excel",
+        ppt: "application/vnd.ms-powerpoint",
+        zip: "application/zip",
+        gz: "application/gzip",
+      };
+      const ctHeader = (ctRaw || "").split(";")[0].trim();
+      const leafType = (leafPart?.mimeType || "").trim();
+      const metaType = (metaPart?.mimeType || "").trim();
+      let contentType =
+        // Prefer leaf mimeType if it's specific
+        (leafType && !/^multipart\//i.test(leafType) ? leafType : null) ||
+        // Then the Content-Type header main value (without params)
+        (ctHeader && !/^multipart\//i.test(ctHeader) ? ctHeader : null) ||
+        // Then the meta part mimeType
+        (metaType && !/^multipart\//i.test(metaType) ? metaType : null) ||
+        // Fallback by extension
+        extMap[ext] ||
+        null ||
+        // Ultimate fallback
+        "application/octet-stream";
 
       // 10) Convert base64url -> Buffer
       const buffer = Buffer.from(
@@ -216,21 +252,32 @@ export const get = [
         "base64"
       );
 
-      // 11) Send
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Content-Length", Buffer.byteLength(buffer));
-      // Prefer inline for images so they can render in <img src="...">
-      const disposition =
-        cdRaw ||
-        (contentType.startsWith("image/")
+      // 11) Upload to S3 then redirect. If upload fails, fall back to direct send.
+      try {
+        await s3.send(
+          new PutObjectCommand({
+            Bucket: s3Bucket,
+            Key: s3Key,
+            Body: buffer,
+            ContentType: contentType,
+            ContentLength: Buffer.byteLength(buffer),
+            ACL: "public-read",
+          })
+        );
+        return res.redirect(302, s3Location);
+      } catch (err) {
+        console.error("Failed to upload attachment to S3", err);
+        res.setHeader("Content-Type", contentType);
+        res.setHeader("Content-Length", Buffer.byteLength(buffer));
+        const disposition = contentType.startsWith("image/")
           ? `inline; filename="${filename}"`
-          : `attachment; filename="${filename}"`);
-      res.setHeader("Content-Disposition", disposition);
-      // Short cache for signed URLs
-      if (!req.hasUser) {
-        res.setHeader("Cache-Control", "private, max-age=60");
+          : `attachment; filename="${filename}"`;
+        res.setHeader("Content-Disposition", disposition);
+        if (!req.hasUser) {
+          res.setHeader("Cache-Control", "private, max-age=60");
+        }
+        return res.status(200).send(buffer);
       }
-      res.status(200).send(buffer);
     } catch (e) {
       if (e?.code === "NO_GMAIL_CONNECTION") {
         return res

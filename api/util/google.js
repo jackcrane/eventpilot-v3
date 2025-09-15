@@ -87,15 +87,25 @@ export const extractBodiesAndAttachments = (payload) => {
     } else if (mime === "text/html" && !acc.html && part.body?.data) {
       acc.html = decodeBase64Url(part.body.data);
     }
+
+    // Collect attachments, including inline images without filenames.
+    // Capture Content-ID if present so we can rewrite cid: URLs.
+    const headers = Array.isArray(part?.headers) ? part.headers : [];
+    const contentIdHeader = headers.find(
+      (h) => String(h?.name || "").toLowerCase() === "content-id"
+    );
+    const contentId = contentIdHeader?.value || null; // Often in the form <abcdef>
     const filename = part.filename || "";
-    if (filename && part.body?.attachmentId) {
+    if (part.body?.attachmentId) {
       acc.attachments.push({
-        filename,
+        filename: filename || null,
         mimeType: mime || null,
         attachmentId: part.body.attachmentId,
-        size: part.body.size || null,
+        size: typeof part.body.size === "number" ? part.body.size : null,
+        contentId,
       });
     }
+
     (part.parts || []).forEach(dig);
   };
 
@@ -151,6 +161,51 @@ export const mapGmailMessage = (m) => {
     htmlBody: bodies.html,
     attachments: bodies.attachments,
   };
+};
+
+// Very lightweight parser for RFC 5322 address lists
+// Returns array of { email, name }
+export const parseAddressList = (value) => {
+  if (!value) return [];
+  const parts = [];
+  let cur = "";
+  let depth = 0;
+  let inQuotes = false;
+  for (const ch of String(value)) {
+    if (ch === '"') inQuotes = !inQuotes;
+    if (!inQuotes) {
+      if (ch === "<") depth++;
+      if (ch === ">" && depth > 0) depth--;
+    }
+    if (ch === "," && !inQuotes && depth === 0) {
+      parts.push(cur.trim());
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur.trim()) parts.push(cur.trim());
+
+  return parts
+    .map((p) => {
+      const m = p.match(/^(.*)<([^>]+)>\s*$/);
+      if (m) {
+        const name = m[1].trim().replace(/^"|"$/g, "");
+        const email = m[2].trim();
+        return { email, name: name || email };
+      }
+      const email = p.replace(/^"|"$/g, "").trim();
+      return { email, name: email };
+    })
+    .filter((e) => /@/.test(e.email));
+};
+
+const normalizeMailbox = (addr) => {
+  if (!addr) return "";
+  const [local, domain] = String(addr).toLowerCase().split("@");
+  if (!domain) return String(addr).toLowerCase();
+  const localNorm = local.includes("+") ? local.split("+")[0] : local;
+  return `${localNorm}@${domain}`;
 };
 
 export const summarizeThreadFromMessages = (data) => {
@@ -259,6 +314,7 @@ export const buildReplyMime = ({
   html,
   lastMsgId,
   lastRefs,
+  attachments = [],
 }) => {
   const headers = [];
   headers.push(["From", from]);
@@ -271,18 +327,54 @@ export const buildReplyMime = ({
   if (references) headers.push(["References", references]);
   headers.push(["MIME-Version", "1.0"]);
 
-  const boundary = `b_${Math.random().toString(36).slice(2)}`;
-  let mime = headers.map(([k, v]) => `${k}: ${v}`).join("\r\n");
-  if (text && html) {
-    mime += `\r\nContent-Type: multipart/alternative; boundary=\"${boundary}\"\r\n\r\n`;
-    mime += `--${boundary}\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${text}\r\n`;
-    mime += `--${boundary}\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${html}\r\n`;
-    mime += `--${boundary}--`;
-  } else if (html) {
-    mime += `\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${html}`;
-  } else {
-    mime += `\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${text || ""}`;
+  const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+  const top = headers.map(([k, v]) => `${k}: ${v}`).join("\r\n");
+
+  if (!hasAttachments) {
+    const boundary = `b_${Math.random().toString(36).slice(2)}`;
+    let mime = top;
+    if (text && html) {
+      mime += `\r\nContent-Type: multipart/alternative; boundary=\"${boundary}\"\r\n\r\n`;
+      mime += `--${boundary}\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${text}\r\n`;
+      mime += `--${boundary}\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${html}\r\n`;
+      mime += `--${boundary}--`;
+    } else if (html) {
+      mime += `\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${html}`;
+    } else {
+      mime += `\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${text || ""}`;
+    }
+    return mime;
   }
+
+  // With attachments: multipart/mixed, with first part as body (text/html or multipart/alternative)
+  const mixedBoundary = `m_${Math.random().toString(36).slice(2)}`;
+  let mime = `${top}\r\nContent-Type: multipart/mixed; boundary=\"${mixedBoundary}\"`;
+  mime += `\r\n\r\n`;
+
+  if (text && html) {
+    const altBoundary = `a_${Math.random().toString(36).slice(2)}`;
+    mime += `--${mixedBoundary}\r\nContent-Type: multipart/alternative; boundary=\"${altBoundary}\"\r\n\r\n`;
+    mime += `--${altBoundary}\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${text}\r\n`;
+    mime += `--${altBoundary}\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${html}\r\n`;
+    mime += `--${altBoundary}--\r\n`;
+  } else if (html) {
+    mime += `--${mixedBoundary}\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${html}\r\n`;
+  } else {
+    mime += `--${mixedBoundary}\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${text || ""}\r\n`;
+  }
+
+  for (const att of attachments) {
+    const filename = att?.filename || "attachment";
+    const contentType = att?.contentType || "application/octet-stream";
+    const content = att?.data || Buffer.from("");
+    const b64 = Buffer.from(content).toString("base64");
+    mime += `--${mixedBoundary}\r\n`;
+    mime += `Content-Type: ${contentType}; name=\"${filename}\"\r\n`;
+    mime += `Content-Disposition: attachment; filename=\"${filename}\"\r\n`;
+    mime += `Content-Transfer-Encoding: base64\r\n\r\n`;
+    mime += `${b64}\r\n`;
+  }
+  mime += `--${mixedBoundary}--`;
   return mime;
 };
 
@@ -290,7 +382,7 @@ export const sendThreadReply = async (
   gmail,
   connectionEmail,
   threadId,
-  { to, cc, bcc, subject, text, html }
+  { to, cc, bcc, subject, text, html, attachments }
 ) => {
   // Get last message to build reply headers
   const thread = await gmail.users.threads.get({
@@ -311,39 +403,84 @@ export const sendThreadReply = async (
     err.code = "THREAD_NOT_FOUND";
     throw err;
   }
-  const last = msgs[msgs.length - 1];
-  const lastPayload = last.payload;
+  // Prefer replying to the most recent message NOT sent by the connected mailbox.
+  // This avoids replying back to ourselves on subsequent replies and handles aliases/plus addressing.
+  const selfNorm = normalizeMailbox(connectionEmail || "");
+  const pick = [...msgs]
+    .reverse()
+    .find((m) => {
+      const fromHdr = getHeader(m.payload, "From") || "";
+      const fromAddr = parseAddressList(fromHdr)[0]?.email || fromHdr;
+      const fromNorm = normalizeMailbox(fromAddr);
+      return fromNorm !== selfNorm;
+    }) || msgs[msgs.length - 1];
+
+  const lastPayload = pick.payload;
   const lastMsgId = getHeader(lastPayload, "Message-ID");
   const lastRefs = getHeader(lastPayload, "References");
   const lastSubject = getHeader(lastPayload, "Subject") || "";
   const replyToHdr = getHeader(lastPayload, "Reply-To");
   const fromHdr = getHeader(lastPayload, "From");
 
-  const recipients = arrify(to?.length ? to : replyToHdr || fromHdr).join(", ");
-  if (!recipients) {
+  // Determine recipients: prefer explicit arg, else Reply-To, else From; filter out our own address.
+  let recipients = null;
+  if (to && (Array.isArray(to) ? to.length : String(to).trim().length)) {
+    const list = Array.isArray(to) ? to : [to];
+    const parsed = list
+      .flatMap((t) => parseAddressList(t))
+      .map((e) => e.email);
+    recipients = parsed.join(", ");
+  } else {
+    const baseList = parseAddressList(replyToHdr || fromHdr).map((e) => e.email);
+    const filtered = baseList.filter((addr) => normalizeMailbox(addr) !== selfNorm);
+    recipients = filtered.join(", ");
+  }
+  if (!recipients || !recipients.trim()) {
     const err = new Error("No recipients resolved for reply");
     err.code = "NO_RECIPIENTS";
     throw err;
   }
+  // Filter our own address from cc/bcc if present
+  const ccStr = arrify(cc)
+    .flatMap((t) => parseAddressList(t))
+    .map((e) => e.email)
+    .filter((addr) => normalizeMailbox(addr) !== selfNorm)
+    .join(", ");
+  const bccStr = arrify(bcc)
+    .flatMap((t) => parseAddressList(t))
+    .map((e) => e.email)
+    .filter((addr) => normalizeMailbox(addr) !== selfNorm)
+    .join(", ");
   let subj = subject || lastSubject || "";
   if (!/^\s*re:/i.test(subj) && lastSubject) subj = `Re: ${subj}`;
 
   const mime = buildReplyMime({
     from: connectionEmail,
     recipients,
-    cc,
-    bcc,
+    cc: ccStr || undefined,
+    bcc: bccStr || undefined,
     subject: subj,
     text,
     html,
     lastMsgId,
     lastRefs,
+    attachments: Array.isArray(attachments) ? attachments : [],
   });
   const raw = toBase64Url(mime);
-  const sent = await gmail.users.messages.send({
-    userId: "me",
-    requestBody: { raw, threadId },
-  });
+  let sent;
+  try {
+    sent = await gmail.users.messages.send({
+      userId: "me",
+      requestBody: { raw, threadId },
+    });
+  } catch (e) {
+    console.error(
+      "[gmail users.messages.send error]",
+      { threadId, hasAttachments: Array.isArray(attachments) && attachments.length > 0 },
+      e
+    );
+    throw e;
+  }
 
   const sentId = sent?.data?.id;
   let meta = null;
@@ -359,6 +496,82 @@ export const sendThreadReply = async (
   return {
     sent,
     sentId: sentId || null,
+    messageId: meta ? getHeader(meta.payload, "Message-ID") : null,
+  };
+};
+
+export const sendNewEmail = async (
+  gmail,
+  connectionEmail,
+  { to, cc, bcc, subject, text, html, attachments }
+) => {
+  // Build recipients string; require at least one
+  const list = arrify(to).flatMap((t) => parseAddressList(t)).map((e) => e.email);
+  const recipients = list.join(", ");
+  if (!recipients || !recipients.trim()) {
+    const err = new Error("No recipients provided");
+    err.code = "NO_RECIPIENTS";
+    throw err;
+  }
+
+  // Filter our own address from cc/bcc if present
+  const selfNorm = normalizeMailbox(connectionEmail || "");
+  const ccStr = arrify(cc)
+    .flatMap((t) => parseAddressList(t))
+    .map((e) => e.email)
+    .filter((addr) => normalizeMailbox(addr) !== selfNorm)
+    .join(", ");
+  const bccStr = arrify(bcc)
+    .flatMap((t) => parseAddressList(t))
+    .map((e) => e.email)
+    .filter((addr) => normalizeMailbox(addr) !== selfNorm)
+    .join(", ");
+
+  // Reuse reply MIME builder without reply headers
+  const mime = buildReplyMime({
+    from: connectionEmail,
+    recipients,
+    cc: ccStr || undefined,
+    bcc: bccStr || undefined,
+    subject: subject || "",
+    text,
+    html,
+    lastMsgId: undefined,
+    lastRefs: undefined,
+    attachments: Array.isArray(attachments) ? attachments : [],
+  });
+  const raw = toBase64Url(mime);
+
+  let sent;
+  try {
+    sent = await gmail.users.messages.send({
+      userId: "me",
+      requestBody: { raw },
+    });
+  } catch (e) {
+    console.error(
+      "[gmail users.messages.send (new) error]",
+      { hasAttachments: Array.isArray(attachments) && attachments.length > 0 },
+      e
+    );
+    throw e;
+  }
+
+  const sentId = sent?.data?.id;
+  let meta = null;
+  if (sentId) {
+    const g = await gmail.users.messages.get({
+      userId: "me",
+      id: sentId,
+      format: "metadata",
+      metadataHeaders: ["Message-ID", "Date"],
+    });
+    meta = g.data || null;
+  }
+  return {
+    sent,
+    sentId: sentId || null,
+    threadId: sent?.data?.threadId || null,
     messageId: meta ? getHeader(meta.payload, "Message-ID") : null,
   };
 };

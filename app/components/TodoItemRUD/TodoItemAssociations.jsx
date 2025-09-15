@@ -6,6 +6,7 @@ import { useCrmPersons } from "../../hooks/useCrmPersons";
 import { Row } from "../../util/Flex";
 import { Loading } from "../loading/Loading";
 import { FormResponseRUD } from "../formResponseRUD/FormResponseRUD";
+import { useConversationSubjects } from "../../hooks/useConversationSubjects";
 // import { EntitySelector } from "../EntitySelector/EntitySelector";
 
 /**
@@ -22,6 +23,14 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
 
   // CRM Persons
   const { crmPersons = [], loading: crmLoading } = useCrmPersons({ eventId });
+
+  // Email conversation subjects for display
+  const conversationIds = useMemo(
+    () => (Array.isArray(todo?.Conversation) ? todo.Conversation.map((c) => c.id) : []),
+    [todo]
+  );
+  const { subjects: conversationSubjects = {}, loading: convSubjectsLoading } =
+    useConversationSubjects({ eventId, ids: conversationIds });
 
   // Resolve likely name/email fields for display
   const nameField = useMemo(() => {
@@ -259,7 +268,6 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
       null;
 
     return participantRegistrations.map((r) => {
-      console.log(r);
       const fallbackName = nameField ? r?.responses?.[nameField.id] : undefined;
       const fallbackEmail = emailField
         ? r?.responses?.[emailField.id]
@@ -401,7 +409,10 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
 
   const crmSelectorItems = useMemo(() => {
     return crmPersons.map((p) => {
-      const email = Array.isArray(p.emails) && p.emails.length > 0 ? p.emails[0]?.email : undefined;
+      const email =
+        Array.isArray(p.emails) && p.emails.length > 0
+          ? p.emails[0]?.email
+          : undefined;
       return {
         id: p.id,
         title: p.name || "Contact",
@@ -486,7 +497,9 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
             }}
           >
             {filtered.length === 0 ? (
-              <Typography.Text className="text-muted">No results</Typography.Text>
+              <Typography.Text className="text-muted">
+                No results
+              </Typography.Text>
             ) : (
               <div className="list-group list-group-flush border-0">
                 {visible.map((it) => (
@@ -635,7 +648,10 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
             <div className="list-group list-group-flush border-0">
               {(todo?.CrmPerson || []).map((p) => {
                 const match = crmPersons.find((x) => x.id === p.id);
-                const email = Array.isArray(match?.emails) && match.emails.length > 0 ? match.emails[0]?.email : undefined;
+                const email =
+                  Array.isArray(match?.emails) && match.emails.length > 0
+                    ? match.emails[0]?.email
+                    : undefined;
                 const name = match?.name;
                 return (
                   <div
@@ -659,7 +675,9 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
                       outline
                       variant="danger"
                       onClick={async () => {
-                        const current = (todo?.CrmPerson || []).map((x) => x.id);
+                        const current = (todo?.CrmPerson || []).map(
+                          (x) => x.id
+                        );
                         const next = current.filter((id) => id !== p.id);
                         await saveCrmPersons(next);
                       }}
@@ -670,6 +688,53 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card p-2 mb-2">
+        <Row justify="space-between" align="center" className="mb-1">
+          <div>
+            <Typography.B className="mb-1">Emails</Typography.B>
+            <Typography.Text
+              className="text-muted mb-2"
+              style={{ fontSize: 12 }}
+            >
+              Linked email conversations for this todo.
+            </Typography.Text>
+          </div>
+          {/* Intentionally no add/remove button for emails */}
+        </Row>
+
+        <div style={{ maxHeight: 260, overflowY: "auto" }}>
+          {(todo?.Conversation || []).length === 0 ? (
+            <Typography.Text className="text-muted">None</Typography.Text>
+          ) : (
+            <div className="list-group list-group-flush border-0">
+              {(todo?.Conversation || []).map((c) => (
+                <div
+                  key={c.id}
+                  className="list-group-item border-0 p-2 d-flex align-items-center"
+                >
+                  <div className="flex-fill">
+                    <div className="fw-bold">Email thread</div>
+                    <div className="text-muted small">
+                      {conversationSubjects[c.id] || (convSubjectsLoading ? "Loading..." : c.id)}
+                    </div>
+                  </div>
+                  <Button
+                    outline
+                    className="me-1"
+                    href={`/events/${eventId}/conversations/${c.id}`}
+                    target="_blank"
+                    size="sm"
+                  >
+                    View
+                  </Button>
+                  {/* No disconnect button for emails */}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -753,7 +818,6 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
             </div>
           )}
         </div>
-
       </div>
 
       {SelectorOffcanvasElement}

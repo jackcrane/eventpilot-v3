@@ -1,136 +1,231 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useConversations } from "../../../../../hooks/useConversations";
+import React, { useState, useEffect } from "react";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { Typography, Card } from "tabler-react-2";
+import { Row, Col } from "../../../../../util/Flex";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
-import { Empty } from "../../../../../components/empty/Empty";
-import { useEvent } from "../../../../../hooks/useEvent";
-import { ConversationListing } from "../../../../../components/conversationListing/ConversationListing";
-import { Row } from "../../../../../util/Flex";
-import { ConversationView } from "../../../../../components/conversationView/ConversationView";
-import {
-  HideWhenSmaller,
-  ShowWhenSmaller,
-} from "../../../../../components/media/Media";
-import { useWindowSize } from "react-use";
-import { Typography, Alert, useOffcanvas, Button } from "tabler-react-2";
-import { ConversationCompose } from "../../../../../components/conversationView/ConversationCompose";
-import { EmailForwardWizard } from "../../../../../components/EmailForwardWizard/EmailForwardWizard";
+import { TriPanelLayout } from "../../../../../components/TriPanelLayout/TriPanelLayout";
+import { useConversationThreads } from "../../../../../hooks/useConversationThreads";
+import { useConversationThread } from "../../../../../hooks/useConversationThread";
+import { useConversationEvents } from "../../../../../hooks/useConversationEvents";
+import { Loading } from "../../../../../components/loading/Loading";
+import { useCrmLedger } from "../../../../../hooks/useCrmLedger";
+import { NotesCrm } from "../../../../../components/NotesCrm/NotesCrm";
+import { ThreadListing } from "./ThreadListing";
+import { Conversation } from "./components/Conversation";
 
-export const Conversations = () => {
-  const { eventId, conversationId } = useParams();
+export const EventConversationsPage = () => {
+  const { eventId, threadId: threadIdParam } = useParams();
   const navigate = useNavigate();
-  const { width } = useWindowSize();
-  const { event, loading: eventLoading } = useEvent({ eventId });
-  const { loading, conversations } = useConversations({ eventId });
-  const { offcanvas, OffcanvasElement } = useOffcanvas({
-    offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Prefer path param, but fall back to query param for backward compatibility
+  const selectedThreadId = threadIdParam || searchParams.get("threadId") || null;
+  const initialQ = searchParams.get("q") || "";
+  const [query, setQuery] = useState(initialQ);
+  useEffect(() => {
+    // Keep local state in sync if URL changes externally
+    const urlQ = searchParams.get("q") || "";
+    if (urlQ !== query) setQuery(urlQ);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const {
+    threads,
+    loading: threadsLoading,
+    error: threadsError,
+    refetch: refetchThreads,
+    loadOlder,
+    mutationLoading: loadingOlder,
+  } = useConversationThreads({
+    eventId,
+    q: query || undefined,
+    maxResults: 20,
   });
 
-  const handleBack = () => {
-    navigate(`/events/${eventId}/conversations`);
+  const {
+    thread,
+    messages,
+    responseRecipient,
+    participants,
+    loading: threadLoading,
+    refetch: refetchThread,
+  } = useConversationThread({ eventId, threadId: selectedThreadId });
+
+  // Subscribe to inbound/outbound email events for this event; refresh lists/details + toast
+  useConversationEvents({
+    eventId,
+    onEmail: async () => {
+      try {
+        await Promise.all([refetchThread?.(), refetchThreads?.()]);
+      } catch (e) {
+        console.error(e);
+      }
+    },
+  });
+  const [composeMode, setComposeMode] = useState(false);
+
+  // listing search handled in ThreadListing; query state stays here
+
+  const handleSelectThread = (id) => {
+    // Preserve existing search params (like q), but move threadId into the path
+    const next = new URLSearchParams(searchParams);
+    next.delete("threadId");
+    const qs = next.toString();
+    const url = `/events/${eventId}/conversations/${id}${qs ? `?${qs}` : ""}`;
+    navigate(url);
   };
 
-  const breakpoint = 950;
-  const showListing = !conversationId || width >= breakpoint;
-  const showView = conversationId !== undefined;
+  // Write q to the URL when it changes (debounced by simple timeout)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const next = new URLSearchParams(searchParams);
+      if (query) next.set("q", query);
+      else next.delete("q");
+      setSearchParams(next, { replace: true });
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  const handleCompose = () => {
+    setComposeMode(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("threadId");
+    const qs = next.toString();
+    const url = `/events/${eventId}/conversations${qs ? `?${qs}` : ""}`;
+    navigate(url);
+  };
+
+
+  // Person tab content (used in Card tabs)
+  const PersonTabContent = ({ person }) => {
+    const { lifetimeValue, loading: ltvLoading } = useCrmLedger({
+      eventId,
+      personId: person?.id,
+    });
+    const fmt = new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 2,
+    });
+
+    return (
+      <div>
+        <Row justify="flex-end">
+          <a
+            href={`/events/${eventId}/crm/${person?.id}`}
+            className="btn btn-sm"
+            style={{ textDecoration: "none" }}
+          >
+            View full record
+          </a>
+        </Row>
+        <Col gap={0.25} align="flex-start">
+          <Typography.H5 className="mb-1">Emails</Typography.H5>
+          {Array.isArray(person?.emails) && person.emails.length ? (
+            person.emails.map((e) => (
+              <Typography.Text key={e.id} className="mb-0" style={{ wordBreak: "break-all" }}>
+                {e.email}
+                {e.label ? ` • ${e.label}` : ""}
+              </Typography.Text>
+            ))
+          ) : (
+            <Typography.Text className="mb-0">—</Typography.Text>
+          )}
+          <Typography.H5 className="mt-3 mb-1">Phones</Typography.H5>
+          {Array.isArray(person?.phones) && person.phones.length ? (
+            person.phones.map((ph) => (
+              <Typography.Text key={ph.id} className="mb-0">
+                {ph.phone}
+                {ph.label ? ` • ${ph.label}` : ""}
+              </Typography.Text>
+            ))
+          ) : (
+            <Typography.Text className="mb-0">—</Typography.Text>
+          )}
+        </Col>
+        <Typography.H5 className="mt-3 mb-1">Lifetime Value</Typography.H5>
+        <Typography.Text className="mb-0">
+          {ltvLoading ? "Loading…" : fmt.format(Number(lifetimeValue || 0))}
+        </Typography.Text>
+        <Typography.H5 className="mt-3 mb-1">Notes</Typography.H5>
+        <NotesCrm eventId={eventId} personId={person?.id} hideTitle />
+      </div>
+    );
+  };
+
+  const rightDetails = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {!selectedThreadId ? (
+        <Typography.Text className="text-muted">
+          Select a conversation to see details.
+        </Typography.Text>
+      ) : threadLoading ? (
+        <Loading gradient={false} />
+      ) : Array.isArray(participants) && participants.length ? (
+        <Card
+          size="md"
+          variantPos="top"
+          tabs={participants.map((p) => ({
+            title: p.name || "Unnamed",
+            content: <PersonTabContent person={p} />,
+          }))}
+        />
+      ) : (
+        <Typography.Text className="text-muted">
+          No linked CRM people for this conversation yet.
+        </Typography.Text>
+      )}
+    </div>
+  );
 
   return (
     <EventPage
       title="Conversations"
-      loading={loading || eventLoading}
-      description={
-        <>
-          <Typography.Text className="mb-1">
-            This is the conversations page. It is an email inbox for the email
-            address EventPilot manages for your event.
-          </Typography.Text>
-          <i>
-            Any emails sent to {event?.computedExternalContactEmail} will be
-            visible here.
-          </i>
-        </>
-      }
+      description="Read and manage your event inbox."
     >
-      {OffcanvasElement}
-      {event?.useHostedEmail === false && event?.willForwardEmail === false ? (
-        <Alert variant="danger" className="mt-3" title="Emails are disabled">
-          <Typography.Text className="mb-0">
-            Your event is configured to not use EventPilot's email inbox. This
-            is because you have chosen to not use EventPilot's hosted email, and
-            you have not chosen to set up a forwarding rule to forward emails to
-            EventPilot from gmail or outlook.
-          </Typography.Text>
-        </Alert>
-      ) : event?.useHostedEmail === false &&
-        event?.willForwardEmail === true &&
-        conversations?.length === 0 ? (
-        <Alert
-          variant="warning"
-          className="mt-3"
-          title="Emails are not set up yet"
-        >
-          <Typography.Text className="mb-0">
-            Your event is configured to accept automatically forwarded emails
-            from Gmail or Outlook, but we haven't received anything yet.
-          </Typography.Text>
-          <Button
-            onClick={() => offcanvas({ content: <EmailForwardWizard /> })}
-            variant="yellow"
-            className="mt-3"
-          >
-            Set up forwarding
-          </Button>
-        </Alert>
-      ) : null}
-
-      {conversations?.length === 0 && (
-        <Empty
-          title="No conversations yet"
-          text={`You haven't had any conversations yet. Any emails sent to ${event?.computedExternalContactEmail} will be automatically converted into conversations and appear here.`}
-          ctaText="Start a conversation"
-          ctaIcon="message"
-        />
-      )}
-
-      {conversations?.length > 0 && (
-        <Row align="flex-start" gap={2} wrap={false}>
-          {showListing && (
-            <HideWhenSmaller style={{ width: width < breakpoint && "100%" }}>
-              <ConversationListing
-                search={true}
-                conversations={conversations}
-                compose={true}
-                fullWidth={width < breakpoint}
-              />
-            </HideWhenSmaller>
-          )}
-
-          {showView && (
-            <div style={{ width: "100%", flex: 1 }}>
-              {conversationId === "compose" ? (
-                <ConversationCompose
-                  onBack={width < breakpoint ? handleBack : undefined}
-                />
-              ) : (
-                <ConversationView
-                  conversationId={conversationId}
-                  onBack={width < breakpoint ? handleBack : undefined}
-                />
-              )}
-            </div>
-          )}
-
-          {!conversationId && width >= breakpoint && (
-            <div style={{ width: "100%", flex: 1 }}>
-              <Empty
-                gradient={false}
-                title="Pick a conversation"
-                icon="message"
-                text="Pick a conversation from the list on the left to view."
-              />
-            </div>
-          )}
-        </Row>
-      )}
+      <TriPanelLayout
+        leftIcon="inbox"
+        leftTitle="Inbox"
+        leftChildren={
+          <ThreadListing
+            eventId={eventId}
+            threads={threads}
+            threadsLoading={threadsLoading}
+            threadsError={threadsError}
+            selectedThreadId={selectedThreadId}
+            query={query}
+            onQueryChange={setQuery}
+            onSelectThread={(id) => {
+              setComposeMode(false);
+              handleSelectThread(id);
+            }}
+            onCompose={handleCompose}
+            loadOlder={loadOlder}
+            loadingOlder={loadingOlder}
+          />
+        }
+        leftWidth={300}
+        centerIcon="messages"
+        centerTitle={thread?.subject || "Conversation"}
+        centerChildren={
+          <Conversation
+            eventId={eventId}
+            selectedThreadId={selectedThreadId}
+            thread={thread}
+            messages={messages}
+            responseRecipient={responseRecipient}
+            participants={participants}
+            threadLoading={threadLoading}
+            refetchThread={refetchThread}
+            refetchThreads={refetchThreads}
+            composeMode={composeMode}
+            setComposeMode={setComposeMode}
+          />
+        }
+        rightIcon="info-circle"
+        rightTitle="Details"
+        rightChildren={rightDetails}
+      />
     </EventPage>
   );
 };

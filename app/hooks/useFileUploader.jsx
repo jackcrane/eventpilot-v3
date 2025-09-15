@@ -1,7 +1,7 @@
 import useSWRMutation from "swr/mutation";
-import { authFetchWithoutContentType } from "../util/url";
+import { authFetchWithoutContentType, u } from "../util/url";
 import toast from "react-hot-toast";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const uploadFiles = async (url, { arg }) => {
   const formData = new FormData();
@@ -36,7 +36,10 @@ const uploadFiles = async (url, { arg }) => {
 };
 
 export const useFileUploader = (endpoint, options) => {
-  const { onSuccessfulUpload, maxFileSize } = options || {};
+  const { onSuccessfulUpload, maxFileSize, onProgress: defaultOnProgress } =
+    options || {};
+
+  const [localUploading, setLocalUploading] = useState(false);
 
   const { trigger, data, error, isMutating } = useSWRMutation(
     endpoint,
@@ -52,7 +55,7 @@ export const useFileUploader = (endpoint, options) => {
     }
   }, [error]);
 
-  const upload = async (files) => {
+  const upload = async (files, perUploadOptions) => {
     if (!files || (Array.isArray(files) && files.length === 0)) {
       throw { message: "No files provided", status: 400 };
     }
@@ -74,11 +77,93 @@ export const useFileUploader = (endpoint, options) => {
       return null;
     }
 
-    // await the actual result…
-    const result = await trigger(files).catch((err) => {
-      console.error("Upload failed in hook:", err);
-      throw err;
-    });
+    const effectiveOnProgress =
+      perUploadOptions?.onProgress || defaultOnProgress || null;
+
+    // If a progress callback is provided, use XHR to report progress; otherwise use fetch/SWR
+    let result = null;
+    if (typeof effectiveOnProgress === "function") {
+      setLocalUploading(true);
+      try {
+        result = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          const url = u(endpoint);
+          xhr.open("POST", url, true);
+
+          // Auth header like authFetchWithoutContentType
+          try {
+            const token = localStorage.getItem("token");
+            if (token && token !== "null") {
+              xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+            }
+            const instance = localStorage.getItem("instance");
+            if (instance) xhr.setRequestHeader("X-Instance", instance);
+          } catch (e) { console.error(e); }
+
+          xhr.upload.onprogress = (evt) => {
+            if (!evt || !evt.lengthComputable) return;
+            try {
+              effectiveOnProgress({
+                loaded: evt.loaded,
+                total: evt.total,
+                progress: Math.max(0, Math.min(1, evt.loaded / evt.total)),
+              });
+            } catch (e) { console.error(e); }
+          };
+          xhr.onerror = () => {
+            reject("Network error during upload");
+          };
+          xhr.onabort = () => {
+            reject("Upload aborted");
+          };
+          xhr.onload = () => {
+            const status = xhr.status || 0;
+            if (status === 0) return reject("Upload failed");
+            if (status === 401) {
+              localStorage.removeItem("token");
+              window.logout && window.logout();
+            }
+            if (status === 402) {
+              toast.error("Your account is not in good payment standing.");
+              return resolve(null);
+            }
+            if (status < 200 || status >= 300) {
+              try {
+                const body = JSON.parse(xhr.responseText || "{}");
+                const message = body?.message || xhr.statusText || "Upload failed";
+                return reject(message);
+              } catch (e) {
+                console.error(e);
+                return reject(xhr.statusText || "Upload failed");
+              }
+            }
+            try {
+              const body = JSON.parse(xhr.responseText || "{}");
+              resolve(body);
+            } catch (e) {
+              reject("Invalid server response");
+            }
+          };
+
+          const formData = new FormData();
+          Array.from(files).forEach((file) => {
+            formData.append("files", file);
+          });
+          xhr.send(formData);
+        });
+      } catch (err) {
+        console.error("Upload failed (XHR):", err);
+        setLocalUploading(false);
+        throw err;
+      }
+      setLocalUploading(false);
+    } else {
+      // await the actual result…
+      result = await trigger(files).catch((err) => {
+        console.error("Upload failed in hook:", err);
+        throw err;
+      });
+    }
 
     // now `result` is your JSON; SWR state may not be set yet,
     // but you can call your callback immediately:
@@ -92,7 +177,7 @@ export const useFileUploader = (endpoint, options) => {
   return {
     upload,
     data,
-    loading: isMutating,
+    loading: isMutating || localUploading,
     error,
   };
 };

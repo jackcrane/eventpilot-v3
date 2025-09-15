@@ -14,6 +14,7 @@ import {
 } from "tabler-react-2";
 // Inline item panel extracted to components/TodoItemRUD
 import { TodoItemRUD } from "../../../../components/TodoItemRUD/TodoItemRUD";
+import { TodoCreateForm } from "../../../../components/TodoCreateForm/TodoCreateForm";
 
 const TITLE_MAP = {
   not_started: "Not Started",
@@ -149,77 +150,3 @@ export const EventTodosPage = () => {
 };
 
 export default EventTodosPage;
-
-const toServerStatus = (key) => (key || "not_started").toUpperCase();
-
-const TodoCreateForm = ({
-  initialStatus = "not_started",
-  onCreate,
-  onClose,
-}) => {
-  const [title, setTitle] = useState("");
-  const [details, setDetails] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState(toServerStatus(initialStatus));
-
-  const submit = async () => {
-    const t = title.trim();
-    if (!t) return;
-    setSaving(true);
-    try {
-      await onCreate?.({ title: t, content: details || "", status });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div>
-      <Typography.H5 className="mb-0 text-secondary">TODO</Typography.H5>
-      <Typography.H1>New Todo</Typography.H1>
-      <DropdownInput
-        label="Status"
-        items={[
-          {
-            id: "NOT_STARTED",
-            value: "NOT_STARTED",
-            label: TITLE_MAP.not_started,
-          },
-          {
-            id: "IN_PROGRESS",
-            value: "IN_PROGRESS",
-            label: TITLE_MAP.in_progress,
-          },
-          { id: "COMPLETED", value: "COMPLETED", label: TITLE_MAP.completed },
-          { id: "CANCELLED", value: "CANCELLED", label: TITLE_MAP.cancelled },
-        ]}
-        value={status}
-        onChange={(i) => setStatus(i.value)}
-        className="mb-2"
-        required
-        aprops={{ style: { width: "100%", justifyContent: "space-between" } }}
-      />
-      <Input
-        label="Title"
-        placeholder="What needs to be done?"
-        value={title}
-        onChange={setTitle}
-        required
-      />
-      <Input
-        label="Details"
-        placeholder="Add a short description"
-        value={details}
-        onChange={setDetails}
-        useTextarea
-        inputProps={{
-          rows: 5,
-        }}
-      />
-
-      <Button onClick={submit} loading={saving} variant="primary">
-        Create Todo
-      </Button>
-    </div>
-  );
-};

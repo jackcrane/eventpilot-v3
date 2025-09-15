@@ -36,15 +36,29 @@ export const createOutboundEmailFromGmail = async (
   // Create Email (outbound)
   const email = await prisma.email.create({
     data: {
-      conversation: { connect: { id: conversationId } },
+      conversation: conversationId
+        ? { connect: { id: conversationId } }
+        : undefined,
       messageId: message.headers.messageId || message.id,
       from,
       to,
       subject: message.headers.subject || "",
       htmlBody: message.htmlBody || null,
       textBody: message.textBody || null,
-      userId: userId || null,
-      crmPersonId: primaryCrmPersonId || null,
+      user: userId
+        ? {
+            connect: {
+              id: userId,
+            },
+          }
+        : undefined,
+      crmPerson: primaryCrmPersonId
+        ? {
+            connect: {
+              id: primaryCrmPersonId,
+            },
+          }
+        : undefined,
       createdAt: message.internalDate || undefined,
       logs: {
         create: {
