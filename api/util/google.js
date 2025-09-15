@@ -314,6 +314,7 @@ export const buildReplyMime = ({
   html,
   lastMsgId,
   lastRefs,
+  attachments = [],
 }) => {
   const headers = [];
   headers.push(["From", from]);
@@ -326,18 +327,54 @@ export const buildReplyMime = ({
   if (references) headers.push(["References", references]);
   headers.push(["MIME-Version", "1.0"]);
 
-  const boundary = `b_${Math.random().toString(36).slice(2)}`;
-  let mime = headers.map(([k, v]) => `${k}: ${v}`).join("\r\n");
-  if (text && html) {
-    mime += `\r\nContent-Type: multipart/alternative; boundary=\"${boundary}\"\r\n\r\n`;
-    mime += `--${boundary}\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${text}\r\n`;
-    mime += `--${boundary}\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${html}\r\n`;
-    mime += `--${boundary}--`;
-  } else if (html) {
-    mime += `\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${html}`;
-  } else {
-    mime += `\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${text || ""}`;
+  const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+  const top = headers.map(([k, v]) => `${k}: ${v}`).join("\r\n");
+
+  if (!hasAttachments) {
+    const boundary = `b_${Math.random().toString(36).slice(2)}`;
+    let mime = top;
+    if (text && html) {
+      mime += `\r\nContent-Type: multipart/alternative; boundary=\"${boundary}\"\r\n\r\n`;
+      mime += `--${boundary}\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${text}\r\n`;
+      mime += `--${boundary}\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${html}\r\n`;
+      mime += `--${boundary}--`;
+    } else if (html) {
+      mime += `\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${html}`;
+    } else {
+      mime += `\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${text || ""}`;
+    }
+    return mime;
   }
+
+  // With attachments: multipart/mixed, with first part as body (text/html or multipart/alternative)
+  const mixedBoundary = `m_${Math.random().toString(36).slice(2)}`;
+  let mime = `${top}\r\nContent-Type: multipart/mixed; boundary=\"${mixedBoundary}\"`;
+  mime += `\r\n\r\n`;
+
+  if (text && html) {
+    const altBoundary = `a_${Math.random().toString(36).slice(2)}`;
+    mime += `--${mixedBoundary}\r\nContent-Type: multipart/alternative; boundary=\"${altBoundary}\"\r\n\r\n`;
+    mime += `--${altBoundary}\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${text}\r\n`;
+    mime += `--${altBoundary}\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${html}\r\n`;
+    mime += `--${altBoundary}--\r\n`;
+  } else if (html) {
+    mime += `--${mixedBoundary}\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${html}\r\n`;
+  } else {
+    mime += `--${mixedBoundary}\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: 7bit\r\n\r\n${text || ""}\r\n`;
+  }
+
+  for (const att of attachments) {
+    const filename = att?.filename || "attachment";
+    const contentType = att?.contentType || "application/octet-stream";
+    const content = att?.data || Buffer.from("");
+    const b64 = Buffer.from(content).toString("base64");
+    mime += `--${mixedBoundary}\r\n`;
+    mime += `Content-Type: ${contentType}; name=\"${filename}\"\r\n`;
+    mime += `Content-Disposition: attachment; filename=\"${filename}\"\r\n`;
+    mime += `Content-Transfer-Encoding: base64\r\n\r\n`;
+    mime += `${b64}\r\n`;
+  }
+  mime += `--${mixedBoundary}--`;
   return mime;
 };
 
@@ -345,7 +382,7 @@ export const sendThreadReply = async (
   gmail,
   connectionEmail,
   threadId,
-  { to, cc, bcc, subject, text, html }
+  { to, cc, bcc, subject, text, html, attachments }
 ) => {
   // Get last message to build reply headers
   const thread = await gmail.users.threads.get({
@@ -427,12 +464,23 @@ export const sendThreadReply = async (
     html,
     lastMsgId,
     lastRefs,
+    attachments: Array.isArray(attachments) ? attachments : [],
   });
   const raw = toBase64Url(mime);
-  const sent = await gmail.users.messages.send({
-    userId: "me",
-    requestBody: { raw, threadId },
-  });
+  let sent;
+  try {
+    sent = await gmail.users.messages.send({
+      userId: "me",
+      requestBody: { raw, threadId },
+    });
+  } catch (e) {
+    console.error(
+      "[gmail users.messages.send error]",
+      { threadId, hasAttachments: Array.isArray(attachments) && attachments.length > 0 },
+      e
+    );
+    throw e;
+  }
 
   const sentId = sent?.data?.id;
   let meta = null;

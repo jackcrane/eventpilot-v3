@@ -1,5 +1,6 @@
 import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
+import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import {
   getGmailClientForEvent,
   sendThreadReply,
@@ -53,6 +54,7 @@ const sendSchema = z
     subject: z.string().optional(),
     text: z.string().optional(),
     html: z.string().optional(),
+    fileIds: z.array(z.string()).optional(),
   })
   .refine((v) => Boolean(v.text || v.html), {
     message: "Either text or html body is required",
@@ -80,6 +82,7 @@ export const get = [
           },
           outboundEmails: {
             orderBy: { createdAt: "asc" },
+            include: { attachments: { include: { file: true } } },
           },
         },
       });
@@ -156,7 +159,13 @@ export const get = [
         },
         textBody: m.textBody,
         htmlBody: m.htmlBody,
-        attachments: [],
+        attachments: (m.attachments || []).map((a) => ({
+          filename: a.file?.originalname || "attachment",
+          mimeType: a.file?.contentType || a.file?.mimetype || null,
+          attachmentId: a.fileId || a.id,
+          size: a.file?.size || null,
+          downloadUrl: a.file?.location || null,
+        })),
       }));
 
       const all = [...inboundMsgs, ...outboundMsgs].sort(
@@ -191,12 +200,193 @@ export const post = [
         return res.status(400).json({ message: parse.error.message });
       }
       const { gmail, connection } = await getGmailClientForEvent(eventId);
-      const result = await sendThreadReply(
-        gmail,
-        connection.email,
-        threadId,
-        parse.data
-      );
+
+      // If fileIds were provided, decide per-file: attach (<= max) or link (> max)
+      const MAX_ATTACH_BYTES = Number(18 * 1024 * 1024);
+      const fileIds = Array.isArray(parse.data.fileIds)
+        ? parse.data.fileIds.filter(Boolean)
+        : [];
+      let attachableFiles = [];
+      let linkFiles = [];
+      if (fileIds.length) {
+        try {
+          const files = await prisma.file.findMany({
+            where: { id: { in: fileIds } },
+          });
+          const s3ForHead = new S3Client({
+            credentials: {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+            },
+            region: process.env.AWS_REGION,
+            endpoint: process.env.AWS_ENDPOINT,
+          });
+
+          const encodedSize = (n) => Math.ceil(Number(n || 0) / 3) * 4;
+          const resolveSize = async (f) => {
+            const n = Number(f?.size ?? 0);
+            if (Number.isFinite(n) && n > 0) return n;
+            try {
+              const head = await s3ForHead.send(
+                new HeadObjectCommand({
+                  Bucket: process.env.AWS_BUCKET,
+                  Key: f.key,
+                })
+              );
+              const len = Number(head?.ContentLength ?? 0);
+              return Number.isFinite(len) ? len : 0;
+            } catch (e) {
+              console.error(
+                "[gmail reply attachments size head error]",
+                { fileId: f.id, key: f.key },
+                e
+              );
+              return 0;
+            }
+          };
+
+          const withSizes = await Promise.all(
+            files.map(async (f) => {
+              const sizeResolved = await resolveSize(f);
+              return { ...f, sizeResolved };
+            })
+          );
+
+          for (const f of withSizes) {
+            const size = f.sizeResolved ?? f.size ?? 0;
+            if (!Number.isFinite(size) || size <= 0 || encodedSize(size) > MAX_ATTACH_BYTES) {
+              linkFiles.push(f);
+            } else {
+              attachableFiles.push(f);
+            }
+          }
+          // Log how each file will be delivered (attachment vs link)
+          try {
+            const summary = {
+              attachments: attachableFiles.map((f) => ({
+                id: f.id,
+                name: f.originalname || "attachment",
+                size: (f.sizeResolved ?? f.size) ?? null,
+                sizeSource: Number(f.size ?? 0) > 0 ? "db" : "s3",
+              })),
+              links: linkFiles.map((f) => ({
+                id: f.id,
+                name: f.originalname || "attachment",
+                size: (f.sizeResolved ?? f.size) ?? null,
+                url: f.location || null,
+                sizeSource: Number(f.size ?? 0) > 0 ? "db" : "s3",
+              })),
+            };
+            console.log(
+              "[gmail reply attachments decision]",
+              `attachments=${summary.attachments.length}, links=${summary.links.length}`,
+              summary
+            );
+          } catch (_) {
+            // Best-effort logging; ignore logging failures
+          }
+        } catch (e) {
+          console.error("[gmail reply attachments classify error]", e);
+        }
+      }
+
+      // Fetch S3 content only for the attachable set
+      let attachments = [];
+      if (attachableFiles.length) {
+        try {
+          const s3 = new S3Client({
+            credentials: {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+            },
+            region: process.env.AWS_REGION,
+            endpoint: process.env.AWS_ENDPOINT,
+          });
+          const toBuffer = async (body) => {
+            if (!body) return Buffer.from("");
+            if (typeof body.transformToByteArray === "function") {
+              const arr = await body.transformToByteArray();
+              return Buffer.from(arr);
+            }
+            return new Promise((resolve, reject) => {
+              const chunks = [];
+              body.on("data", (c) => chunks.push(Buffer.from(c)));
+              body.on("error", reject);
+              body.on("end", () => resolve(Buffer.concat(chunks)));
+            });
+          };
+          attachments = await Promise.all(
+            attachableFiles.map(async (f) => {
+              try {
+                const resp = await s3.send(
+                  new GetObjectCommand({
+                    Bucket: process.env.AWS_BUCKET,
+                    Key: f.key,
+                  })
+                );
+                const buf = await toBuffer(resp.Body);
+                return {
+                  filename: f.originalname || "attachment",
+                  contentType:
+                    f.contentType || f.mimetype || "application/octet-stream",
+                  data: buf,
+                };
+              } catch (e) {
+                console.error("[gmail reply attachment fetch]", e);
+                return null;
+              }
+            })
+          );
+          attachments = attachments.filter(Boolean);
+        } catch (e) {
+          console.error("[gmail reply attachments fetch error]", e);
+        }
+      }
+
+      // If there are link-only files, append download links to body
+      const linkItems = linkFiles.map((f) => ({
+        name: f.originalname || "attachment",
+        url: f.location,
+      }));
+      const appendLinkText = linkItems.length
+        ? `\n\nAttachments available as downloads:\n` +
+          linkItems.map((i) => `- ${i.name}: ${i.url}`).join("\n")
+        : "";
+      const appendLinkHtml = linkItems.length
+        ? `\n\n<hr/><p><strong>Attachments available as downloads:</strong></p><ul>` +
+          linkItems
+            .map((i) => `<li><a href="${i.url}">${i.name}</a></li>`)
+            .join("") +
+          `</ul>`
+        : "";
+      const bodyText = (parse.data.text || "") + appendLinkText;
+      const bodyHtml = parse.data.html
+        ? parse.data.html + appendLinkHtml
+        : undefined;
+      let result;
+      try {
+        result = await sendThreadReply(gmail, connection.email, threadId, {
+          ...parse.data,
+          text: bodyText,
+          html: bodyHtml,
+          attachments,
+        });
+      } catch (e) {
+        console.error(
+          "[gmail reply send error]",
+          {
+            threadId,
+            to: parse.data.to,
+            cc: parse.data.cc,
+            bcc: parse.data.bcc,
+            subject: parse.data.subject,
+            attachmentsCount: Array.isArray(attachments) ? attachments.length : 0,
+            linkOnlyCount: Array.isArray(linkFiles) ? linkFiles.length : 0,
+          },
+          e
+        );
+        throw e; // propagate to existing error handling
+      }
       // Persist immediately; cron will later confirm/dedupe by Message-ID
       try {
         const msgId = result.messageId || null;
@@ -282,8 +472,8 @@ export const post = [
               from,
               to,
               subject,
-              htmlBody: parse.data.html || null,
-              textBody: parse.data.text || null,
+              htmlBody: bodyHtml || null,
+              textBody: bodyText || null,
               crmPersonId: crmPersonId || null,
               logs: {
                 create: {
@@ -294,6 +484,32 @@ export const post = [
               },
             },
           });
+
+          // Persist outbound attachment/link records for this email
+          try {
+            const outData = [];
+            for (const f of attachableFiles) {
+              outData.push({
+                emailId: emailRecord.id,
+                fileId: f.id,
+                deliveryMode: "ATTACHMENT",
+              });
+            }
+            for (const f of linkFiles) {
+              outData.push({
+                emailId: emailRecord.id,
+                fileId: f.id,
+                deliveryMode: "LINK",
+              });
+            }
+            if (outData.length) {
+              await prisma.outboundEmailAttachment.createMany({
+                data: outData,
+              });
+            }
+          } catch (e) {
+            console.error("[gmail reply persist outbound attachments]", e);
+          }
 
           // Ensure conversation participants from recipients
           try {

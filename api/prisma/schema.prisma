@@ -179,6 +179,9 @@ model Email {
 
   logs Logs[]
 
+  // Outbound attachments linked to this email
+  attachments OutboundEmailAttachment[]
+
   status EmailStatus @default(SENT)
 
   createdAt DateTime @default(now())
@@ -190,6 +193,26 @@ enum EmailStatus {
   DELIVERED
   OPENED
   BOUNCED
+}
+
+enum OutboundAttachmentDeliveryMode {
+  ATTACHMENT
+  LINK
+}
+
+model OutboundEmailAttachment {
+  id String @id @default(cuid())
+
+  emailId String
+  email   Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  fileId String
+  file   File  @relation("FileOutboundAttachment", fields: [fileId], references: [id], onDelete: Cascade)
+
+  deliveryMode OutboundAttachmentDeliveryMode @default(ATTACHMENT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model EmailVerification {
@@ -279,6 +302,9 @@ model File {
 
   inboundEmailAttachment   InboundEmailAttachment? @relation("FileAttachment")
   inboundEmailAttachmentId String?                 @unique
+
+  // Outbound email attachments (one file can be attached to many outbound emails)
+  outboundEmailAttachments OutboundEmailAttachment[] @relation("FileOutboundAttachment")
 
   logs              Logs[]
   SessionChunk      SessionChunk[]

@@ -23,8 +23,30 @@ export const post = [
         return res.status(404).json({ message: "Person not found" });
       }
 
-      const { originalname, mimetype, size, location, key, contentType } =
+      const { originalname, mimetype, size: sizeRaw, location, key, contentType } =
         req.file;
+      // Resolve object size from S3 if needed
+      let resolvedSize = Number(sizeRaw || 0);
+      if (!(Number.isFinite(resolvedSize) && resolvedSize > 0) && key) {
+        try {
+          const { S3Client, HeadObjectCommand } = await import("@aws-sdk/client-s3");
+          const s3 = new S3Client({
+            credentials: {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+            },
+            region: process.env.AWS_REGION,
+            endpoint: process.env.AWS_ENDPOINT,
+          });
+          const head = await s3.send(
+            new HeadObjectCommand({ Bucket: process.env.AWS_BUCKET, Key: key })
+          );
+          const len = Number(head?.ContentLength || 0);
+          if (Number.isFinite(len) && len > 0) resolvedSize = len;
+        } catch (e) {
+          console.warn("[CRM notes file] Failed to HEAD object for size", { key }, e);
+        }
+      }
       const userId = req.user?.id || null;
 
       // Persist file record
@@ -35,7 +57,7 @@ export const post = [
           originalname,
           mimetype,
           contentType: contentType || mimetype,
-          size,
+          size: resolvedSize || 0,
           location,
         },
       });

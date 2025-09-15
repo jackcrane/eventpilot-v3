@@ -1,13 +1,21 @@
 import React, { useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import moment from "moment";
-import { Typography, Card, Badge, Button, Input } from "tabler-react-2";
+import {
+  Typography,
+  Card,
+  Badge,
+  Button,
+  Input,
+  Spinner,
+} from "tabler-react-2";
 import { Row, Col } from "../../../../../util/Flex";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
 import { TriPanelLayout } from "../../../../../components/TriPanelLayout/TriPanelLayout";
 import { useConversationThreads } from "../../../../../hooks/useConversationThreads";
 import { useConversationThread } from "../../../../../hooks/useConversationThread";
 import { useConversationReply } from "../../../../../hooks/useConversationReply";
+import { useFileUploader } from "../../../../../hooks/useFileUploader";
 import { Icon } from "../../../../../util/Icon";
 import { Loading } from "../../../../../components/loading/Loading";
 import { Empty } from "../../../../../components/empty/Empty";
@@ -37,6 +45,17 @@ export const EventConversationsPage = () => {
   });
 
   const [replyBody, setReplyBody] = useState("");
+  const [pendingFiles, setPendingFiles] = useState([]); // { id, fileId?, url?, name, size, type, uploading, progress? }
+  const EMAIL_ATTACHMENT_MAX_BYTES = 18 * 1024 * 1024; // Keep in sync with server default
+  const encodedSize = (n) => Math.ceil(Number(n || 0) / 3) * 4;
+
+  const { upload: uploadFile, loading: uploadingFile } = useFileUploader(
+    "/api/file/any",
+    {
+      // Client-side allowance: 1GB (to match the route)
+      maxFileSize: 1024 * 1024 * 1024,
+    }
+  );
 
   const handleSelectThread = (id) => {
     const next = new URLSearchParams(searchParams);
@@ -47,8 +66,12 @@ export const EventConversationsPage = () => {
   const sortedThreads = useMemo(() => {
     if (!threads?.length) return [];
     return [...threads].sort((a, b) => {
-      const ad = new Date(a?.lastMessage?.internalDate || a?.lastInternalDate || 0).getTime();
-      const bd = new Date(b?.lastMessage?.internalDate || b?.lastInternalDate || 0).getTime();
+      const ad = new Date(
+        a?.lastMessage?.internalDate || a?.lastInternalDate || 0
+      ).getTime();
+      const bd = new Date(
+        b?.lastMessage?.internalDate || b?.lastInternalDate || 0
+      ).getTime();
       return bd - ad; // newest first
     });
   }, [threads]);
@@ -64,7 +87,11 @@ export const EventConversationsPage = () => {
       }}
     >
       {threadsLoading && (
-        <Loading title="Loading inbox" text="Fetching your threads…" gradient={false} />
+        <Loading
+          title="Loading inbox"
+          text="Fetching your threads…"
+          gradient={false}
+        />
       )}
       {!threadsLoading && threadsError && (
         <Typography.Text className="text-danger">
@@ -72,7 +99,11 @@ export const EventConversationsPage = () => {
         </Typography.Text>
       )}
       {!threadsLoading && !threadsError && sortedThreads.length === 0 && (
-        <Empty title="No conversations" text="You don't have any conversations yet." gradient={false} />
+        <Empty
+          title="No conversations"
+          text="You don't have any conversations yet."
+          gradient={false}
+        />
       )}
       {sortedThreads.map((t) => {
         const active = t.id === selectedThreadId;
@@ -179,12 +210,257 @@ export const EventConversationsPage = () => {
         />
       )}
       {selectedThreadId && threadLoading && (
-        <Loading title="Loading conversation" text="Fetching messages…" gradient={false} />
+        <Loading
+          title="Loading conversation"
+          text="Fetching messages…"
+          gradient={false}
+        />
+      )}
+      {selectedThreadId && !threadLoading && (
+        <>
+          <Typography.H2 className="mb-0">
+            {thread?.subject || "(no subject)"}
+          </Typography.H2>
+          <Card title="Reply">
+            <Input
+              placeholder="Write your reply..."
+              value={replyBody}
+              onChange={(e) => setReplyBody(e)}
+              useTextarea
+            />
+            <div
+              style={{
+                marginTop: 8,
+                display: "flex",
+                gap: 8,
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <label className="btn">
+                Attach files
+                <input
+                  type="file"
+                  multiple
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files || []);
+                    for (const file of files) {
+                      const tempId = `temp-${Date.now()}-${Math.random()
+                        .toString(36)
+                        .slice(2, 8)}`;
+                      setPendingFiles((prev) => [
+                        ...prev,
+                        {
+                          id: tempId,
+                          fileId: null,
+                          url: null,
+                          name: file.name,
+                          size: file.size,
+                          type: file.type,
+                          uploading: true,
+                          progress: 0,
+                        },
+                      ]);
+                      try {
+                        const result = await uploadFile([file], {
+                          onProgress: ({ progress }) => {
+                            setPendingFiles((prev) =>
+                              prev.map((p) =>
+                                p.id === tempId
+                                  ? { ...p, progress: Number(progress || 0) }
+                                  : p
+                              )
+                            );
+                          },
+                        });
+                        if (result?.fileId) {
+                          setPendingFiles((prev) =>
+                            prev.map((p) =>
+                              p.id === tempId
+                                ? {
+                                    ...p,
+                                    id: result.fileId,
+                                    fileId: result.fileId,
+                                    url: result.url,
+                                    uploading: false,
+                                    progress: 1,
+                                  }
+                                : p
+                            )
+                          );
+                        } else {
+                          setPendingFiles((prev) =>
+                            prev.filter((p) => p.id !== tempId)
+                          );
+                        }
+                      } catch (_) {
+                        setPendingFiles((prev) =>
+                          prev.filter((p) => p.id !== tempId)
+                        );
+                      }
+                    }
+                    e.target.value = ""; // reset input
+                  }}
+                  style={{ display: "none" }}
+                />
+              </label>
+              {pendingFiles?.length ? (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: 4 }}
+                >
+                  <Typography.Text className="mb-0 text-muted">
+                    {pendingFiles.length} file
+                    {pendingFiles.length === 1 ? "" : "s"} ready
+                  </Typography.Text>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {pendingFiles.map((f, idx) => {
+                      const willLink =
+                        encodedSize(f?.size || 0) > EMAIL_ATTACHMENT_MAX_BYTES;
+                      return (
+                        <span
+                          key={`${f.id || f.fileId || idx}`}
+                          className="badge"
+                          style={{
+                            background: "var(--tblr-gray-200)",
+                            color: "var(--tblr-dark)",
+                            padding: "4px 8px",
+                            borderRadius: 6,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            maxWidth: 260,
+                            position: "relative",
+                            overflow: "hidden",
+                          }}
+                          title={f.name}
+                        >
+                          {f.uploading && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                bottom: 0,
+                                left: 0,
+                                width: `${Math.round((f.progress || 0) * 100)}%`,
+                                background: "var(--tblr-primary)",
+                                opacity: 0.15,
+                                zIndex: 0,
+                                transition: "width 120ms linear",
+                              }}
+                            />
+                          )}
+                          {f.uploading ? (
+                            <Spinner size={"sm"} />
+                          ) : (
+                            <Icon i="paperclip" />
+                          )}
+                          <span
+                            style={{
+                              display: "inline-block",
+                              maxWidth: 160,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              position: "relative",
+                              zIndex: 1,
+                            }}
+                          >
+                            {f.name}
+                          </span>
+                          <span
+                            style={{
+                              fontWeight: 600,
+                              color: willLink
+                                ? "var(--tblr-red)"
+                                : "var(--tblr-green)",
+                              position: "relative",
+                              zIndex: 1,
+                            }}
+                          >
+                            {willLink ? "Link" : ""}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPendingFiles((prev) =>
+                                prev.filter(
+                                  (p) =>
+                                    (p.id || p.fileId) !== (f.id || f.fileId)
+                                )
+                              )
+                            }
+                            className="btn btn-link p-0"
+                            title="Remove"
+                            style={{
+                              marginLeft: 2,
+                              color: "var(--tblr-dark)",
+                              textDecoration: "none",
+                              lineHeight: 1,
+                              position: "relative",
+                              zIndex: 1,
+                            }}
+                          >
+                            <Icon i="x" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginTop: 10,
+              }}
+            >
+              <Button
+                color="primary"
+                onClick={async () => {
+                  if (!replyBody.trim()) return;
+                  const ok = await sendReply({
+                    text: replyBody,
+                    fileIds: pendingFiles
+                      .filter((f) => !f.uploading && f.fileId)
+                      .map((f) => f.fileId),
+                  });
+                  if (ok) {
+                    setReplyBody("");
+                    setPendingFiles([]);
+                    // refresh thread and list to show the new email
+                    try {
+                      await Promise.all([
+                        refetchThread?.(),
+                        refetchThreads?.(),
+                      ]);
+                    } catch (_) {}
+                  }
+                }}
+                disabled={
+                  !replyBody.trim() ||
+                  sendingReply ||
+                  uploadingFile ||
+                  pendingFiles.some((f) => f.uploading)
+                }
+                loading={sendingReply}
+              >
+                Send
+              </Button>
+            </div>
+          </Card>
+        </>
       )}
       {selectedThreadId && !threadLoading && messages?.length === 0 && (
-        <Empty title="No messages" text="This conversation has no messages." gradient={false} />
+        <Empty
+          title="No messages"
+          text="This conversation has no messages."
+          gradient={false}
+        />
       )}
-      {selectedThreadId && !threadLoading &&
+      {selectedThreadId &&
+        !threadLoading &&
         sortedMessages.map((m) => (
           <Card
             key={m.id}
@@ -212,10 +488,6 @@ export const EventConversationsPage = () => {
                       : ""}
                   </Typography.Text>
                 </Row>
-                <Typography.H2 className="mb-0">
-                  <span className="text-muted">Subject:</span>{" "}
-                  {m.headers?.subject || "(no subject)"}
-                </Typography.H2>
               </Col>
             }
           >
@@ -241,7 +513,9 @@ export const EventConversationsPage = () => {
                 </Typography.Text>
                 <Row gap={1} align="flex-start">
                   {m.attachments.map((a) => {
-                    const isImage = String(a?.mimeType || "").startsWith("image/");
+                    const isImage = String(a?.mimeType || "").startsWith(
+                      "image/"
+                    );
                     const label = a?.filename || "attachment";
                     return (
                       <a
@@ -278,12 +552,20 @@ export const EventConversationsPage = () => {
                             <Icon i="file" size={48} />
                           )}
                           <Col gap={0.25} align="flex-start">
-                            <Typography.Text className="mb-0" style={{ textAlign: "left" }}>
+                            <Typography.Text
+                              className="mb-0"
+                              style={{ textAlign: "left" }}
+                            >
                               {label}
                             </Typography.Text>
-                            <Typography.Text className="mb-0 text-muted" style={{ textAlign: "left" }}>
+                            <Typography.Text
+                              className="mb-0 text-muted"
+                              style={{ textAlign: "left" }}
+                            >
                               {a?.mimeType || ""}
-                              {typeof a?.size === "number" ? `, ${a.size} bytes` : ""}
+                              {typeof a?.size === "number"
+                                ? `, ${a.size} bytes`
+                                : ""}
                             </Typography.Text>
                           </Col>
                         </Row>
@@ -295,40 +577,6 @@ export const EventConversationsPage = () => {
             ) : null}
           </Card>
         ))}
-
-      {selectedThreadId && !threadLoading && (
-        <Card title="Reply">
-          <Input
-            placeholder="Write your reply..."
-            value={replyBody}
-            onChange={(e) => setReplyBody(e)}
-            useTextarea
-          />
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-            <Button
-              color="primary"
-              onClick={async () => {
-                if (!replyBody.trim()) return;
-                const ok = await sendReply({ text: replyBody });
-                if (ok) {
-                  setReplyBody("");
-                  // refresh thread and list to show the new email
-                  try {
-                    await Promise.all([
-                      refetchThread?.(),
-                      refetchThreads?.(),
-                    ]);
-                  } catch (_) {}
-                }
-              }}
-              disabled={!replyBody.trim() || sendingReply}
-              loading={sendingReply}
-            >
-              Send
-            </Button>
-          </div>
-        </Card>
-      )}
     </div>
   );
 

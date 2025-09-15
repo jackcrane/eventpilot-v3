@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import cuid from "cuid";
 import multer from "multer";
 import multerS3 from "multer-s3";
@@ -73,9 +73,23 @@ export const upload =
       }
 
       try {
-        const { originalname, mimetype, size, location, key, contentType } =
+        const { originalname, mimetype, size: sizeRaw, location, key, contentType } =
           req.file;
         const userId = req.user?.id || null;
+
+        // Resolve accurate object size from S3 if multer didn't provide it
+        let resolvedSize = Number(sizeRaw || 0);
+        if (!(Number.isFinite(resolvedSize) && resolvedSize > 0) && key) {
+          try {
+            const head = await s3.send(
+              new HeadObjectCommand({ Bucket: process.env.AWS_BUCKET, Key: key })
+            );
+            const len = Number(head?.ContentLength || 0);
+            if (Number.isFinite(len) && len > 0) resolvedSize = len;
+          } catch (e) {
+            console.warn("[upload] Failed to HEAD object for size", { key }, e);
+          }
+        }
 
         req.fileLog = await prisma.file.create({
           data: {
@@ -84,7 +98,7 @@ export const upload =
             originalname,
             mimetype,
             contentType: contentType || mimetype,
-            size,
+            size: resolvedSize || 0,
             location,
           },
         });

@@ -5,7 +5,8 @@ import { verifyAuth } from "#verifyAuth";
 // Keeps default `/api/file` restrictive for images, while this accepts any mimetype.
 export const post = [
   verifyAuth(["manager"]),
-  upload({ allowAll: true }),
+  // Allow up to 1GB uploads on this endpoint only
+  upload({ allowAll: true, maxFileSize: 1024 * 1024 * 1024 }),
   async (req, res) => {
     const file = req.file;
     const fileLog = req.fileLog;
@@ -19,4 +20,3 @@ export const post = [
     });
   },
 ];
-

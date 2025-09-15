@@ -1,7 +1,7 @@
 import useSWRMutation from "swr/mutation";
 import { mutate } from "swr";
 import toast from "react-hot-toast";
-import { authFetch } from "../util/url";
+import { authFetch, authFetchWithoutContentType } from "../util/url";
 
 // Send a reply to a Gmail conversation thread
 // Args: { eventId, threadId }
@@ -23,6 +23,7 @@ export const useConversationReply = ({ eventId, threadId } = {}) => {
           subject: arg?.subject,
           text: arg?.text,
           html: arg?.html,
+          fileIds: Array.isArray(arg?.fileIds) ? arg.fileIds : undefined,
         }),
       });
       if (!res.ok) {
@@ -36,6 +37,38 @@ export const useConversationReply = ({ eventId, threadId } = {}) => {
   const sendReply = async (args = {}) => {
     if (!key) return false;
     try {
+      // If files are passed, upload them and collect fileIds
+      let uploadedFileIds = [];
+      let uploadedFilesMeta = [];
+      if (Array.isArray(args?.files) && args.files.length) {
+        const uploaded = await Promise.all(
+          args.files.map(async (file) => {
+            const fd = new FormData();
+            fd.append("files", file);
+            const res = await authFetchWithoutContentType("/api/file", {
+              method: "POST",
+              body: fd,
+            });
+            if (!res.ok) {
+              const msg = await res
+                .text()
+                .catch(() => "Failed to upload file");
+              throw new Error(msg || "Failed to upload file");
+            }
+            const data = await res.json();
+            return {
+              fileId: data?.fileId,
+              url: data?.url,
+              name: file?.name,
+              size: file?.size,
+              type: file?.type,
+            };
+          })
+        );
+        uploadedFilesMeta = uploaded.filter((u) => u?.fileId);
+        uploadedFileIds = uploadedFilesMeta.map((u) => u.fileId);
+      }
+
       // Optimistic UI: insert a temporary outbound message into cache
       const optimisticId = `temp-${Date.now()}`;
       const now = new Date();
@@ -59,7 +92,15 @@ export const useConversationReply = ({ eventId, threadId } = {}) => {
         },
         textBody: args?.text || null,
         htmlBody: args?.html || null,
-        attachments: [],
+        attachments: uploadedFilesMeta.length
+          ? uploadedFilesMeta.map((u, idx) => ({
+              filename: u?.name || `file-${idx + 1}`,
+              mimeType: u?.type || null,
+              attachmentId: `local-${idx}`,
+              size: typeof u?.size === "number" ? u.size : null,
+              downloadUrl: u?.url,
+            }))
+          : [],
         _optimistic: true,
       };
       await mutate(
@@ -74,7 +115,7 @@ export const useConversationReply = ({ eventId, threadId } = {}) => {
         { revalidate: false }
       );
 
-      const p = trigger(args);
+      const p = trigger({ ...args, fileIds: [...uploadedFileIds, ...(args?.fileIds || [])] });
       await toast.promise(p, {
         loading: "Sending reply...",
         success: "Reply sent",
