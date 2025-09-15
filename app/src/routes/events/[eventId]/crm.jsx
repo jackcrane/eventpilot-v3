@@ -43,11 +43,8 @@ export const EventCrm = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const { crmFields, loading: fieldsLoading } = useCrm({ eventId });
-  const {
-    crmPersons,
-    loading: personsLoading,
-    imports,
-  } = useCrmPersons({ eventId });
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(25);
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
     offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
   });
@@ -355,6 +352,22 @@ export const EventCrm = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedSegments, currentSavedId]);
 
+  // Determine if we should use server pagination (no filters/AI/search)
+  const usingAdvancedFilters =
+    !!aiResults || (filters || []).length > 0 || (search || "").trim() !== "";
+
+  // Fetch CRM persons, optionally paginated when not using advanced filters
+  const {
+    crmPersons,
+    total: totalRows,
+    loading: personsLoading,
+    imports,
+  } = useCrmPersons({
+    eventId,
+    page: usingAdvancedFilters ? undefined : page,
+    size: usingAdvancedFilters ? undefined : size,
+  });
+
   const filteredPersons = useMemo(() => {
     const baseList = aiResults?.crmPersons || crmPersons;
     if (!baseList) return baseList;
@@ -497,7 +510,8 @@ export const EventCrm = () => {
               ...(prev || {}),
               ai: {
                 enabled: true,
-                savedSegmentId: savedSegmentId || prev?.ai?.savedSegmentId || null,
+                savedSegmentId:
+                  savedSegmentId || prev?.ai?.savedSegmentId || null,
                 ast: ast || prev?.ai?.ast || null,
                 title: title || prev?.ai?.title || "",
               },
@@ -545,7 +559,9 @@ export const EventCrm = () => {
           setFilters={setFilters}
           initialFilters={dbFilters?.manual?.filters || []}
           showAiBadge={dbFilters?.ai?.enabled || aiResults}
-          aiTitle={savedTitle || dbFilters?.ai?.title || lastPrompt || "AI Filter"}
+          aiTitle={
+            savedTitle || dbFilters?.ai?.title || lastPrompt || "AI Filter"
+          }
           aiCollapsed={aiCollapsed}
           onToggleAi={() => setAiCollapsed((c) => !c)}
           onRefineAi={openAiRefineOffcanvasRefactored}
@@ -557,7 +573,12 @@ export const EventCrm = () => {
             setLastPrompt("");
             setDbFilters((prev) => ({
               ...(prev || {}),
-              ai: { enabled: false, savedSegmentId: null, ast: null, title: "" },
+              ai: {
+                enabled: false,
+                savedSegmentId: null,
+                ast: null,
+                title: "",
+              },
             }));
           }}
           onAskAi={openAiOffcanvasRefactored}
@@ -571,8 +592,20 @@ export const EventCrm = () => {
       <CrmImportProgressAlerts imports={imports} />
 
       <CrmPersonsTable
-        data={filteredPersons}
+        data={usingAdvancedFilters ? filteredPersons : crmPersons}
         columns={visibleColumns}
+        {...(!usingAdvancedFilters
+          ? {
+              page,
+              size,
+              totalRows,
+              onSetPage: setPage,
+              onSetSize: (n) => {
+                setSize(n);
+                setPage(1);
+              },
+            }
+          : {})}
       />
     </EventPage>
   );

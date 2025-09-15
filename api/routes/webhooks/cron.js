@@ -9,6 +9,8 @@ export const post = async (req, res) => {
   try {
     const { frequency } = req.body;
 
+    // Campaign queue processing moved to an explicit endpoint; no longer run in cron
+
     // 1) Minutely Gmail ingestion (idempotent via messageId)
     // Runs regardless of frequency, but you can scope it if desired
     const gmailConns = await prisma.gmailConnection.findMany({

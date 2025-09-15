@@ -120,3 +120,139 @@ const test = async () => {
 };
 
 // test();
+/**
+ * Broadcast a simple raw-string email to a list of CRM people using Postmark's broadcast stream.
+ * Will persist an Email row and EMAIL_SENT log for each recipient via prisma.sendEmailBatch.
+ *
+ * @param {Object} params
+ * @param {Array<Object>} params.crmPersons - Array of CrmPerson objects (should include id, name, and emails[] if possible)
+ * @param {string} params.from - From header (e.g., "Sender <sender@example.com>")
+ * @param {string} params.subject - Email subject
+ * @param {string} params.body - Raw string body (plain text); HtmlBody is auto-derived
+ * @param {string=} params.userId - Optional userId for attribution in logs
+ * @returns {Promise<{ postmarkResponses: Array<any>, createdEmails: Array<any>, skipped: Array<{id: string, reason: string}> }>} summary
+ */
+export const sendBroadcastEmailToCrmPersons = async ({
+  crmPersons = [],
+  from,
+  subject,
+  body,
+  userId = undefined,
+  campaignId = undefined,
+}) => {
+  if (!Array.isArray(crmPersons)) throw new Error("crmPersons must be an array");
+  if (!from) throw new Error("from is required");
+  if (!subject) throw new Error("subject is required");
+  if (typeof body !== "string") throw new Error("body must be a string");
+
+  const html = body ? body.replaceAll("\n", "<br />") : undefined;
+
+  // Extract one email per person (prefers first non-deleted email)
+  const messages = [];
+  const indexMap = []; // Track crmPerson association by index
+  const skipped = [];
+
+  for (const person of crmPersons) {
+    if (!person) continue;
+    let email = null;
+    // Prefer provided person.emails[]
+    if (Array.isArray(person.emails) && person.emails.length) {
+      const active = person.emails.find((e) => e && e.email && !e.deleted);
+      const any = person.emails.find((e) => e && e.email);
+      email = (active || any)?.email || null;
+    }
+    // Allow fallback if a direct email property was provided
+    if (!email && typeof person.email === "string") email = person.email;
+
+    if (!email) {
+      skipped.push({ id: person.id, reason: "No email found" });
+      continue;
+    }
+
+    const toHeader = person.name ? `${person.name} <${email}>` : email;
+    messages.push({
+      From: from,
+      To: toHeader,
+      Subject: subject,
+      TextBody: body,
+      HtmlBody: html,
+      MessageStream: "broadcast",
+    });
+    indexMap.push({ crmPersonId: person.id, toHeader });
+  }
+
+  if (messages.length === 0) {
+    return { postmarkResponses: [], createdEmails: [], skipped };
+  }
+
+  // Send via Postmark batch using the broadcast stream
+  let responses = [];
+  try {
+    // Per-recipient mock for eventpilot-test like single sendEmail
+    const isTest = messages.map((m) => String(m.To).includes("eventpilot-test"));
+    const realIndices = [];
+    const realMessages = [];
+    messages.forEach((m, i) => {
+      if (!isTest[i]) {
+        realIndices.push(i);
+        realMessages.push(m);
+      }
+    });
+
+    const realResponses = realMessages.length
+      ? await rawEmailClient.sendEmailBatch(realMessages)
+      : [];
+
+    // Rebuild responses in original order, mocking test recipients
+    responses = new Array(messages.length);
+    let realPtr = 0;
+    for (let i = 0; i < messages.length; i++) {
+      if (isTest[i]) {
+        responses[i] = { MessageID: "test" };
+      } else {
+        responses[i] = realResponses[realPtr++] || { MessageID: `${Date.now()}-${i}` };
+      }
+    }
+  } catch (e) {
+    console.error("[postmark broadcast batch]", e);
+    throw new Error("Error sending broadcast email batch");
+  }
+
+  // Persist emails + logs in a single transaction
+  const createdEmails = await prisma.$transaction(async (tx) => {
+    const created = [];
+    for (let i = 0; i < responses.length; i++) {
+      const messageId = responses[i]?.MessageID || `${Date.now()}-${i}`;
+      const toHeader = indexMap[i].toHeader;
+      const crmPersonId = indexMap[i].crmPersonId || null;
+
+      const emailRecord = await tx.email.create({
+        data: {
+          messageId,
+          from,
+          to: toHeader,
+          subject,
+          htmlBody: html ?? null,
+          textBody: body ?? null,
+          userId: userId || null,
+          crmPersonId,
+          campaignId: campaignId || null,
+        },
+      });
+
+      await tx.logs.create({
+        data: {
+          type: "EMAIL_SENT",
+          userId: userId || null,
+          emailId: emailRecord.id,
+          crmPersonId,
+        },
+      });
+
+      created.push(emailRecord);
+    }
+    return created;
+  });
+
+  return { postmarkResponses: responses, createdEmails, skipped };
+};

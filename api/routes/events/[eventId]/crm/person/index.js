@@ -15,27 +15,39 @@ export const get = [
     const eventId = req.params.eventId;
 
     try {
-      const crmPersons = await prisma.crmPerson.findMany({
-        where: {
-          eventId,
-          deleted: req.query.includeDeleted || false,
-        },
-        include: {
-          emails: true,
-          phones: true,
-          fieldValues: true,
-        },
-      });
+      // Optional pagination: page (1-based) and size
+      const rawPage = req.query.page ? parseInt(req.query.page, 10) : null;
+      const rawSize = req.query.size ? parseInt(req.query.size, 10) : null;
+      const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : null;
+      const size = Number.isFinite(rawSize) && rawSize > 0 ? Math.min(rawSize, 200) : null;
 
-      if (!crmPersons) {
-        return res.status(404).json({ message: "Person not found" });
-      }
+      const where = {
+        eventId,
+        deleted: req.query.includeDeleted ? undefined : false,
+      };
+
+      const [total, crmPersons] = await Promise.all([
+        prisma.crmPerson.count({ where }),
+        prisma.crmPerson.findMany({
+          where,
+          include: {
+            emails: { where: { deleted: req.query.includeDeleted ? undefined : false } },
+            phones: true,
+            fieldValues: true,
+          },
+          ...(page && size
+            ? { skip: (page - 1) * size, take: size }
+            : {}),
+          orderBy: { createdAt: "desc" },
+        }),
+      ]);
 
       res.json({
         crmPersons: crmPersons.map((person) => ({
           ...person,
           fields: collapseCrmValues(person.fieldValues),
         })),
+        total,
       });
     } catch (error) {
       console.error("Error in GET /event/:eventId/crm:", error);
