@@ -550,6 +550,7 @@ export const EventCrm = () => {
   // Only show full-page loading on first load; thereafter show a toast during revalidations
   const [hasInitialLoaded, setHasInitialLoaded] = useState(false);
   const loadingToastId = useRef(null);
+  const userRequestedRefetch = useRef(false);
 
   useEffect(() => {
     if (!hasInitialLoaded && !fieldsLoading && !personsLoading) {
@@ -560,13 +561,14 @@ export const EventCrm = () => {
   useEffect(() => {
     if (!hasInitialLoaded) return;
     const busy = fieldsLoading || personsLoading || fieldsValidating || personsValidating;
-    if (busy) {
+    if (busy && userRequestedRefetch.current) {
       if (!loadingToastId.current) {
         loadingToastId.current = toast.loading("Refreshing contacts...");
       }
-    } else if (loadingToastId.current) {
+    } else if (!busy && loadingToastId.current) {
       toast.dismiss(loadingToastId.current);
       loadingToastId.current = null;
+      userRequestedRefetch.current = false;
     }
   }, [hasInitialLoaded, fieldsLoading, personsLoading, fieldsValidating, personsValidating]);
 
@@ -595,9 +597,17 @@ export const EventCrm = () => {
 
       <CrmFilterBar
         search={search}
-        setSearch={setSearch}
+        setSearch={(v) => {
+          userRequestedRefetch.current = true;
+          setSearch(v);
+          setPage(1);
+        }}
         filterFieldDefs={filterFieldDefs}
-        setFilters={setFilters}
+        setFilters={(v) => {
+          userRequestedRefetch.current = true;
+          setFilters(v);
+          setPage(1);
+        }}
         initialFilters={dbFilters?.manual?.filters || []}
         showAiBadge={dbFilters?.ai?.enabled || aiResults}
         aiTitle={
@@ -639,14 +649,19 @@ export const EventCrm = () => {
               page,
               size,
               totalRows,
-              onSetPage: setPage,
+              onSetPage: (p) => {
+                userRequestedRefetch.current = true;
+                setPage(p);
+              },
               onSetSize: (n) => {
+                userRequestedRefetch.current = true;
                 setSize(n);
                 setPage(1);
               },
               orderBy,
               order,
               onSetOrder: (ob, ord) => {
+                userRequestedRefetch.current = true;
                 setOrderBy(ob);
                 setOrder(ord);
                 setPage(1);
