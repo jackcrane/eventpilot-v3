@@ -110,6 +110,7 @@ export const CrmPersonsTable = (props) => {
   return (
     <TableV2
       parentClassName="card"
+      className="zi-0"
       columns={tableColumns}
       data={pagination.pageRows}
       totalRows={Number.isFinite(totalRows) ? totalRows : pagination.total} // prefer parent total

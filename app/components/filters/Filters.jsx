@@ -1,5 +1,5 @@
 // Filters.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input, Button, DropdownInput } from "tabler-react-2";
 import { Icon } from "../../util/Icon";
 import { Row } from "../../util/Flex";
@@ -127,11 +127,17 @@ const OPERATORS = [
 export const Filters = ({ onFilterChange, fields, initial }) => {
   const [filters, setFilters] = useState([]);
   const FIELD_DEFINITIONS = fields && fields.length ? fields : DEFAULT_FIELD_DEFINITIONS;
+  const onFilterChangeRef = useRef(onFilterChange);
 
-  // Notify parent when filters change
+  // Keep latest onFilterChange callback without retriggering pagination resets
   useEffect(() => {
-    onFilterChange(filters);
-  }, [filters, onFilterChange]);
+    onFilterChangeRef.current = onFilterChange;
+  }, [onFilterChange]);
+
+  // Notify parent when filters actually change
+  useEffect(() => {
+    onFilterChangeRef.current(filters);
+  }, [filters]);
 
   // Hydrate from initial value once (or when definitions change if empty)
   useEffect(() => {
