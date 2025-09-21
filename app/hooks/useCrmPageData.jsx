@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCrmPersons } from "./useCrmPersons";
 import { useCrmLoadingToast } from "./useCrmLoadingToast";
 import { filterPersons } from "../util/crm/filterPersons";
@@ -60,6 +60,14 @@ export const useCrmPageData = ({ eventId, controllers }) => {
     setOrder(nextOrder);
     setPage(1);
   };
+
+  useEffect(() => {
+    if (ai.usingAi) return;
+    if (!Number.isFinite(personsQuery.total)) return;
+    if (!Number.isFinite(size) || size <= 0) return;
+    const maxPage = Math.max(1, Math.ceil(personsQuery.total / size));
+    setPage((prev) => (prev > maxPage ? maxPage : prev));
+  }, [ai.usingAi, personsQuery.total, size]);
 
   const shouldShowEmpty = !ai.usingAi && !manual.search.trim() && (manual.serverFilters || []).length === 0 && (personsQuery.total || 0) === 0;
 

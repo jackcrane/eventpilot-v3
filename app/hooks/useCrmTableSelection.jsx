@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Checkbox } from "tabler-react-2";
 
 export const useCrmTableSelection = ({
@@ -15,32 +15,55 @@ export const useCrmTableSelection = ({
     return localSelected;
   }, [controlledSelectedIds, localSelected]);
 
-  const commit = (next) => {
-    if (onSelectionChange) onSelectionChange(Array.from(next));
-    else setLocalSelected(next);
-  };
-
-  const toggleOne = (id) => {
-    const next = new Set(selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    commit(next);
-  };
+  const commit = useCallback(
+    (next) => {
+      if (onSelectionChange) onSelectionChange(Array.from(next));
+      else setLocalSelected(next);
+    },
+    [onSelectionChange]
+  );
 
   const pageIds = useMemo(() => rows.map((row) => row.id).filter(Boolean), [rows]);
   const allOnPageSelected =
     pageIds.length > 0 && pageIds.every((id) => selected.has(id));
 
-  const togglePage = () => {
+  const togglePage = useCallback(() => {
     const next = new Set(selected);
     if (allOnPageSelected) pageIds.forEach((id) => next.delete(id));
     else pageIds.forEach((id) => next.add(id));
     commit(next);
-  };
+  }, [selected, allOnPageSelected, pageIds, commit]);
+
+  const rowSelection = useMemo(() => {
+    const entries = Array.from(selected).filter(Boolean);
+    return entries.reduce((acc, id) => {
+      acc[id] = true;
+      return acc;
+    }, {});
+  }, [selected]);
+
+  const onRowSelectionChange = useCallback(
+    (updater) => {
+      const nextState =
+        typeof updater === "function" ? updater(rowSelection) : updater;
+      if (!nextState) {
+        commit(new Set());
+        return;
+      }
+      const next = new Set(
+        Object.entries(nextState)
+          .filter(([, value]) => !!value)
+          .map(([key]) => key)
+      );
+      commit(next);
+    },
+    [rowSelection, commit]
+  );
 
   const selectionColumn = useMemo(
     () => ({
-      label: (
+      id: "__row_selection__",
+      header: () => (
         <span style={{ display: "block", height: 0 }}>
           <Checkbox
             label=""
@@ -50,19 +73,19 @@ export const useCrmTableSelection = ({
           />
         </span>
       ),
-      accessor: "id",
-      sortable: false,
-      render: (id) => (
+      cell: ({ row }) => (
         <Checkbox
           label=""
-          value={selected.has(id)}
-          onChange={() => toggleOne(id)}
+          value={row.getIsSelected?.()}
+          onChange={() => row.toggleSelected?.()}
           className="mb-0"
         />
       ),
+      enableSorting: false,
+      size: 36,
     }),
-    [selected, allOnPageSelected]
+    [allOnPageSelected, togglePage]
   );
 
-  return { selectionColumn };
+  return { selectionColumn, rowSelection, onRowSelectionChange };
 };

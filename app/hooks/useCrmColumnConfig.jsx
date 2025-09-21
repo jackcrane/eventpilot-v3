@@ -25,7 +25,7 @@ export const useCrmColumnConfig = ({ crmFields = [], onViewPerson }) => {
       columnConfig
         .filter((column) => column.show)
         .sort((a, b) => a.order - b.order)
-        .map(({ id, label, show, order, ...rest }) => ({ label, ...rest })),
+        .map(({ show, order, ...rest }) => rest),
     [columnConfig]
   );
 

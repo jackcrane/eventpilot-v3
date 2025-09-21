@@ -14,11 +14,21 @@ export const useCrmTablePagination = ({
 
   const controlled = Number.isFinite(page) && Number.isFinite(size);
   const effectiveSize = controlled ? size : localSize;
-  const total = controlled ? controlledTotal(totalRows) : data.length;
+
+  const total = controlled
+    ? Number.isFinite(totalRows)
+      ? totalRows
+      : data.length
+    : data.length;
+
   const pageCount = Math.max(1, Math.ceil(total / Math.max(effectiveSize, 1)));
+
   const currentPage = controlled
-    ? Math.max(1, Math.min(page, pageCount))
+    ? Number.isFinite(page)
+      ? page
+      : 1
     : Math.min(localPage, pageCount);
+
   const startIdx = (currentPage - 1) * Math.max(effectiveSize, 1);
 
   const pageRows = useMemo(() => {
@@ -29,14 +39,33 @@ export const useCrmTablePagination = ({
 
   const shownEndIdx = startIdx + pageRows.length;
 
+  console.log("[useCrmTablePagination] controlled:", controlled, {
+    page,
+    size,
+    totalRows,
+    effectiveSize,
+    total,
+    pageCount,
+    currentPage,
+    startIdx,
+    shownEndIdx,
+    dataLength: data.length,
+  });
+
   const setPageHandler = (nextPage) => {
-    if (controlled) onSetPage && onSetPage(nextPage);
-    else setLocalPage(Math.max(1, Math.min(nextPage, pageCount)));
+    console.log("[useCrmTablePagination] setPageHandler called:", nextPage);
+    if (controlled) {
+      onSetPage && onSetPage(nextPage);
+    } else {
+      setLocalPage(Math.max(1, Math.min(nextPage, pageCount)));
+    }
   };
 
   const setSizeHandler = (nextSize) => {
-    if (controlled) onSetSize && onSetSize(nextSize);
-    else {
+    console.log("[useCrmTablePagination] setSizeHandler called:", nextSize);
+    if (controlled) {
+      onSetSize && onSetSize(nextSize);
+    } else {
       setLocalSize(nextSize);
       setLocalPage(1);
     }
@@ -56,9 +85,4 @@ export const useCrmTablePagination = ({
     canGoPrev: currentPage > 1,
     canGoNext: currentPage < pageCount,
   };
-};
-
-const controlledTotal = (value) => {
-  if (Number.isFinite(value)) return value;
-  return 0;
 };

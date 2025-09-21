@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCrmFilterDefinitions } from "./useCrmFilterDefinitions";
 
 const getValue = (input) => {
@@ -10,6 +10,56 @@ const getValue = (input) => {
   return String(input ?? "");
 };
 
+const DEFAULT_MANUAL_STATE = { search: "", filters: [] };
+
+const normalizeManualState = (manual) => {
+  if (!manual) return { search: "", filters: [] };
+  const filters = Array.isArray(manual.filters) ? manual.filters : [];
+  return {
+    search: typeof manual.search === "string" ? manual.search : String(manual.search ?? ""),
+    filters: filters.map((filter) => ({
+      label: filter?.label ?? "",
+      operation: filter?.operation ?? null,
+      value: filter?.value ?? null,
+    })),
+  };
+};
+
+const isObject = (value) => value !== null && typeof value === "object";
+
+const deepEqual = (a, b) => {
+  if (Object.is(a, b)) return true;
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+      if (!deepEqual(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  if (Array.isArray(a) || Array.isArray(b)) return false;
+
+  if (isObject(a) && isObject(b)) {
+    if (a instanceof Date && b instanceof Date) {
+      return a.getTime() === b.getTime();
+    }
+    if (a instanceof Date || b instanceof Date) {
+      return false;
+    }
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    for (const key of keysA) {
+      if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+      if (!deepEqual(a[key], b[key])) return false;
+    }
+    return true;
+  }
+
+  return false;
+};
+
 export const useCrmManualFilters = ({
   crmFields = [],
   storedFilters,
@@ -18,6 +68,7 @@ export const useCrmManualFilters = ({
   const [filters, setFilters] = useState([]);
   const [search, setSearch] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  const lastSavedManualRef = useRef(DEFAULT_MANUAL_STATE);
 
   const filterFieldDefs = useCrmFilterDefinitions(crmFields);
 
@@ -25,6 +76,7 @@ export const useCrmManualFilters = ({
     if (hydrated) return;
     if (!storedFilters?.manual) return;
     setSearch(storedFilters.manual.search || "");
+    lastSavedManualRef.current = normalizeManualState(storedFilters.manual);
     setHydrated(true);
   }, [storedFilters, hydrated]);
 
@@ -35,9 +87,17 @@ export const useCrmManualFilters = ({
       operation: filter?.operation,
       value: filter?.value ?? null,
     }));
+    const currentManual = normalizeManualState({
+      search,
+      filters: minimal,
+    });
+
+    if (deepEqual(currentManual, lastSavedManualRef.current)) return;
+
+    lastSavedManualRef.current = currentManual;
     setStoredFilters((prev) => ({
       ...(prev || {}),
-      manual: { search: search || "", filters: minimal },
+      manual: currentManual,
     }));
   }, [filters, search, hydrated, setStoredFilters]);
 

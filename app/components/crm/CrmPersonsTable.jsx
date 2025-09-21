@@ -1,27 +1,63 @@
 import React, { useMemo } from "react";
-import { Table } from "tabler-react-2";
+import { TableV2 } from "tabler-react-2/dist/table-v2";
 import { useCrmTablePagination } from "../../hooks/useCrmTablePagination";
 import { useCrmTableSelection } from "../../hooks/useCrmTableSelection";
-import { useCrmTableSorting } from "../../hooks/useCrmTableSorting";
-import { CrmTablePaginationControls } from "./CrmTablePaginationControls";
+import {
+  useCrmTableSorting,
+  getCrmColumnId,
+  getCrmValueByAccessor,
+} from "../../hooks/useCrmTableSorting";
 
-export const CrmPersonsTable = ({
-  data = [],
-  columns = [],
-  pageSize = 10,
-  selectedIds,
-  onSelectionChange,
-  page,
-  size,
-  totalRows,
-  onSetPage,
-  onSetSize,
-  orderBy,
-  order,
-  onSetOrder,
-}) => {
+export const CrmPersonsTable = (props) => {
+  const {
+    data = [],
+    columns = [],
+    pageSize = 10,
+    selectedIds,
+    onSelectionChange,
+    page,
+    size,
+    totalRows,
+    onSetPage,
+    onSetSize,
+    orderBy,
+    order,
+    onSetOrder,
+  } = props;
+
+  console.log("[CrmPersonsTable] props:", {
+    page,
+    size,
+    totalRows,
+    dataLength: data.length,
+    orderBy,
+    order,
+  });
+
+  const normalizedColumns = useMemo(
+    () =>
+      columns.map((column, index) => ({
+        ...column,
+        columnId: getCrmColumnId(column, index),
+      })),
+    [columns]
+  );
+
+  const { sorting, onSortingChange, isColumnSortable, applySorting } =
+    useCrmTableSorting({
+      columns: normalizedColumns,
+      orderBy,
+      order,
+      onSetOrder,
+    });
+
+  const sortedData = useMemo(
+    () => applySorting(data || []),
+    [applySorting, data]
+  );
+
   const pagination = useCrmTablePagination({
-    data,
+    data: sortedData,
     pageSize,
     page,
     size,
@@ -30,48 +66,66 @@ export const CrmPersonsTable = ({
     onSetSize,
   });
 
-  const sortedColumns = useCrmTableSorting({
-    columns,
-    orderBy,
-    order,
-    onSetOrder,
-  });
+  console.log("[CrmPersonsTable] pagination state:", pagination);
 
-  const { selectionColumn } = useCrmTableSelection({
-    rows: pagination.pageRows,
-    controlledSelectedIds: selectedIds,
-    onSelectionChange,
-  });
+  const { selectionColumn, rowSelection, onRowSelectionChange } =
+    useCrmTableSelection({
+      rows: pagination.pageRows,
+      controlledSelectedIds: selectedIds,
+      onSelectionChange,
+    });
 
-  const enhancedColumns = useMemo(() => {
-    if (!pagination.pageRows?.length) return [];
-    return [selectionColumn, ...sortedColumns];
-  }, [selectionColumn, sortedColumns, pagination.pageRows]);
+  const tableColumns = useMemo(() => {
+    const mapped = normalizedColumns.map((column, index) => {
+      const headerContent = (
+        <span className="d-inline-flex align-items-center gap-2">
+          {column.icon ? <span>{column.icon}</span> : null}
+          <span>{column.label}</span>
+        </span>
+      );
 
-  if (!pagination.pageRows?.length) return null;
+      const accessorFn = column.accessor
+        ? (row) => getCrmValueByAccessor(row, column.accessor)
+        : undefined;
+
+      return {
+        id: column.columnId,
+        header: () => headerContent,
+        accessorFn,
+        cell: ({ row, getValue }) => {
+          const value = column.accessor ? getValue() : undefined;
+          if (typeof column.render === "function") {
+            return column.render(value, row.original);
+          }
+          return value ?? null;
+        },
+        enableSorting: isColumnSortable(column, index),
+        className: column.className,
+      };
+    });
+
+    return [selectionColumn, ...mapped];
+  }, [normalizedColumns, selectionColumn, isColumnSortable]);
 
   return (
-    <div className="card">
-      <div style={{ overflowX: "auto" }}>
-        <Table
-          className="card"
-          showPagination={false}
-          columns={enhancedColumns}
-          data={pagination.pageRows}
-        />
-      </div>
-      <CrmTablePaginationControls
-        total={pagination.total}
-        startIdx={pagination.startIdx}
-        shownEndIdx={pagination.shownEndIdx}
-        pageCount={pagination.pageCount}
-        currentPage={pagination.currentPage}
-        effectiveSize={pagination.effectiveSize}
-        setPage={pagination.setPage}
-        setPageSize={pagination.setPageSize}
-        canGoPrev={pagination.canGoPrev}
-        canGoNext={pagination.canGoNext}
-      />
-    </div>
+    <TableV2
+      parentClassName="card"
+      columns={tableColumns}
+      data={pagination.pageRows}
+      totalRows={Number.isFinite(totalRows) ? totalRows : pagination.total} // prefer parent total
+      page={pagination.currentPage}
+      size={pagination.effectiveSize}
+      onPageChange={pagination.setPage}
+      onSizeChange={pagination.setPageSize}
+      sorting={sorting}
+      onSortingChange={onSortingChange}
+      getRowId={(row, index) =>
+        String(row?.id ?? row?._id ?? row?.crmPersonId ?? index)
+      }
+      rowSelection={rowSelection}
+      onRowSelectionChange={onRowSelectionChange}
+      nowrap
+      stickyHeader
+    />
   );
 };
