@@ -24,6 +24,7 @@ export const useCrmPersons = ({ eventId, page, size, orderBy, order, q, filters 
   const key = qs ? `${baseKey}?${qs}` : baseKey;
   const { data, error, isLoading, isValidating, mutate } = useSWR(key, fetcher, {
     keepPreviousData: true,
+    revalidateOnFocus: false,
   });
   const [mutationLoading, setMutationLoading] = useState(false);
 

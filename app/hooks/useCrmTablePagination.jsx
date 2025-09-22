@@ -39,19 +39,6 @@ export const useCrmTablePagination = ({
 
   const shownEndIdx = startIdx + pageRows.length;
 
-  console.log("[useCrmTablePagination] controlled:", controlled, {
-    page,
-    size,
-    totalRows,
-    effectiveSize,
-    total,
-    pageCount,
-    currentPage,
-    startIdx,
-    shownEndIdx,
-    dataLength: data.length,
-  });
-
   const setPageHandler = (nextPage) => {
     console.log("[useCrmTablePagination] setPageHandler called:", nextPage);
     if (controlled) {

@@ -5,19 +5,6 @@ import { fieldTypeToIcon } from "./fieldTypeToIcon";
 
 export const createBaseColumns = (onViewPerson) => [
   {
-    id: "actions",
-    label: "Actions",
-    order: 6,
-    show: true,
-    accessor: "id",
-    render: (id) => (
-      <Button size="sm" onClick={() => onViewPerson(id)}>
-        <Icon i="info-circle" /> Details
-      </Button>
-    ),
-    sortable: false,
-  },
-  {
     id: "name",
     label: "Name",
     order: 1,
@@ -64,6 +51,19 @@ export const createBaseColumns = (onViewPerson) => [
     accessor: "source",
     render: (value) => <Badge outline>{value}</Badge>,
     sortable: true,
+  },
+  {
+    id: "actions",
+    label: "Actions",
+    order: 6,
+    show: true,
+    accessor: "id",
+    render: (id) => (
+      <Button size="sm" onClick={() => onViewPerson(id)}>
+        <Icon i="info-circle" /> Details
+      </Button>
+    ),
+    sortable: false,
   },
 ];
 

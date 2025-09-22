@@ -8,7 +8,9 @@ const fetcher = (url) => authFetch(url).then((r) => r.json());
 export const useCrm = ({ eventId }) => {
   const key = `/api/events/${eventId}/crm`;
 
-  const { data, error, isLoading, isValidating } = useSWR(key, fetcher);
+  const { data, error, isLoading, isValidating } = useSWR(key, fetcher, {
+    revalidateOnFocus: false,
+  });
   
   
   

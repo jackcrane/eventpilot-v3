@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCrmPersons } from "./useCrmPersons";
-import { useCrmLoadingToast } from "./useCrmLoadingToast";
 import { filterPersons } from "../util/crm/filterPersons";
 
 export const useCrmPageData = ({ eventId, controllers }) => {
@@ -19,12 +18,22 @@ export const useCrmPageData = ({ eventId, controllers }) => {
     filters: ai.usingAi ? undefined : manual.serverFilters,
   });
 
-  const { hasInitialLoaded, markUserRequestedRefetch } = useCrmLoadingToast({
-    fieldsLoading: crm.loading,
-    personsLoading: personsQuery.loading,
-    fieldsValidating: crm.validating,
-    personsValidating: personsQuery.validating,
-  });
+  const [hasInitialLoaded, setHasInitialLoaded] = useState(false);
+  const busy =
+    crm.loading ||
+    personsQuery.loading ||
+    crm.validating ||
+    personsQuery.validating;
+
+  useEffect(() => {
+    setHasInitialLoaded(false);
+  }, [eventId]);
+
+  useEffect(() => {
+    if (!hasInitialLoaded && !crm.loading && !personsQuery.loading) {
+      setHasInitialLoaded(true);
+    }
+  }, [hasInitialLoaded, crm.loading, personsQuery.loading]);
 
   const basePersons = ai.aiResults?.crmPersons || personsQuery.crmPersons;
   const filteredPersons = useMemo(
@@ -36,26 +45,21 @@ export const useCrmPageData = ({ eventId, controllers }) => {
   );
 
   const setSearch = (value) => {
-    markUserRequestedRefetch();
     manual.setSearch(value);
     setPage(1);
   };
   const setFilters = (next) => {
-    markUserRequestedRefetch();
     manual.setFilters(next);
     setPage(1);
   };
   const changePage = (next) => {
-    markUserRequestedRefetch();
     setPage(next);
   };
   const changeSize = (next) => {
-    markUserRequestedRefetch();
     setSize(next);
     setPage(1);
   };
   const changeOrder = (nextOrderBy, nextOrder) => {
-    markUserRequestedRefetch();
     setOrderBy(nextOrderBy);
     setOrder(nextOrder);
     setPage(1);
@@ -100,6 +104,7 @@ export const useCrmPageData = ({ eventId, controllers }) => {
       orderBy: ai.usingAi ? undefined : orderBy,
       order: ai.usingAi ? undefined : order,
       onSetOrder: ai.usingAi ? undefined : changeOrder,
+      loading: hasInitialLoaded && busy,
     },
     imports: personsQuery.imports,
     shouldShowEmpty,
