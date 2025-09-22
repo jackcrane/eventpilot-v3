@@ -4,16 +4,20 @@ import { useCrmAiDialogs } from "./useCrmAiDialogs";
 export const useCrmAiState = ({
   eventId,
   storedFilters,
+  storedFiltersLoading,
   setStoredFilters,
   savedSegments,
+  savedSegmentsLoading,
   runSavedSegment,
   offcanvas,
   close,
 }) => {
   const data = useCrmAiData({
     storedFilters,
+    storedFiltersLoading,
     setStoredFilters,
     savedSegments,
+    savedSegmentsLoading,
     runSavedSegment,
   });
 

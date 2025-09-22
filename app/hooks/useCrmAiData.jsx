@@ -10,8 +10,10 @@ const EMPTY_AI = {
 
 export const useCrmAiData = ({
   storedFilters,
+  storedFiltersLoading,
   setStoredFilters,
   savedSegments,
+  savedSegmentsLoading,
   runSavedSegment,
 }) => {
   const [aiResults, setAiResults] = useState(null),
@@ -61,7 +63,9 @@ export const useCrmAiData = ({
     hydrated,
     setHydrated,
     storedFilters,
+    storedFiltersLoading,
     savedSegments,
+    savedSegmentsLoading,
     runSavedSegment,
     setAiResults,
     setCurrentSavedId,

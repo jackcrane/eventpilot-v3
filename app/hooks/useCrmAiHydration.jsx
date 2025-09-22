@@ -4,7 +4,9 @@ export const useCrmAiHydration = ({
   hydrated,
   setHydrated,
   storedFilters,
+  storedFiltersLoading,
   savedSegments,
+  savedSegmentsLoading,
   runSavedSegment,
   setAiResults,
   setCurrentSavedId,
@@ -16,9 +18,14 @@ export const useCrmAiHydration = ({
 }) => {
   useEffect(() => {
     if (hydrated) return;
+    if (storedFiltersLoading) return;
     const ai = storedFilters?.ai;
     if (!ai?.enabled) {
       setHydrated(true);
+      return;
+    }
+
+    if (!ai?.ast && ai?.savedSegmentId && savedSegmentsLoading) {
       return;
     }
 
@@ -51,7 +58,9 @@ export const useCrmAiHydration = ({
   }, [
     hydrated,
     storedFilters,
+    storedFiltersLoading,
     savedSegments,
+    savedSegmentsLoading,
     runSavedSegment,
     setHydrated,
     setAiResults,

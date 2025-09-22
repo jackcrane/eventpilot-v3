@@ -29,9 +29,12 @@ export const EventCrmPage = ({ eventId }) => {
     offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
   });
   const fieldsModal = useCrmFields({ eventId });
-  const { savedSegments } = useCrmSavedSegments({ eventId });
+  const { savedSegments, loading: savedSegmentsLoading } = useCrmSavedSegments({
+    eventId,
+  });
   const segmentRunner = useCrmSegment({ eventId });
-  const [storedFilters, setStoredFilters] = useCrmStoredFilters();
+  const [storedFilters, setStoredFilters, storedFiltersLoading] =
+    useCrmStoredFilters();
 
   const manualFilters = useCrmManualFilters({
     crmFields: crm.crmFields,
@@ -47,8 +50,10 @@ export const EventCrmPage = ({ eventId }) => {
   const aiState = useCrmAiState({
     eventId,
     storedFilters,
+    storedFiltersLoading,
     setStoredFilters,
     savedSegments,
+    savedSegmentsLoading,
     runSavedSegment: segmentRunner.run,
     offcanvas: offcanvasState.offcanvas,
     close: offcanvasState.close,
