@@ -11,6 +11,7 @@ export const useCrmAiState = ({
   runSavedSegment,
   offcanvas,
   close,
+  pagination,
 }) => {
   const data = useCrmAiData({
     storedFilters,
@@ -19,6 +20,7 @@ export const useCrmAiState = ({
     savedSegments,
     savedSegmentsLoading,
     runSavedSegment,
+    defaultPagination: pagination,
   });
 
   const dialogs = useCrmAiDialogs({
@@ -31,6 +33,7 @@ export const useCrmAiState = ({
     lastAst: data.lastAst,
     savedTitle: data.savedTitle,
     storedFilters,
+    pagination,
   });
 
   return {
@@ -42,6 +45,7 @@ export const useCrmAiState = ({
     clearAi: data.clearAi,
     aiTitle: data.aiTitle,
     usingAi: data.usingAi,
+    updateResults: data.updateResults,
     openPrompt: dialogs.openPrompt,
     openRefine: dialogs.openRefine,
   };

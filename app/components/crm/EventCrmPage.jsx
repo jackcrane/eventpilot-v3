@@ -32,7 +32,9 @@ export const EventCrmPage = ({ eventId }) => {
   const { savedSegments, loading: savedSegmentsLoading } = useCrmSavedSegments({
     eventId,
   });
-  const segmentRunner = useCrmSegment({ eventId });
+  const { run: runSegment, loading: segmentLoading } = useCrmSegment({
+    eventId,
+  });
   const [storedFilters, setStoredFilters, storedFiltersLoading] =
     useCrmStoredFilters();
 
@@ -47,6 +49,13 @@ export const EventCrmPage = ({ eventId }) => {
     onViewPerson: (id) => navigate(`/events/${eventId}/crm/${id}`),
   });
 
+  const [aiCollapsed, setAiCollapsed] = useState(false);
+
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(25);
+  const [orderBy, setOrderBy] = useState("createdAt");
+  const [order, setOrder] = useState("desc");
+
   const aiState = useCrmAiState({
     eventId,
     storedFilters,
@@ -54,17 +63,11 @@ export const EventCrmPage = ({ eventId }) => {
     setStoredFilters,
     savedSegments,
     savedSegmentsLoading,
-    runSavedSegment: segmentRunner.run,
+    runSavedSegment: runSegment,
     offcanvas: offcanvasState.offcanvas,
     close: offcanvasState.close,
+    pagination: { page, size, orderBy, order },
   });
-
-  const [aiCollapsed, setAiCollapsed] = useState(false);
-
-  const [page, setPage] = useState(1);
-  const [size, setSize] = useState(25);
-  const [orderBy, setOrderBy] = useState("createdAt");
-  const [order, setOrder] = useState("desc");
 
   const personsQuery = useCrmPersons({
     eventId,
@@ -81,7 +84,8 @@ export const EventCrmPage = ({ eventId }) => {
     crm.loading ||
     personsQuery.loading ||
     crm.validating ||
-    personsQuery.validating;
+    personsQuery.validating ||
+    (aiState.usingAi && segmentLoading);
 
   useEffect(() => {
     setHasInitialLoaded(false);
@@ -132,12 +136,89 @@ export const EventCrmPage = ({ eventId }) => {
   };
 
   useEffect(() => {
+    if (!aiState.usingAi) return;
+    const filter = aiState.lastAst?.filter || aiState.lastAst;
+    if (!filter) return;
+    const current = aiState.aiResults?.pagination;
+    const matches =
+      current &&
+      Number.isFinite(current.page) &&
+      Number.isFinite(current.size) &&
+      current.page === page &&
+      current.size === size &&
+      (current.orderBy || "") === (orderBy || "") &&
+      (current.order || "") === (order || "");
+    if (matches && !segmentLoading) return;
+
+    let cancelled = false;
+    (async () => {
+      const res = await runSegment({
+        filter,
+        debug: !!(aiState.lastAst?.debug),
+        pagination: { page, size, orderBy, order },
+      });
+      if (!cancelled && res?.ok) {
+        aiState.updateResults(res);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    aiState.usingAi,
+    aiState.lastAst,
+    aiState.aiResults?.pagination?.page,
+    aiState.aiResults?.pagination?.size,
+    aiState.aiResults?.pagination?.orderBy,
+    aiState.aiResults?.pagination?.order,
+    aiState.updateResults,
+    runSegment,
+    segmentLoading,
+    page,
+    size,
+    orderBy,
+    order,
+  ]);
+
+  useEffect(() => {
     if (aiState.usingAi) return;
     if (!Number.isFinite(personsQuery.total)) return;
     if (!Number.isFinite(size) || size <= 0) return;
     const maxPage = Math.max(1, Math.ceil(personsQuery.total / size));
     setPage((prev) => (prev > maxPage ? maxPage : prev));
   }, [aiState.usingAi, personsQuery.total, size]);
+
+  useEffect(() => {
+    if (!aiState.usingAi) return;
+    const total = aiState.aiResults?.total;
+    if (!Number.isFinite(total)) return;
+    if (!Number.isFinite(size) || size <= 0) return;
+    const maxPage = Math.max(1, Math.ceil(total / size));
+    setPage((prev) => (prev > maxPage ? maxPage : prev));
+  }, [aiState.usingAi, aiState.aiResults?.total, size]);
+
+  useEffect(() => {
+    if (!aiState.usingAi) return;
+    const paginationMeta = aiState.aiResults?.pagination;
+    if (!paginationMeta) return;
+    const { page: metaPage, size: metaSize, orderBy: metaOrderBy, order: metaOrder } =
+      paginationMeta;
+    if (Number.isFinite(metaPage) && metaPage !== page) setPage(metaPage);
+    if (Number.isFinite(metaSize) && metaSize !== size) setSize(metaSize);
+    if (metaOrderBy && metaOrderBy !== orderBy) setOrderBy(metaOrderBy);
+    if (metaOrder && metaOrder !== order) setOrder(metaOrder);
+  }, [
+    aiState.usingAi,
+    aiState.aiResults?.pagination?.page,
+    aiState.aiResults?.pagination?.size,
+    aiState.aiResults?.pagination?.orderBy,
+    aiState.aiResults?.pagination?.order,
+    page,
+    size,
+    orderBy,
+    order,
+  ]);
 
   const shouldShowEmpty =
     !aiState.usingAi &&
@@ -146,7 +227,8 @@ export const EventCrmPage = ({ eventId }) => {
     (personsQuery.total || 0) === 0;
 
   const pageLoading =
-    !hasInitialLoaded && (crm.loading || personsQuery.loading);
+    !hasInitialLoaded &&
+    (crm.loading || personsQuery.loading || (aiState.usingAi && segmentLoading));
 
   const toggleAiCollapsed = () => setAiCollapsed((prev) => !prev);
   const showAiBadge = Boolean(storedFilters?.ai?.enabled || aiState.aiResults);
@@ -196,14 +278,14 @@ export const EventCrmPage = ({ eventId }) => {
       <CrmPersonsTable
         data={aiState.usingAi ? filteredPersons : personsQuery.crmPersons}
         columns={columnConfig.visibleColumns}
-        page={aiState.usingAi ? undefined : page}
-        size={aiState.usingAi ? undefined : size}
-        totalRows={aiState.usingAi ? undefined : personsQuery.total}
-        onSetPage={aiState.usingAi ? undefined : handlePageChange}
-        onSetSize={aiState.usingAi ? undefined : handleSizeChange}
-        orderBy={aiState.usingAi ? undefined : orderBy}
-        order={aiState.usingAi ? undefined : order}
-        onSetOrder={aiState.usingAi ? undefined : handleOrderChange}
+        page={page}
+        size={size}
+        totalRows={aiState.usingAi ? aiState.aiResults?.total : personsQuery.total}
+        onSetPage={handlePageChange}
+        onSetSize={handleSizeChange}
+        orderBy={orderBy}
+        order={order}
+        onSetOrder={handleOrderChange}
         loading={hasInitialLoaded && busy}
       />
     </EventPage>

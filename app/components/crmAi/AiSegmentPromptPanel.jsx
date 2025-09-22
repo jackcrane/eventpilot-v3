@@ -5,7 +5,10 @@ import { Icon } from "../../util/Icon";
 import { Row } from "../../util/Flex";
 import { useCrmGenerativeSegment } from "../../hooks/useCrmGenerativeSegment";
 import { useCrmSavedSegments } from "../../hooks/useCrmSavedSegments";
-import { useCrmSegment } from "../../hooks/useCrmSegment";
+import {
+  useCrmSegment,
+  DEFAULT_SEGMENT_PAGINATION,
+} from "../../hooks/useCrmSegment";
 
 /**
  * Offcanvas content for prompting AI segments and selecting previous ones.
@@ -15,6 +18,7 @@ export const AiSegmentPromptPanel = ({
   eventId,
   initialTitle = "",
   initialPrompt = "",
+  pagination,
   onApply, // ({ results, savedSegmentId, ast, title, prompt })
   onClose,
 }) => {
@@ -33,6 +37,11 @@ export const AiSegmentPromptPanel = ({
     eventId,
   });
 
+  const effectivePagination = {
+    ...(pagination || DEFAULT_SEGMENT_PAGINATION),
+    page: 1,
+  };
+
   const [tab, setTab] = useState(
     (savedSegments || []).length ? "previous" : "new"
   );
@@ -46,6 +55,7 @@ export const AiSegmentPromptPanel = ({
     const res = await runSavedSegment({
       filter: seg?.ast?.filter || seg?.ast,
       debug: !!seg?.ast?.debug,
+      pagination: effectivePagination,
     });
     if (res?.ok) {
       await markUsed(seg.id);
@@ -61,7 +71,11 @@ export const AiSegmentPromptPanel = ({
   };
 
   const onGenerate = async () => {
-    const res = await generate({ prompt, debug: false });
+    const res = await generate({
+      prompt,
+      debug: false,
+      pagination: effectivePagination,
+    });
     if (!res?.ok || !res?.results) return;
 
     let savedTitle = (title || "").trim();

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useCrmAiHydration } from "./useCrmAiHydration";
 
 const EMPTY_AI = {
@@ -15,6 +15,7 @@ export const useCrmAiData = ({
   savedSegments,
   savedSegmentsLoading,
   runSavedSegment,
+  defaultPagination,
 }) => {
   const [aiResults, setAiResults] = useState(null),
     [currentSavedId, setCurrentSavedId] = useState(null),
@@ -59,6 +60,13 @@ export const useCrmAiData = ({
     persist({ savedSegmentId, ast, title });
   };
 
+  const updateResults = useCallback(
+    (results) => {
+      if (results) setAiResults(results);
+    },
+    [setAiResults]
+  );
+
   useCrmAiHydration({
     hydrated,
     setHydrated,
@@ -67,6 +75,7 @@ export const useCrmAiData = ({
     savedSegments,
     savedSegmentsLoading,
     runSavedSegment,
+    defaultPagination,
     setAiResults,
     setCurrentSavedId,
     setSavedTitle,
@@ -84,6 +93,7 @@ export const useCrmAiData = ({
     savedTitle,
     clearAi,
     apply,
+    updateResults,
     aiTitle: savedTitle || storedFilters?.ai?.title || lastPrompt || "AI Filter",
     usingAi: !!aiResults,
   };

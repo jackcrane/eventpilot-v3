@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { DEFAULT_SEGMENT_PAGINATION } from "./useCrmSegment";
 
 export const useCrmAiHydration = ({
   hydrated,
@@ -8,6 +9,7 @@ export const useCrmAiHydration = ({
   savedSegments,
   savedSegmentsLoading,
   runSavedSegment,
+  defaultPagination,
   setAiResults,
   setCurrentSavedId,
   setSavedTitle,
@@ -35,12 +37,19 @@ export const useCrmAiHydration = ({
       let segmentForPrompt = null;
 
       if (filter) {
-        response = await runSavedSegment({ filter, debug: !!ai?.ast?.debug });
+        response = await runSavedSegment({
+          filter,
+          debug: !!ai?.ast?.debug,
+          pagination: defaultPagination || DEFAULT_SEGMENT_PAGINATION,
+        });
       } else if (ai?.savedSegmentId) {
         const segment = (savedSegments || []).find((item) => item.id === ai.savedSegmentId);
         if (segment) {
           segmentForPrompt = segment;
-          response = await runSavedSegment({ filter: segment?.ast?.filter || segment?.ast });
+          response = await runSavedSegment({
+            filter: segment?.ast?.filter || segment?.ast,
+            pagination: defaultPagination || DEFAULT_SEGMENT_PAGINATION,
+          });
         }
       }
 
@@ -68,6 +77,7 @@ export const useCrmAiHydration = ({
     setSavedTitle,
     setLastAst,
     setLastPrompt,
+    defaultPagination,
   ]);
 
   useEffect(() => {

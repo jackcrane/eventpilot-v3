@@ -4,6 +4,7 @@ import { Icon } from "../../util/Icon";
 import { Row } from "../../util/Flex";
 import { useCrmGenerativeSegment } from "../../hooks/useCrmGenerativeSegment";
 import { useCrmSavedSegments } from "../../hooks/useCrmSavedSegments";
+import { DEFAULT_SEGMENT_PAGINATION } from "../../hooks/useCrmSegment";
 import { CrmSegmentAstEditor } from "../AiASTViewer/AiASTViewer";
 
 /**
@@ -17,6 +18,7 @@ export const AiSegmentRefinePanel = ({
   lastAst = null,
   savedTitle = "",
   defaultTitle = "",
+  pagination,
   onApply, // ({ results, savedSegmentId, ast, title, prompt })
   onClose,
 }) => {
@@ -29,6 +31,11 @@ export const AiSegmentRefinePanel = ({
     createSavedSegment,
     suggestTitle,
   } = useCrmSavedSegments({ eventId });
+
+  const effectivePagination = {
+    ...(pagination || DEFAULT_SEGMENT_PAGINATION),
+    page: 1,
+  };
 
   const seg = useMemo(
     () => (savedSegments || []).find((s) => s.id === currentSavedId),
@@ -74,7 +81,11 @@ export const AiSegmentRefinePanel = ({
       return;
     }
 
-    const res = await generate({ prompt, debug: false });
+    const res = await generate({
+      prompt,
+      debug: false,
+      pagination: effectivePagination,
+    });
     if (res?.ok && res?.results) {
       let newTitle = (title || "").trim();
       const saved = await createSavedSegment({

@@ -12,6 +12,7 @@ export const useCrmAiDialogs = ({
   lastAst,
   savedTitle,
   storedFilters,
+  pagination,
 }) => {
   const openPrompt = (defaults = {}) => {
     offcanvas({
@@ -20,6 +21,7 @@ export const useCrmAiDialogs = ({
           eventId={eventId}
           initialTitle={defaults.title || ""}
           initialPrompt={defaults.prompt || ""}
+          pagination={pagination}
           onApply={apply}
           onClose={close}
         />
@@ -37,6 +39,7 @@ export const useCrmAiDialogs = ({
           lastAst={lastAst}
           savedTitle={savedTitle}
           defaultTitle={storedFilters?.ai?.title || ""}
+          pagination={pagination}
           onApply={apply}
           onClose={close}
         />

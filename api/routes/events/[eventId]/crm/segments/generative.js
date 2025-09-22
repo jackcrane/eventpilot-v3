@@ -9,10 +9,20 @@ import { segmentSchema, evaluateSegment } from "./index.js";
 import { isOpenAIConfigured, createResponse, extractText } from "#util/openai";
 
 // Input schema for the generative endpoint
+const paginationInputSchema = z
+  .object({
+    page: z.number().int().positive().optional(),
+    size: z.number().int().positive().max(200).optional(),
+    orderBy: z.string().min(1).optional(),
+    order: z.enum(["asc", "desc"]).optional(),
+  })
+  .optional();
+
 export const generativeInputSchema = z.object({
   prompt: z.string().min(4),
   includeContext: z.boolean().default(true).optional(),
   debug: z.boolean().default(false).optional(),
+  pagination: paginationInputSchema,
 });
 
 // Config now centralized in #util/openai
@@ -191,7 +201,7 @@ const createInput = ({ instructions, prompt, context }) => {
     "Context (instances, tiers, periods, and year ambiguity):",
     JSON.stringify(context),
     "",
-    "Return ONLY the JSON AST: { filter, pagination?, debug? }",
+    "Return ONLY the JSON AST: { filter, debug? }",
   ];
   return parts.join("\n");
 };
@@ -208,7 +218,12 @@ export const post = [
     if (!parsed.success) {
       return res.status(400).json({ message: serializeError(parsed) });
     }
-    const { prompt, includeContext = true, debug = false } = parsed.data;
+    const {
+      prompt,
+      includeContext = true,
+      debug = false,
+      pagination,
+    } = parsed.data;
 
     try {
       const instructions = getInstructions();
@@ -239,6 +254,7 @@ export const post = [
         currentInstanceId,
         filter,
         debug,
+        pagination,
       });
 
       return res.json({ segment: validated.data, results });
