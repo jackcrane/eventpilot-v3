@@ -5,9 +5,22 @@ import { fieldTypeToIcon } from "./fieldTypeToIcon";
 
 export const createBaseColumns = (onViewPerson) => [
   {
+    id: "actions",
+    label: "Actions",
+    order: 1,
+    show: true,
+    accessor: "id",
+    render: (id) => (
+      <Button size="sm" onClick={() => onViewPerson(id)}>
+        <Icon i="info-circle" /> Details
+      </Button>
+    ),
+    sortable: false,
+  },
+  {
     id: "name",
     label: "Name",
-    order: 1,
+    order: 2,
     show: true,
     accessor: "name",
     sortable: true,
@@ -16,7 +29,7 @@ export const createBaseColumns = (onViewPerson) => [
   {
     id: "emails",
     label: "Email",
-    order: 2,
+    order: 3,
     show: true,
     accessor: "emails",
     render: (emails) => emails.map((email) => email.email).join(", "),
@@ -26,7 +39,7 @@ export const createBaseColumns = (onViewPerson) => [
   {
     id: "phones",
     label: "Phone",
-    order: 3,
+    order: 4,
     show: true,
     accessor: "phones",
     render: (phones) => phones.map((phone) => phone.phone).join(", "),
@@ -36,7 +49,7 @@ export const createBaseColumns = (onViewPerson) => [
   {
     id: "createdAt",
     label: "Created At",
-    order: 4,
+    order: 5,
     show: true,
     accessor: "createdAt",
     render: (value) => new Date(value).toLocaleDateString(),
@@ -46,24 +59,11 @@ export const createBaseColumns = (onViewPerson) => [
   {
     id: "source",
     label: "Source",
-    order: 5,
+    order: 6,
     show: true,
     accessor: "source",
     render: (value) => <Badge outline>{value}</Badge>,
     sortable: true,
-  },
-  {
-    id: "actions",
-    label: "Actions",
-    order: 6,
-    show: true,
-    accessor: "id",
-    render: (id) => (
-      <Button size="sm" onClick={() => onViewPerson(id)}>
-        <Icon i="info-circle" /> Details
-      </Button>
-    ),
-    sortable: false,
   },
 ];
 

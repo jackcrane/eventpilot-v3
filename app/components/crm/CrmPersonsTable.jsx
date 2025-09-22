@@ -181,6 +181,7 @@ export const CrmPersonsTable = (props) => {
   return (
     <>
       <TableV2
+        key={tableColumns.map((column) => column.id).join(":")}
         parentClassName="card"
         className="zi-0"
         columns={tableColumns}
