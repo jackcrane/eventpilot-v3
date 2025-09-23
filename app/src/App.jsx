@@ -43,6 +43,9 @@ import { WaitlistPage } from "./routes/waitlist";
 import { EventConversationsPage } from "./routes/events/[eventId]/conversations";
 import { EventMailingListsPage } from "./routes/events/[eventId]/email/lists/index";
 import { EventMailingListMembersPage } from "./routes/events/[eventId]/email/lists/[mailingListId]";
+import { EventEmailTemplatesPage } from "./routes/events/[eventId]/email/templates/index";
+import { EventEmailTemplateDetailPage } from "./routes/events/[eventId]/email/templates/[templateId]";
+import { EventEmailTemplateCreatePage } from "./routes/events/[eventId]/email/templates/new";
 // legacy conversations UI has been removed in favor of Gmail-based flow
 
 export default () => {
@@ -163,6 +166,18 @@ export default () => {
             <Route
               path="/events/:eventId/email/lists/:mailingListId"
               element={<EventMailingListMembersPage />}
+            />
+            <Route
+              path="/events/:eventId/email/templates"
+              element={<EventEmailTemplatesPage />}
+            />
+            <Route
+              path="/events/:eventId/email/templates/new"
+              element={<EventEmailTemplateCreatePage />}
+            />
+            <Route
+              path="/events/:eventId/email/templates/:templateId"
+              element={<EventEmailTemplateDetailPage />}
             />
 
             <Route
