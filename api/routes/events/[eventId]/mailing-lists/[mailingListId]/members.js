@@ -25,6 +25,11 @@ export const get = [
   async (req, res) => {
     const { eventId, mailingListId } = req.params;
     const includeDeletedMembers = req.query.includeDeletedMembers === "true";
+    const rawPage = Number.parseInt(req.query.page, 10);
+    const rawSize = Number.parseInt(req.query.size, 10);
+    const size = Number.isFinite(rawSize)
+      ? Math.min(Math.max(rawSize, 1), 100)
+      : 25;
 
     try {
       const mailingList = await ensureMailingList(eventId, mailingListId);
@@ -32,16 +37,34 @@ export const get = [
         return res.status(404).json({ message: "Mailing list not found" });
       }
 
+      const baseWhere = {
+        mailingListId,
+        deleted: includeDeletedMembers ? undefined : false,
+      };
+
+      const total = await prisma.mailingListMember.count({ where: baseWhere });
+
+      const totalPages = Math.max(1, Math.ceil(total / Math.max(size, 1)));
+      const page = Number.isFinite(rawPage)
+        ? Math.min(Math.max(rawPage, 1), totalPages)
+        : 1;
+      const skip = (page - 1) * size;
+
       const members = await prisma.mailingListMember.findMany({
-        where: {
-          mailingListId,
-          deleted: includeDeletedMembers ? undefined : false,
-        },
+        where: baseWhere,
         orderBy: { createdAt: "asc" },
+        skip,
+        take: size,
         ...memberInclude,
       });
 
-      return res.json({ members });
+      return res.json({
+        members,
+        page,
+        size,
+        total,
+        totalPages,
+      });
     } catch (error) {
       console.error(
         `Error fetching members for mailing list ${mailingListId}:`,

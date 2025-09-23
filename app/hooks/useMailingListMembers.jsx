@@ -29,7 +29,15 @@ export const MAILING_LIST_MEMBER_STATUSES = [
   "DELETED",
 ];
 
-export const useMailingListMembers = ({ eventId, mailingListId } = {}) => {
+export const useMailingListMembers = (
+  {
+    eventId,
+    mailingListId,
+    page,
+    pageSize,
+    includeDeletedMembers,
+  } = {}
+) => {
   const key =
     eventId && mailingListId
       ? `/api/events/${eventId}/mailing-lists/${mailingListId}`
@@ -39,7 +47,22 @@ export const useMailingListMembers = ({ eventId, mailingListId } = {}) => {
     eventId && mailingListId
       ? `/api/events/${eventId}/mailing-lists/${mailingListId}/members`
       : null;
-  const membersKey = bulkKey;
+
+  const membersKey = (() => {
+    if (!bulkKey) return null;
+    const params = new URLSearchParams();
+    if (includeDeletedMembers) {
+      params.set("includeDeletedMembers", "true");
+    }
+    if (Number.isFinite(page) && page > 0) {
+      params.set("page", String(page));
+    }
+    if (Number.isFinite(pageSize) && pageSize > 0) {
+      params.set("size", String(pageSize));
+    }
+    const query = params.toString();
+    return query ? `${bulkKey}?${query}` : bulkKey;
+  })();
   const listCollectionKey = eventId
     ? `/api/events/${eventId}/mailing-lists`
     : null;
@@ -232,7 +255,12 @@ export const useMailingListMembers = ({ eventId, mailingListId } = {}) => {
 
   return {
     members: membersData?.members || [],
-    memberCount: data?.mailingList?.memberCount ?? membersData?.members?.length ?? 0,
+    memberCount:
+      data?.mailingList?.memberCount ?? membersData?.total ?? 0,
+    totalMembers: membersData?.total ?? 0,
+    page: membersData?.page ?? (Number.isFinite(page) ? page : 1),
+    size: membersData?.size ?? (Number.isFinite(pageSize) ? pageSize : 25),
+    totalPages: membersData?.totalPages ?? null,
     mailingList: data?.mailingList,
     loading: isLoading || membersLoading,
     error: error || membersError,

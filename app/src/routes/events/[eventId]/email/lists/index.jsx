@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Table, Button, Typography, Input, useOffcanvas } from "tabler-react-2";
-import { EventPage } from "../../../../../components/eventPage/EventPage";
-import { Row } from "../../../../../util/Flex";
-import { Empty } from "../../../../../components/empty/Empty";
-import { useMailingLists } from "../../../../../hooks/useMailingLists";
+import { EventPage } from "../../../../../../components/eventPage/EventPage";
+import { Row } from "../../../../../../util/Flex";
+import { Empty } from "../../../../../../components/empty/Empty";
+import { useMailingLists } from "../../../../../../hooks/useMailingLists";
 
 const formatDateTime = (value) => {
   if (!value) return "—";
@@ -69,12 +69,17 @@ const RenameMailingListForm = ({ mailingList, onSubmit, onCancel }) => {
         invalidText={showError ? "Title is required" : undefined}
       />
       <Row gap={0.5} justify="flex-end">
-        <Button type="button" disabled={submitting} onClick={onCancel}>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={submitting}
+          onClick={onCancel}
+        >
           Cancel
         </Button>
         <Button
           type="submit"
-          variant={"primary"}
+          variant="primary"
           loading={submitting}
           disabled={!canSubmit}
         >
@@ -87,6 +92,7 @@ const RenameMailingListForm = ({ mailingList, onSubmit, onCancel }) => {
 
 export const EventMailingListsPage = () => {
   const { eventId } = useParams();
+  const navigate = useNavigate();
   const { mailingLists, loading, error, updateMailingList, deleteMailingList } =
     useMailingLists({ eventId });
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
@@ -157,6 +163,15 @@ export const EventMailingListsPage = () => {
                 accessor: "id",
                 render: (value, row) => (
                   <Row gap={0.5}>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={() =>
+                        navigate(`/events/${eventId}/email/lists/${row.id}`)
+                      }
+                    >
+                      View members
+                    </Button>
                     <Button size="sm" onClick={() => handleRename(row)}>
                       Rename
                     </Button>
