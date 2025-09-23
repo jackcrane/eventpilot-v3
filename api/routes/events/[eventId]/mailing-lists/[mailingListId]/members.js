@@ -132,9 +132,16 @@ export const post = [
 
       const createdIds = createRows.map((row) => row.id);
 
+      let createdMembers = [];
+      let createdResultCount = 0;
+
       await prisma.$transaction(async (tx) => {
         if (createRows.length) {
-          await tx.mailingListMember.createMany({ data: createRows });
+          const result = await tx.mailingListMember.createMany({
+            data: createRows,
+            skipDuplicates: true,
+          });
+          createdResultCount = result?.count ?? 0;
         }
 
         if (reactivateIds.length) {
@@ -146,13 +153,34 @@ export const post = [
 
         if (createdIds.length || reactivateIds.length) {
           const affectedMembers = await tx.mailingListMember.findMany({
-            where: { id: { in: [...createdIds, ...reactivateIds] } },
+            where: {
+              OR: [
+                { id: { in: [...createdIds, ...reactivateIds] } },
+                ...createRows.map((row) => ({
+                  mailingListId: row.mailingListId,
+                  crmPersonId: row.crmPersonId,
+                })),
+              ],
+            },
             ...memberInclude,
           });
 
           const affectedById = new Map(
             affectedMembers.map((member) => [member.id, member])
           );
+
+          const affectedByPair = new Map(
+            affectedMembers.map((member) => [
+              `${member.mailingListId}:${member.crmPersonId}`,
+              member,
+            ])
+          );
+
+          createdMembers = createRows
+            .map((row) =>
+              affectedByPair.get(`${row.mailingListId}:${row.crmPersonId}`)
+            )
+            .filter(Boolean);
 
           const logEntries = [];
 
@@ -195,8 +223,30 @@ export const post = [
         }
       });
 
+      const createdMemberIds = new Set(createdMembers.map((member) => member.id));
+      const duplicateRows = createRows.filter(
+        (row) => !createdMemberIds.has(row.id)
+      );
+
+      if (duplicateRows.length) {
+        const duplicateIds = duplicateRows.map((row) => row.crmPersonId);
+        const existingForDuplicates = await prisma.mailingListMember.findMany({
+          where: {
+            mailingListId,
+            crmPersonId: { in: duplicateIds },
+          },
+          select: memberSummarySelect,
+        });
+
+        for (const existing of existingForDuplicates) {
+          if (!alreadyActive.some((m) => m.crmPersonId === existing.crmPersonId)) {
+            alreadyActive.push(existing);
+          }
+        }
+      }
+
       return res.status(201).json({
-        created: createRows.length,
+        created: createdResultCount,
         reactivated: reactivated.length,
         skipped: {
           alreadyActive: alreadyActive.map((m) => m.crmPersonId),

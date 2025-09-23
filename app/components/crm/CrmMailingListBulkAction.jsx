@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Button,
@@ -103,6 +103,7 @@ const MailingListBulkEditor = ({
   const [creatingList, setCreatingList] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingListIds, setPendingListIds] = useState([]);
+  const toastIdRef = useRef(null);
 
   const activeMailingListId = pendingListIds.length ? pendingListIds[0] : null;
 
@@ -121,6 +122,10 @@ const MailingListBulkEditor = ({
       setCreatingList(false);
       setIsSubmitting(false);
       setPendingListIds([]);
+      if (toastIdRef.current) {
+        toast.dismiss(toastIdRef.current);
+        toastIdRef.current = null;
+      }
     }
   }, [hasSelection, onClose]);
 
@@ -140,25 +145,53 @@ const MailingListBulkEditor = ({
     if (!pendingListIds.length) return;
     if (typeof addMembers !== "function") return;
 
+    if (!toastIdRef.current) {
+      toastIdRef.current = toast.loading("Adding people…");
+    }
+
     let cancelled = false;
     (async () => {
-      const res = await addMembers({
-        crmPersonIds: selectedIds,
-      });
+      try {
+        const res = await addMembers(
+          {
+            crmPersonIds: selectedIds,
+          },
+          { disableToast: true }
+        );
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      if (res) {
+        if (!res) {
+          throw new Error("Error adding people");
+        }
+
         setPendingListIds((prev) => {
+          if (!Array.isArray(prev) || prev.length === 0) {
+            return prev;
+          }
+
           const next = prev.slice(1);
           if (next.length === 0) {
+            if (toastIdRef.current) {
+              toast.success("People added", { id: toastIdRef.current });
+              toastIdRef.current = null;
+            }
             onClearSelection?.();
             onClose?.();
             setIsSubmitting(false);
           }
           return next;
         });
-      } else {
+      } catch (error) {
+        if (cancelled) return;
+
+        const message = error?.message || "Error adding people";
+        if (toastIdRef.current) {
+          toast.error(message, { id: toastIdRef.current });
+        } else {
+          toast.error(message);
+        }
+        toastIdRef.current = null;
         setPendingListIds([]);
         setIsSubmitting(false);
       }
@@ -168,6 +201,15 @@ const MailingListBulkEditor = ({
       cancelled = true;
     };
   }, [pendingListIds, addMembers, selectedIds, onClearSelection, onClose]);
+
+  useEffect(() => {
+    return () => {
+      if (toastIdRef.current) {
+        toast.dismiss(toastIdRef.current);
+        toastIdRef.current = null;
+      }
+    };
+  }, []);
 
   const availableMailingLists = useMemo(
     () =>
@@ -282,7 +324,6 @@ const MailingListBulkEditor = ({
                   onChange={() => toggleList(list.id)}
                   disabled={isSubmitting}
                 />
-                {(console.log("list", list), null)}
                 <div className="flex-fill">
                   <div className="fw-bold">{list.title}</div>
                   <div className="text-muted small">

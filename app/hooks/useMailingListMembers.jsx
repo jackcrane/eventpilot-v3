@@ -73,25 +73,35 @@ export const useMailingListMembers = ({ eventId, mailingListId } = {}) => {
       }
     : null;
 
-  const wrapMutation = async (promiseFactory, messages) => {
-    try {
-      const result = await toast.promise(promiseFactory(), {
-        loading: messages.loading,
-        success: messages.success,
-        error: (e) => e?.message || messages.error,
-      });
+  const wrapMutation = async (promiseFactory, messages, options = {}) => {
+    const { disableToast = false } = options || {};
+
+    const runMutation = async () => {
+      const result = await promiseFactory();
       await Promise.all([
         mutateSummary?.(),
         mutateMembers?.(),
       ]);
       if (listCollectionKey) await mutate(listCollectionKey);
       return result;
+    };
+
+    if (disableToast) {
+      return runMutation();
+    }
+
+    try {
+      return await toast.promise(runMutation(), {
+        loading: messages.loading,
+        success: messages.success,
+        error: (e) => e?.message || messages.error,
+      });
     } catch (e) {
       return null;
     }
   };
 
-  const addMember = async (payload) => {
+  const addMember = async (payload, options) => {
     if (!memberKey) return false;
 
     const schema = memberSchemas?.create;
@@ -113,13 +123,14 @@ export const useMailingListMembers = ({ eventId, mailingListId } = {}) => {
         loading: "Adding to mailing list…",
         success: "Member added",
         error: "Error adding member",
-      }
+      },
+      options
     );
 
     return Boolean(result);
   };
 
-  const updateMemberStatus = async (payload) => {
+  const updateMemberStatus = async (payload, options) => {
     if (!memberKey) return false;
 
     const schema = memberSchemas?.update;
@@ -141,13 +152,14 @@ export const useMailingListMembers = ({ eventId, mailingListId } = {}) => {
         loading: "Updating member…",
         success: "Member updated",
         error: "Error updating member",
-      }
+      },
+      options
     );
 
     return Boolean(result);
   };
 
-  const removeMember = async (payload) => {
+  const removeMember = async (payload, options) => {
     if (!memberKey) return false;
 
     const schema = memberSchemas?.delete;
@@ -175,13 +187,14 @@ export const useMailingListMembers = ({ eventId, mailingListId } = {}) => {
         loading: "Removing member…",
         success: "Member removed",
         error: "Error removing member",
-      }
+      },
+      options
     );
 
     return Boolean(result);
   };
 
-  const addMembers = async (payload) => {
+  const addMembers = async (payload, options) => {
     if (!bulkKey) return null;
 
     const schema = bulkSchema;
@@ -203,7 +216,8 @@ export const useMailingListMembers = ({ eventId, mailingListId } = {}) => {
         loading: "Adding people…",
         success: "People added",
         error: "Error adding people",
-      }
+      },
+      options
     );
 
     return result;
