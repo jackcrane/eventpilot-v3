@@ -508,6 +508,8 @@ model Event {
   gmailConnection     GmailConnection?
   campaigns           Campaign[]
 
+  emailTemplates      EmailTemplate[]
+
   stripeConnectedAccountId  String?
   // EventPilot billing: subscription for this event in Stripe
   stripe_subscriptionId     String?                     @unique
@@ -1033,6 +1035,26 @@ enum MailingListMemberStatus {
   DELETED
 }
 
+model EmailTemplate {
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  name String
+
+  textBody String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deleted Boolean @default(false)
+
+  logs Logs[]
+
+  @@unique([eventId, name])
+}
+
 enum CrmFieldType {
   TEXT
   EMAIL
@@ -1438,6 +1460,9 @@ model Logs {
   crmSavedSegmentId String?
   crmSavedSegment   CrmSavedSegment? @relation(fields: [crmSavedSegmentId], references: [id], onDelete: Cascade)
 
+  emailTemplateId String?
+  emailTemplate   EmailTemplate? @relation(fields: [emailTemplateId], references: [id], onDelete: Cascade)
+
   type LogType
 
   ip   String?
@@ -1634,6 +1659,9 @@ enum LogType {
   MAILING_LIST_MEMBER_CREATED
   MAILING_LIST_MEMBER_MODIFIED
   MAILING_LIST_MEMBER_DELETED
+  EMAIL_TEMPLATE_CREATED
+  EMAIL_TEMPLATE_MODIFIED
+  EMAIL_TEMPLATE_DELETED
   CONVERSATION_DELETED
   UPSELL_ITEM_CREATED
   UPSELL_ITEM_MODIFIED
