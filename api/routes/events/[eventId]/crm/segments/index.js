@@ -131,10 +131,13 @@ const parsePagination = (raw) => {
 
   const rawPage = Number(raw.page);
   const rawSize = Number(raw.size);
-  const rawOrder = typeof raw.order === "string" ? raw.order.toLowerCase() : null;
-  const rawOrderBy = typeof raw.orderBy === "string" ? raw.orderBy.trim() : null;
+  const rawOrder =
+    typeof raw.order === "string" ? raw.order.toLowerCase() : null;
+  const rawOrderBy =
+    typeof raw.orderBy === "string" ? raw.orderBy.trim() : null;
 
-  if (Number.isFinite(rawPage) && rawPage > 0) resolved.page = Math.floor(rawPage);
+  if (Number.isFinite(rawPage) && rawPage > 0)
+    resolved.page = Math.floor(rawPage);
   if (Number.isFinite(rawSize) && rawSize > 0)
     resolved.size = Math.min(Math.floor(rawSize), 200);
   if (rawOrder === "asc" || rawOrder === "desc") resolved.order = rawOrder;
