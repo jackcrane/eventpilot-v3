@@ -97,24 +97,43 @@ export const post = [
       );
 
       const alreadyActive = [];
+      const alreadyDeleted = [];
       const reactivated = [];
       const toCreate = [];
+      const toUpdate = [];
 
       for (const personId of uniqueIds) {
         if (!validIds.has(personId)) continue;
 
         const existing = existingByPersonId.get(personId);
         if (!existing) {
+          if (status === MailingListMemberStatus.DELETED) {
+            continue;
+          }
           toCreate.push(personId);
           continue;
         }
 
         if (existing.deleted) {
+          if (status === MailingListMemberStatus.DELETED) {
+            alreadyDeleted.push(existing);
+            continue;
+          }
+
           reactivated.push(existing);
           continue;
         }
 
-        alreadyActive.push(existing);
+        if (existing.status === status) {
+          if (status === MailingListMemberStatus.DELETED) {
+            alreadyDeleted.push(existing);
+          } else {
+            alreadyActive.push(existing);
+          }
+          continue;
+        }
+
+        toUpdate.push(existing);
       }
 
       const now = new Date();
@@ -125,10 +144,11 @@ export const post = [
         status,
         createdAt: now,
         updatedAt: now,
-        deleted: false,
+        deleted: status === MailingListMemberStatus.DELETED,
       }));
 
       const reactivateIds = reactivated.map((m) => m.id);
+      const updateIds = toUpdate.map((m) => m.id);
 
       const createdIds = createRows.map((row) => row.id);
 
@@ -151,11 +171,23 @@ export const post = [
           });
         }
 
-        if (createdIds.length || reactivateIds.length) {
+        if (updateIds.length) {
+          await tx.mailingListMember.updateMany({
+            where: { id: { in: updateIds } },
+            data: {
+              status,
+              deleted: status === MailingListMemberStatus.DELETED,
+              updatedAt: now,
+            },
+          });
+        }
+
+        if (createdIds.length || reactivateIds.length || updateIds.length) {
           const affectedMembers = await tx.mailingListMember.findMany({
             where: {
               OR: [
                 { id: { in: [...createdIds, ...reactivateIds] } },
+                ...(updateIds.length ? [{ id: { in: updateIds } }] : []),
                 ...createRows.map((row) => ({
                   mailingListId: row.mailingListId,
                   crmPersonId: row.crmPersonId,
@@ -217,6 +249,29 @@ export const post = [
             });
           }
 
+          for (const previous of toUpdate) {
+            const member = affectedById.get(previous.id);
+            if (!member) continue;
+
+            const isDeletion =
+              status === MailingListMemberStatus.DELETED;
+
+            logEntries.push({
+              type: isDeletion
+                ? LogType.MAILING_LIST_MEMBER_DELETED
+                : LogType.MAILING_LIST_MEMBER_MODIFIED,
+              userId: req.user.id,
+              ip: ipAddress(req),
+              eventId,
+              mailingListId,
+              mailingListMemberId: previous.id,
+              crmPersonId: previous.crmPersonId,
+              data: isDeletion
+                ? { before: previous }
+                : { before: previous, after: member },
+            });
+          }
+
           if (logEntries.length) {
             await tx.logs.createMany({ data: logEntries });
           }
@@ -248,8 +303,10 @@ export const post = [
       return res.status(201).json({
         created: createdResultCount,
         reactivated: reactivated.length,
+        updated: toUpdate.length,
         skipped: {
           alreadyActive: alreadyActive.map((m) => m.crmPersonId),
+          alreadyDeleted: alreadyDeleted.map((m) => m.crmPersonId),
           notFound,
         },
       });

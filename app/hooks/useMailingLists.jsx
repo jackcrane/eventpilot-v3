@@ -22,10 +22,30 @@ const parseResponse = async (res) => {
   return json;
 };
 
-export const useMailingLists = ({ eventId, includeDeleted } = {}) => {
-  const key = eventId
-    ? `/api/events/${eventId}/mailing-lists${includeDeleted ? "?includeDeleted=true" : ""}`
-    : null;
+export const useMailingLists = ({
+  eventId,
+  includeDeleted,
+  crmPersonIds,
+} = {}) => {
+  let key = null;
+
+  if (eventId) {
+    const params = new URLSearchParams();
+    if (includeDeleted) {
+      params.set("includeDeleted", "true");
+    }
+
+    if (Array.isArray(crmPersonIds)) {
+      const normalizedIds = Array.from(new Set(crmPersonIds.filter(Boolean)));
+      if (normalizedIds.length) {
+        normalizedIds.sort();
+        params.set("crmPersonIds", normalizedIds.join(","));
+      }
+    }
+
+    const query = params.toString();
+    key = `/api/events/${eventId}/mailing-lists${query ? `?${query}` : ""}`;
+  }
 
   const {
     data,

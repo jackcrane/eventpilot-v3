@@ -18,9 +18,28 @@ const baseMailingListSelect = {
   deleted: true,
 };
 
-const formatMailingList = (mailingList, memberCount = 0) => ({
+const parseCrmPersonIds = (value) => {
+  if (!value) return [];
+  const raw = Array.isArray(value) ? value : [value];
+  return raw
+    .flatMap((entry) =>
+      typeof entry === "string" ? entry.split(",") : []
+    )
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+};
+
+const resolveMembershipState = (activeCount, totalSelected) => {
+  if (!totalSelected) return null;
+  if (activeCount === 0) return "NONE";
+  if (activeCount === totalSelected) return "ALL";
+  return "PARTIAL";
+};
+
+const formatMailingList = (mailingList, memberCount = 0, membershipState = null) => ({
   ...mailingList,
   memberCount,
+  membershipState,
 });
 
 const ipAddress = (req) => req.ip || req.headers["x-forwarded-for"];
@@ -30,6 +49,9 @@ export const get = [
   async (req, res) => {
     const { eventId } = req.params;
     const includeDeleted = !!req.query.includeDeleted;
+    const crmPersonIds = parseCrmPersonIds(req.query.crmPersonIds);
+    const uniquePersonIds = Array.from(new Set(crmPersonIds));
+
     try {
       const mailingLists = await prisma.mailingList.findMany({
         where: {
@@ -58,9 +80,40 @@ export const get = [
         return acc;
       }, {});
 
-      const response = mailingLists.map((list) =>
-        formatMailingList(list, countsById[list.id] ?? 0)
-      );
+      let membershipCountsByListId = {};
+
+      if (mailingListIds.length && uniquePersonIds.length) {
+        const membershipCounts = await prisma.mailingListMember.groupBy({
+          by: ["mailingListId"],
+          where: {
+            mailingListId: { in: mailingListIds },
+            crmPersonId: { in: uniquePersonIds },
+            deleted: false,
+            status: MailingListMemberStatus.ACTIVE,
+          },
+          _count: { _all: true },
+        });
+
+        membershipCountsByListId = membershipCounts.reduce(
+          (acc, { mailingListId, _count }) => {
+            acc[mailingListId] = _count?._all ?? 0;
+            return acc;
+          },
+          {}
+        );
+      }
+
+      const selectedCount = uniquePersonIds.length;
+
+      const response = mailingLists.map((list) => {
+        const memberCount = countsById[list.id] ?? 0;
+        const membershipState = resolveMembershipState(
+          membershipCountsByListId[list.id] ?? 0,
+          selectedCount
+        );
+
+        return formatMailingList(list, memberCount, membershipState);
+      });
 
       return res.json({ mailingLists: response });
     } catch (error) {

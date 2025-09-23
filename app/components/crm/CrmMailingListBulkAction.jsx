@@ -95,23 +95,41 @@ const MailingListBulkEditor = ({
     mailingLists,
     loading: mailingListsLoading,
     createMailingList,
-  } = useMailingLists({ eventId });
+  } = useMailingLists({ eventId, crmPersonIds: selectedIds });
 
   const [filter, setFilter] = useState("");
   const [selectedListIds, setSelectedListIds] = useState(() => new Set());
   const [newListTitle, setNewListTitle] = useState("");
   const [creatingList, setCreatingList] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pendingListIds, setPendingListIds] = useState([]);
+  const [pendingOperations, setPendingOperations] = useState([]);
   const toastIdRef = useRef(null);
+  const initialSelectionRef = useRef(new Set());
+  const hasInitializedSelectionRef = useRef(false);
+  const lastSelectionSignatureRef = useRef(null);
 
-  const activeMailingListId = pendingListIds.length ? pendingListIds[0] : null;
+  const currentOperation = pendingOperations.length ? pendingOperations[0] : null;
+  const activeMailingListId = currentOperation?.mailingListId ?? null;
 
   const mailingListMembers = useMailingListMembers({
     eventId,
     mailingListId: activeMailingListId,
   });
   const { addMembers } = mailingListMembers;
+
+  const selectedIdsSignature = useMemo(() => {
+    if (!Array.isArray(selectedIds) || selectedIds.length === 0) return "";
+    return Array.from(new Set(selectedIds)).sort().join("|");
+  }, [selectedIds]);
+
+  const defaultSelectionSignature = useMemo(() => {
+    if (!Array.isArray(mailingLists)) return "";
+    const defaults = mailingLists
+      .filter((list) => !list.deleted && list.membershipState === "ALL")
+      .map((list) => list.id)
+      .sort();
+    return defaults.join("|");
+  }, [mailingLists]);
 
   useEffect(() => {
     if (!hasSelection) {
@@ -121,51 +139,79 @@ const MailingListBulkEditor = ({
       setNewListTitle("");
       setCreatingList(false);
       setIsSubmitting(false);
-      setPendingListIds([]);
+      setPendingOperations([]);
+      initialSelectionRef.current = new Set();
+      hasInitializedSelectionRef.current = false;
+      lastSelectionSignatureRef.current = null;
       if (toastIdRef.current) {
         toast.dismiss(toastIdRef.current);
         toastIdRef.current = null;
       }
+      return;
     }
-  }, [hasSelection, onClose]);
+
+    const selectionSignature = selectedIdsSignature;
+    if (
+      !hasInitializedSelectionRef.current ||
+      lastSelectionSignatureRef.current !== selectionSignature
+    ) {
+      const defaultIds = defaultSelectionSignature
+        ? defaultSelectionSignature.split("|").filter(Boolean)
+        : [];
+      const defaultSet = new Set(defaultIds);
+      setSelectedListIds(defaultSet);
+      initialSelectionRef.current = new Set(defaultSet);
+      hasInitializedSelectionRef.current = true;
+    }
+
+    lastSelectionSignatureRef.current = selectionSignature;
+  }, [
+    hasSelection,
+    onClose,
+    selectedIdsSignature,
+    defaultSelectionSignature,
+  ]);
 
   useEffect(() => {
     if (!Array.isArray(mailingLists)) return;
+    const validIds = new Set(
+      mailingLists.filter((list) => !list.deleted).map((list) => list.id)
+    );
     setSelectedListIds((prev) => {
-      const next = new Set(
-        Array.from(prev).filter((id) =>
-          mailingLists.some((list) => list.id === id && !list.deleted)
-        )
-      );
+      const next = new Set(Array.from(prev).filter((id) => validIds.has(id)));
       return next.size === prev.size ? prev : next;
     });
+    initialSelectionRef.current = new Set(
+      Array.from(initialSelectionRef.current).filter((id) => validIds.has(id))
+    );
   }, [mailingLists]);
 
   useEffect(() => {
-    if (!pendingListIds.length) return;
+    if (!currentOperation) return;
     if (typeof addMembers !== "function") return;
+    if (!Array.isArray(selectedIds) || selectedIds.length === 0) return;
 
     if (!toastIdRef.current) {
-      toastIdRef.current = toast.loading("Adding people…");
+      toastIdRef.current = toast.loading("Updating mailing lists…");
     }
 
     let cancelled = false;
     (async () => {
       try {
-        const res = await addMembers(
-          {
-            crmPersonIds: selectedIds,
-          },
-          { disableToast: true }
-        );
+        const payload =
+          currentOperation.action === "remove"
+            ? { crmPersonIds: selectedIds, status: "DELETED" }
+            : { crmPersonIds: selectedIds };
+
+        const res = await addMembers(payload, { disableToast: true });
 
         if (cancelled) return;
 
         if (!res) {
-          throw new Error("Error adding people");
+          throw new Error("Error updating mailing lists");
         }
 
-        setPendingListIds((prev) => {
+        setPendingOperations((prev) => {
           if (!Array.isArray(prev) || prev.length === 0) {
             return prev;
           }
@@ -173,7 +219,9 @@ const MailingListBulkEditor = ({
           const next = prev.slice(1);
           if (next.length === 0) {
             if (toastIdRef.current) {
-              toast.success("People added", { id: toastIdRef.current });
+              toast.success("Mailing lists updated", {
+                id: toastIdRef.current,
+              });
               toastIdRef.current = null;
             }
             onClearSelection?.();
@@ -185,14 +233,14 @@ const MailingListBulkEditor = ({
       } catch (error) {
         if (cancelled) return;
 
-        const message = error?.message || "Error adding people";
+        const message = error?.message || "Error updating mailing lists";
         if (toastIdRef.current) {
           toast.error(message, { id: toastIdRef.current });
         } else {
           toast.error(message);
         }
         toastIdRef.current = null;
-        setPendingListIds([]);
+        setPendingOperations([]);
         setIsSubmitting(false);
       }
     })();
@@ -200,7 +248,13 @@ const MailingListBulkEditor = ({
     return () => {
       cancelled = true;
     };
-  }, [pendingListIds, addMembers, selectedIds, onClearSelection, onClose]);
+  }, [
+    currentOperation,
+    addMembers,
+    selectedIds,
+    onClearSelection,
+    onClose,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -260,19 +314,50 @@ const MailingListBulkEditor = ({
     });
   };
 
+  const hasChanges = (() => {
+    const initial = initialSelectionRef.current;
+    for (const id of selectedListIds) {
+      if (!initial.has(id)) {
+        return true;
+      }
+    }
+    for (const id of initial) {
+      if (!selectedListIds.has(id)) {
+        return true;
+      }
+    }
+    return false;
+  })();
+
   const handleSubmit = () => {
     if (!hasSelection) return;
-    const ids = Array.from(selectedListIds);
-    if (!ids.length) {
-      toast.error("Select at least one mailing list");
+
+    const initial = initialSelectionRef.current;
+    const listsToAdd = Array.from(selectedListIds).filter(
+      (id) => !initial.has(id)
+    );
+    const listsToRemove = Array.from(initial).filter(
+      (id) => !selectedListIds.has(id)
+    );
+
+    if (listsToAdd.length === 0 && listsToRemove.length === 0) {
+      toast.error("No changes to apply");
       return;
     }
+
     setIsSubmitting(true);
-    setPendingListIds(ids);
+    const operations = [
+      ...listsToAdd.map((mailingListId) => ({ mailingListId, action: "add" })),
+      ...listsToRemove.map((mailingListId) => ({
+        mailingListId,
+        action: "remove",
+      })),
+    ];
+    setPendingOperations(operations);
   };
 
   const disableSubmit =
-    !hasSelection || isSubmitting || selectedListIds.size === 0 || creatingList;
+    !hasSelection || isSubmitting || creatingList || !hasChanges;
 
   return (
     <div
@@ -313,25 +398,34 @@ const MailingListBulkEditor = ({
           </Typography.Text>
         ) : (
           <div className="list-group list-group-flush border-0">
-            {filteredMailingLists.map((list) => (
-              <label
-                key={list.id}
-                className="list-group-item d-flex align-items-center border-0"
-                style={{ cursor: "pointer" }}
-              >
-                <Checkbox
-                  value={selectedListIds.has(list.id)}
-                  onChange={() => toggleList(list.id)}
-                  disabled={isSubmitting}
-                />
-                <div className="flex-fill">
-                  <div className="fw-bold">{list.title}</div>
-                  <div className="text-muted small">
-                    {list.memberCount} Member{list.memberCount === 1 ? "" : "s"}
+            {filteredMailingLists.map((list) => {
+              const isSelected = selectedListIds.has(list.id);
+              const checkboxValue = isSelected
+                ? true
+                : list.membershipState === "PARTIAL"
+                ? "PARTIAL"
+                : false;
+
+              return (
+                <label
+                  key={list.id}
+                  className="list-group-item d-flex align-items-center border-0"
+                  style={{ cursor: "pointer" }}
+                >
+                  <Checkbox
+                    value={checkboxValue}
+                    onChange={() => toggleList(list.id)}
+                    disabled={isSubmitting}
+                  />
+                  <div className="flex-fill">
+                    <div className="fw-bold">{list.title}</div>
+                    <div className="text-muted small">
+                      {list.memberCount} Member{list.memberCount === 1 ? "" : "s"}
+                    </div>
                   </div>
-                </div>
-              </label>
-            ))}
+                </label>
+              );
+            })}
           </div>
         )}
       </div>
