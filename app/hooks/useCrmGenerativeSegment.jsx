@@ -1,6 +1,7 @@
 import useSWRMutation from "swr/mutation";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
+import { DEFAULT_SEGMENT_PAGINATION } from "./useCrmSegment";
 
 const postGenerative = async (key, { arg }) => {
   const res = await authFetch(key, {
@@ -10,6 +11,7 @@ const postGenerative = async (key, { arg }) => {
       temperature: arg?.temperature ?? 0.1,
       includeContext: arg?.includeContext ?? true,
       debug: arg?.debug ?? false,
+      pagination: arg?.pagination ?? DEFAULT_SEGMENT_PAGINATION,
     }),
   });
   const json = await res.json();
@@ -28,13 +30,25 @@ export const useCrmGenerativeSegment = ({ eventId }) => {
     postGenerative
   );
 
-  const generate = async ({ prompt, temperature, includeContext, debug }) => {
+  const generate = async ({
+    prompt,
+    temperature,
+    includeContext,
+    debug,
+    pagination,
+  }) => {
     if (!prompt || !prompt.trim()) {
       toast.error("Please enter a prompt");
       return { ok: false };
     }
     try {
-      const promise = trigger({ prompt, temperature, includeContext, debug });
+      const promise = trigger({
+        prompt,
+        temperature,
+        includeContext,
+        debug,
+        pagination: pagination ?? DEFAULT_SEGMENT_PAGINATION,
+      });
       const res = await toast.promise(promise, {
         loading: "Building your perfect segment...",
         success: "Segment generated",

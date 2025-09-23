@@ -111,6 +111,41 @@ export const segmentSchema = z.object({
   debug: z.boolean().optional().default(false),
 });
 
+const PRISMA_SORTABLE_FIELDS = new Set([
+  "name",
+  "createdAt",
+  "updatedAt",
+  "source",
+]);
+
+const DEFAULT_PAGINATION = {
+  page: null,
+  size: null,
+  orderBy: "createdAt",
+  order: "desc",
+};
+
+const parsePagination = (raw) => {
+  if (!raw || typeof raw !== "object") return { ...DEFAULT_PAGINATION };
+  const resolved = { ...DEFAULT_PAGINATION };
+
+  const rawPage = Number(raw.page);
+  const rawSize = Number(raw.size);
+  const rawOrder =
+    typeof raw.order === "string" ? raw.order.toLowerCase() : null;
+  const rawOrderBy =
+    typeof raw.orderBy === "string" ? raw.orderBy.trim() : null;
+
+  if (Number.isFinite(rawPage) && rawPage > 0)
+    resolved.page = Math.floor(rawPage);
+  if (Number.isFinite(rawSize) && rawSize > 0)
+    resolved.size = Math.min(Math.floor(rawSize), 200);
+  if (rawOrder === "asc" || rawOrder === "desc") resolved.order = rawOrder;
+  if (rawOrderBy) resolved.orderBy = rawOrderBy;
+
+  return resolved;
+};
+
 // Utility: resolve instanceIds from iteration spec (strict; throws on missing)
 const resolveInstanceIdsOrThrow = async ({
   iteration,
@@ -696,12 +731,22 @@ export const post = [
       return res.status(400).json({ message: serializeError(parsed) });
     }
 
+    const pagination = parsePagination(
+      req.body?.pagination ?? {
+        page: req.body?.page,
+        size: req.body?.size,
+        orderBy: req.body?.orderBy,
+        order: req.body?.order,
+      }
+    );
+
     try {
       const payload = await evaluateSegment({
         eventId,
         currentInstanceId,
         filter: parsed.data.filter,
         debug: parsed.data.debug,
+        pagination,
       });
       return res.json(payload);
     } catch (e) {
@@ -727,6 +772,7 @@ export const evaluateSegment = async ({
   currentInstanceId,
   filter,
   debug,
+  pagination,
 }) => {
   const universe = await getUniverse(eventId);
   const cache = makePredicateCache();
@@ -751,13 +797,103 @@ export const evaluateSegment = async ({
   const total = resultSet.size;
 
   const ids = Array.from(resultSet);
-  const people = ids.length
-    ? await prisma.crmPerson.findMany({
+  let people = [];
+  let resolvedPagination = {
+    page: 1,
+    size: total,
+    orderBy: DEFAULT_PAGINATION.orderBy,
+    order: DEFAULT_PAGINATION.order,
+  };
+
+  if (ids.length) {
+    const parsedPagination = parsePagination(pagination);
+    const hasPaging =
+      Number.isFinite(parsedPagination?.page) &&
+      Number.isFinite(parsedPagination?.size) &&
+      parsedPagination.size > 0;
+
+    const pageSize = hasPaging ? parsedPagination.size : null;
+    const requestedPage = hasPaging ? parsedPagination.page : 1;
+    const maxPage = hasPaging
+      ? Math.max(1, Math.ceil(total / Math.max(pageSize, 1)))
+      : 1;
+    const effectivePage = hasPaging
+      ? Math.min(Math.max(1, requestedPage), maxPage)
+      : 1;
+    const offset = hasPaging ? (effectivePage - 1) * pageSize : 0;
+    const limit = hasPaging ? pageSize : Math.max(ids.length, 1);
+    const orderDir = parsedPagination?.order === "asc" ? "asc" : "desc";
+
+    let resolvedOrderBy = parsedPagination?.orderBy;
+    if (
+      !resolvedOrderBy ||
+      (!resolvedOrderBy.startsWith?.("fields.") &&
+        !PRISMA_SORTABLE_FIELDS.has(resolvedOrderBy))
+    ) {
+      resolvedOrderBy = DEFAULT_PAGINATION.orderBy;
+    }
+
+    let isFieldSort = resolvedOrderBy?.startsWith?.("fields.") || false;
+    let fieldId = null;
+    if (isFieldSort) {
+      fieldId = resolvedOrderBy.split(".")[1];
+      if (!fieldId) {
+        isFieldSort = false;
+        resolvedOrderBy = DEFAULT_PAGINATION.orderBy;
+      }
+    }
+
+    if (isFieldSort && fieldId) {
+      const rows = await prisma.$queryRawUnsafe(
+        `
+          SELECT p.id
+          FROM "CrmPerson" p
+          LEFT JOIN "CrmPersonField" f
+            ON f."crmPersonId" = p.id AND f."crmFieldId" = $1
+          WHERE p.id = ANY($2)
+          ORDER BY lower(COALESCE(f.value, '')) ${orderDir.toUpperCase()} NULLS LAST, p."createdAt" DESC
+          LIMIT $3 OFFSET $4
+        `,
+        fieldId,
+        ids,
+        limit,
+        offset
+      );
+      const orderedIds = rows.map((row) => row.id);
+      if (orderedIds.length) {
+        const list = await prisma.crmPerson.findMany({
+          where: { id: { in: orderedIds }, eventId, deleted: false },
+          include: { emails: true, phones: true, fieldValues: true },
+        });
+        const idx = new Map(orderedIds.map((id, index) => [id, index]));
+        people = list.sort((a, b) => idx.get(a.id) - idx.get(b.id));
+      } else {
+        people = [];
+      }
+    } else {
+      const orderClauses = [];
+      if (resolvedOrderBy === "createdAt") {
+        orderClauses.push({ createdAt: orderDir });
+      } else {
+        orderClauses.push({ [resolvedOrderBy]: orderDir });
+        orderClauses.push({ createdAt: "desc" });
+      }
+
+      people = await prisma.crmPerson.findMany({
         where: { id: { in: ids }, eventId, deleted: false },
         include: { emails: true, phones: true, fieldValues: true },
-        orderBy: [{ createdAt: "desc" }],
-      })
-    : [];
+        ...(hasPaging ? { skip: offset, take: pageSize } : {}),
+        orderBy: orderClauses,
+      });
+    }
+
+    resolvedPagination = {
+      page: hasPaging ? effectivePage : 1,
+      size: hasPaging ? pageSize : ids.length,
+      orderBy: resolvedOrderBy,
+      order: orderDir,
+    };
+  }
 
   const payload = {
     crmPersons: people.map((p) => ({
@@ -765,6 +901,7 @@ export const evaluateSegment = async ({
       fields: collapseCrmValues(p.fieldValues),
     })),
     total,
+    pagination: resolvedPagination,
   };
   if (debugInfo) payload.debug = debugInfo;
   return payload;

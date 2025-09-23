@@ -4,6 +4,8 @@ import { Icon } from "../../util/Icon";
 import { Row } from "../../util/Flex";
 import { useCrmGenerativeSegment } from "../../hooks/useCrmGenerativeSegment";
 import { useCrmSavedSegments } from "../../hooks/useCrmSavedSegments";
+import { DEFAULT_SEGMENT_PAGINATION } from "../../hooks/useCrmSegment";
+import { CrmSegmentAstEditor } from "../AiASTViewer/AiASTViewer";
 
 /**
  * Offcanvas content for refining an AI segment title and prompt.
@@ -16,26 +18,43 @@ export const AiSegmentRefinePanel = ({
   lastAst = null,
   savedTitle = "",
   defaultTitle = "",
+  pagination,
   onApply, // ({ results, savedSegmentId, ast, title, prompt })
   onClose,
 }) => {
-  const { generate, loading: generating } = useCrmGenerativeSegment({ eventId });
-  const { savedSegments, updateSavedSegment, createSavedSegment, suggestTitle } =
-    useCrmSavedSegments({ eventId });
+  const { generate, loading: generating } = useCrmGenerativeSegment({
+    eventId,
+  });
+  const {
+    savedSegments,
+    updateSavedSegment,
+    createSavedSegment,
+    suggestTitle,
+  } = useCrmSavedSegments({ eventId });
+
+  const effectivePagination = {
+    ...(pagination || DEFAULT_SEGMENT_PAGINATION),
+    page: 1,
+  };
 
   const seg = useMemo(
     () => (savedSegments || []).find((s) => s.id === currentSavedId),
     [savedSegments, currentSavedId]
   );
 
-  const [title, setTitle] = useState(savedTitle || seg?.title || defaultTitle || "");
+  const [title, setTitle] = useState(
+    savedTitle || seg?.title || defaultTitle || ""
+  );
   const [prompt, setPrompt] = useState(lastPrompt || seg?.prompt || "");
 
   useEffect(() => {
     if ((!prompt || !prompt.trim()) && (lastPrompt || seg?.prompt)) {
       setPrompt(lastPrompt || seg?.prompt || "");
     }
-    if ((!title || !title.trim()) && (savedTitle || seg?.title || defaultTitle)) {
+    if (
+      (!title || !title.trim()) &&
+      (savedTitle || seg?.title || defaultTitle)
+    ) {
       setTitle(savedTitle || seg?.title || defaultTitle || "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -47,9 +66,10 @@ export const AiSegmentRefinePanel = ({
       const updated = await updateSavedSegment(currentSavedId, {
         title: (title || "").trim() || null,
       });
-      const newTitle = updated?.ok && updated?.savedSegment
-        ? updated.savedSegment.title || ""
-        : title;
+      const newTitle =
+        updated?.ok && updated?.savedSegment
+          ? updated.savedSegment.title || ""
+          : title;
       onApply?.({
         results: null,
         savedSegmentId: currentSavedId,
@@ -61,18 +81,31 @@ export const AiSegmentRefinePanel = ({
       return;
     }
 
-    const res = await generate({ prompt, debug: false });
+    const res = await generate({
+      prompt,
+      debug: false,
+      pagination: effectivePagination,
+    });
     if (res?.ok && res?.results) {
       let newTitle = (title || "").trim();
-      const saved = await createSavedSegment({ title: newTitle, prompt, ast: res.segment });
+      const saved = await createSavedSegment({
+        title: newTitle,
+        prompt,
+        ast: res.segment,
+      });
       let savedId = null;
       if (saved?.ok && saved?.savedSegment) {
         savedId = saved.savedSegment.id;
         if (!newTitle) {
           const suggestion = await suggestTitle({ prompt, ast: res.segment });
           if (suggestion?.ok && suggestion?.title) {
-            const upd = await updateSavedSegment(savedId, { title: suggestion.title });
-            newTitle = upd?.ok && upd?.savedSegment ? upd.savedSegment.title || suggestion.title : suggestion.title;
+            const upd = await updateSavedSegment(savedId, {
+              title: suggestion.title,
+            });
+            newTitle =
+              upd?.ok && upd?.savedSegment
+                ? upd.savedSegment.title || suggestion.title
+                : suggestion.title;
           }
         }
       }
@@ -89,7 +122,9 @@ export const AiSegmentRefinePanel = ({
 
   return (
     <div>
-      <Typography.H5 className="mb-0 text-secondary">REFINE AI FILTER</Typography.H5>
+      <Typography.H5 className="mb-0 text-secondary">
+        REFINE AI FILTER
+      </Typography.H5>
       <Typography.H1>Edit title and prompt</Typography.H1>
 
       <div className="mb-2">
@@ -129,7 +164,11 @@ export const AiSegmentRefinePanel = ({
       </div>
 
       <Row gap={1}>
-        <Button className="ai-button" loading={generating} onClick={onApplyClick}>
+        <Button
+          className="ai-button"
+          loading={generating}
+          onClick={onApplyClick}
+        >
           Apply
         </Button>
       </Row>
@@ -140,6 +179,10 @@ export const AiSegmentRefinePanel = ({
             View underlying abstract syntax tree (Advanced)
           </summary>
           <pre>{JSON.stringify(seg?.ast || lastAst, null, 2)}</pre>
+          <CrmSegmentAstEditor
+            initialAst={seg?.ast || lastAst}
+            onAstChange={console.log}
+          />
         </details>
       )}
     </div>

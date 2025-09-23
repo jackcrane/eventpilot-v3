@@ -1,18 +1,30 @@
+import { useCallback } from "react";
 import useSWRMutation from "swr/mutation";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 
+export const DEFAULT_SEGMENT_PAGINATION = Object.freeze({
+  page: 1,
+  size: 25,
+  orderBy: "createdAt",
+  order: "desc",
+});
+
 const postSegment = async (key, { arg }) => {
   const res = await authFetch(key, {
     method: "POST",
-    body: JSON.stringify({ filter: arg?.filter, debug: arg?.debug ?? false }),
+    body: JSON.stringify({
+      filter: arg?.filter,
+      debug: arg?.debug ?? false,
+      pagination: arg?.pagination ?? DEFAULT_SEGMENT_PAGINATION,
+    }),
   });
   const json = await res.json();
   if (!res.ok) {
     const msg = json?.message || res.statusText || "Failed to run segment";
     throw new Error(msg);
   }
-  return json; // { crmPersons, total, debug? }
+  return json; // { crmPersons, total, pagination, debug? }
 };
 
 export const useCrmSegment = ({ eventId }) => {
@@ -22,15 +34,22 @@ export const useCrmSegment = ({ eventId }) => {
     postSegment
   );
 
-  const run = async ({ filter, debug }) => {
-    if (!filter) return { ok: false, error: new Error("Missing filter AST") };
-    try {
-      const res = await trigger({ filter, debug });
-      return { ok: true, ...res };
-    } catch (e) {
-      return { ok: false, error: e };
-    }
-  };
+  const run = useCallback(
+    async ({ filter, debug, pagination }) => {
+      if (!filter) return { ok: false, error: new Error("Missing filter AST") };
+      try {
+        const res = await trigger({
+          filter,
+          debug,
+          pagination: pagination ?? DEFAULT_SEGMENT_PAGINATION,
+        });
+        return { ok: true, ...res };
+      } catch (e) {
+        return { ok: false, error: e };
+      }
+    },
+    [trigger]
+  );
 
   return {
     data,

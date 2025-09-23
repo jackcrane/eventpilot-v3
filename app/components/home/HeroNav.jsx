@@ -5,7 +5,7 @@ import { Icon } from "../../util/Icon";
 
 export const HeroNav = ({
   items = [
-    { label: "Overview", href: "#" },
+    { label: "Login", href: "/events" },
     { label: "Versus...", href: "#versus" },
     { label: "Docs", href: "https://docs.eventpilot.dev" },
     { label: "Contact", href: "mailto:support@geteventpilot.com" },

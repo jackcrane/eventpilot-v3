@@ -32,9 +32,10 @@ model User {
 
   suspended Boolean @default(false)
 
-  events          Event[]
-  emails          Email[]
-  gmailConnection GmailConnection[]
+  events             Event[]
+  emails             Email[]
+  gmailConnection    GmailConnection[]
+  CampaignEmailQueue CampaignEmailQueue[]
 }
 
 enum AccountType {
@@ -184,8 +185,62 @@ model Email {
 
   status EmailStatus @default(SENT)
 
+  // Optional campaign association
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// Email marketing campaign
+model Campaign {
+  id   String @id @default(cuid())
+  name String
+
+  // Scope to an Event
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  emails Email[]
+
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  CampaignEmailQueue CampaignEmailQueue[]
+}
+
+/// Queue of campaign emails to be sent asynchronously
+model CampaignEmailQueue {
+  id String @id @default(cuid())
+
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  crmPersonId String
+  crmPerson   CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+
+  // Message fields captured at enqueue-time
+  from    String
+  subject String
+  body    String
+
+  status CampaignEmailQueueStatus @default(PENDING)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([campaignId])
+  @@index([crmPersonId])
+  @@index([status])
+}
+
+enum CampaignEmailQueueStatus {
+  PENDING
+  PROCESSING
+  SENT
 }
 
 enum EmailStatus {
@@ -204,10 +259,10 @@ model OutboundEmailAttachment {
   id String @id @default(cuid())
 
   emailId String
-  email   Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  email   Email  @relation(fields: [emailId], references: [id], onDelete: Cascade)
 
   fileId String
-  file   File  @relation("FileOutboundAttachment", fields: [fileId], references: [id], onDelete: Cascade)
+  file   File   @relation("FileOutboundAttachment", fields: [fileId], references: [id], onDelete: Cascade)
 
   deliveryMode OutboundAttachmentDeliveryMode @default(ATTACHMENT)
 
@@ -450,6 +505,7 @@ model Event {
   registrationPages   RegistrationPage[]
   ledgerItems         LedgerItem[]
   gmailConnection     GmailConnection?
+  campaigns           Campaign[]
 
   stripeConnectedAccountId  String?
   // EventPilot billing: subscription for this event in Stripe
@@ -838,8 +894,9 @@ model CrmPerson {
   importId String?
   import   CrmPersonsImport? @relation(fields: [importId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  CampaignEmailQueue CampaignEmailQueue[]
 }
 
 model CrmPersonLink {
@@ -1442,12 +1499,12 @@ model TodoItemComment {
 model Waitlist {
   id String @id @default(cuid())
 
-  name        String
-  email       String
+  name         String
+  email        String
   organization String?
-  website     String?
-  message     String?
-  eventSize   Int
+  website      String?
+  message      String?
+  eventSize    Int
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

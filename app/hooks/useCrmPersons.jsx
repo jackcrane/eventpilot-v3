@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { mutate as globalMutate } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
@@ -9,9 +9,23 @@ const fetcher = (url) =>
     return r.json();
   });
 
-export const useCrmPersons = ({ eventId }) => {
-  const key = `/api/events/${eventId}/crm/person`;
-  const { data, error, isLoading, mutate } = useSWR(key, fetcher);
+export const useCrmPersons = ({ eventId, page, size, orderBy, order, q, filters } = {}) => {
+  const baseKey = `/api/events/${eventId}/crm/person`;
+  const params = new URLSearchParams();
+  if (page && size) {
+    params.set("page", String(page));
+    params.set("size", String(size));
+  }
+  if (orderBy) params.set("orderBy", String(orderBy));
+  if (order) params.set("order", String(order));
+  if (q && String(q).trim()) params.set("q", String(q).trim());
+  if (Array.isArray(filters) && filters.length) params.set("filters", JSON.stringify(filters));
+  const qs = params.toString();
+  const key = qs ? `${baseKey}?${qs}` : baseKey;
+  const { data, error, isLoading, isValidating, mutate } = useSWR(key, fetcher, {
+    keepPreviousData: true,
+    revalidateOnFocus: false,
+  });
   const [mutationLoading, setMutationLoading] = useState(false);
 
   // state for trimmed imports
@@ -23,7 +37,7 @@ export const useCrmPersons = ({ eventId }) => {
 
     fetchImports = async () => {
       try {
-        const res = await authFetch(key, { method: "PATCH" });
+        const res = await authFetch(baseKey, { method: "PATCH" });
         if (res.ok) {
           const json = await res.json();
           // map to only the fields you need
@@ -34,9 +48,7 @@ export const useCrmPersons = ({ eventId }) => {
               createdAt: job.createdAt,
             }))
           );
-          if (json.imports.length > 0) {
-            mutate();
-          }
+          if (json.imports.length > 0) mutate();
 
           // decide next interval
           const running = json.imports.some((job) => !job.finished);
@@ -57,7 +69,7 @@ export const useCrmPersons = ({ eventId }) => {
   const createCrmPerson = async (payload) => {
     setMutationLoading(true);
     try {
-      const promise = authFetch(key, {
+      const promise = authFetch(baseKey, {
         method: "POST",
         body: JSON.stringify(payload),
       }).then((r) => {
@@ -71,7 +83,9 @@ export const useCrmPersons = ({ eventId }) => {
         error: "Error creating",
       });
 
-      await mutate(key);
+      // Revalidate current page and any cached pages for this list
+      await mutate();
+      await globalMutate((k) => typeof k === "string" && k.startsWith(baseKey));
       return true;
     } catch {
       return false;
@@ -83,7 +97,7 @@ export const useCrmPersons = ({ eventId }) => {
   const batchCreateCrmPersons = async (payload) => {
     setMutationLoading(true);
     try {
-      const promise = authFetch(key, {
+      const promise = authFetch(baseKey, {
         method: "POST",
         body: JSON.stringify(payload),
       }).then((r) => {
@@ -99,7 +113,7 @@ export const useCrmPersons = ({ eventId }) => {
         "Import successfully scheduled. It may take a few minutes to complete."
       );
 
-      await mutate(key);
+      await mutate();
       fetchImports();
       setTimeout(fetchImports, 1000);
       return true;
@@ -112,11 +126,13 @@ export const useCrmPersons = ({ eventId }) => {
 
   return {
     crmPersons: data?.crmPersons,
+    total: data?.total ?? (Array.isArray(data?.crmPersons) ? data.crmPersons.length : 0),
     imports,
     loading: isLoading,
+    validating: isValidating,
     mutationLoading,
     error,
-    refetch: () => mutate(key),
+    refetch: () => mutate(),
     createCrmPerson,
     batchCreateCrmPersons,
   };
