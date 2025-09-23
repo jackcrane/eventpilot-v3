@@ -41,6 +41,7 @@ import { EventSessionPage } from "./routes/events/[eventId]/session/[sessionId]"
 import { EventTodosPage } from "./routes/events/[eventId]/todos";
 import { WaitlistPage } from "./routes/waitlist";
 import { EventConversationsPage } from "./routes/events/[eventId]/conversations";
+import { EventMailingListsPage } from "./routes/events/[eventId]/email/lists";
 // legacy conversations UI has been removed in favor of Gmail-based flow
 
 export default () => {
@@ -153,6 +154,10 @@ export default () => {
             <Route
               path="/events/:eventId/conversations"
               element={<EventConversationsPage />}
+            />
+            <Route
+              path="/events/:eventId/email/lists"
+              element={<EventMailingListsPage />}
             />
 
             <Route
