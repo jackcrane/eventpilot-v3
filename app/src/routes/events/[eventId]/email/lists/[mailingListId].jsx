@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { TableV2 } from "tabler-react-2/dist/table-v2";
-import { Badge, Button, Typography } from "tabler-react-2";
+import { Badge, Button, Typography, useOffcanvas } from "tabler-react-2";
 import toast from "react-hot-toast";
 import { EventPage } from "../../../../../../components/eventPage/EventPage";
 import { Row } from "../../../../../../util/Flex";
@@ -9,6 +9,7 @@ import { Empty } from "../../../../../../components/empty/Empty";
 import { useMailingList } from "../../../../../../hooks/useMailingList";
 import { useMailingListMembers } from "../../../../../../hooks/useMailingListMembers";
 import { useCrmTableSelection } from "../../../../../../hooks/useCrmTableSelection";
+import { MailingListAddPeoplePanel } from "../../../../../../components/crm/MailingListAddPeoplePanel";
 
 const STATUS_COLORS = {
   ACTIVE: "green",
@@ -58,6 +59,14 @@ export const EventMailingListMembersPage = () => {
     mailingListId,
     page,
     pageSize,
+  });
+
+  const {
+    offcanvas: openAddPeoplePanel,
+    OffcanvasElement: AddPeopleOffcanvas,
+    close: closeAddPeoplePanel,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 460, zIndex: 1051 },
   });
 
   useEffect(() => {
@@ -170,6 +179,21 @@ export const EventMailingListMembersPage = () => {
     }
   };
 
+  const handleAddPeople = () => {
+    openAddPeoplePanel({
+      title: "Add people",
+      content: (
+        <MailingListAddPeoplePanel
+          eventId={eventId}
+          mailingListId={mailingListId}
+          mailingListTitle={mailingList?.title}
+          addMembers={addMembers}
+          onClose={closeAddPeoplePanel}
+        />
+      ),
+    });
+  };
+
   const loading = listLoading || membersLoading;
 
   return (
@@ -178,17 +202,29 @@ export const EventMailingListMembersPage = () => {
       description="Review and manage mailing list members."
       loading={loading}
     >
+      {AddPeopleOffcanvas}
       <Row justify="space-between" align="center" className="mb-3">
-        {selectedIds.length > 0 ? (
-          <Button
-            variant="danger"
-            onClick={handleRemoveSelected}
-            loading={removing}
-            outline
-          >
-            Remove selected ({selectedIds.length})
+        <div>
+          <Typography.H5 className="mb-0 text-secondary">MEMBERS</Typography.H5>
+          <Typography.Text className="text-muted">
+            {total || 0} member{(total || 0) === 1 ? "" : "s"}
+          </Typography.Text>
+        </div>
+        <Row gap={0.5}>
+          <Button variant="primary" onClick={handleAddPeople}>
+            Add people
           </Button>
-        ) : null}
+          {selectedIds.length > 0 ? (
+            <Button
+              variant="danger"
+              onClick={handleRemoveSelected}
+              loading={removing}
+              outline
+            >
+              Remove selected ({selectedIds.length})
+            </Button>
+          ) : null}
+        </Row>
       </Row>
 
       {membersError ? (
@@ -224,6 +260,8 @@ export const EventMailingListMembersPage = () => {
           gradient={false}
           title="No members yet."
           text="Add people to this mailing list to manage them here."
+          onCtaClick={handleAddPeople}
+          ctaText="Add people"
         />
       )}
     </EventPage>

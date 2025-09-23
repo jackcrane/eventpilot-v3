@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Table, Button, Typography, Input, useOffcanvas } from "tabler-react-2";
+import { Link, useParams } from "react-router-dom";
+import { Table, Button, Typography, Input, useOffcanvas, Dropdown } from "tabler-react-2";
 import { EventPage } from "../../../../../../components/eventPage/EventPage";
 import { Row } from "../../../../../../util/Flex";
 import { Empty } from "../../../../../../components/empty/Empty";
 import { useMailingLists } from "../../../../../../hooks/useMailingLists";
+import { MailingListAddPeoplePanel } from "../../../../../../components/crm/MailingListAddPeoplePanel";
 
 const formatDateTime = (value) => {
   if (!value) return "—";
@@ -92,7 +93,6 @@ const RenameMailingListForm = ({ mailingList, onSubmit, onCancel }) => {
 
 export const EventMailingListsPage = () => {
   const { eventId } = useParams();
-  const navigate = useNavigate();
   const { mailingLists, loading, error, updateMailingList, deleteMailingList } =
     useMailingLists({ eventId });
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
@@ -132,6 +132,19 @@ export const EventMailingListsPage = () => {
     if (!confirmed) return;
     await deleteMailingList(list.id);
   };
+  const handleAddPeople = (list) => {
+    offcanvas({
+      title: "Add people",
+      content: (
+        <MailingListAddPeoplePanel
+          eventId={eventId}
+          mailingListId={list.id}
+          mailingListTitle={list.title}
+          onClose={close}
+        />
+      ),
+    });
+  };
   return (
     <EventPage
       title="Mailing Lists"
@@ -148,7 +161,15 @@ export const EventMailingListsPage = () => {
           <Table
             className="card"
             columns={[
-              { label: "Title", accessor: "title" },
+              {
+                label: "Title",
+                accessor: "title",
+                render: (value, row) => (
+                  <Link to={`/events/${eventId}/email/lists/${row.id}`}>
+                    {value}
+                  </Link>
+                ),
+              },
               {
                 label: "Members",
                 accessor: "memberCount",
@@ -165,23 +186,35 @@ export const EventMailingListsPage = () => {
                   <Row gap={0.5}>
                     <Button
                       size="sm"
-                      variant="primary"
-                      onClick={() =>
-                        navigate(`/events/${eventId}/email/lists/${row.id}`)
-                      }
+                      onClick={() => handleRename(row)}
                     >
-                      View members
-                    </Button>
-                    <Button size="sm" onClick={() => handleRename(row)}>
                       Rename
                     </Button>
                     <Button
                       size="sm"
                       variant="danger"
+                      style={{ visibility: row.deleted ? "hidden" : "visible" }}
                       onClick={() => handleDelete(row)}
                     >
                       Delete
                     </Button>
+                    <Dropdown
+                      prompt="Actions"
+                      items={[
+                        {
+                          text: "Add people",
+                          onclick: () => handleAddPeople(row),
+                        },
+                        {
+                          text: "Rename",
+                          onclick: () => handleRename(row),
+                        },
+                        {
+                          text: "Delete",
+                          onclick: () => handleDelete(row),
+                        },
+                      ]}
+                    />
                   </Row>
                 ),
               },
