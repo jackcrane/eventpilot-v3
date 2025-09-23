@@ -1,7 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { TableV2 } from "tabler-react-2/dist/table-v2";
-import { Badge, Button, Typography, useOffcanvas } from "tabler-react-2";
+import {
+  Badge,
+  Button,
+  Typography,
+  useOffcanvas,
+  Dropdown,
+  Input,
+  useConfirm,
+} from "tabler-react-2";
 import toast from "react-hot-toast";
 import { EventPage } from "../../../../../../components/eventPage/EventPage";
 import { Row } from "../../../../../../util/Flex";
@@ -10,6 +18,8 @@ import { useMailingList } from "../../../../../../hooks/useMailingList";
 import { useMailingListMembers } from "../../../../../../hooks/useMailingListMembers";
 import { useCrmTableSelection } from "../../../../../../hooks/useCrmTableSelection";
 import { MailingListAddPeoplePanel } from "../../../../../../components/crm/MailingListAddPeoplePanel";
+import moment from "moment";
+import { DATETIME_FORMAT } from "../../../../../../util/Constants";
 
 const STATUS_COLORS = {
   ACTIVE: "green",
@@ -18,23 +28,76 @@ const STATUS_COLORS = {
   DELETED: "red",
 };
 
-const formatDateTime = (value) => {
-  if (!value) return "—";
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(value));
-  } catch (e) {
-    return "—";
-  }
+const RenameMailingListForm = ({ mailingList, onSubmit, onCancel }) => {
+  const [title, setTitle] = useState(mailingList?.title || "");
+  const [touched, setTouched] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const trimmed = title.trim();
+  const showError = touched && !trimmed;
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setTouched(true);
+    if (!trimmed || saving) return;
+    setSaving(true);
+    try {
+      const ok = await onSubmit(trimmed);
+      if (!ok) setSaving(false);
+    } catch (e) {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      style={{ display: "flex", flexDirection: "column", gap: 16 }}
+    >
+      <div>
+        <Typography.H5 className="mb-0 text-secondary">
+          MAILING LIST
+        </Typography.H5>
+        <Typography.H1 className="mb-2">{mailingList?.title}</Typography.H1>
+        <Typography.Text className="text-muted">
+          Update the name shown for this mailing list.
+        </Typography.Text>
+      </div>
+      <Input
+        label="Mailing list name"
+        value={title}
+        onChange={setTitle}
+        onBlur={() => setTouched(true)}
+        placeholder="List name"
+        required
+        invalid={showError}
+        invalidText={showError ? "Title is required" : undefined}
+      />
+      <Row gap={0.5} justify="flex-end">
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={saving}
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          variant="primary"
+          loading={saving}
+          disabled={!trimmed || saving}
+        >
+          Save
+        </Button>
+      </Row>
+    </form>
+  );
 };
 
 export const EventMailingListMembersPage = () => {
   const { eventId, mailingListId } = useParams();
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -44,6 +107,8 @@ export const EventMailingListMembersPage = () => {
     mailingList,
     memberCount: listMemberCount,
     loading: listLoading,
+    updateMailingList,
+    deleteMailingList,
   } = useMailingList({ eventId, mailingListId });
 
   const {
@@ -67,6 +132,22 @@ export const EventMailingListMembersPage = () => {
     close: closeAddPeoplePanel,
   } = useOffcanvas({
     offcanvasProps: { position: "end", size: 460, zIndex: 1051 },
+  });
+
+  const {
+    offcanvas: openRenamePanel,
+    OffcanvasElement: RenameOffcanvas,
+    close: closeRenamePanel,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 420, zIndex: 1052 },
+  });
+
+  const { confirm, ConfirmModal } = useConfirm({
+    title: "Delete mailing list",
+    text: "This will delete the mailing list and remove all of its members. Are you sure?",
+    commitText: "Delete",
+    cancelText: "Cancel",
+    confirmVariant: "danger",
   });
 
   useEffect(() => {
@@ -126,7 +207,7 @@ export const EventMailingListMembersPage = () => {
             </div>
           );
         },
-        enableSorting: false,
+        enableSorting: true,
       },
       {
         id: "status",
@@ -134,17 +215,29 @@ export const EventMailingListMembersPage = () => {
         cell: ({ row }) => {
           const status = row.original?.status || "UNKNOWN";
           const color = STATUS_COLORS[status] || "gray";
-          return <Badge color={color}>{status}</Badge>;
+          return (
+            <Badge color={color} soft>
+              {status}
+            </Badge>
+          );
         },
         size: 120,
-        enableSorting: false,
+        enableSorting: true,
       },
       {
         id: "added",
         header: () => "Added",
-        cell: ({ row }) => formatDateTime(row.original?.createdAt),
+        cell: ({ row }) =>
+          moment(row.original?.createdAt).format(DATETIME_FORMAT),
         size: 180,
-        enableSorting: false,
+        enableSorting: true,
+        sortFn: (a, b) => {
+          let c = moment(a?.createdAt);
+          let d = moment(b?.createdAt);
+          if (!c) return 1;
+          if (!d) return -1;
+          return c.isAfter(d) ? 1 : -1;
+        },
       },
     ];
 
@@ -194,6 +287,37 @@ export const EventMailingListMembersPage = () => {
     });
   };
 
+  const handleRename = () => {
+    if (!mailingList) return;
+    openRenamePanel({
+      title: "Rename mailing list",
+      content: (
+        <RenameMailingListForm
+          mailingList={mailingList}
+          onCancel={closeRenamePanel}
+          onSubmit={async (nextTitle) => {
+            if (nextTitle === mailingList.title) {
+              closeRenamePanel();
+              return true;
+            }
+            const ok = await updateMailingList?.({ title: nextTitle });
+            if (ok) closeRenamePanel();
+            return ok;
+          }}
+        />
+      ),
+    });
+  };
+
+  const handleDeleteList = async () => {
+    const confirmed = await confirm?.();
+    if (!confirmed) return;
+    const ok = await deleteMailingList?.();
+    if (ok) {
+      navigate(`/events/${eventId}/email/lists`);
+    }
+  };
+
   const loading = listLoading || membersLoading;
 
   return (
@@ -202,7 +326,9 @@ export const EventMailingListMembersPage = () => {
       description="Review and manage mailing list members."
       loading={loading}
     >
+      {ConfirmModal}
       {AddPeopleOffcanvas}
+      {RenameOffcanvas}
       <Row justify="space-between" align="center" className="mb-3">
         <div>
           <Typography.H5 className="mb-0 text-secondary">MEMBERS</Typography.H5>
@@ -211,9 +337,6 @@ export const EventMailingListMembersPage = () => {
           </Typography.Text>
         </div>
         <Row gap={0.5}>
-          <Button variant="primary" onClick={handleAddPeople}>
-            Add people
-          </Button>
           {selectedIds.length > 0 ? (
             <Button
               variant="danger"
@@ -224,6 +347,23 @@ export const EventMailingListMembersPage = () => {
               Remove selected ({selectedIds.length})
             </Button>
           ) : null}
+          <Dropdown
+            prompt="Actions"
+            items={[
+              {
+                text: "Add people",
+                onclick: handleAddPeople,
+              },
+              {
+                text: "Rename list",
+                onclick: handleRename,
+              },
+              {
+                text: "Delete list",
+                onclick: handleDeleteList,
+              },
+            ]}
+          />
         </Row>
       </Row>
 

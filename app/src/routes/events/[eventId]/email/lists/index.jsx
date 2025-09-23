@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Table, Button, Typography, Input, useOffcanvas, Dropdown } from "tabler-react-2";
+import { Table, Button, Typography, Input, useOffcanvas } from "tabler-react-2";
 import { EventPage } from "../../../../../../components/eventPage/EventPage";
 import { Row } from "../../../../../../util/Flex";
 import { Empty } from "../../../../../../components/empty/Empty";
 import { useMailingLists } from "../../../../../../hooks/useMailingLists";
-import { MailingListAddPeoplePanel } from "../../../../../../components/crm/MailingListAddPeoplePanel";
 
 const formatDateTime = (value) => {
   if (!value) return "—";
@@ -132,19 +131,6 @@ export const EventMailingListsPage = () => {
     if (!confirmed) return;
     await deleteMailingList(list.id);
   };
-  const handleAddPeople = (list) => {
-    offcanvas({
-      title: "Add people",
-      content: (
-        <MailingListAddPeoplePanel
-          eventId={eventId}
-          mailingListId={list.id}
-          mailingListTitle={list.title}
-          onClose={close}
-        />
-      ),
-    });
-  };
   return (
     <EventPage
       title="Mailing Lists"
@@ -158,69 +144,49 @@ export const EventMailingListsPage = () => {
         </Typography.Text>
       ) : mailingLists?.length ? (
         <div className="table-responsive">
-          <Table
-            className="card"
-            columns={[
-              {
-                label: "Title",
-                accessor: "title",
-                render: (value, row) => (
-                  <Link to={`/events/${eventId}/email/lists/${row.id}`}>
-                    {value}
-                  </Link>
-                ),
-              },
-              {
-                label: "Members",
-                accessor: "memberCount",
-              },
-              {
-                label: "Updated",
-                accessor: "updatedAt",
-                render: (value) => formatDateTime(value),
-              },
-              {
-                label: "Actions",
-                accessor: "id",
-                render: (value, row) => (
-                  <Row gap={0.5}>
-                    <Button
-                      size="sm"
-                      onClick={() => handleRename(row)}
-                    >
-                      Rename
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      style={{ visibility: row.deleted ? "hidden" : "visible" }}
-                      onClick={() => handleDelete(row)}
-                    >
-                      Delete
-                    </Button>
-                    <Dropdown
-                      prompt="Actions"
-                      items={[
-                        {
-                          text: "Add people",
-                          onclick: () => handleAddPeople(row),
-                        },
-                        {
-                          text: "Rename",
-                          onclick: () => handleRename(row),
-                        },
-                        {
-                          text: "Delete",
-                          onclick: () => handleDelete(row),
-                        },
-                      ]}
-                    />
-                  </Row>
-                ),
-              },
-            ]}
-            data={mailingLists}
-          />
+        <Table
+          className="card"
+          columns={[
+            {
+              label: "Title",
+              accessor: "title",
+              render: (value, row) => (
+                <Link to={`/events/${eventId}/email/lists/${row.id}`}>
+                  {value}
+                </Link>
+              ),
+            },
+            {
+              label: "Members",
+              accessor: "memberCount",
+            },
+            {
+              label: "Updated",
+              accessor: "updatedAt",
+              render: (value) => formatDateTime(value),
+            },
+            {
+              label: "Actions",
+              accessor: "id",
+              render: (value, row) => (
+                <Row gap={0.5}>
+                  <Button size="sm" onClick={() => handleRename(row)}>
+                    Rename
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    style={{ visibility: row.deleted ? "hidden" : "visible" }}
+                    onClick={() => handleDelete(row)}
+                  >
+                    Delete
+                  </Button>
+                </Row>
+              ),
+            },
+          ]}
+          data={mailingLists}
+        />
         </div>
       ) : (
         <Empty

@@ -105,6 +105,7 @@ const MailingListBulkEditor = ({
   const [operationMap, setOperationMap] = useState(() => new Map());
   const toastIdRef = useRef(null);
   const initialStateRef = useRef(new Map());
+  const hadChangesRef = useRef(false);
 
   const currentOperation = pendingOperations.length ? pendingOperations[0] : null;
   const activeMailingListId = currentOperation?.mailingListId ?? null;
@@ -125,6 +126,7 @@ const MailingListBulkEditor = ({
       setPendingOperations([]);
       setOperationMap(new Map());
       initialStateRef.current = new Map();
+      hadChangesRef.current = false;
       if (toastIdRef.current) {
         toast.dismiss(toastIdRef.current);
         toastIdRef.current = null;
@@ -144,6 +146,7 @@ const MailingListBulkEditor = ({
     setPendingOperations([]);
     setIsSubmitting(false);
     initialStateRef.current = new Map();
+    hadChangesRef.current = false;
     if (toastIdRef.current) {
       toast.dismiss(toastIdRef.current);
       toastIdRef.current = null;
@@ -205,6 +208,14 @@ const MailingListBulkEditor = ({
           throw new Error("Error updating mailing lists");
         }
 
+        const successCount =
+          Number(res?.created ?? 0) +
+          Number(res?.reactivated ?? 0) +
+          Number(res?.updated ?? 0);
+        if (successCount > 0) {
+          hadChangesRef.current = true;
+        }
+
         setPendingOperations((prev) => {
           if (!Array.isArray(prev) || prev.length === 0) {
             return prev;
@@ -213,7 +224,11 @@ const MailingListBulkEditor = ({
           const next = prev.slice(1);
           if (next.length === 0) {
             if (toastIdRef.current) {
-              toast.success("Mailing lists updated", {
+              const message = hadChangesRef.current
+                ? "Mailing lists updated"
+                : "No mailing list memberships were changed";
+              const notify = hadChangesRef.current ? toast.success : toast.error;
+              notify(message, {
                 id: toastIdRef.current,
               });
               toastIdRef.current = null;

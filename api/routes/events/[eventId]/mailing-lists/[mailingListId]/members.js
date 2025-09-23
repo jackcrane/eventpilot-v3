@@ -86,6 +86,10 @@ export const post = [
     }
 
     const { crmPersonIds, status } = result.data;
+    const isRemovalRequest = status === MailingListMemberStatus.DELETED;
+    const targetStatus = isRemovalRequest
+      ? MailingListMemberStatus.DELETED
+      : MailingListMemberStatus.ACTIVE;
     const uniqueIds = Array.from(new Set(crmPersonIds));
 
     try {
@@ -124,21 +128,30 @@ export const post = [
       const reactivated = [];
       const toCreate = [];
       const toUpdate = [];
+      const unsubscribed = new Set();
 
       for (const personId of uniqueIds) {
         if (!validIds.has(personId)) continue;
 
         const existing = existingByPersonId.get(personId);
         if (!existing) {
-          if (status === MailingListMemberStatus.DELETED) {
+          if (isRemovalRequest) {
             continue;
           }
           toCreate.push(personId);
           continue;
         }
 
+        if (
+          !isRemovalRequest &&
+          existing.status === MailingListMemberStatus.UNSUBSCRIBED
+        ) {
+          unsubscribed.add(existing.crmPersonId);
+          continue;
+        }
+
         if (existing.deleted) {
-          if (status === MailingListMemberStatus.DELETED) {
+          if (isRemovalRequest) {
             alreadyDeleted.push(existing);
             continue;
           }
@@ -147,8 +160,8 @@ export const post = [
           continue;
         }
 
-        if (existing.status === status) {
-          if (status === MailingListMemberStatus.DELETED) {
+        if (existing.status === targetStatus) {
+          if (isRemovalRequest) {
             alreadyDeleted.push(existing);
           } else {
             alreadyActive.push(existing);
@@ -164,10 +177,10 @@ export const post = [
         id: cuid(),
         mailingListId,
         crmPersonId: personId,
-        status,
+        status: targetStatus,
         createdAt: now,
         updatedAt: now,
-        deleted: status === MailingListMemberStatus.DELETED,
+        deleted: isRemovalRequest,
       }));
 
       const reactivateIds = reactivated.map((m) => m.id);
@@ -190,7 +203,11 @@ export const post = [
         if (reactivateIds.length) {
           await tx.mailingListMember.updateMany({
             where: { id: { in: reactivateIds } },
-            data: { deleted: false, status, updatedAt: now },
+            data: {
+              deleted: false,
+              status: targetStatus,
+              updatedAt: now,
+            },
           });
         }
 
@@ -198,8 +215,8 @@ export const post = [
           await tx.mailingListMember.updateMany({
             where: { id: { in: updateIds } },
             data: {
-              status,
-              deleted: status === MailingListMemberStatus.DELETED,
+              status: targetStatus,
+              deleted: isRemovalRequest,
               updatedAt: now,
             },
           });
@@ -276,8 +293,7 @@ export const post = [
             const member = affectedById.get(previous.id);
             if (!member) continue;
 
-            const isDeletion =
-              status === MailingListMemberStatus.DELETED;
+          const isDeletion = isRemovalRequest;
 
             logEntries.push({
               type: isDeletion
@@ -323,16 +339,46 @@ export const post = [
         }
       }
 
-      return res.status(201).json({
+      const unsubscribedIds = Array.from(unsubscribed);
+      let unsubscribedDetails = [];
+      if (unsubscribedIds.length) {
+        const unsubscribedPeople = await prisma.crmPerson.findMany({
+          where: {
+            id: { in: unsubscribedIds },
+          },
+          select: { id: true, name: true },
+        });
+        const unsubscribedById = new Map(
+          unsubscribedPeople.map((person) => [person.id, person])
+        );
+        unsubscribedDetails = unsubscribedIds.map((id) => {
+          const person = unsubscribedById.get(id);
+          return {
+            crmPersonId: id,
+            name: person?.name || null,
+          };
+        });
+      }
+
+      const response = {
         created: createdResultCount,
         reactivated: reactivated.length,
         updated: toUpdate.length,
         skipped: {
           alreadyActive: alreadyActive.map((m) => m.crmPersonId),
           alreadyDeleted: alreadyDeleted.map((m) => m.crmPersonId),
+          unsubscribed: unsubscribedIds,
           notFound,
         },
-      });
+      };
+
+      if (unsubscribedDetails.length) {
+        response.skippedDetails = {
+          unsubscribed: unsubscribedDetails,
+        };
+      }
+
+      return res.status(201).json(response);
     } catch (error) {
       console.error(
         `Error batch-adding members to mailing list ${mailingListId}:`,

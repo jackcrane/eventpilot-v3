@@ -68,7 +68,7 @@ export const EventPage = ({
     {
       type: "item",
       href: `${base}/crm`,
-      text: "Contacts",
+      text: "CRM",
       active: isActive(`${base}/crm`),
       icon: <Icon i="briefcase-2" size={18} color="var(--tblr-purple)" />,
     },

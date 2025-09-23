@@ -97,7 +97,7 @@ export const useMailingListMembers = (
     : null;
 
   const wrapMutation = async (promiseFactory, messages, options = {}) => {
-    const { disableToast = false } = options || {};
+    const { disableToast = false, ...mutationOptions } = options || {};
 
     const runMutation = async () => {
       const result = await promiseFactory();
@@ -217,7 +217,7 @@ export const useMailingListMembers = (
     return Boolean(result);
   };
 
-  const addMembers = async (payload, options) => {
+  const addMembers = async (payload, options = {}) => {
     if (!bulkKey) return null;
 
     const schema = bulkSchema;
@@ -229,21 +229,90 @@ export const useMailingListMembers = (
       return null;
     }
 
-    const result = await wrapMutation(
-      () =>
-        authFetch(bulkKey, {
-          method: "POST",
-          body: JSON.stringify(parsed.data),
-        }).then(parseResponse),
+    const { disableToast = false, ...mutationOptions } = options || {};
+
+    const runMutation = () =>
+      authFetch(bulkKey, {
+        method: "POST",
+        body: JSON.stringify(parsed.data),
+      }).then(parseResponse);
+
+    const mutationPromise = wrapMutation(
+      runMutation,
       {
         loading: "Adding people…",
         success: "People added",
         error: "Error adding people",
       },
-      options
+      { ...mutationOptions, disableToast: true }
     );
 
-    return result;
+    const showUnsubscribedToasts = (result) => {
+      if (!result) return;
+
+      const unsubscribedIds = Array.isArray(result?.skipped?.unsubscribed)
+        ? result.skipped.unsubscribed
+        : [];
+
+      if (!unsubscribedIds.length) {
+        return;
+      }
+
+      const detailEntries = Array.isArray(
+        result?.skippedDetails?.unsubscribed
+      )
+        ? result.skippedDetails.unsubscribed
+        : [];
+
+      const detailsById = new Map(
+        detailEntries.map((entry) => [entry.crmPersonId, entry])
+      );
+
+      for (const id of unsubscribedIds) {
+        const detail = detailsById.get(id);
+        const name = detail?.name?.trim();
+        const displayName = name && name.length ? name : "This contact";
+        toast.error(
+          `${displayName} was not added because they have unsubscribed from this list`
+        );
+      }
+    };
+
+    if (disableToast) {
+      const result = await mutationPromise;
+      showUnsubscribedToasts(result);
+      return result;
+    }
+
+    let loadingToastId = toast.loading("Adding people…");
+    try {
+      const result = await mutationPromise;
+      toast.dismiss(loadingToastId);
+      loadingToastId = null;
+
+      const successCount =
+        Number(result?.created ?? 0) +
+        Number(result?.reactivated ?? 0) +
+        Number(result?.updated ?? 0);
+
+      if (successCount > 0) {
+        toast.success("People added");
+      } else {
+        toast.error("No members were added");
+      }
+
+      showUnsubscribedToasts(result);
+
+      return result;
+    } catch (error) {
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+        loadingToastId = null;
+      }
+      const message = error?.message || "Error adding people";
+      toast.error(message);
+      return null;
+    }
   };
 
   const refetch = async () => {
