@@ -36,7 +36,7 @@ export const useMailingLists = ({ eventId, includeDeleted } = {}) => {
   const { data: schema } = useSWR(key ? [key, "schema"] : null, fetchSchema);
 
   const createMailingList = async (payload) => {
-    if (!eventId) return false;
+    if (!eventId) return null;
     const listUrl = `/api/events/${eventId}/mailing-lists`;
 
     try {
@@ -45,7 +45,7 @@ export const useMailingLists = ({ eventId, includeDeleted } = {}) => {
         : { success: true, data: payload };
       if (!parsed.success) {
         toast.error("Validation error");
-        return false;
+        return null;
       }
 
       const promise = authFetch(listUrl, {
@@ -64,9 +64,9 @@ export const useMailingLists = ({ eventId, includeDeleted } = {}) => {
         await mutate(`/api/events/${eventId}/mailing-lists/${mailingList.id}`);
       }
 
-      return true;
+      return mailingList ?? null;
     } catch (e) {
-      return false;
+      return null;
     }
   };
 

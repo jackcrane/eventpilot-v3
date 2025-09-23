@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Util, useOffcanvas } from "tabler-react-2";
 import { EventPage } from "../eventPage/EventPage";
@@ -17,6 +17,7 @@ import { useCrmColumnConfig } from "../../hooks/useCrmColumnConfig";
 import { useCrmAiState } from "../../hooks/useCrmAiState";
 import { useCrmPersons } from "../../hooks/useCrmPersons";
 import { filterPersons } from "../../util/crm/filterPersons";
+import { CrmMailingListBulkAction } from "./CrmMailingListBulkAction";
 
 const DESCRIPTION =
   "This is the contacts page. It is a powerful CRM for managing your event's contacts.";
@@ -55,6 +56,7 @@ export const EventCrmPage = ({ eventId }) => {
   const [size, setSize] = useState(25);
   const [orderBy, setOrderBy] = useState("createdAt");
   const [order, setOrder] = useState("desc");
+  const [selectedPersonIds, setSelectedPersonIds] = useState([]);
 
   const aiState = useCrmAiState({
     eventId,
@@ -89,6 +91,7 @@ export const EventCrmPage = ({ eventId }) => {
 
   useEffect(() => {
     setHasInitialLoaded(false);
+    setSelectedPersonIds([]);
   }, [eventId]);
 
   useEffect(() => {
@@ -134,6 +137,10 @@ export const EventCrmPage = ({ eventId }) => {
     setOrder(nextOrder);
     setPage(1);
   };
+
+  const handleSelectionChange = useCallback((ids = []) => {
+    setSelectedPersonIds(Array.isArray(ids) ? Array.from(new Set(ids)) : []);
+  }, []);
 
   useEffect(() => {
     if (!aiState.usingAi) return;
@@ -269,6 +276,12 @@ export const EventCrmPage = ({ eventId }) => {
         onAskAi={aiState.openPrompt}
       />
 
+      <CrmMailingListBulkAction
+        eventId={eventId}
+        selectedIds={selectedPersonIds}
+        onClearSelection={() => setSelectedPersonIds([])}
+      />
+
       {shouldShowEmpty && (
         <Empty text="You don't have any CRM responses yet." />
       )}
@@ -287,6 +300,8 @@ export const EventCrmPage = ({ eventId }) => {
         order={order}
         onSetOrder={handleOrderChange}
         loading={hasInitialLoaded && busy}
+        selectedIds={selectedPersonIds}
+        onSelectionChange={handleSelectionChange}
       />
     </EventPage>
   );
