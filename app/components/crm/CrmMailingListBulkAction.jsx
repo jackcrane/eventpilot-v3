@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Button,
@@ -98,15 +98,13 @@ const MailingListBulkEditor = ({
   } = useMailingLists({ eventId, crmPersonIds: selectedIds });
 
   const [filter, setFilter] = useState("");
-  const [selectedListIds, setSelectedListIds] = useState(() => new Set());
   const [newListTitle, setNewListTitle] = useState("");
   const [creatingList, setCreatingList] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingOperations, setPendingOperations] = useState([]);
+  const [operationMap, setOperationMap] = useState(() => new Map());
   const toastIdRef = useRef(null);
-  const initialSelectionRef = useRef(new Set());
-  const hasInitializedSelectionRef = useRef(false);
-  const lastSelectionSignatureRef = useRef(null);
+  const initialStateRef = useRef(new Map());
 
   const currentOperation = pendingOperations.length ? pendingOperations[0] : null;
   const activeMailingListId = currentOperation?.mailingListId ?? null;
@@ -117,73 +115,69 @@ const MailingListBulkEditor = ({
   });
   const { addMembers } = mailingListMembers;
 
-  const selectedIdsSignature = useMemo(() => {
-    if (!Array.isArray(selectedIds) || selectedIds.length === 0) return "";
-    return Array.from(new Set(selectedIds)).sort().join("|");
-  }, [selectedIds]);
-
-  const defaultSelectionSignature = useMemo(() => {
-    if (!Array.isArray(mailingLists)) return "";
-    const defaults = mailingLists
-      .filter((list) => !list.deleted && list.membershipState === "ALL")
-      .map((list) => list.id)
-      .sort();
-    return defaults.join("|");
-  }, [mailingLists]);
-
   useEffect(() => {
     if (!hasSelection) {
       onClose?.();
       setFilter("");
-      setSelectedListIds(new Set());
       setNewListTitle("");
       setCreatingList(false);
       setIsSubmitting(false);
       setPendingOperations([]);
-      initialSelectionRef.current = new Set();
-      hasInitializedSelectionRef.current = false;
-      lastSelectionSignatureRef.current = null;
+      setOperationMap(new Map());
+      initialStateRef.current = new Map();
       if (toastIdRef.current) {
         toast.dismiss(toastIdRef.current);
         toastIdRef.current = null;
       }
       return;
     }
+  }, [hasSelection, onClose]);
 
-    const selectionSignature = selectedIdsSignature;
-    if (
-      !hasInitializedSelectionRef.current ||
-      lastSelectionSignatureRef.current !== selectionSignature
-    ) {
-      const defaultIds = defaultSelectionSignature
-        ? defaultSelectionSignature.split("|").filter(Boolean)
-        : [];
-      const defaultSet = new Set(defaultIds);
-      setSelectedListIds(defaultSet);
-      initialSelectionRef.current = new Set(defaultSet);
-      hasInitializedSelectionRef.current = true;
+  const selectedIdsSignature = useMemo(() => {
+    if (!Array.isArray(selectedIds) || selectedIds.length === 0) return "";
+    return Array.from(new Set(selectedIds)).sort().join("|");
+  }, [selectedIds]);
+
+  useEffect(() => {
+    if (!hasSelection) return;
+    setOperationMap(new Map());
+    setPendingOperations([]);
+    setIsSubmitting(false);
+    initialStateRef.current = new Map();
+    if (toastIdRef.current) {
+      toast.dismiss(toastIdRef.current);
+      toastIdRef.current = null;
     }
-
-    lastSelectionSignatureRef.current = selectionSignature;
-  }, [
-    hasSelection,
-    onClose,
-    selectedIdsSignature,
-    defaultSelectionSignature,
-  ]);
+  }, [selectedIdsSignature, hasSelection]);
 
   useEffect(() => {
     if (!Array.isArray(mailingLists)) return;
-    const validIds = new Set(
-      mailingLists.filter((list) => !list.deleted).map((list) => list.id)
-    );
-    setSelectedListIds((prev) => {
-      const next = new Set(Array.from(prev).filter((id) => validIds.has(id)));
+
+    const stateMap = new Map();
+    mailingLists
+      .filter((list) => !list.deleted)
+      .forEach((list) => {
+        const initialState =
+          list.membershipState === "ALL"
+            ? "ALL"
+            : list.membershipState === "PARTIAL"
+            ? "PARTIAL"
+            : "NONE";
+        stateMap.set(list.id, initialState);
+      });
+
+    initialStateRef.current = stateMap;
+
+    setOperationMap((prev) => {
+      if (prev.size === 0) return prev;
+      const next = new Map();
+      for (const [id, action] of prev.entries()) {
+        if (stateMap.has(id)) {
+          next.set(id, action);
+        }
+      }
       return next.size === prev.size ? prev : next;
     });
-    initialSelectionRef.current = new Set(
-      Array.from(initialSelectionRef.current).filter((id) => validIds.has(id))
-    );
   }, [mailingLists]);
 
   useEffect(() => {
@@ -273,6 +267,70 @@ const MailingListBulkEditor = ({
     [mailingLists]
   );
 
+  const listById = useMemo(() => {
+    const map = new Map();
+    for (const list of availableMailingLists) {
+      map.set(list.id, list);
+    }
+    return map;
+  }, [availableMailingLists]);
+
+  const computeAffectedCount = useCallback(
+    (list, action) => {
+      const initialState = initialStateRef.current.get(list.id) ?? "NONE";
+      const selectedMatchCount = list.selectedMatchCount ?? 0;
+
+      if (action === "remove") {
+        if (initialState === "ALL") return selectionCount;
+        if (initialState === "PARTIAL") return selectedMatchCount;
+        return 0;
+      }
+
+      if (action === "add") {
+        if (initialState === "NONE") return selectionCount;
+        if (initialState === "PARTIAL") {
+          const remaining = selectionCount - selectedMatchCount;
+          return remaining > 0 ? remaining : 0;
+        }
+        return 0;
+      }
+
+      return 0;
+    },
+    [selectionCount]
+  );
+
+  const operationDetails = useMemo(() => {
+    if (!hasSelection || operationMap.size === 0) return [];
+
+    const entries = Array.from(operationMap.entries()).sort((a, b) => {
+      const titleA = listById.get(a[0])?.title ?? "";
+      const titleB = listById.get(b[0])?.title ?? "";
+      return titleA.localeCompare(titleB);
+    });
+
+    return entries
+      .map(([mailingListId, action]) => {
+        const list = listById.get(mailingListId);
+        if (!list) return null;
+
+        const affectedCount = computeAffectedCount(list, action);
+        const countText = `${affectedCount} ${
+          affectedCount === 1 ? "person" : "people"
+        }`;
+        const verb = action === "add" ? "add" : "remove";
+        const preposition = action === "add" ? "to" : "from";
+
+        return {
+          mailingListId,
+          action,
+          affectedCount,
+          description: `${verb} ${countText} ${preposition} ${list.title}`,
+        };
+      })
+      .filter(Boolean);
+  }, [hasSelection, operationMap, listById, computeAffectedCount]);
+
   const filteredMailingLists = useMemo(() => {
     const q = filter.trim().toLowerCase();
     if (!q) return availableMailingLists;
@@ -282,13 +340,46 @@ const MailingListBulkEditor = ({
   }, [availableMailingLists, filter]);
 
   const toggleList = (id) => {
-    setSelectedListIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
+    if (isSubmitting) return;
+
+    setOperationMap((prev) => {
+      const next = new Map(prev);
+      const initialState = initialStateRef.current.get(id) ?? "NONE";
+      const current = next.get(id) ?? null;
+      let nextAction = null;
+
+      if (initialState === "PARTIAL") {
+        if (!current) {
+          nextAction = "remove";
+        } else if (current === "remove") {
+          nextAction = "add";
+        } else {
+          nextAction = "remove";
+        }
+      } else if (initialState === "ALL") {
+        if (!current) {
+          nextAction = "remove";
+        } else if (current === "remove") {
+          nextAction = null;
+        } else {
+          nextAction = "remove";
+        }
       } else {
-        next.add(id);
+        if (!current) {
+          nextAction = "add";
+        } else if (current === "add") {
+          nextAction = null;
+        } else {
+          nextAction = "add";
+        }
       }
+
+      if (nextAction) {
+        next.set(id, nextAction);
+      } else {
+        next.delete(id);
+      }
+
       return next;
     });
   };
@@ -307,57 +398,55 @@ const MailingListBulkEditor = ({
     if (!mailingList?.id) return;
 
     setNewListTitle("");
-    setSelectedListIds((prev) => {
-      const next = new Set(prev);
-      next.add(mailingList.id);
+    initialStateRef.current = new Map([
+      ...initialStateRef.current.entries(),
+      [mailingList.id, "NONE"],
+    ]);
+    setOperationMap((prev) => {
+      const next = new Map(prev);
+      next.set(mailingList.id, "add");
       return next;
     });
   };
 
-  const hasChanges = (() => {
-    const initial = initialSelectionRef.current;
-    for (const id of selectedListIds) {
-      if (!initial.has(id)) {
-        return true;
-      }
-    }
-    for (const id of initial) {
-      if (!selectedListIds.has(id)) {
-        return true;
-      }
-    }
-    return false;
-  })();
+  const hasChanges = operationDetails.length > 0;
 
   const handleSubmit = () => {
     if (!hasSelection) return;
-
-    const initial = initialSelectionRef.current;
-    const listsToAdd = Array.from(selectedListIds).filter(
-      (id) => !initial.has(id)
-    );
-    const listsToRemove = Array.from(initial).filter(
-      (id) => !selectedListIds.has(id)
-    );
-
-    if (listsToAdd.length === 0 && listsToRemove.length === 0) {
+    if (operationDetails.length === 0) {
       toast.error("No changes to apply");
       return;
     }
 
     setIsSubmitting(true);
-    const operations = [
-      ...listsToAdd.map((mailingListId) => ({ mailingListId, action: "add" })),
-      ...listsToRemove.map((mailingListId) => ({
-        mailingListId,
-        action: "remove",
-      })),
-    ];
+    const operations = operationDetails.map(({ mailingListId, action }) => ({
+      mailingListId,
+      action,
+    }));
     setPendingOperations(operations);
   };
 
   const disableSubmit =
     !hasSelection || isSubmitting || creatingList || !hasChanges;
+
+  const operationSummaries = useMemo(
+    () => operationDetails.map((detail) => detail.description),
+    [operationDetails]
+  );
+
+  const operationSummaryText = useMemo(() => {
+    if (!operationSummaries.length) return "";
+    if (operationSummaries.length === 1) {
+      return `You are about to ${operationSummaries[0]}.`;
+    }
+    if (operationSummaries.length === 2) {
+      return `You are about to ${operationSummaries[0]} and ${operationSummaries[1]}.`;
+    }
+
+    const last = operationSummaries[operationSummaries.length - 1];
+    const rest = operationSummaries.slice(0, -1);
+    return `You are about to ${rest.join(", ")}, and ${last}.`;
+  }, [operationSummaries]);
 
   return (
     <div
@@ -399,12 +488,27 @@ const MailingListBulkEditor = ({
         ) : (
           <div className="list-group list-group-flush border-0">
             {filteredMailingLists.map((list) => {
-              const isSelected = selectedListIds.has(list.id);
-              const checkboxValue = isSelected
-                ? true
-                : list.membershipState === "PARTIAL"
-                ? "PARTIAL"
-                : false;
+              const pendingAction = operationMap.get(list.id);
+              const checkboxValue = (() => {
+                if (pendingAction === "add") return true;
+                if (pendingAction === "remove") return false;
+                if (list.membershipState === "ALL") return true;
+                if (list.membershipState === "PARTIAL") return "PARTIAL";
+                return false;
+              })();
+
+              const selectedMatchCount = list.selectedMatchCount ?? 0;
+              const membershipDetail = (() => {
+                if (!hasSelection) return null;
+                if (selectionCount === 0) return null;
+                if (selectedMatchCount === selectionCount) {
+                  return "All selected people are members of this list";
+                }
+                if (selectedMatchCount === 0) {
+                  return "None of the selected people are members of this list";
+                }
+                return `${selectedMatchCount} of ${selectionCount} selected people are members of this list`;
+              })();
 
               return (
                 <label
@@ -419,6 +523,9 @@ const MailingListBulkEditor = ({
                   />
                   <div className="flex-fill">
                     <div className="fw-bold">{list.title}</div>
+                    {membershipDetail ? (
+                      <div className="text-muted small">{membershipDetail}</div>
+                    ) : null}
                     <div className="text-muted small">
                       {list.memberCount} Member{list.memberCount === 1 ? "" : "s"}
                     </div>
@@ -453,6 +560,12 @@ const MailingListBulkEditor = ({
         </Row>
       </div>
 
+      {operationSummaryText ? (
+        <Typography.Text className="mb-0">
+          {operationSummaryText}
+        </Typography.Text>
+      ) : null}
+
       <Row justify="end" gap={0.5}>
         <Button
           outline
@@ -467,7 +580,7 @@ const MailingListBulkEditor = ({
           loading={isSubmitting}
           variant="primary"
         >
-          Add to selected lists
+          Apply mailing list changes
         </Button>
       </Row>
     </div>

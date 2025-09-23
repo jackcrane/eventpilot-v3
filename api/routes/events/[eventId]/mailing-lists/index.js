@@ -36,10 +36,16 @@ const resolveMembershipState = (activeCount, totalSelected) => {
   return "PARTIAL";
 };
 
-const formatMailingList = (mailingList, memberCount = 0, membershipState = null) => ({
+const formatMailingList = (
+  mailingList,
+  memberCount = 0,
+  membershipState = null,
+  selectedMatchCount = 0
+) => ({
   ...mailingList,
   memberCount,
   membershipState,
+  selectedMatchCount,
 });
 
 const ipAddress = (req) => req.ip || req.headers["x-forwarded-for"];
@@ -107,12 +113,18 @@ export const get = [
 
       const response = mailingLists.map((list) => {
         const memberCount = countsById[list.id] ?? 0;
+        const selectedMatchCount = membershipCountsByListId[list.id] ?? 0;
         const membershipState = resolveMembershipState(
-          membershipCountsByListId[list.id] ?? 0,
+          selectedMatchCount,
           selectedCount
         );
 
-        return formatMailingList(list, memberCount, membershipState);
+        return formatMailingList(
+          list,
+          memberCount,
+          membershipState,
+          selectedMatchCount
+        );
       });
 
       return res.json({ mailingLists: response });
