@@ -490,6 +490,7 @@ model Event {
   formResponses       VolunteerRegistration[]
   logs                Logs[]
   crmPersons          CrmPerson[]
+  mailingLists        MailingList[]
   crmFields           CrmField[]
   crmPersonImports    CrmPersonsImport[]
   inboundEmails       InboundEmail[]               @relation(name: "Event_InboundEmails")
@@ -897,6 +898,7 @@ model CrmPerson {
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   CampaignEmailQueue CampaignEmailQueue[]
+  MailingListMember  MailingListMember[]
 }
 
 model CrmPersonLink {
@@ -986,6 +988,49 @@ model CrmPersonField {
 
   // Unique by crmPersonId and crmFieldId
   @@unique([crmPersonId, crmFieldId])
+}
+
+model MailingList {
+  id String @id @default(cuid())
+
+  title String
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  members MailingListMember[]
+  logs    Logs[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+
+  @@unique([eventId, title])
+}
+
+model MailingListMember {
+  id String @id @default(cuid())
+
+  mailingListId String
+  mailingList   MailingList @relation(fields: [mailingListId], references: [id], onDelete: Cascade)
+
+  crmPersonId String
+  crmPerson   CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+
+  status    MailingListMemberStatus @default(ACTIVE)
+  logs      Logs[]
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+  deleted   Boolean                 @default(false)
+
+  @@unique([mailingListId, crmPersonId])
+}
+
+enum MailingListMemberStatus {
+  ACTIVE
+  UNSUBSCRIBED
+  INACTIVE
+  DELETED
 }
 
 enum CrmFieldType {
@@ -1360,6 +1405,12 @@ model Logs {
   crmPersonId String?
   crmPerson   CrmPerson? @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
 
+  mailingListId String?
+  mailingList   MailingList? @relation(fields: [mailingListId], references: [id], onDelete: Cascade)
+
+  mailingListMemberId String?
+  mailingListMember   MailingListMember? @relation(fields: [mailingListMemberId], references: [id], onDelete: Cascade)
+
   crmFieldId String?
   crmField   CrmField? @relation(fields: [crmFieldId], references: [id], onDelete: Cascade)
 
@@ -1577,6 +1628,12 @@ enum LogType {
   CRM_PERSON_DELETED
   CRM_PERSONS_IMPORT_STARTED
   CRM_PERSONS_IMPORT_COMPLETED
+  MAILING_LIST_CREATED
+  MAILING_LIST_MODIFIED
+  MAILING_LIST_DELETED
+  MAILING_LIST_MEMBER_CREATED
+  MAILING_LIST_MEMBER_MODIFIED
+  MAILING_LIST_MEMBER_DELETED
   CONVERSATION_DELETED
   UPSELL_ITEM_CREATED
   UPSELL_ITEM_MODIFIED
