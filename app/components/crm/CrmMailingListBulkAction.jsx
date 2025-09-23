@@ -2,17 +2,17 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
-  DropdownInput,
+  Dropdown,
   Input,
   Typography,
+  useOffcanvas,
+  Checkbox,
 } from "tabler-react-2";
 import toast from "react-hot-toast";
 import { Icon } from "../../util/Icon";
 import { useMailingListMembers } from "../../hooks/useMailingListMembers";
 import { useMailingLists } from "../../hooks/useMailingLists";
 import { Row } from "../../util/Flex";
-
-const CREATE_OPTION_ID = "eventpilot__create_mailing_list";
 
 export const CrmMailingListBulkAction = ({
   eventId,
@@ -21,6 +21,75 @@ export const CrmMailingListBulkAction = ({
 }) => {
   const hasSelection = Array.isArray(selectedIds) && selectedIds.length > 0;
   const selectionCount = selectedIds.length;
+  const { OffcanvasElement, offcanvas, close } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
+  });
+
+  useEffect(() => {
+    if (!hasSelection) {
+      close?.();
+    }
+  }, [hasSelection, close]);
+
+  const openMailingListEditor = () => {
+    if (!hasSelection) return;
+    offcanvas({
+      title: "Edit mailing list memberships",
+      content: (
+        <MailingListBulkEditor
+          eventId={eventId}
+          selectedIds={selectedIds}
+          onClearSelection={onClearSelection}
+          onClose={close}
+          selectionCount={selectionCount}
+        />
+      ),
+    });
+  };
+
+  if (!hasSelection) return null;
+
+  return (
+    <>
+      {OffcanvasElement}
+      <Alert contentStyle={{ width: "100%" }}>
+        <Row justify="space-between" align="center" gap={2}>
+          <Row gap={2} align="center">
+            <div>
+              <Typography.H3 className="mb-0">Selection</Typography.H3>
+              <Typography.Text className="mb-0">
+                {selectionCount} contact{selectionCount === 1 ? "" : "s"}{" "}
+                selected
+              </Typography.Text>
+            </div>
+            <Button outline onClick={() => onClearSelection?.()}>
+              Clear
+            </Button>
+          </Row>
+
+          <Dropdown
+            prompt="Actions"
+            items={[
+              {
+                text: "Edit mailing list memberships",
+                onclick: openMailingListEditor,
+              },
+            ]}
+          />
+        </Row>
+      </Alert>
+    </>
+  );
+};
+
+const MailingListBulkEditor = ({
+  eventId,
+  selectedIds,
+  onClearSelection,
+  onClose,
+  selectionCount,
+}) => {
+  const hasSelection = Array.isArray(selectedIds) && selectedIds.length > 0;
 
   const {
     mailingLists,
@@ -28,16 +97,14 @@ export const CrmMailingListBulkAction = ({
     createMailingList,
   } = useMailingLists({ eventId });
 
-  const [mode, setMode] = useState("existing");
-  const [selectedMailingListId, setSelectedMailingListId] = useState("");
+  const [filter, setFilter] = useState("");
+  const [selectedListIds, setSelectedListIds] = useState(() => new Set());
   const [newListTitle, setNewListTitle] = useState("");
+  const [creatingList, setCreatingList] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pendingAdd, setPendingAdd] = useState(null);
+  const [pendingListIds, setPendingListIds] = useState([]);
 
-  const activeMailingListId =
-    mode === "existing"
-      ? selectedMailingListId || null
-      : pendingAdd?.listId || null;
+  const activeMailingListId = pendingListIds.length ? pendingListIds[0] : null;
 
   const mailingListMembers = useMailingListMembers({
     eventId,
@@ -47,39 +114,52 @@ export const CrmMailingListBulkAction = ({
 
   useEffect(() => {
     if (!hasSelection) {
-      setMode("existing");
-      setSelectedMailingListId("");
+      onClose?.();
+      setFilter("");
+      setSelectedListIds(new Set());
       setNewListTitle("");
+      setCreatingList(false);
       setIsSubmitting(false);
+      setPendingListIds([]);
     }
-  }, [hasSelection]);
+  }, [hasSelection, onClose]);
 
   useEffect(() => {
-    if (!selectedMailingListId || mode !== "existing") return;
-    const exists = mailingLists?.some(
-      (list) => list.id === selectedMailingListId && !list.deleted
-    );
-    if (!exists) {
-      setSelectedMailingListId("");
-    }
-  }, [mailingLists, selectedMailingListId, mode]);
+    if (!Array.isArray(mailingLists)) return;
+    setSelectedListIds((prev) => {
+      const next = new Set(
+        Array.from(prev).filter((id) =>
+          mailingLists.some((list) => list.id === id && !list.deleted)
+        )
+      );
+      return next.size === prev.size ? prev : next;
+    });
+  }, [mailingLists]);
 
   useEffect(() => {
-    if (!pendingAdd || !pendingAdd.listId) return;
+    if (!pendingListIds.length) return;
     if (typeof addMembers !== "function") return;
-
-    const toProcess = pendingAdd;
-    setPendingAdd(null);
 
     let cancelled = false;
     (async () => {
       const res = await addMembers({
-        crmPersonIds: toProcess.crmPersonIds,
+        crmPersonIds: selectedIds,
       });
-      if (!cancelled) {
-        if (res) {
-          onClearSelection?.();
-        }
+
+      if (cancelled) return;
+
+      if (res) {
+        setPendingListIds((prev) => {
+          const next = prev.slice(1);
+          if (next.length === 0) {
+            onClearSelection?.();
+            onClose?.();
+            setIsSubmitting(false);
+          }
+          return next;
+        });
+      } else {
+        setPendingListIds([]);
         setIsSubmitting(false);
       }
     })();
@@ -87,156 +167,174 @@ export const CrmMailingListBulkAction = ({
     return () => {
       cancelled = true;
     };
-  }, [pendingAdd, addMembers, onClearSelection]);
+  }, [pendingListIds, addMembers, selectedIds, onClearSelection, onClose]);
 
-  const mailingListOptions = useMemo(() => {
-    const base = (mailingLists || [])
-      .filter((list) => !list.deleted)
-      .sort((a, b) => a.title.localeCompare(b.title))
-      .map((list) => ({
-        id: list.id,
-        value: list.id,
-        label: list.title,
-      }));
+  const availableMailingLists = useMemo(
+    () =>
+      (mailingLists || [])
+        .filter((list) => !list.deleted)
+        .sort((a, b) => a.title.localeCompare(b.title)),
+    [mailingLists]
+  );
 
-    return [
-      ...base,
-      base.length ? { type: "divider" } : null,
-      {
-        id: CREATE_OPTION_ID,
-        value: CREATE_OPTION_ID,
-        label: (
-          <span className="d-inline-flex align-items-center gap-1">
-            <Icon i="plus" size={16} /> Create new mailing list
-          </span>
-        ),
-      },
-    ].filter(Boolean);
-  }, [mailingLists]);
+  const filteredMailingLists = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return availableMailingLists;
+    return availableMailingLists.filter((list) =>
+      `${list.title} ${list.id}`.toLowerCase().includes(q)
+    );
+  }, [availableMailingLists, filter]);
 
-  const handleListChange = (item) => {
-    if (!item) {
-      setMode("existing");
-      setSelectedMailingListId("");
-      return;
-    }
-
-    if (item.id === CREATE_OPTION_ID) {
-      setMode("create");
-      setSelectedMailingListId("");
-      setNewListTitle("");
-      return;
-    }
-
-    setMode("existing");
-    setSelectedMailingListId(item.value);
+  const toggleList = (id) => {
+    setSelectedListIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
-  const disableSubmit =
-    !hasSelection ||
-    isSubmitting ||
-    (mode === "existing" && !selectedMailingListId) ||
-    (mode === "create" && !newListTitle.trim());
-
-  const handleSubmit = async () => {
-    if (!hasSelection) return;
-
-    if (mode === "existing") {
-      if (!selectedMailingListId) return;
-      setIsSubmitting(true);
-      if (typeof addMembers !== "function") {
-        toast.error("Select a mailing list");
-        setIsSubmitting(false);
-        return;
-      }
-
-      const res = await addMembers({
-        crmPersonIds: selectedIds,
-      });
-      if (res) {
-        onClearSelection?.();
-      }
-      setIsSubmitting(false);
-      return;
-    }
-
+  const handleCreateList = async () => {
     const trimmed = newListTitle.trim();
     if (!trimmed) {
       toast.error("Enter a mailing list name");
       return;
     }
 
-    setIsSubmitting(true);
+    if (creatingList) return;
+    setCreatingList(true);
     const mailingList = await createMailingList({ title: trimmed });
-    if (!mailingList?.id) {
-      setIsSubmitting(false);
-      return;
-    }
+    setCreatingList(false);
+    if (!mailingList?.id) return;
 
-    setMode("existing");
-    setSelectedMailingListId(mailingList.id);
     setNewListTitle("");
-    setPendingAdd({ listId: mailingList.id, crmPersonIds: selectedIds });
+    setSelectedListIds((prev) => {
+      const next = new Set(prev);
+      next.add(mailingList.id);
+      return next;
+    });
   };
 
-  if (!hasSelection) return null;
+  const handleSubmit = () => {
+    if (!hasSelection) return;
+    const ids = Array.from(selectedListIds);
+    if (!ids.length) {
+      toast.error("Select at least one mailing list");
+      return;
+    }
+    setIsSubmitting(true);
+    setPendingListIds(ids);
+  };
+
+  const disableSubmit =
+    !hasSelection || isSubmitting || selectedListIds.size === 0 || creatingList;
 
   return (
-    <Alert contentStyle={{ width: "100%" }}>
-      <Row justify="space-between" align="center" gap={2}>
-        <Row gap={2} align="center">
-          <div>
-            <Typography.H3 className="mb-0">Selection</Typography.H3>
-            <Typography.Text className="mb-0">
-              {selectionCount} contact{selectionCount === 1 ? "" : "s"} selected
-            </Typography.Text>
+    <div
+      className="d-flex flex-column gap-3"
+      style={{ height: "100%", maxHeight: "calc(100dvh)" }}
+    >
+      <div>
+        <Typography.H3 className="mb-1">
+          Edit mailing list memberships
+        </Typography.H3>
+        <Typography.Text className="mb-0">
+          Updating {selectionCount} contact{selectionCount === 1 ? "" : "s"}
+        </Typography.Text>
+      </div>
+
+      <Input
+        placeholder="Search mailing lists"
+        value={filter}
+        onChange={setFilter}
+        disabled={mailingListsLoading}
+      />
+
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          borderTop: "1px solid var(--tblr-border-color)",
+          borderBottom: "1px solid var(--tblr-border-color)",
+          padding: "0.5rem 0",
+        }}
+      >
+        {mailingListsLoading ? (
+          <Typography.Text className="text-muted">Loading…</Typography.Text>
+        ) : filteredMailingLists.length === 0 ? (
+          <Typography.Text className="text-muted">
+            No mailing lists
+          </Typography.Text>
+        ) : (
+          <div className="list-group list-group-flush border-0">
+            {filteredMailingLists.map((list) => (
+              <label
+                key={list.id}
+                className="list-group-item d-flex align-items-center border-0"
+                style={{ cursor: "pointer" }}
+              >
+                <Checkbox
+                  value={selectedListIds.has(list.id)}
+                  onChange={() => toggleList(list.id)}
+                  disabled={isSubmitting}
+                />
+                {(console.log("list", list), null)}
+                <div className="flex-fill">
+                  <div className="fw-bold">{list.title}</div>
+                  <div className="text-muted small">
+                    {list.memberCount} Member{list.memberCount === 1 ? "" : "s"}
+                  </div>
+                </div>
+              </label>
+            ))}
           </div>
-          <Button
-            // size="sm"
-            outline
-            onClick={() => onClearSelection?.()}
-            disabled={isSubmitting}
-          >
-            Clear
-          </Button>
-        </Row>
+        )}
+      </div>
 
-        <Row gap={2} align="center">
-          <DropdownInput
-            items={mailingListOptions}
-            prompt={"Select mailing list"}
-            loading={mailingListsLoading}
-            value={
-              mode === "existing" && selectedMailingListId
-                ? { id: selectedMailingListId }
-                : mode === "create"
-                ? { id: CREATE_OPTION_ID }
-                : null
-            }
-            onChange={handleListChange}
-            disabled={mailingListsLoading || isSubmitting}
+      <div className="d-flex flex-column gap-2">
+        <Typography.H5 className="mb-0">Create mailing list</Typography.H5>
+        <Row gap={0.5} align="center">
+          <Input
+            value={newListTitle}
+            onChange={setNewListTitle}
+            placeholder="Mailing list name"
+            disabled={creatingList || isSubmitting}
+            className="mb-0 flex-grow-1"
           />
-
-          {mode === "create" && (
-            <Input
-              value={newListTitle}
-              onChange={setNewListTitle}
-              placeholder="Mailing list name"
-              disabled={isSubmitting}
-              className="mb-0"
-              style={{ minWidth: 200 }}
-            />
-          )}
-
           <Button
-            onClick={handleSubmit}
-            disabled={disableSubmit}
-            loading={isSubmitting}
+            onClick={handleCreateList}
+            disabled={!newListTitle.trim() || creatingList || isSubmitting}
+            loading={creatingList}
           >
-            Add to list
+            <Row gap={0.5} align="center">
+              <Icon i="plus" size={16} />
+              Create
+            </Row>
           </Button>
         </Row>
+      </div>
+
+      <Row justify="end" gap={0.5}>
+        <Button
+          outline
+          onClick={onClose}
+          disabled={isSubmitting || creatingList}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={disableSubmit}
+          loading={isSubmitting}
+          variant="primary"
+        >
+          Add to selected lists
+        </Button>
       </Row>
-    </Alert>
+    </div>
   );
 };

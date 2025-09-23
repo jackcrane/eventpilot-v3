@@ -35,9 +35,11 @@ export const useMailingListMembers = ({ eventId, mailingListId } = {}) => {
       ? `/api/events/${eventId}/mailing-lists/${mailingListId}`
       : null;
   const memberKey = key ? `${key}/member` : null;
-  const bulkKey = eventId && mailingListId
-    ? `/api/events/${eventId}/mailing-lists/${mailingListId}/members`
-    : null;
+  const bulkKey =
+    eventId && mailingListId
+      ? `/api/events/${eventId}/mailing-lists/${mailingListId}/members`
+      : null;
+  const membersKey = bulkKey;
   const listCollectionKey = eventId
     ? `/api/events/${eventId}/mailing-lists`
     : null;
@@ -46,8 +48,14 @@ export const useMailingListMembers = ({ eventId, mailingListId } = {}) => {
     data,
     error,
     isLoading,
-    mutate: refetch,
+    mutate: mutateSummary,
   } = useSWR(key, fetcher);
+  const {
+    data: membersData,
+    error: membersError,
+    isLoading: membersLoading,
+    mutate: mutateMembers,
+  } = useSWR(membersKey, fetcher);
   const { data: memberSchemaRaw } = useSWR(
     memberKey ? [memberKey, "schema"] : null,
     fetchSchema
@@ -72,7 +80,10 @@ export const useMailingListMembers = ({ eventId, mailingListId } = {}) => {
         success: messages.success,
         error: (e) => e?.message || messages.error,
       });
-      await refetch();
+      await Promise.all([
+        mutateSummary?.(),
+        mutateMembers?.(),
+      ]);
       if (listCollectionKey) await mutate(listCollectionKey);
       return result;
     } catch (e) {
@@ -198,10 +209,19 @@ export const useMailingListMembers = ({ eventId, mailingListId } = {}) => {
     return result;
   };
 
+  const refetch = async () => {
+    await Promise.all([
+      mutateSummary?.(),
+      mutateMembers?.(),
+    ]);
+  };
+
   return {
-    members: data?.mailingList?.members || [],
-    loading: isLoading,
-    error,
+    members: membersData?.members || [],
+    memberCount: data?.mailingList?.memberCount ?? membersData?.members?.length ?? 0,
+    mailingList: data?.mailingList,
+    loading: isLoading || membersLoading,
+    error: error || membersError,
     refetch,
     memberSchemas,
     bulkSchema,

@@ -98,6 +98,7 @@ export const useMailingList = ({ eventId, mailingListId } = {}) => {
 
   return {
     mailingList: data?.mailingList,
+    memberCount: data?.mailingList?.memberCount ?? 0,
     logs: data?.mailingList?.logs || [],
     loading: isLoading,
     error,

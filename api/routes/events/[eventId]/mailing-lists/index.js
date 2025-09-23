@@ -1,7 +1,7 @@
 import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { verifyAuth } from "#verifyAuth";
-import { LogType } from "@prisma/client";
+import { LogType, MailingListMemberStatus } from "@prisma/client";
 import { z } from "zod";
 import { zerialize } from "zodex";
 
@@ -9,24 +9,18 @@ const mailingListSchema = z.object({
   title: z.string().trim().min(1).max(120),
 });
 
-const includeMembers = (includeDeletedMembers) => ({
-  members: {
-    where: includeDeletedMembers ? undefined : { deleted: false },
-    include: {
-      crmPerson: {
-        select: {
-          id: true,
-          name: true,
-          deleted: true,
-          emails: {
-            where: { deleted: false },
-            select: { id: true, email: true, label: true },
-          },
-        },
-      },
-    },
-    orderBy: { createdAt: "asc" },
-  },
+const baseMailingListSelect = {
+  id: true,
+  title: true,
+  eventId: true,
+  createdAt: true,
+  updatedAt: true,
+  deleted: true,
+};
+
+const formatMailingList = (mailingList, memberCount = 0) => ({
+  ...mailingList,
+  memberCount,
 });
 
 const ipAddress = (req) => req.ip || req.headers["x-forwarded-for"];
@@ -36,21 +30,39 @@ export const get = [
   async (req, res) => {
     const { eventId } = req.params;
     const includeDeleted = !!req.query.includeDeleted;
-    const includeDeletedMembers = req.query.includeDeletedMembers
-      ? true
-      : includeDeleted;
-
     try {
       const mailingLists = await prisma.mailingList.findMany({
         where: {
           eventId,
           deleted: includeDeleted ? undefined : false,
         },
-        include: includeMembers(includeDeletedMembers),
+        select: baseMailingListSelect,
         orderBy: { createdAt: "desc" },
       });
 
-      return res.json({ mailingLists });
+      const mailingListIds = mailingLists.map((list) => list.id);
+      const memberCounts = mailingListIds.length
+        ? await prisma.mailingListMember.groupBy({
+            by: ["mailingListId"],
+            where: {
+              mailingListId: { in: mailingListIds },
+              deleted: false,
+              status: MailingListMemberStatus.ACTIVE,
+            },
+            _count: { _all: true },
+          })
+        : [];
+
+      const countsById = memberCounts.reduce((acc, { mailingListId, _count }) => {
+        acc[mailingListId] = _count?._all ?? 0;
+        return acc;
+      }, {});
+
+      const response = mailingLists.map((list) =>
+        formatMailingList(list, countsById[list.id] ?? 0)
+      );
+
+      return res.json({ mailingLists: response });
     } catch (error) {
       console.error(
         `Error fetching mailing lists for event ${eventId}:`,
@@ -80,7 +92,7 @@ export const post = [
             title,
             eventId,
           },
-          include: includeMembers(false),
+          select: baseMailingListSelect,
         });
 
         await tx.logs.create({
@@ -97,7 +109,7 @@ export const post = [
         return created;
       });
 
-      return res.status(201).json({ mailingList });
+      return res.status(201).json({ mailingList: formatMailingList(mailingList) });
     } catch (error) {
       console.error(`Error creating mailing list for event ${eventId}:`, error);
 

@@ -20,6 +20,38 @@ const batchSchema = z.object({
     .default(MailingListMemberStatus.ACTIVE),
 });
 
+export const get = [
+  verifyAuth(["manager"]),
+  async (req, res) => {
+    const { eventId, mailingListId } = req.params;
+    const includeDeletedMembers = req.query.includeDeletedMembers === "true";
+
+    try {
+      const mailingList = await ensureMailingList(eventId, mailingListId);
+      if (!mailingList) {
+        return res.status(404).json({ message: "Mailing list not found" });
+      }
+
+      const members = await prisma.mailingListMember.findMany({
+        where: {
+          mailingListId,
+          deleted: includeDeletedMembers ? undefined : false,
+        },
+        orderBy: { createdAt: "asc" },
+        ...memberInclude,
+      });
+
+      return res.json({ members });
+    } catch (error) {
+      console.error(
+        `Error fetching members for mailing list ${mailingListId}:`,
+        error
+      );
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  },
+];
+
 export const post = [
   verifyAuth(["manager"]),
   async (req, res) => {

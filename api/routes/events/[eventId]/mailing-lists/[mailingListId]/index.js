@@ -9,39 +9,39 @@ const mailingListSchema = z.object({
   title: z.string().trim().min(1).max(120),
 });
 
-const includeMembers = (includeDeletedMembers) => ({
-  members: {
-    where: includeDeletedMembers ? undefined : { deleted: false },
-    include: {
-      crmPerson: {
-        select: {
-          id: true,
-          name: true,
-          deleted: true,
-          emails: {
-            where: { deleted: false },
-            select: { id: true, email: true, label: true },
-          },
-        },
-      },
-    },
-    orderBy: { createdAt: "asc" },
-  },
-  logs: {
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  },
+const baseMailingListSelect = {
+  id: true,
+  title: true,
+  eventId: true,
+  createdAt: true,
+  updatedAt: true,
+  deleted: true,
+};
+
+const logsSelection = {
+  orderBy: { createdAt: "desc" },
+  take: 50,
+};
+
+const mailingListSelection = {
+  ...baseMailingListSelect,
+  logs: logsSelection,
+};
+
+const formatMailingList = (mailingList, memberCount = 0) => ({
+  ...mailingList,
+  memberCount,
 });
 
 const ipAddress = (req) => req.ip || req.headers["x-forwarded-for"];
 
-const findMailingList = async (eventId, mailingListId, include) => {
+const findMailingList = async (eventId, mailingListId, options = {}) => {
   return prisma.mailingList.findFirst({
     where: {
       id: mailingListId,
       eventId,
     },
-    include,
+    ...options,
   });
 };
 
@@ -50,10 +50,6 @@ export const get = [
   async (req, res) => {
     const { eventId, mailingListId } = req.params;
     const includeDeletedList = !!req.query.includeDeleted;
-    const includeDeletedMembers = req.query.includeDeletedMembers
-      ? true
-      : includeDeletedList;
-
     try {
       const mailingList = await prisma.mailingList.findFirst({
         where: {
@@ -61,14 +57,22 @@ export const get = [
           eventId,
           deleted: includeDeletedList ? undefined : false,
         },
-        include: includeMembers(includeDeletedMembers),
+        select: mailingListSelection,
       });
 
       if (!mailingList) {
         return res.status(404).json({ message: "Mailing list not found" });
       }
 
-      return res.json({ mailingList });
+      const memberCount = await prisma.mailingListMember.count({
+        where: {
+          mailingListId,
+          deleted: false,
+          status: MailingListMemberStatus.ACTIVE,
+        },
+      });
+
+      return res.json({ mailingList: formatMailingList(mailingList, memberCount) });
     } catch (error) {
       console.error(
         `Error fetching mailing list ${mailingListId} for event ${eventId}:`,
@@ -92,7 +96,18 @@ export const put = [
     const { title } = result.data;
 
     try {
-      const before = await findMailingList(eventId, mailingListId);
+      const before = await findMailingList(eventId, mailingListId, {
+        select: mailingListSelection,
+      });
+      const beforeCount = before
+        ? await prisma.mailingListMember.count({
+            where: {
+              mailingListId,
+              deleted: false,
+              status: MailingListMemberStatus.ACTIVE,
+            },
+          })
+        : 0;
       if (!before || before.deleted) {
         return res.status(404).json({ message: "Mailing list not found" });
       }
@@ -101,7 +116,15 @@ export const put = [
         const after = await tx.mailingList.update({
           where: { id: mailingListId },
           data: { title },
-          include: includeMembers(false),
+          select: mailingListSelection,
+        });
+
+        const afterCount = await tx.mailingListMember.count({
+          where: {
+            mailingListId,
+            deleted: false,
+            status: MailingListMemberStatus.ACTIVE,
+          },
         });
 
         await tx.logs.create({
@@ -111,11 +134,14 @@ export const put = [
             ip: ipAddress(req),
             eventId,
             mailingListId,
-            data: { before, after },
+            data: {
+              before: formatMailingList(before, beforeCount),
+              after: formatMailingList(after, afterCount),
+            },
           },
         });
 
-        return after;
+        return formatMailingList(after, afterCount);
       });
 
       return res.json({ mailingList });
@@ -148,12 +174,20 @@ export const del = [
           eventId,
           deleted: false,
         },
-        include: includeMembers(true),
+        select: mailingListSelection,
       });
 
       if (!before) {
         return res.status(404).json({ message: "Mailing list not found" });
       }
+
+      const beforeCount = await prisma.mailingListMember.count({
+        where: {
+          mailingListId,
+          deleted: false,
+          status: MailingListMemberStatus.ACTIVE,
+        },
+      });
 
       await prisma.$transaction(async (tx) => {
         await tx.mailingList.update({
@@ -173,7 +207,7 @@ export const del = [
             ip: ipAddress(req),
             eventId,
             mailingListId,
-            data: { before },
+            data: { before: formatMailingList(before, beforeCount) },
           },
         });
       });
