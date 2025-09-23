@@ -1,6 +1,13 @@
 # Agents Guide
 
-This document defines how agents contribute to and interact with this codebase. The goal is to keep data access predictable, testable, and easy to evolve.
+This document defines how agents contribute to and interact with this codebase. The goal is to keep data access predictable, testable, easy to evolve, and consistently high-quality without unnecessary exposition.
+
+## General Expectations
+
+- Deliver the best possible result on the first pass; err on the side of clarity and correctness.
+- Keep written reasoning concise. Share deeper thought processes only when the user explicitly asks for them or when you need confirmation on an assumption.
+- Prioritize readability and self-documenting code. Refine naming, structure, and inline comments so future readers understand intent quickly.
+- Treat 100 lines of code per file as a soft ceiling. If a change approaches that size, extract helpers into utilities, components, or hooks to keep files approachable.
 
 Golden Rule: All client-side networking and data fetching must happen through dedicated `useSWR`-based hooks. Do not call `fetch`, `axios`, or other networking APIs directly from components, pages, or one-off utilities.
 
@@ -68,4 +75,3 @@ Scaffolding: You can quickly scaffold hooks via `app/hooks/generateHook.js`. `ap
 - Example server route patterns: `api/routes/events/[eventId]/**`.
 
 When in doubt: if new code needs data, add or extend an API route, then create/extend a dedicated `useSWR` hook to consume it. Components should stay networking-free.
-
