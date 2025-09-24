@@ -1020,6 +1020,8 @@ model EmailTemplate {
 model Campaign {
   id String @id @default(cuid())
 
+  name String
+
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
