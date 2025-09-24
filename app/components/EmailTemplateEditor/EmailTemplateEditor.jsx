@@ -1,33 +1,37 @@
 import React, { useEffect, useRef, useState } from "react";
 
 /**
- * Demo: Email-blast template editor with token autocomplete on "{{".
- * - No external deps
- * - ContentEditable editor that inserts shaded token chips like {{name}}
- * - Suggestion list appears as you type after "{{" and filters by your query
- * - Keyboard: ↑/↓ to navigate, Enter/Tab to insert, Esc to close, Cmd/Ctrl+A selects editor contents
- * - Click a suggestion to insert, tokens are editable
- * - Cursor rules inside tokens: if caret is at the end of a token, Space/Esc/ArrowRight will move caret outside.
- * - Paste is plain-text only; we then tokenize any {{var}} occurrences.
- * - Nested tokens are prevented; if a user tries, we normalize the token back to a single {{identifier}}.
+ * Email-blast template editor with token autocomplete on "{{".
+ * - Controlled: accepts `value` (plain text with {{tokens}}) and `onChange(text)`.
+ * - Emits text-only via onChange — no HTML.
+ * - No default HTML content; shows a placeholder when empty.
+ * - Always escape if caret is at the END of a token.
+ * - Typing a full literal like "{{name}}" auto-tokenizes on input.
+ * - Invalid variables are visually flagged (red hue + border + tooltip).
  */
 
-/** Available template variables */
-export const VARIABLES = ["name", "email", "unsubscribeLink"];
+export const VARIABLES = ["name", "email", "unsubLink", "unsubClickHere"];
+const VARIABLE_MAP = {
+  name: "The recipient's name",
+  email: "The recipient's email address",
+  unsubLink: "Unsubscribe link, looks like a url",
+  unsubClickHere: 'Unsubscribe link, looks like "click here".',
+};
 
-/** Regex helpers */
-const VAR_RE = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g; // matches {{ varName }}
-const FIRST_VAR_RE = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/; // first match
+const mapVariable = (v) => VARIABLE_MAP[v] || v;
 
-/** Utility: get the caret (selection) client rect */
+/** Regex */
+const VAR_RE = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
+const FIRST_VAR_RE = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/;
+
+/** Caret rect */
 export const getCaretRect = () => {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) return null;
   const range = sel.getRangeAt(0).cloneRange();
   range.collapse(true);
-  const rects = range.getClientRects();
-  if (rects && rects.length) return rects[0];
-  // Fallback: create a temporary span
+  const rects = range.getClientRects?.() || [];
+  if (rects.length) return rects[0];
   const span = document.createElement("span");
   span.appendChild(document.createTextNode("\u200b"));
   range.insertNode(span);
@@ -39,12 +43,9 @@ export const getCaretRect = () => {
   return rect || null;
 };
 
-/** Create a token element */
-export const createTokenEl = (tokenText) => {
-  const token = document.createElement("span");
-  token.textContent = `{{${tokenText}}}`;
-  token.setAttribute("data-token", tokenText);
-  token.style.background = "rgba(0,0,0,0.06)"; // slightly darker background
+/** Base token style */
+export const styleTokenBase = (token) => {
+  token.style.background = "rgba(0,0,0,0.06)";
   token.style.border = "1px solid rgba(0,0,0,0.15)";
   token.style.borderRadius = "6px";
   token.style.padding = "0 4px";
@@ -52,10 +53,50 @@ export const createTokenEl = (tokenText) => {
   token.style.fontFamily =
     "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
   token.style.whiteSpace = "pre";
+  token.style.boxShadow = "none";
+};
+
+/** Invalid/valid visual state */
+export const applyTokenValidity = (el, variables) => {
+  const name = el.getAttribute("data-token") || "";
+  const ok = Array.isArray(variables) && variables.includes(name);
+  el.dataset.invalid = ok ? "false" : "true";
+  if (ok) {
+    styleTokenBase(el);
+    el.title = "";
+  } else {
+    el.style.background = "rgba(220,38,38,0.08)";
+    el.style.border = "1px solid rgba(220,38,38,0.55)";
+    el.style.borderRadius = "6px";
+    el.style.padding = "0 4px";
+    el.style.margin = "0 1px";
+    el.style.fontFamily =
+      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
+    el.style.whiteSpace = "pre";
+    el.style.boxShadow = "0 0 0 2px rgba(220,38,38,0.12) inset";
+    el.title = `Unknown variable: ${name}`;
+  }
+};
+
+/** Validate all tokens inside a root */
+export const updateTokensValidity = (root, variables) => {
+  if (!root) return;
+  root.querySelectorAll("[data-token]").forEach((el) => {
+    applyTokenValidity(el, variables);
+  });
+};
+
+/** Token element */
+export const createTokenEl = (tokenText) => {
+  const token = document.createElement("span");
+  token.textContent = `{{${tokenText}}}`;
+  token.setAttribute("data-token", tokenText);
+  token.setAttribute("contenteditable", "false");
+  styleTokenBase(token);
   return token;
 };
 
-/** Get token element if selection/caret is inside one */
+/** Active token under caret */
 export const getActiveToken = () => {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) return null;
@@ -63,13 +104,13 @@ export const getActiveToken = () => {
   if (!node) return null;
   if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
   if (node && node.nodeType === Node.ELEMENT_NODE) {
-    const el = node.closest("[data-token]");
+    const el = node.closest?.("[data-token]");
     return el || null;
   }
   return null;
 };
 
-/** Move caret after a node */
+/** Caret after node */
 export const setCaretAfter = (node) => {
   const sel = window.getSelection();
   if (!sel) return;
@@ -83,11 +124,25 @@ export const setCaretAfter = (node) => {
   sel.addRange(r);
 };
 
-/** Insert a token at selection, replacing the trigger text */
+/** Is caret at END of element contents? */
+export const isCaretAtEndOf = (el) => {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return false;
+  const r = sel.getRangeAt(0).cloneRange();
+  const full = document.createRange();
+  full.selectNodeContents(el);
+  return (
+    r.collapsed &&
+    el.contains(r.endContainer) &&
+    r.compareBoundaryPoints(Range.END_TO_END, full) === 0
+  );
+};
+
+/** Insert token at selection (replacing trigger) */
 export const insertTokenAtSelection = (
   triggerInfo,
   tokenText,
-  placeCaretInside = true
+  placeCaretInside = false
 ) => {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) return;
@@ -99,7 +154,6 @@ export const insertTokenAtSelection = (
     range.deleteContents();
     range.insertNode(token);
     if (placeCaretInside) {
-      // Caret at end *inside* token (per requirement)
       const innerRange = document.createRange();
       innerRange.selectNodeContents(token);
       innerRange.collapse(false);
@@ -108,14 +162,14 @@ export const insertTokenAtSelection = (
     } else {
       setCaretAfter(token);
     }
-  } catch (e) {
+  } catch {
     const r = sel.getRangeAt(0);
     r.insertNode(token);
     setCaretAfter(token);
   }
 };
 
-/** Detect an active "{{query" trigger near the caret within a single text node. */
+/** Detect "{{query" trigger */
 export const detectTrigger = () => {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) return null;
@@ -131,7 +185,7 @@ export const detectTrigger = () => {
   return { node: anchorNode, startOffset: start, query };
 };
 
-/** Normalize a token element's text to {{identifier}} and update data-token. */
+/** Normalize token contents or unwrap if invalid literal */
 export const normalizeTokenEl = (el) => {
   const raw = el.textContent || "";
   const m = FIRST_VAR_RE.exec(raw);
@@ -139,16 +193,14 @@ export const normalizeTokenEl = (el) => {
     const id = m[1];
     el.textContent = `{{${id}}}`;
     el.setAttribute("data-token", id);
-  } else {
-    // If it no longer resembles a token, unwrap to plain text
-    const text = document.createTextNode(raw.replaceAll("\n", " "));
-    el.replaceWith(text);
-    return null;
+    return el;
   }
-  return el;
+  const text = document.createTextNode(raw.replaceAll("\n", " "));
+  el.replaceWith(text);
+  return null;
 };
 
-/** Walk text nodes under root and replace {{var}} with token spans (skip inside existing tokens). */
+/** Replace {{var}} text nodes with token spans (skipping existing tokens) */
 export const tokenizeTextNodes = (root) => {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: (n) => {
@@ -185,8 +237,7 @@ export const tokenizeTextNodes = (root) => {
   });
 };
 
-/** SuggestionList: floating menu */
-/** Caret offset utilities */
+/** Caret offsets (for nested-token guard) */
 export const getCaretOffsetIn = (el) => {
   const sel = window.getSelection();
   if (!sel || !sel.rangeCount) return { start: 0, end: 0 };
@@ -202,6 +253,69 @@ export const getCaretOffsetIn = (el) => {
   return { start, end };
 };
 
+/** Convert editor DOM -> plain text with {{tokens}} */
+export const serializeEditor = (root) => {
+  if (!root) return "";
+  let out = "";
+  const walk = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      out += node.nodeValue || "";
+      return;
+    }
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node;
+      if (el.hasAttribute?.("data-token")) {
+        const id = el.getAttribute("data-token") || "";
+        out += `{{${id}}}`;
+        return;
+      }
+      for (let i = 0; i < el.childNodes.length; i++) {
+        walk(el.childNodes[i]);
+      }
+    }
+  };
+  for (let i = 0; i < root.childNodes.length; i++) walk(root.childNodes[i]);
+  return out;
+};
+
+/** Hydrate editor DOM from controlled `value` (plain text) */
+export const hydrateFromValue = (root, value) => {
+  if (!root) return;
+  root.innerHTML = "";
+  root.appendChild(document.createTextNode(value || ""));
+  tokenizeTextNodes(root);
+};
+
+/** Try to auto-tokenize when user finishes typing a literal {{name}} */
+const maybeTokenizeRecentlyClosedVar = () => {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return false;
+  const anchor = sel.anchorNode;
+  if (!anchor || anchor.nodeType !== Node.TEXT_NODE) return false;
+  const text = anchor.textContent || "";
+  const offset = sel.anchorOffset;
+  VAR_RE.lastIndex = 0;
+  let m;
+  while ((m = VAR_RE.exec(text))) {
+    const start = m.index;
+    const end = start + m[0].length;
+    if (end === offset) {
+      const before = text.slice(0, start);
+      const after = text.slice(end);
+      const tokenEl = createTokenEl(m[1]);
+      const frag = document.createDocumentFragment();
+      if (before) frag.appendChild(document.createTextNode(before));
+      frag.appendChild(tokenEl);
+      if (after) frag.appendChild(document.createTextNode(after));
+      anchor.replaceWith(frag);
+      setCaretAfter(tokenEl); // caret outside (escaped)
+      return true;
+    }
+  }
+  return false;
+};
+
+/** Suggestion list */
 export const SuggestionList = ({
   items,
   pos,
@@ -212,6 +326,7 @@ export const SuggestionList = ({
   if (!pos) return null;
   return (
     <div
+      data-suggestion-list
       style={{
         position: "fixed",
         left: Math.max(8, pos.left),
@@ -279,24 +394,98 @@ SuggestionList.defaultProps = {
   onClose: () => {},
 };
 
-/** The editor */
-export const EmailTemplateEditor = ({ initialHtml, variables }) => {
+export const EmailTemplateEditor = ({
+  /** Controlled props */
+  value, // plain text with {{tokens}}
+  onChange, // (text) => void
+  /** Config */
+  variables = VARIABLES,
+  placeholder = "Type your email here…  Use {{double braces}} to insert variables, e.g., {{name}}",
+  /** Back-compat: if value is undefined, optional one-time HTML seed (uncontrolled fallback) */
+  initialHtml = "",
+}) => {
   const editorRef = useRef(null);
+  const syncingRef = useRef(false); // prevent loops when hydrating from value
+
   const [menuPos, setMenuPos] = useState(null);
   const [active, setActive] = useState(0);
-  const [trigger, setTrigger] = useState(null); // { node, startOffset, query }
+  const [trigger, setTrigger] = useState(null);
   const [filtered, setFiltered] = useState(variables);
+  const [isEmpty, setIsEmpty] = useState(true);
 
-  // Initialize content
-  useEffect(() => {
-    if (editorRef.current) {
-      if (initialHtml) {
-        editorRef.current.innerHTML = initialHtml;
-      }
-      // Tokenize any pre-existing {{...}}
-      tokenizeTextNodes(editorRef.current);
+  const isControlled = typeof value === "string";
+
+  const recomputeEmptyFromDom = () => {
+    const el = editorRef.current;
+    if (!el) return;
+    const text = serializeEditor(el);
+    setIsEmpty(text.trim().length === 0);
+  };
+
+  const recomputeEmpty = () => {
+    if (isControlled) {
+      setIsEmpty((value || "").replace(/\u200b/g, "").trim().length === 0);
+    } else {
+      recomputeEmptyFromDom();
     }
-  }, [initialHtml]);
+  };
+
+  const emitChange = () => {
+    if (!onChange || !editorRef.current) return;
+    const text = serializeEditor(editorRef.current);
+    onChange(text);
+  };
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const onDocDown = (e) => {
+      if (!menuPos) return;
+      const insideMenu = e.target.closest?.("[data-suggestion-list]");
+      if (!insideMenu) closeMenu();
+    };
+    document.addEventListener("mousedown", onDocDown);
+    return () => document.removeEventListener("mousedown", onDocDown);
+  }, [menuPos]);
+
+  // Initial mount
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    if (isControlled) {
+      syncingRef.current = true;
+      hydrateFromValue(editorRef.current, value || "");
+      updateTokensValidity(editorRef.current, variables);
+      syncingRef.current = false;
+      setIsEmpty((value || "").trim().length === 0);
+    } else {
+      // Uncontrolled fallback: allow seeding once from initialHtml
+      editorRef.current.innerHTML = initialHtml || "";
+      tokenizeTextNodes(editorRef.current);
+      updateTokensValidity(editorRef.current, variables);
+      recomputeEmptyFromDom();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once
+
+  // Re-validate when variables change
+  useEffect(() => {
+    updateTokensValidity(editorRef.current, variables);
+    recomputeEmpty();
+    setFiltered(variables);
+  }, [variables]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Hydrate DOM when controlled value changes
+  useEffect(() => {
+    if (!isControlled || !editorRef.current) return;
+    const current = serializeEditor(editorRef.current);
+    if (current !== (value || "")) {
+      syncingRef.current = true;
+      hydrateFromValue(editorRef.current, value || "");
+      updateTokensValidity(editorRef.current, variables);
+      syncingRef.current = false;
+    }
+    setIsEmpty((value || "").trim().length === 0);
+  }, [isControlled, value, variables]);
 
   const closeMenu = () => {
     setMenuPos(null);
@@ -323,23 +512,62 @@ export const EmailTemplateEditor = ({ initialHtml, variables }) => {
     setTrigger(t);
   };
 
+  /** Always escape at token end BEFORE the browser inserts characters */
+  const onBeforeInput = (e) => {
+    const tok = getActiveToken();
+    if (tok && isCaretAtEndOf(tok)) {
+      const isInsert =
+        e.inputType?.startsWith("insert") ||
+        e.inputType === "insertCompositionText";
+      if (isInsert) {
+        e.preventDefault();
+        const ch = typeof e.data === "string" ? e.data : "";
+        setCaretAfter(tok);
+        if (ch) {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount) {
+            const r = sel.getRangeAt(0);
+            const textNode = document.createTextNode(ch);
+            r.insertNode(textNode);
+            r.setStartAfter(textNode);
+            r.setEndAfter(textNode);
+            sel.removeAllRanges();
+            sel.addRange(r);
+          }
+        }
+        closeMenu();
+        if (!syncingRef.current) {
+          updateTokensValidity(editorRef.current, variables);
+          recomputeEmpty();
+          emitChange();
+        }
+      }
+    }
+  };
+
   const onInput = () => {
-    // Do NOT normalize on every input; it was resetting the caret to start of token.
-    // Just process trigger detection so suggestions work while editing (even inside tokens).
+    if (syncingRef.current) return;
+
     const t = detectTrigger();
-    openOrUpdateMenu(t);
+    if (t) openOrUpdateMenu(t);
+    else closeMenu();
+
+    const didTokenize = maybeTokenizeRecentlyClosedVar();
+    if (editorRef.current) {
+      updateTokensValidity(editorRef.current, variables);
+      recomputeEmpty();
+      emitChange();
+    }
   };
 
   const onKeyDown = (e) => {
-    // Prevent nested tokens inside a token: if user types a second '{' or '}' consecutively, block it.
+    // Prevent nested tokens by blocking creation of inner "{{" / "}}"
     const tokForNest = getActiveToken();
     if (tokForNest && (e.key === "{" || e.key === "}")) {
       const { start, end } = getCaretOffsetIn(tokForNest);
-      // get surrounding characters
       const txt = tokForNest.textContent || "";
       const prevCh = start > 0 ? txt[start - 1] : "";
       const nextCh = end < txt.length ? txt[end] : "";
-      // Block creating '{{' or '}}' sequences beyond the outer braces
       if (
         (e.key === "{" && prevCh === "{") ||
         (e.key === "}" && nextCh === "}")
@@ -348,7 +576,8 @@ export const EmailTemplateEditor = ({ initialHtml, variables }) => {
         return;
       }
     }
-    // Editor-wide select-all
+
+    // Cmd/Ctrl+A selects editor contents
     if (e.key.toLowerCase() === "a" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       const range = document.createRange();
@@ -359,32 +588,18 @@ export const EmailTemplateEditor = ({ initialHtml, variables }) => {
       return;
     }
 
-    // Inside-token navigation: if caret at END of token and Space/Escape/ArrowRight, move outside
+    // Escape / ArrowRight at END of token => move outside
     const tok = getActiveToken();
-    if (tok) {
-      const sel = window.getSelection();
-      if (sel && sel.rangeCount) {
-        const r = sel.getRangeAt(0);
-        const temp = document.createRange();
-        temp.selectNodeContents(tok);
-        const atEnd =
-          r.collapsed &&
-          r.endContainer &&
-          tok.contains(r.endContainer) &&
-          r.compareBoundaryPoints(Range.END_TO_END, temp) === 0;
-        if (
-          atEnd &&
-          (e.key === " " || e.key === "Escape" || e.key === "ArrowRight")
-        ) {
-          e.preventDefault();
-          if (e.key === " ") tok.after(document.createTextNode(" "));
-          setCaretAfter(tok);
-          closeMenu();
-          return;
-        }
+    if (tok && isCaretAtEndOf(tok)) {
+      if (e.key === "Escape" || e.key === "ArrowRight") {
+        e.preventDefault();
+        setCaretAfter(tok);
+        closeMenu();
+        return;
       }
     }
 
+    // Menu nav
     if (!menuPos) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -397,11 +612,10 @@ export const EmailTemplateEditor = ({ initialHtml, variables }) => {
     } else if (e.key === "Enter" || e.key === "Tab") {
       e.preventDefault();
       if (filtered.length && trigger) {
-        insertTokenAtSelection(
-          trigger,
-          filtered[active],
-          /*placeCaretInside*/ true
-        );
+        insertTokenAtSelection(trigger, filtered[active], false); // caret OUTSIDE
+        updateTokensValidity(editorRef.current, variables);
+        recomputeEmpty();
+        emitChange();
         closeMenu();
       }
     } else if (e.key === "Escape") {
@@ -411,7 +625,6 @@ export const EmailTemplateEditor = ({ initialHtml, variables }) => {
   };
 
   const onPaste = (e) => {
-    // Plain-text paste only; then tokenize
     e.preventDefault();
     const text = (e.clipboardData || window.clipboardData).getData(
       "text/plain"
@@ -422,213 +635,138 @@ export const EmailTemplateEditor = ({ initialHtml, variables }) => {
     r.deleteContents();
     const node = document.createTextNode(text);
     r.insertNode(node);
-    // Move caret after pasted text node
     const after = document.createRange();
     after.setStartAfter(node);
     after.setEndAfter(node);
     sel.removeAllRanges();
     sel.addRange(after);
-    // Tokenize any {{...}} we just inserted
     tokenizeTextNodes(editorRef.current);
+    updateTokensValidity(editorRef.current, variables);
+    recomputeEmpty();
+    emitChange();
   };
 
   const onClickSuggestion = (name) => {
     if (trigger) {
-      insertTokenAtSelection(trigger, name, /*placeCaretInside*/ true);
+      insertTokenAtSelection(trigger, name, false); // caret OUTSIDE
+      updateTokensValidity(editorRef.current, variables);
+      recomputeEmpty();
+      emitChange();
       closeMenu();
     }
   };
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 360px",
-        gap: 16,
-        alignItems: "start",
-      }}
-    >
-      <div>
-        <label
-          style={{
-            display: "block",
-            fontSize: 12,
-            color: "#555",
-            marginBottom: 6,
-          }}
-        >
-          Email body
-        </label>
-        <div
-          ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          onInput={onInput}
-          onKeyDown={onKeyDown}
-          onPaste={onPaste}
-          style={{
-            minHeight: 220,
-            padding: 14,
-            border: "1px solid #cfd4dc",
-            borderRadius: 10,
-            fontFamily:
-              "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
-            lineHeight: 1.5,
-            outline: "none",
-            background: "#fff",
-            wordBreak: "break-word",
-          }}
-          spellCheck={false}
-        >
-          {/* default content if none provided */}
-          {!initialHtml && (
-            <>
-              Hello{" "}
-              <span
-                data-token="name"
-                style={{
-                  background: "rgba(0,0,0,0.06)",
-                  border: "1px solid rgba(0,0,0,0.15)",
-                  borderRadius: 6,
-                  padding: "0 4px",
-                  margin: "0 1px",
-                  fontFamily:
-                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono'",
-                }}
-              >
-                {"{{name}}"}
-              </span>
-              , &nbsp;Thanks for getting involved at Paddlefest! We’re excited
-              to have you.
-              <br />
-              <br />
-              Your event:{" "}
-              <span
-                data-token="eventName"
-                style={{
-                  background: "rgba(0,0,0,0.06)",
-                  border: "1px solid rgba(0,0,0,0.15)",
-                  borderRadius: 6,
-                  padding: "0 4px",
-                  margin: "0 1px",
-                  fontFamily:
-                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono'",
-                }}
-              >
-                {"{{eventName}}"}
-              </span>{" "}
-              on{" "}
-              <span
-                data-token="eventDate"
-                style={{
-                  background: "rgba(0,0,0,0.06)",
-                  border: "1px solid rgba(0,0,0,0.15)",
-                  borderRadius: 6,
-                  padding: "0 4px",
-                  margin: "0 1px",
-                  fontFamily:
-                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono'",
-                }}
-              >
-                {"{{eventDate}}"}
-              </span>{" "}
-              at{" "}
-              <span
-                data-token="eventLocation"
-                style={{
-                  background: "rgba(0,0,0,0.06)",
-                  border: "1px solid rgba(0,0,0,0.15)",
-                  borderRadius: 6,
-                  padding: "0 4px",
-                  margin: "0 1px",
-                  fontFamily:
-                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono'",
-                }}
-              >
-                {"{{eventLocation}}"}
-              </span>
-              .
-              <br />
-              Register here:{" "}
-              <span
-                data-token="registrationLink"
-                style={{
-                  background: "rgba(0,0,0,0.06)",
-                  border: "1px solid rgba(0,0,0,0.15)",
-                  borderRadius: 6,
-                  padding: "0 4px",
-                  margin: "0 1px",
-                  fontFamily:
-                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono'",
-                }}
-              >
-                {"{{registrationLink}}"}
-              </span>
-              <br />
-              <br />— Paddlefest Team
-            </>
-          )}
-        </div>
-
-        <SuggestionList
-          items={filtered}
-          pos={menuPos}
-          activeIndex={active}
-          onClick={onClickSuggestion}
-          onClose={closeMenu}
-        />
-      </div>
-
-      <aside style={{ position: "sticky", top: 8 }}>
-        <div
-          style={{
-            border: "1px solid #cfd4dc",
-            borderRadius: 10,
-            padding: 12,
-            background: "#fbfcfe",
-          }}
-        >
-          <div style={{ fontSize: 12, color: "#444", marginBottom: 8 }}>
-            Available variables
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
-            {variables.map((v) => (
+    <div>
+      <label className="form-label required">Email body</label>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 360px",
+          gap: 16,
+          alignItems: "start",
+        }}
+      >
+        <div>
+          {/* Editor + Placeholder wrapper */}
+          <div style={{ position: "relative" }}>
+            {/* Placeholder */}
+            {isEmpty && (
               <div
-                key={v}
-                style={{ display: "flex", alignItems: "center", gap: 8 }}
+                aria-hidden
+                className="text-muted"
+                style={{
+                  position: "absolute",
+                  inset: 2,
+                  pointerEvents: "none",
+                  padding: 14,
+                  whiteSpace: "pre-wrap",
+                  userSelect: "none",
+                }}
               >
-                <code
-                  style={{
-                    background: "rgba(0,0,0,0.06)",
-                    border: "1px solid rgba(0,0,0,0.15)",
-                    borderRadius: 6,
-                    padding: "0 6px",
-                  }}
-                >{`{{${v}}}`}</code>
-                <span style={{ color: "#666", fontSize: 12 }}>{v}</span>
+                {placeholder}
               </div>
-            ))}
-          </div>
-          <div
-            style={{
-              borderTop: "1px solid #e6e8eb",
-              marginTop: 10,
-              paddingTop: 8,
-              color: "#6b7280",
-              fontSize: 12,
-            }}
-          >
-            Tip: Type <code>{"{{"}</code> in the editor to open suggestions.
+            )}
+
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              onBeforeInput={onBeforeInput}
+              onInput={onInput}
+              onKeyDown={onKeyDown}
+              onPaste={onPaste}
+              style={{
+                minHeight: 220,
+                padding: 14,
+                lineHeight: 1.5,
+                wordBreak: "break-word",
+              }}
+              className="form-control"
+              spellCheck={false}
+            />
           </div>
 
-          <TestsPanel />
+          <SuggestionList
+            items={filtered}
+            pos={menuPos}
+            activeIndex={active}
+            onClick={onClickSuggestion}
+            onClose={closeMenu}
+          />
         </div>
-      </aside>
+
+        <aside style={{ position: "sticky", top: 8 }}>
+          <div className="card p-2">
+            <div style={{ fontSize: 12, color: "#444", marginBottom: 8 }}>
+              Available variables
+            </div>
+            <div
+              style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}
+            >
+              {variables.map((v) => (
+                <div
+                  key={v}
+                  style={{ display: "flex", alignItems: "center", gap: 8 }}
+                >
+                  <code
+                    style={{
+                      background: "rgba(0,0,0,0.06)",
+                      border: "1px solid rgba(0,0,0,0.15)",
+                      borderRadius: 6,
+                      padding: "0 6px",
+                    }}
+                  >{`{{${v}}}`}</code>
+                  <span style={{ color: "#666", fontSize: 12 }}>
+                    {mapVariable(v) || v}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div
+              style={{
+                borderTop: "1px solid #e6e8eb",
+                marginTop: 10,
+                paddingTop: 8,
+                color: "#6b7280",
+                fontSize: 12,
+              }}
+            >
+              Tip: Type <code>{"{{"}</code> in the editor to open suggestions or
+              type a full token like <code>{"{{name}}"}</code> to auto-insert.
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 };
 
 EmailTemplateEditor.defaultProps = {
+  value: undefined, // when provided => controlled mode
+  onChange: () => {},
   initialHtml: "",
   variables: VARIABLES,
+  placeholder:
+    "Type your email here…  Use {{double braces}} to insert variables, e.g., {{name}}",
 };

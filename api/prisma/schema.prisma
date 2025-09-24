@@ -1044,6 +1044,7 @@ model EmailTemplate {
   name String
 
   textBody String?
+  subject String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
