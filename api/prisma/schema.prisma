@@ -32,10 +32,9 @@ model User {
 
   suspended Boolean @default(false)
 
-  events             Event[]
-  emails             Email[]
-  gmailConnection    GmailConnection[]
-  CampaignEmailQueue CampaignEmailQueue[]
+  events          Event[]
+  emails          Email[]
+  gmailConnection GmailConnection[]
 }
 
 enum AccountType {
@@ -191,50 +190,6 @@ model Email {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-/// Email marketing campaign
-model Campaign {
-  id   String @id @default(cuid())
-  name String
-
-  // Scope to an Event
-  eventId String
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  emails Email[]
-
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  CampaignEmailQueue CampaignEmailQueue[]
-}
-
-/// Queue of campaign emails to be sent asynchronously
-model CampaignEmailQueue {
-  id String @id @default(cuid())
-
-  campaignId String
-  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-
-  crmPersonId String
-  crmPerson   CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
-
-  // Message fields captured at enqueue-time
-  from    String
-  subject String
-  body    String
-
-  status CampaignEmailQueueStatus @default(PENDING)
-
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([campaignId])
-  @@index([crmPersonId])
-  @@index([status])
 }
 
 enum CampaignEmailQueueStatus {
@@ -508,7 +463,7 @@ model Event {
   gmailConnection     GmailConnection?
   campaigns           Campaign[]
 
-  emailTemplates      EmailTemplate[]
+  emailTemplates EmailTemplate[]
 
   stripeConnectedAccountId  String?
   // EventPilot billing: subscription for this event in Stripe
@@ -897,10 +852,9 @@ model CrmPerson {
   importId String?
   import   CrmPersonsImport? @relation(fields: [importId], references: [id], onDelete: Cascade)
 
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  CampaignEmailQueue CampaignEmailQueue[]
-  MailingListMember  MailingListMember[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  MailingListMember MailingListMember[]
 }
 
 model CrmPersonLink {
@@ -1000,11 +954,13 @@ model MailingList {
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  members MailingListMember[]
+  members           MailingListMember[]
   crmSavedSegmentId String?
-  crmSavedSegment   CrmSavedSegment? @relation(fields: [crmSavedSegmentId], references: [id], onDelete: Cascade)
+  crmSavedSegment   CrmSavedSegment?    @relation(fields: [crmSavedSegmentId], references: [id], onDelete: Cascade)
 
-  logs    Logs[]
+  logs Logs[]
+
+  campaigns Campaign[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1047,16 +1003,37 @@ model EmailTemplate {
   name String
 
   textBody String?
-  subject String?
+  subject  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  campaigns Campaign[]
 
   deleted Boolean @default(false)
 
   logs Logs[]
 
   @@unique([eventId, name])
+}
+
+model Campaign {
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  templateId String
+  template   EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  mailingListId String
+  mailingList   MailingList @relation(fields: [mailingListId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs  Logs[]
+  Email Email[]
 }
 
 enum CrmFieldType {
@@ -1467,6 +1444,9 @@ model Logs {
   emailTemplateId String?
   emailTemplate   EmailTemplate? @relation(fields: [emailTemplateId], references: [id], onDelete: Cascade)
 
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
   type LogType
 
   ip   String?
@@ -1506,7 +1486,7 @@ model CrmSavedSegment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  logs Logs[]
+  logs         Logs[]
   mailingLists MailingList[]
 
   @@index([eventId])

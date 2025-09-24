@@ -1,7 +1,6 @@
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useReducedSubdomain } from "../../../hooks/useReducedSubdomain";
 import { useEvent } from "../../../hooks/useEvent";
-import { useCampaign } from "../../../hooks/useCampaign";
 import { Typography, Alert } from "tabler-react-2";
 import { Row } from "../../../util/Flex";
 import { useFormBuilder } from "../../../hooks/useFormBuilder";
@@ -92,8 +91,13 @@ export const VolunteerRegistrationPage = () => {
     }
   }, [event, loading, searchParams]);
 
-  const { pages, loading: loadingForm, error: errorForm } =
-    useVolunteerRegistrationFormV2({ eventId: instanceReady ? eventSlug : null });
+  const {
+    pages,
+    loading: loadingForm,
+    error: errorForm,
+  } = useVolunteerRegistrationFormV2({
+    eventId: instanceReady ? eventSlug : null,
+  });
   const { submitForm: _submitForm, mutationLoading } = useFormBuilder(
     instanceReady ? eventSlug : null
   );
