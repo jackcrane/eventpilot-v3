@@ -70,6 +70,20 @@ export const useMailingList = ({ eventId, mailingListId } = {}) => {
     }
   };
 
+  const setSavedSegment = async (savedSegmentId) => {
+    if (!key) return false;
+    const currentTitle = data?.mailingList?.title;
+    if (!currentTitle) {
+      toast.error("Mailing list not ready");
+      return false;
+    }
+
+    return updateMailingList({
+      title: currentTitle,
+      crmSavedSegmentId: savedSegmentId ?? null,
+    });
+  };
+
   const deleteMailingList = async () => {
     if (!key) return false;
 
@@ -105,6 +119,7 @@ export const useMailingList = ({ eventId, mailingListId } = {}) => {
     refetch,
     schema: listSchema,
     updateMailingList,
+    setSavedSegment,
     deleteMailingList,
   };
 };

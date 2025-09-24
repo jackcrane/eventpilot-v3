@@ -7,6 +7,7 @@ import { zerialize } from "zodex";
 
 const mailingListSchema = z.object({
   title: z.string().trim().min(1).max(120),
+  crmSavedSegmentId: z.string().cuid().nullable().optional(),
 });
 
 const baseMailingListSelect = {
@@ -16,6 +17,14 @@ const baseMailingListSelect = {
   createdAt: true,
   updatedAt: true,
   deleted: true,
+  crmSavedSegmentId: true,
+};
+
+const savedSegmentSelect = {
+  id: true,
+  title: true,
+  prompt: true,
+  ast: true,
 };
 
 const parseCrmPersonIds = (value) => {
@@ -43,6 +52,8 @@ const formatMailingList = (
   selectedMatchCount = 0
 ) => ({
   ...mailingList,
+  crmSavedSegmentId: mailingList.crmSavedSegmentId ?? null,
+  crmSavedSegment: mailingList.crmSavedSegment || null,
   memberCount,
   membershipState,
   selectedMatchCount,
@@ -64,7 +75,10 @@ export const get = [
           eventId,
           deleted: includeDeleted ? undefined : false,
         },
-        select: baseMailingListSelect,
+        select: {
+          ...baseMailingListSelect,
+          crmSavedSegment: { select: savedSegmentSelect },
+        },
         orderBy: { createdAt: "desc" },
       });
 
@@ -149,6 +163,28 @@ export const post = [
     }
 
     const { title } = result.data;
+    const hasSegmentField = Object.prototype.hasOwnProperty.call(
+      result.data,
+      "crmSavedSegmentId"
+    );
+    const crmSavedSegmentId = hasSegmentField
+      ? result.data.crmSavedSegmentId
+      : undefined;
+
+    if (hasSegmentField && crmSavedSegmentId) {
+      const segment = await prisma.crmSavedSegment.findFirst({
+        where: {
+          id: crmSavedSegmentId,
+          eventId,
+          deleted: false,
+        },
+      });
+      if (!segment) {
+        return res
+          .status(400)
+          .json({ message: "Saved segment not found for this event." });
+      }
+    }
 
     try {
       const mailingList = await prisma.$transaction(async (tx) => {
@@ -156,8 +192,14 @@ export const post = [
           data: {
             title,
             eventId,
+            ...(hasSegmentField
+              ? { crmSavedSegmentId: crmSavedSegmentId ?? null }
+              : {}),
           },
-          select: baseMailingListSelect,
+          select: {
+            ...baseMailingListSelect,
+            crmSavedSegment: { select: savedSegmentSelect },
+          },
         });
 
         await tx.logs.create({
@@ -168,6 +210,9 @@ export const post = [
             eventId,
             mailingListId: created.id,
             data: { after: created },
+            crmSavedSegmentId: hasSegmentField
+              ? crmSavedSegmentId ?? null
+              : created.crmSavedSegmentId ?? null,
           },
         });
 

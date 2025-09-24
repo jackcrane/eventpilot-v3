@@ -1,6 +1,13 @@
 import React, { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Table, Button, Typography, Input, useOffcanvas } from "tabler-react-2";
+import {
+  Table,
+  Button,
+  Typography,
+  Input,
+  useOffcanvas,
+  Badge,
+} from "tabler-react-2";
 import { EventPage } from "../../../../../../components/eventPage/EventPage";
 import { Row } from "../../../../../../util/Flex";
 import { Empty } from "../../../../../../components/empty/Empty";
@@ -19,6 +26,75 @@ const formatDateTime = (value) => {
   } catch (e) {
     return "—";
   }
+};
+
+const CreateMailingListForm = ({ onSubmit, onCancel }) => {
+  const [title, setTitle] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setTouched(true);
+    const next = title.trim();
+    if (!next || submitting) return;
+    try {
+      setSubmitting(true);
+      const ok = await onSubmit(next);
+      if (!ok) setSubmitting(false);
+    } catch (e) {
+      setSubmitting(false);
+    }
+  };
+
+  const trimmed = title.trim();
+  const showError = touched && !trimmed;
+  const canSubmit = Boolean(trimmed) && !submitting;
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      style={{ display: "flex", flexDirection: "column", gap: 16 }}
+    >
+      <div>
+        <Typography.H5 className="mb-0 text-secondary">
+          MAILING LIST
+        </Typography.H5>
+        <Typography.H1 className="mb-2">Create mailing list</Typography.H1>
+        <Typography.Text className="text-muted">
+          Pick a name to create your new mailing list.
+        </Typography.Text>
+      </div>
+      <Input
+        label="Mailing list name"
+        value={title}
+        onChange={(value) => setTitle(value)}
+        onBlur={() => setTouched(true)}
+        placeholder="List name"
+        required
+        invalid={showError}
+        invalidText={showError ? "Title is required" : undefined}
+      />
+      <Row gap={0.5} justify="flex-end">
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={submitting}
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          variant="primary"
+          loading={submitting}
+          disabled={!canSubmit}
+        >
+          Create
+        </Button>
+      </Row>
+    </form>
+  );
 };
 
 const RenameMailingListForm = ({ mailingList, onSubmit, onCancel }) => {
@@ -92,11 +168,33 @@ const RenameMailingListForm = ({ mailingList, onSubmit, onCancel }) => {
 
 export const EventMailingListsPage = () => {
   const { eventId } = useParams();
-  const { mailingLists, loading, error, updateMailingList, deleteMailingList } =
-    useMailingLists({ eventId });
+  const {
+    mailingLists,
+    loading,
+    error,
+    createMailingList,
+    updateMailingList,
+    deleteMailingList,
+  } = useMailingLists({ eventId });
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
     offcanvasProps: { position: "end", size: 420, zIndex: 1051 },
   });
+
+  const handleCreate = () => {
+    offcanvas({
+      title: "Create Mailing List",
+      content: (
+        <CreateMailingListForm
+          onSubmit={async (title) => {
+            const success = await createMailingList({ title });
+            if (success) close();
+            return Boolean(success);
+          }}
+          onCancel={close}
+        />
+      ),
+    });
+  };
 
   const handleRename = async (list) => {
     offcanvas({
@@ -138,60 +236,82 @@ export const EventMailingListsPage = () => {
       loading={loading}
     >
       {OffcanvasElement}
+      <Row
+        justify="space-between"
+        align="center"
+        style={{ marginBottom: mailingLists?.length ? 16 : 0 }}
+      >
+        <div />
+        <Button variant="primary" onClick={handleCreate}>
+          New Mailing List
+        </Button>
+      </Row>
       {error ? (
         <Typography.Text className="text-danger">
           Failed to load mailing lists. Please try again.
         </Typography.Text>
       ) : mailingLists?.length ? (
         <div className="table-responsive">
-        <Table
-          className="card"
-          columns={[
-            {
-              label: "Title",
-              accessor: "title",
-              render: (value, row) => (
-                <Link to={`/events/${eventId}/email/lists/${row.id}`}>
-                  {value}
-                </Link>
-              ),
-            },
-            {
-              label: "Members",
-              accessor: "memberCount",
-            },
-            {
-              label: "Updated",
-              accessor: "updatedAt",
-              render: (value) => formatDateTime(value),
-            },
-            {
-              label: "Actions",
-              accessor: "id",
-              render: (value, row) => (
-                <Row gap={0.5}>
-                  <Button size="sm" onClick={() => handleRename(row)}>
-                    Rename
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    style={{ visibility: row.deleted ? "hidden" : "visible" }}
-                    onClick={() => handleDelete(row)}
-                  >
-                    Delete
-                  </Button>
-                </Row>
-              ),
-            },
-          ]}
-          data={mailingLists}
-        />
+          <Table
+            className="card"
+            columns={[
+              {
+                label: "Title",
+                accessor: "title",
+                render: (value, row) => (
+                  <Row gap={0.5} align="center">
+                    <Link to={`/events/${eventId}/email/lists/${row.id}`}>
+                      {value}
+                    </Link>
+                    {row.crmSavedSegmentId ? (
+                      <Badge color="blue" soft>
+                        AI
+                      </Badge>
+                    ) : null}
+                  </Row>
+                ),
+              },
+              {
+                label: "Members",
+                accessor: "memberCount",
+              },
+              {
+                label: "Updated",
+                accessor: "updatedAt",
+                render: (value) => formatDateTime(value),
+              },
+              {
+                label: "Actions",
+                accessor: "id",
+                render: (value, row) => (
+                  <Row gap={0.5}>
+                    <Button size="sm" onClick={() => handleRename(row)}>
+                      Rename
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      style={{ visibility: row.deleted ? "hidden" : "visible" }}
+                      onClick={() => handleDelete(row)}
+                    >
+                      Delete
+                    </Button>
+                  </Row>
+                ),
+              },
+            ]}
+            data={mailingLists}
+          />
         </div>
       ) : (
         <Empty
           title="No mailing lists yet."
           text="Create a list and it will appear here."
+          action={
+            <Button variant="primary" onClick={handleCreate}>
+              New Mailing List
+            </Button>
+          }
         />
       )}
     </EventPage>

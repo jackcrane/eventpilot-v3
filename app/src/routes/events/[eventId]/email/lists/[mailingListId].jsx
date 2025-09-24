@@ -9,6 +9,7 @@ import {
   Dropdown,
   Input,
   useConfirm,
+  Card,
 } from "tabler-react-2";
 import toast from "react-hot-toast";
 import { EventPage } from "../../../../../../components/eventPage/EventPage";
@@ -20,6 +21,11 @@ import { useCrmTableSelection } from "../../../../../../hooks/useCrmTableSelecti
 import { MailingListAddPeoplePanel } from "../../../../../../components/crm/MailingListAddPeoplePanel";
 import moment from "moment";
 import { DATETIME_FORMAT } from "../../../../../../util/Constants";
+import { AiSegmentPromptPanel } from "../../../../../../components/crmAi/AiSegmentPromptPanel";
+import {
+  useCrmSegment,
+  DEFAULT_SEGMENT_PAGINATION,
+} from "../../../../../../hooks/useCrmSegment";
 
 const STATUS_COLORS = {
   ACTIVE: "green",
@@ -102,6 +108,7 @@ export const EventMailingListMembersPage = () => {
   const [pageSize, setPageSize] = useState(25);
   const [selectedIds, setSelectedIds] = useState([]);
   const [removing, setRemoving] = useState(false);
+  const [aiUpdating, setAiUpdating] = useState(false);
 
   const {
     mailingList,
@@ -109,6 +116,7 @@ export const EventMailingListMembersPage = () => {
     loading: listLoading,
     updateMailingList,
     deleteMailingList,
+    setSavedSegment,
   } = useMailingList({ eventId, mailingListId });
 
   const {
@@ -142,6 +150,18 @@ export const EventMailingListMembersPage = () => {
     offcanvasProps: { position: "end", size: 420, zIndex: 1052 },
   });
 
+  const {
+    offcanvas: openAiPanel,
+    OffcanvasElement: AiOffcanvas,
+    close: closeAiPanel,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 520, zIndex: 1053 },
+  });
+
+  const { run: runSegment, loading: runningSegment } = useCrmSegment({
+    eventId,
+  });
+
   const { confirm, ConfirmModal } = useConfirm({
     title: "Delete mailing list",
     text: "This will delete the mailing list and remove all of its members. Are you sure?",
@@ -173,6 +193,117 @@ export const EventMailingListMembersPage = () => {
         : [],
     [members]
   );
+
+  const extractCrmPersonIds = (result) => {
+    if (!result) return [];
+    const pool = Array.isArray(result?.crmPersons)
+      ? result.crmPersons
+      : Array.isArray(result?.results?.crmPersons)
+      ? result.results.crmPersons
+      : [];
+    const ids = pool
+      .map((person) => person?.id)
+      .filter((id) => typeof id === "string" && id.length > 0);
+    return Array.from(new Set(ids));
+  };
+
+  const handleAttachSegment = async (savedSegmentId) => {
+    if (!setSavedSegment) return false;
+    return setSavedSegment(savedSegmentId);
+  };
+
+  const handleAiApply = async ({ results, savedSegmentId }) => {
+    if (!savedSegmentId) {
+      toast.error("Unable to link AI segment");
+      return;
+    }
+
+    const ids = extractCrmPersonIds(results);
+    setAiUpdating(true);
+    try {
+      if (ids.length) {
+        await addMembers({ crmPersonIds: ids });
+      }
+      await handleAttachSegment(savedSegmentId);
+    } finally {
+      setAiUpdating(false);
+    }
+  };
+
+  const handleRunAiSegment = async () => {
+    if (!mailingList?.crmSavedSegment?.ast) {
+      toast.error("No AI segment attached yet");
+      return;
+    }
+
+    let loadingToast = toast.loading("Finding matching contacts…");
+    toast(
+      "Searches are automatically run every 10 minutes in addition to when you trigger them manually."
+    );
+    try {
+      const response = await runSegment({
+        filter: mailingList.crmSavedSegment.ast.filter,
+        pagination: {
+          ...DEFAULT_SEGMENT_PAGINATION,
+          size: 500,
+        },
+      });
+
+      if (!response?.ok) {
+        throw response?.error || new Error("Failed to run AI segment");
+      }
+
+      toast.dismiss(loadingToast);
+      loadingToast = null;
+
+      const ids = extractCrmPersonIds(response);
+      if (!ids.length) {
+        toast.success("No contacts matched the AI segment yet");
+        return;
+      }
+
+      await addMembers({ crmPersonIds: ids });
+    } catch (error) {
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+        loadingToast = null;
+      }
+      toast.error(error?.message || "Failed to run AI segment");
+    }
+  };
+
+  const handleDetachSegment = async () => {
+    if (!setSavedSegment) return;
+    setAiUpdating(true);
+    try {
+      await handleAttachSegment(null);
+    } finally {
+      setAiUpdating(false);
+    }
+  };
+
+  const openAiConfigurator = () => {
+    openAiPanel({
+      title: mailingList?.crmSavedSegmentId
+        ? "Update AI segment"
+        : "Use AI to build this list",
+      content: (
+        <AiSegmentPromptPanel
+          eventId={eventId}
+          initialTitle={
+            mailingList?.crmSavedSegment?.title || mailingList?.title || ""
+          }
+          initialPrompt={mailingList?.crmSavedSegment?.prompt || ""}
+          pagination={{
+            ...DEFAULT_SEGMENT_PAGINATION,
+            size: 200,
+          }}
+          onApply={handleAiApply}
+          onClose={closeAiPanel}
+        />
+      ),
+    });
+  };
 
   const { selectionColumn, rowSelection, onRowSelectionChange } =
     useCrmTableSelection({
@@ -329,6 +460,66 @@ export const EventMailingListMembersPage = () => {
       {ConfirmModal}
       {AddPeopleOffcanvas}
       {RenameOffcanvas}
+      {AiOffcanvas}
+      <Card className="mb-3">
+        <Row justify="space-between" align="center" wrap>
+          <div style={{ maxWidth: "65%" }}>
+            <Typography.H5 className="mb-1 text-secondary">
+              AI SEGMENT
+            </Typography.H5>
+            {mailingList?.crmSavedSegmentId ? (
+              <>
+                <Typography.Text className="text-muted mb-0">
+                  {mailingList?.crmSavedSegment?.title ||
+                    mailingList?.crmSavedSegment?.prompt ||
+                    "Linked saved segment"}
+                </Typography.Text>
+                <Typography.Text className="text-muted mb-0">
+                  This list refreshes every 10 minutes using the linked AI
+                  segment.
+                </Typography.Text>
+              </>
+            ) : (
+              <Typography.Text className="text-muted mb-0">
+                Link an AI segment to keep this mailing list up to date
+                automatically.
+              </Typography.Text>
+            )}
+          </div>
+          <Row gap={0.5} className="mt-2 mt-md-0">
+            {mailingList?.crmSavedSegmentId ? (
+              <Dropdown
+                prompt="Actions"
+                items={[
+                  {
+                    text: "Trigger a new search",
+                    onclick: handleRunAiSegment,
+                  },
+                  {
+                    type: "divider",
+                  },
+                  {
+                    text: "Update AI segment",
+                    onclick: openAiConfigurator,
+                  },
+                  {
+                    text: "Detach AI segment",
+                    onclick: handleDetachSegment,
+                  },
+                ]}
+              />
+            ) : (
+              <Button
+                className="ai-button"
+                onClick={openAiConfigurator}
+                disabled={aiUpdating}
+              >
+                Use AI
+              </Button>
+            )}
+          </Row>
+        </Row>
+      </Card>
       <Row justify="space-between" align="center" className="mb-3">
         <div>
           <Typography.H5 className="mb-0 text-secondary">MEMBERS</Typography.H5>
@@ -353,6 +544,9 @@ export const EventMailingListMembersPage = () => {
               {
                 text: "Add people",
                 onclick: handleAddPeople,
+              },
+              {
+                type: "divider",
               },
               {
                 text: "Rename list",

@@ -1001,6 +1001,9 @@ model MailingList {
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   members MailingListMember[]
+  crmSavedSegmentId String?
+  crmSavedSegment   CrmSavedSegment? @relation(fields: [crmSavedSegmentId], references: [id], onDelete: Cascade)
+
   logs    Logs[]
 
   createdAt DateTime @default(now())
@@ -1504,6 +1507,7 @@ model CrmSavedSegment {
   updatedAt DateTime @updatedAt
 
   logs Logs[]
+  mailingLists MailingList[]
 
   @@index([eventId])
 }
