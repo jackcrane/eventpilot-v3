@@ -36,6 +36,8 @@ export const useMailingListMembers = (
     page,
     pageSize,
     includeDeletedMembers,
+    search,
+    filters,
   } = {}
 ) => {
   const key =
@@ -59,6 +61,29 @@ export const useMailingListMembers = (
     }
     if (Number.isFinite(pageSize) && pageSize > 0) {
       params.set("size", String(pageSize));
+    }
+    if (typeof search === "string" && search.trim().length) {
+      params.set("q", search.trim());
+    }
+
+    const normalizedFilters = Array.isArray(filters)
+      ? filters
+          .map((filter) => {
+            const label =
+              typeof filter?.label === "string" ? filter.label.trim() : "";
+            const operation =
+              typeof filter?.operation === "string"
+                ? filter.operation.trim()
+                : "";
+            if (!label || !operation) return null;
+            const value = filter?.value ?? null;
+            return { label, operation, value };
+          })
+          .filter(Boolean)
+      : [];
+
+    if (normalizedFilters.length) {
+      params.set("filters", JSON.stringify(normalizedFilters));
     }
     const query = params.toString();
     return query ? `${bulkKey}?${query}` : bulkKey;

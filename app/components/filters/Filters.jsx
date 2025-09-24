@@ -94,7 +94,7 @@ const OPERATORS = [
   },
   {
     id: "greater-than-or-equal",
-    label: "≥",
+    label: "Greater Than or Equal",
     supports: ["number"],
     icon: <Icon i="math-equal-greater" />,
   },
@@ -106,7 +106,7 @@ const OPERATORS = [
   },
   {
     id: "less-than-or-equal",
-    label: "≤",
+    label: "Less Than or Equal",
     supports: ["number"],
     icon: <Icon i="math-equal-lower" />,
   },
@@ -126,7 +126,8 @@ const OPERATORS = [
 
 export const Filters = ({ onFilterChange, fields, initial }) => {
   const [filters, setFilters] = useState([]);
-  const FIELD_DEFINITIONS = fields && fields.length ? fields : DEFAULT_FIELD_DEFINITIONS;
+  const FIELD_DEFINITIONS =
+    fields && fields.length ? fields : DEFAULT_FIELD_DEFINITIONS;
   const onFilterChangeRef = useRef(onFilterChange);
 
   // Keep latest onFilterChange callback without retriggering pagination resets
@@ -265,7 +266,7 @@ export const Filter = ({
   return (
     <Row gap={1}>
       <div className="card p-0 px-1">
-        <Row gap={0} align="center">
+        <Row gap={0.5} align="center">
           <DropdownInput
             className="p-1"
             prompt={field.hrTitle}
@@ -291,6 +292,7 @@ export const Filter = ({
               [styles.collapsed]: collapsed,
               [styles.expanded]: !collapsed,
             })}
+            style={{ gap: 4 }}
           >
             <DropdownInput
               className="p-1"
@@ -303,12 +305,16 @@ export const Filter = ({
               }))}
               value={operation}
               onChange={(op) =>
-                onChange({ operation: op.id, ...(op.noValue ? { value: null } : {}) })
+                onChange({
+                  operation: op.id,
+                  ...(op.noValue ? { value: null } : {}),
+                })
               }
               showIconInPrompt
               autofocusSearch
             />
-            {!ops.find((o) => o.id === operation)?.noValue && getInputComponent()}
+            {!ops.find((o) => o.id === operation)?.noValue &&
+              getInputComponent()}
           </div>
 
           <div className="p-1">

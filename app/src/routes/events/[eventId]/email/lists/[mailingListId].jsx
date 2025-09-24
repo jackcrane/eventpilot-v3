@@ -16,7 +16,10 @@ import { EventPage } from "../../../../../../components/eventPage/EventPage";
 import { Row } from "../../../../../../util/Flex";
 import { Empty } from "../../../../../../components/empty/Empty";
 import { useMailingList } from "../../../../../../hooks/useMailingList";
-import { useMailingListMembers } from "../../../../../../hooks/useMailingListMembers";
+import {
+  MAILING_LIST_MEMBER_STATUSES,
+  useMailingListMembers,
+} from "../../../../../../hooks/useMailingListMembers";
 import { useCrmTableSelection } from "../../../../../../hooks/useCrmTableSelection";
 import { MailingListAddPeoplePanel } from "../../../../../../components/crm/MailingListAddPeoplePanel";
 import moment from "moment";
@@ -27,6 +30,7 @@ import {
   useCrmSegment,
   DEFAULT_SEGMENT_PAGINATION,
 } from "../../../../../../hooks/useCrmSegment";
+import { MailingListFilterBar } from "../../../../../../components/mailingLists/MailingListFilterBar";
 
 const STATUS_COLORS = {
   ACTIVE: "green",
@@ -110,6 +114,84 @@ export const EventMailingListMembersPage = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [removing, setRemoving] = useState(false);
   const [aiUpdating, setAiUpdating] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState([]);
+
+  const memberFilterFieldDefs = useMemo(
+    () => [
+      {
+        label: "name",
+        hrTitle: "Name",
+        type: "text",
+        defaultOperation: "contains",
+      },
+      {
+        label: "email",
+        hrTitle: "Email",
+        type: "text",
+        defaultOperation: "contains",
+      },
+      {
+        label: "status",
+        hrTitle: "Status",
+        type: "enum",
+        options: MAILING_LIST_MEMBER_STATUSES,
+        defaultOperation: "eq",
+      },
+      {
+        label: "createdAt",
+        hrTitle: "Added Date",
+        type: "date",
+        defaultOperation: "date-after",
+      },
+    ],
+    []
+  );
+
+  const coerceFilterValue = (value) => {
+    if (value === undefined || value === null) return null;
+    if (typeof value === "string" || typeof value === "number") return value;
+    if (typeof value === "boolean") return value;
+    if (typeof value === "object" && "target" in value) {
+      return value.target?.value ?? null;
+    }
+    return value;
+  };
+
+  const serializedFilters = useMemo(() => {
+    if (!filters?.length) return [];
+    return filters
+      .map((filter) => {
+        const label = filter?.field?.label;
+        const operation = filter?.operation;
+        if (!label || !operation) return null;
+        return {
+          label,
+          operation,
+          value: coerceFilterValue(filter?.value),
+        };
+      })
+      .filter(Boolean);
+  }, [filters]);
+
+  const includeDeletedMembers = useMemo(() => {
+    if (!serializedFilters.length) return false;
+    return serializedFilters.some((filter) => {
+      if (filter.label !== "status") return false;
+      const value = typeof filter.value === "string" ? filter.value : null;
+      if (!value) return false;
+      if (filter.operation === "eq") {
+        return value === "DELETED";
+      }
+      if (filter.operation === "neq") {
+        return value !== "DELETED";
+      }
+      if (filter.operation === "exists" || filter.operation === "not-exists") {
+        return true;
+      }
+      return false;
+    });
+  }, [serializedFilters]);
 
   const {
     mailingList,
@@ -133,6 +215,9 @@ export const EventMailingListMembersPage = () => {
     mailingListId,
     page,
     pageSize,
+    includeDeletedMembers,
+    search,
+    filters: serializedFilters,
   });
 
   const {
@@ -581,6 +666,24 @@ export const EventMailingListMembersPage = () => {
           </Row>
         </Row>
       </Card>
+
+      <Row className="mb-3" gap={1} wrap>
+        <div style={{ flex: 1, minWidth: 280 }}>
+          <MailingListFilterBar
+            search={search}
+            setSearch={(value) => {
+              setPage(1);
+              setSearch(value);
+            }}
+            filterFieldDefs={memberFilterFieldDefs}
+            onFiltersChange={(next) => {
+              setPage(1);
+              setFilters(next || []);
+            }}
+            placeholder="Search members..."
+          />
+        </div>
+      </Row>
 
       {membersError ? (
         <Typography.Text className="text-danger">

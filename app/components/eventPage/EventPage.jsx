@@ -84,7 +84,7 @@ export const EventPage = ({
           active:
             isActive(`${base}/email/lists`) ||
             pathname.startsWith(`${base}/email/lists/`),
-          icon: <Icon i="list" size={18} color="var(--tblr-blue)" />,
+          icon: <Icon i="list" size={18} color="var(--tblr-yellow)" />,
         },
         {
           type: "item",
@@ -93,7 +93,7 @@ export const EventPage = ({
           active:
             isActive(`${base}/email/templates`) ||
             pathname.startsWith(`${base}/email/templates/`),
-          icon: <Icon i="file-text" size={18} color="var(--tblr-indigo)" />,
+          icon: <Icon i="file-text" size={18} color="var(--tblr-purple)" />,
         },
         {
           type: "item",
