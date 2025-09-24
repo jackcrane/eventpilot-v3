@@ -13,7 +13,7 @@ export const EventEmailTemplateCreatePage = () => {
     async (payload) => {
       const template = await createEmailTemplate(payload);
       if (template?.id) {
-        navigate(`/events/${eventId}/email/templates/${template.id}`);
+        navigate(`/events/${eventId}/email/templates`);
         return template;
       }
       return false;

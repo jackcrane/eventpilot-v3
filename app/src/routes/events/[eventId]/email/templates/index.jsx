@@ -157,9 +157,19 @@ export const EventEmailTemplatesPage = () => {
                 label: "Name",
                 accessor: "name",
                 render: (value, row) => (
-                  <Link to={`/events/${eventId}/email/templates/${row.id}`}>
-                    {value}
-                  </Link>
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <Link to={`/events/${eventId}/email/templates/${row.id}`}>
+                      {value}
+                    </Link>
+                    {row.textBody ? (
+                      <Typography.Text
+                        className="text-secondary"
+                        style={{ whiteSpace: "pre-wrap" }}
+                      >
+                        {row.textBody}
+                      </Typography.Text>
+                    ) : null}
+                  </div>
                 ),
               },
               {

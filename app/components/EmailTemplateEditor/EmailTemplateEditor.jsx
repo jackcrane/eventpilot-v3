@@ -23,6 +23,7 @@ const mapVariable = (v) => VARIABLE_MAP[v] || v;
 /** Regex */
 const VAR_RE = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
 const FIRST_VAR_RE = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/;
+const BLOCK_TAGS = new Set(["DIV", "P", "LI", "UL", "OL", "PRE"]);
 
 /** Caret rect */
 export const getCaretRect = () => {
@@ -256,33 +257,52 @@ export const getCaretOffsetIn = (el) => {
 /** Convert editor DOM -> plain text with {{tokens}} */
 export const serializeEditor = (root) => {
   if (!root) return "";
-  let out = "";
-  const walk = (node) => {
+  const gather = (node) => {
+    if (!node) return "";
     if (node.nodeType === Node.TEXT_NODE) {
-      out += node.nodeValue || "";
-      return;
+      return node.nodeValue || "";
     }
     if (node.nodeType === Node.ELEMENT_NODE) {
       const el = node;
       if (el.hasAttribute?.("data-token")) {
         const id = el.getAttribute("data-token") || "";
-        out += `{{${id}}}`;
-        return;
+        return `{{${id}}}`;
       }
-      for (let i = 0; i < el.childNodes.length; i++) {
-        walk(el.childNodes[i]);
+      const tag = el.tagName?.toUpperCase();
+      if (tag === "BR") {
+        return "\n";
       }
+      let chunk = "";
+      for (let i = 0; i < el.childNodes.length; i += 1) {
+        chunk += gather(el.childNodes[i]);
+      }
+      if (tag && BLOCK_TAGS.has(tag)) {
+        if (!chunk.endsWith("\n")) {
+          chunk += "\n";
+        }
+        return chunk;
+      }
+      return chunk;
     }
+    return "";
   };
-  for (let i = 0; i < root.childNodes.length; i++) walk(root.childNodes[i]);
-  return out;
+
+  let out = "";
+  for (let i = 0; i < root.childNodes.length; i += 1) {
+    out += gather(root.childNodes[i]);
+  }
+  if (out.endsWith("\n")) {
+    out = out.slice(0, -1);
+  }
+  return out.replace(/\r/g, "");
 };
 
 /** Hydrate editor DOM from controlled `value` (plain text) */
 export const hydrateFromValue = (root, value) => {
   if (!root) return;
   root.innerHTML = "";
-  root.appendChild(document.createTextNode(value || ""));
+  const normalized = (value || "").replace(/\r\n?/g, "\n");
+  root.appendChild(document.createTextNode(normalized));
   tokenizeTextNodes(root);
 };
 
@@ -701,6 +721,7 @@ export const EmailTemplateEditor = ({
                 padding: 14,
                 lineHeight: 1.5,
                 wordBreak: "break-word",
+                whiteSpace: "pre-wrap",
               }}
               className="form-control"
               spellCheck={false}
