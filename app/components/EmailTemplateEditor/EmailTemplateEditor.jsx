@@ -257,44 +257,59 @@ export const getCaretOffsetIn = (el) => {
 /** Convert editor DOM -> plain text with {{tokens}} */
 export const serializeEditor = (root) => {
   if (!root) return "";
-  const gather = (node) => {
-    if (!node) return "";
-    if (node.nodeType === Node.TEXT_NODE) {
-      return node.nodeValue || "";
-    }
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const el = node;
-      if (el.hasAttribute?.("data-token")) {
-        const id = el.getAttribute("data-token") || "";
-        return `{{${id}}}`;
-      }
-      const tag = el.tagName?.toUpperCase();
-      if (tag === "BR") {
-        return "\n";
-      }
-      let chunk = "";
-      for (let i = 0; i < el.childNodes.length; i += 1) {
-        chunk += gather(el.childNodes[i]);
-      }
-      if (tag && BLOCK_TAGS.has(tag)) {
-        if (!chunk.endsWith("\n")) {
-          chunk += "\n";
-        }
-        return chunk;
-      }
-      return chunk;
-    }
-    return "";
+
+  const pieces = [];
+
+  const append = (text) => {
+    if (!text) return;
+    pieces.push(text);
   };
 
-  let out = "";
+  const walk = (node) => {
+    if (!node) return;
+    if (node.nodeType === Node.TEXT_NODE) {
+      append(node.nodeValue || "");
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+    const el = node;
+    if (el.hasAttribute?.("data-token")) {
+      const id = el.getAttribute("data-token") || "";
+      append(`{{${id}}}`);
+      return;
+    }
+
+    const tag = el.tagName?.toUpperCase();
+    if (tag === "BR") {
+      append("\n");
+      return;
+    }
+
+    for (let i = 0; i < el.childNodes.length; i += 1) {
+      walk(el.childNodes[i]);
+    }
+
+    if (tag && BLOCK_TAGS.has(tag)) {
+      const last = pieces[pieces.length - 1] || "";
+      if (!last.endsWith("\n")) {
+        append("\n");
+      }
+    }
+  };
+
   for (let i = 0; i < root.childNodes.length; i += 1) {
-    out += gather(root.childNodes[i]);
+    walk(root.childNodes[i]);
   }
-  if (out.endsWith("\n")) {
-    out = out.slice(0, -1);
+
+  let text = pieces.join("");
+  text = text.replace(/\r/g, "");
+
+  if (text.endsWith("\n") && !text.endsWith("\n\n")) {
+    text = text.slice(0, -1);
   }
-  return out.replace(/\r/g, "");
+
+  return text;
 };
 
 /** Hydrate editor DOM from controlled `value` (plain text) */

@@ -20,14 +20,8 @@ const baseTemplateSelect = {
   deleted: true,
 };
 
-const logsSelection = {
-  orderBy: { createdAt: "desc" },
-  take: 50,
-};
-
 const templateSelection = {
   ...baseTemplateSelect,
-  logs: logsSelection,
 };
 
 const formatTemplate = (template) => ({
@@ -98,17 +92,18 @@ export const put = [
         return res.status(404).json({ message: "Template not found" });
       }
 
-      const template = await prisma.$transaction(async (tx) => {
-        const after = await tx.emailTemplate.update({
-          where: { id: templateId },
-          data: {
-            name,
-            textBody: textBody ?? "",
-          },
-          select: templateSelection,
-        });
+      // Only the data update here — no logging inside a transaction
+      const after = await prisma.emailTemplate.update({
+        where: { id: templateId },
+        data: {
+          name,
+          textBody: textBody ?? "",
+        },
+        select: templateSelection,
+      });
 
-        await tx.logs.create({
+      prisma.logs
+        .create({
           data: {
             type: LogType.EMAIL_TEMPLATE_MODIFIED,
             userId: req.user.id,
@@ -120,12 +115,12 @@ export const put = [
               after: formatTemplate(after),
             },
           },
+        })
+        .catch((e) => {
+          console.warn("[logs.create] non-blocking failure:", e?.message || e);
         });
 
-        return after;
-      });
-
-      return res.json({ template: formatTemplate(template) });
+      return res.json({ template: formatTemplate(after) });
     } catch (error) {
       console.error(
         `Error updating template ${templateId} for event ${eventId}:`,
