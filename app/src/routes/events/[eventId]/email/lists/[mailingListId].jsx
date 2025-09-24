@@ -22,6 +22,7 @@ import { MailingListAddPeoplePanel } from "../../../../../../components/crm/Mail
 import moment from "moment";
 import { DATETIME_FORMAT } from "../../../../../../util/Constants";
 import { AiSegmentPromptPanel } from "../../../../../../components/crmAi/AiSegmentPromptPanel";
+import { AiSegmentRefinePanel } from "../../../../../../components/crmAi/AiSegmentRefinePanel";
 import {
   useCrmSegment,
   DEFAULT_SEGMENT_PAGINATION,
@@ -283,21 +284,40 @@ export const EventMailingListMembersPage = () => {
   };
 
   const openAiConfigurator = () => {
+    const hasSegment = Boolean(mailingList?.crmSavedSegmentId);
+    const pagination = {
+      ...DEFAULT_SEGMENT_PAGINATION,
+      size: 200,
+    };
+
+    if (hasSegment) {
+      openAiPanel({
+        title: "Update AI segment",
+        content: (
+          <AiSegmentRefinePanel
+            eventId={eventId}
+            currentSavedId={mailingList?.crmSavedSegmentId || null}
+            lastPrompt={mailingList?.crmSavedSegment?.prompt || ""}
+            lastAst={mailingList?.crmSavedSegment?.ast || null}
+            savedTitle={mailingList?.crmSavedSegment?.title || ""}
+            defaultTitle={mailingList?.title || ""}
+            pagination={pagination}
+            onApply={handleAiApply}
+            onClose={closeAiPanel}
+          />
+        ),
+      });
+      return;
+    }
+
     openAiPanel({
-      title: mailingList?.crmSavedSegmentId
-        ? "Update AI segment"
-        : "Use AI to build this list",
+      title: "Use AI to build this list",
       content: (
         <AiSegmentPromptPanel
           eventId={eventId}
-          initialTitle={
-            mailingList?.crmSavedSegment?.title || mailingList?.title || ""
-          }
-          initialPrompt={mailingList?.crmSavedSegment?.prompt || ""}
-          pagination={{
-            ...DEFAULT_SEGMENT_PAGINATION,
-            size: 200,
-          }}
+          initialTitle={mailingList?.title || ""}
+          initialPrompt=""
+          pagination={pagination}
           onApply={handleAiApply}
           onClose={closeAiPanel}
         />
