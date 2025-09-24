@@ -14,7 +14,6 @@ import {
 import toast from "react-hot-toast";
 import { EventPage } from "../../../../../../components/eventPage/EventPage";
 import { Row } from "../../../../../../util/Flex";
-import { Empty } from "../../../../../../components/empty/Empty";
 import { useMailingList } from "../../../../../../hooks/useMailingList";
 import {
   MAILING_LIST_MEMBER_STATUSES,
@@ -116,6 +115,7 @@ export const EventMailingListMembersPage = () => {
   const [aiUpdating, setAiUpdating] = useState(false);
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState([]);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   const memberFilterFieldDefs = useMemo(
     () => [
@@ -480,8 +480,14 @@ export const EventMailingListMembersPage = () => {
     return selectionColumn ? [selectionColumn, ...baseColumns] : baseColumns;
   }, [selectionColumn]);
 
-  const total = Number.isFinite(totalMembers) ? totalMembers : listMemberCount;
-  const hasMembers = Number.isFinite(total) ? total > 0 : tableRows.length > 0;
+  const filteredTotal = Number.isFinite(totalMembers)
+    ? totalMembers
+    : tableRows.length;
+  const displayMemberTotal = Number.isFinite(listMemberCount)
+    ? listMemberCount
+    : filteredTotal;
+  const hasAppliedFilters =
+    Boolean(search.trim()) || serializedFilters.length > 0;
   const effectivePage = Number.isFinite(resolvedPage) ? resolvedPage : page;
   const effectiveSize = Number.isFinite(resolvedSize) ? resolvedSize : pageSize;
 
@@ -555,12 +561,20 @@ export const EventMailingListMembersPage = () => {
   };
 
   const loading = listLoading || membersLoading;
+  useEffect(() => {
+    if (initialLoadComplete) return;
+    if (!listLoading && !membersLoading) {
+      setInitialLoadComplete(true);
+    }
+  }, [initialLoadComplete, listLoading, membersLoading]);
+
+  const showPageLoading = !initialLoadComplete && loading;
 
   return (
     <EventPage
       title={mailingList?.title || "Mailing List"}
       description="Review and manage mailing list members."
-      loading={loading}
+      loading={showPageLoading}
     >
       {ConfirmModal}
       {AddPeopleOffcanvas}
@@ -570,7 +584,8 @@ export const EventMailingListMembersPage = () => {
         <div>
           <Typography.H5 className="mb-0 text-secondary">MEMBERS</Typography.H5>
           <Typography.Text className="text-muted mb-0">
-            {total || 0} member{(total || 0) === 1 ? "" : "s"}
+            {displayMemberTotal || 0} member
+            {displayMemberTotal === 1 ? "" : "s"}
           </Typography.Text>
         </div>
         <Row gap={0.5}>
@@ -689,12 +704,12 @@ export const EventMailingListMembersPage = () => {
         <Typography.Text className="text-danger">
           Failed to load members. Please try again.
         </Typography.Text>
-      ) : hasMembers ? (
+      ) : (
         <TableV2
           parentClassName="card"
           columns={columns}
           data={tableRows}
-          totalRows={Number.isFinite(total) ? total : tableRows.length}
+          totalRows={filteredTotal}
           page={effectivePage}
           size={effectiveSize}
           onPageChange={(next) => {
@@ -711,15 +726,14 @@ export const EventMailingListMembersPage = () => {
           onRowSelectionChange={onRowSelectionChange}
           showSelectionColumn
           stickyHeader
-          loading={membersLoading}
-        />
-      ) : (
-        <Empty
-          gradient={false}
-          title="No members yet."
-          text="Add people to this mailing list to manage them here."
-          onCtaClick={handleAddPeople}
-          ctaText="Add people"
+          loading={membersLoading && initialLoadComplete}
+          emptyState={() => (
+            <div>
+              {hasAppliedFilters
+                ? "No members match your filters."
+                : "No members yet. Add people to this mailing list to manage them here."}
+            </div>
+          )}
         />
       )}
     </EventPage>
