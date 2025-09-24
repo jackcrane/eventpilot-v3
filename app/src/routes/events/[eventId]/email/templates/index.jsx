@@ -161,14 +161,6 @@ export const EventEmailTemplatesPage = () => {
                     <Link to={`/events/${eventId}/email/templates/${row.id}`}>
                       {value}
                     </Link>
-                    {row.textBody ? (
-                      <Typography.Text
-                        className="text-secondary"
-                        style={{ whiteSpace: "pre-wrap" }}
-                      >
-                        {row.textBody}
-                      </Typography.Text>
-                    ) : null}
                   </div>
                 ),
               },

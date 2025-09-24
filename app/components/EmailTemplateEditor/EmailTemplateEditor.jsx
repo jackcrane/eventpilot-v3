@@ -286,13 +286,17 @@ export const serializeEditor = (root) => {
       return;
     }
 
+    const beforePieces = pieces.length;
     for (let i = 0; i < el.childNodes.length; i += 1) {
       walk(el.childNodes[i]);
     }
+    const appendedAny = pieces.length > beforePieces;
 
     if (tag && BLOCK_TAGS.has(tag)) {
       const last = pieces[pieces.length - 1] || "";
       if (!last.endsWith("\n")) {
+        append("\n");
+      } else if (!appendedAny) {
         append("\n");
       }
     }
