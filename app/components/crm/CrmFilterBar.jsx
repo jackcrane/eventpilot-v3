@@ -16,6 +16,7 @@ export const CrmFilterBar = ({
   aiCollapsed,
   onToggleAi,
   onRefineAi,
+  onCreateMailingList,
   onClearAi,
   onAskAi,
 }) => {
@@ -39,6 +40,7 @@ export const CrmFilterBar = ({
           collapsed={aiCollapsed}
           onToggle={onToggleAi}
           onRefine={onRefineAi}
+          onCreateMailingList={onCreateMailingList}
           onClear={onClearAi}
         />
       )}
@@ -48,4 +50,3 @@ export const CrmFilterBar = ({
     </Row>
   );
 };
-

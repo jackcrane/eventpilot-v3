@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Util, useOffcanvas } from "tabler-react-2";
+import { Util, useOffcanvas, Button, Input, Typography } from "tabler-react-2";
+import toast from "react-hot-toast";
 import { EventPage } from "../eventPage/EventPage";
 import { Empty } from "../empty/Empty";
 import { CrmHeaderActions } from "./CrmHeaderActions";
@@ -16,11 +17,72 @@ import { useCrmManualFilters } from "../../hooks/useCrmManualFilters";
 import { useCrmColumnConfig } from "../../hooks/useCrmColumnConfig";
 import { useCrmAiState } from "../../hooks/useCrmAiState";
 import { useCrmPersons } from "../../hooks/useCrmPersons";
+import { useMailingLists } from "../../hooks/useMailingLists";
 import { filterPersons } from "../../util/crm/filterPersons";
 import { CrmMailingListBulkAction } from "./CrmMailingListBulkAction";
+import { Row } from "../../util/Flex";
 
 const DESCRIPTION =
   "This is the contacts page. It is a powerful CRM for managing your event's contacts.";
+
+const AiMailingListCreateContent = ({ defaultTitle, onCreate, onCancel }) => {
+  const [title, setTitle] = useState(defaultTitle || "");
+  const [touched, setTouched] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const trimmed = title.trim();
+  const showError = touched && !trimmed;
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setTouched(true);
+    if (!trimmed || saving) return;
+    setSaving(true);
+    try {
+      const ok = await onCreate(trimmed);
+      if (!ok) {
+        setSaving(false);
+      }
+    } catch (error) {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <Typography.H5 className="mb-0 text-secondary">
+          MAILING LIST
+        </Typography.H5>
+        <Typography.H1 className="mb-1">Create from AI segment</Typography.H1>
+        <Typography.Text className="text-muted">
+          Give this mailing list a name. We will automatically link the current
+          AI segment and keep members in sync.
+        </Typography.Text>
+      </div>
+      <Input
+        label="Mailing list name"
+        value={title}
+        onChange={setTitle}
+        onBlur={() => setTouched(true)}
+        placeholder="AI Segment"
+        required
+        invalid={showError}
+        invalidText={showError ? "Name is required" : undefined}
+      />
+      <Row gap={0.5} justify="flex-end">
+        <Button
+          type="submit"
+          variant="primary"
+          loading={saving}
+          disabled={!trimmed || saving}
+        >
+          Create list
+        </Button>
+      </Row>
+    </form>
+  );
+};
 
 export const EventCrmPage = ({ eventId }) => {
   const navigate = useNavigate();
@@ -44,6 +106,8 @@ export const EventCrmPage = ({ eventId }) => {
     storedFilters,
     setStoredFilters,
   });
+
+  const { createMailingList } = useMailingLists({ eventId });
 
   const columnConfig = useCrmColumnConfig({
     crmFields: crm.crmFields,
@@ -70,6 +134,49 @@ export const EventCrmPage = ({ eventId }) => {
     close: offcanvasState.close,
     pagination: { page, size, orderBy, order },
   });
+
+  const handleCreateAiMailingList = useCallback(() => {
+    if (!aiState.currentSavedId) {
+      toast.error("Save the AI segment before creating a mailing list.");
+      return;
+    }
+
+    const suggested = (aiState.savedTitle || aiState.aiTitle || "").trim();
+
+    const onCreate = async (title) => {
+      const mailingList = await createMailingList({
+        title,
+        crmSavedSegmentId: aiState.currentSavedId,
+      });
+
+      if (mailingList?.id) {
+        offcanvasState.close();
+        navigate(`/events/${eventId}/email/lists/${mailingList.id}`);
+        return true;
+      }
+
+      return false;
+    };
+
+    offcanvasState.offcanvas({
+      title: "Create mailing list",
+      content: (
+        <AiMailingListCreateContent
+          defaultTitle={suggested || "AI Segment"}
+          onCreate={onCreate}
+          onCancel={offcanvasState.close}
+        />
+      ),
+    });
+  }, [
+    aiState.currentSavedId,
+    aiState.savedTitle,
+    aiState.aiTitle,
+    createMailingList,
+    offcanvasState,
+    navigate,
+    eventId,
+  ]);
 
   const personsQuery = useCrmPersons({
     eventId,
@@ -161,7 +268,7 @@ export const EventCrmPage = ({ eventId }) => {
     (async () => {
       const res = await runSegment({
         filter,
-        debug: !!(aiState.lastAst?.debug),
+        debug: !!aiState.lastAst?.debug,
         pagination: { page, size, orderBy, order },
       });
       if (!cancelled && res?.ok) {
@@ -209,8 +316,12 @@ export const EventCrmPage = ({ eventId }) => {
     if (!aiState.usingAi) return;
     const paginationMeta = aiState.aiResults?.pagination;
     if (!paginationMeta) return;
-    const { page: metaPage, size: metaSize, orderBy: metaOrderBy, order: metaOrder } =
-      paginationMeta;
+    const {
+      page: metaPage,
+      size: metaSize,
+      orderBy: metaOrderBy,
+      order: metaOrder,
+    } = paginationMeta;
     if (Number.isFinite(metaPage) && metaPage !== page) setPage(metaPage);
     if (Number.isFinite(metaSize) && metaSize !== size) setSize(metaSize);
     if (metaOrderBy && metaOrderBy !== orderBy) setOrderBy(metaOrderBy);
@@ -235,7 +346,9 @@ export const EventCrmPage = ({ eventId }) => {
 
   const pageLoading =
     !hasInitialLoaded &&
-    (crm.loading || personsQuery.loading || (aiState.usingAi && segmentLoading));
+    (crm.loading ||
+      personsQuery.loading ||
+      (aiState.usingAi && segmentLoading));
 
   const toggleAiCollapsed = () => setAiCollapsed((prev) => !prev);
   const showAiBadge = Boolean(storedFilters?.ai?.enabled || aiState.aiResults);
@@ -272,6 +385,9 @@ export const EventCrmPage = ({ eventId }) => {
         aiCollapsed={aiCollapsed}
         onToggleAi={toggleAiCollapsed}
         onRefineAi={aiState.openRefine}
+        onCreateMailingList={
+          aiState.currentSavedId ? handleCreateAiMailingList : undefined
+        }
         onClearAi={aiState.clearAi}
         onAskAi={aiState.openPrompt}
       />
@@ -293,7 +409,9 @@ export const EventCrmPage = ({ eventId }) => {
         columns={columnConfig.visibleColumns}
         page={page}
         size={size}
-        totalRows={aiState.usingAi ? aiState.aiResults?.total : personsQuery.total}
+        totalRows={
+          aiState.usingAi ? aiState.aiResults?.total : personsQuery.total
+        }
         onSetPage={handlePageChange}
         onSetSize={handleSizeChange}
         orderBy={orderBy}
