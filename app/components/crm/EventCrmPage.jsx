@@ -128,6 +128,7 @@ export const EventCrmPage = ({ eventId }) => {
   const [order, setOrder] = useState("desc");
   const [selectedPersonIds, setSelectedPersonIds] = useState([]);
   const pageChangeReasonRef = useRef("initial");
+  const lastAiResultsRef = useRef(null);
 
   const logPagination = useCallback((message, payload = {}) => {
     console.debug("[CRM Pagination]", message, payload);
@@ -254,7 +255,10 @@ export const EventCrmPage = ({ eventId }) => {
   const handleSizeChange = (nextSize) => {
     setSize(nextSize);
     pageChangeReasonRef.current = "page-size-change";
-    logPagination("Resetting page due to size change", { nextPage: 1, nextSize });
+    logPagination("Resetting page due to size change", {
+      nextPage: 1,
+      nextSize,
+    });
     setPage(1);
   };
 
@@ -367,15 +371,30 @@ export const EventCrmPage = ({ eventId }) => {
   }, [aiState.usingAi, aiState.aiResults?.total, size]);
 
   useEffect(() => {
-    if (!aiState.usingAi) return;
-    const paginationMeta = aiState.aiResults?.pagination;
+    if (!aiState.usingAi) {
+      lastAiResultsRef.current = null;
+      return;
+    }
+
+    const results = aiState.aiResults;
+    if (!results) {
+      lastAiResultsRef.current = null;
+      return;
+    }
+
+    if (results === lastAiResultsRef.current) return;
+    lastAiResultsRef.current = results;
+
+    const paginationMeta = results.pagination;
     if (!paginationMeta) return;
+
     const {
       page: metaPage,
       size: metaSize,
       orderBy: metaOrderBy,
       order: metaOrder,
     } = paginationMeta;
+
     if (Number.isFinite(metaPage) && metaPage !== page) {
       pageChangeReasonRef.current = "ai-pagination-sync";
       logPagination("Syncing page from AI results", { metaPage });
@@ -384,17 +403,7 @@ export const EventCrmPage = ({ eventId }) => {
     if (Number.isFinite(metaSize) && metaSize !== size) setSize(metaSize);
     if (metaOrderBy && metaOrderBy !== orderBy) setOrderBy(metaOrderBy);
     if (metaOrder && metaOrder !== order) setOrder(metaOrder);
-  }, [
-    aiState.usingAi,
-    aiState.aiResults?.pagination?.page,
-    aiState.aiResults?.pagination?.size,
-    aiState.aiResults?.pagination?.orderBy,
-    aiState.aiResults?.pagination?.order,
-    page,
-    size,
-    orderBy,
-    order,
-  ]);
+  }, [aiState.usingAi, aiState.aiResults, page, size, orderBy, order, logPagination]);
 
   const shouldShowEmpty =
     !aiState.usingAi &&
