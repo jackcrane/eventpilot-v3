@@ -328,7 +328,11 @@ export const get = [
 
       const members = await prisma.mailingListMember.findMany({
         where,
-        orderBy: { createdAt: "asc" },
+        orderBy: [
+          { crmPerson: { name: "asc" } },
+          { crmPerson: { id: "asc" } },
+          { createdAt: "asc" },
+        ],
         skip,
         take: size,
         ...memberInclude,

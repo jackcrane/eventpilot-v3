@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { Util, useOffcanvas, Button, Input, Typography } from "tabler-react-2";
 import toast from "react-hot-toast";
@@ -121,6 +127,11 @@ export const EventCrmPage = ({ eventId }) => {
   const [orderBy, setOrderBy] = useState("createdAt");
   const [order, setOrder] = useState("desc");
   const [selectedPersonIds, setSelectedPersonIds] = useState([]);
+  const pageChangeReasonRef = useRef("initial");
+
+  const logPagination = useCallback((message, payload = {}) => {
+    console.debug("[CRM Pagination]", message, payload);
+  }, []);
 
   const aiState = useCrmAiState({
     eventId,
@@ -222,27 +233,48 @@ export const EventCrmPage = ({ eventId }) => {
 
   const handleSearchChange = (value) => {
     manualFilters.setSearch(value);
+    pageChangeReasonRef.current = "search-change";
+    logPagination("Resetting page due to search", { nextPage: 1 });
     setPage(1);
   };
 
   const handleFilterChange = (next) => {
     manualFilters.setFilters(next);
+    pageChangeReasonRef.current = "filter-change";
+    logPagination("Resetting page due to filter change", { nextPage: 1 });
     setPage(1);
   };
 
   const handlePageChange = (nextPage) => {
+    pageChangeReasonRef.current = `table-${nextPage}`;
+    logPagination("Page requested from table", { nextPage });
     setPage(nextPage);
   };
 
   const handleSizeChange = (nextSize) => {
     setSize(nextSize);
+    pageChangeReasonRef.current = "page-size-change";
+    logPagination("Resetting page due to size change", { nextPage: 1, nextSize });
     setPage(1);
   };
 
   const handleOrderChange = (nextOrderBy, nextOrder) => {
-    setOrderBy(nextOrderBy);
-    setOrder(nextOrder);
-    setPage(1);
+    const normalizedOrder = nextOrder === "asc" ? "asc" : "desc";
+    const orderByChanged = nextOrderBy !== orderBy;
+    const orderChanged = normalizedOrder !== order;
+
+    if (orderByChanged) setOrderBy(nextOrderBy);
+    if (orderChanged) setOrder(normalizedOrder);
+
+    if (orderByChanged || orderChanged) {
+      pageChangeReasonRef.current = "sort-change";
+      logPagination("Resetting page due to sort change", {
+        nextPage: 1,
+        orderBy: nextOrderBy,
+        order: normalizedOrder,
+      });
+      setPage(1);
+    }
   };
 
   const handleSelectionChange = useCallback((ids = []) => {
@@ -300,7 +332,18 @@ export const EventCrmPage = ({ eventId }) => {
     if (!Number.isFinite(personsQuery.total)) return;
     if (!Number.isFinite(size) || size <= 0) return;
     const maxPage = Math.max(1, Math.ceil(personsQuery.total / size));
-    setPage((prev) => (prev > maxPage ? maxPage : prev));
+    setPage((prev) => {
+      const next = prev > maxPage ? maxPage : prev;
+      if (next !== prev) {
+        pageChangeReasonRef.current = "clamp-non-ai";
+        logPagination("Clamping page to max (non-AI)", {
+          previous: prev,
+          next,
+          maxPage,
+        });
+      }
+      return next;
+    });
   }, [aiState.usingAi, personsQuery.total, size]);
 
   useEffect(() => {
@@ -309,7 +352,18 @@ export const EventCrmPage = ({ eventId }) => {
     if (!Number.isFinite(total)) return;
     if (!Number.isFinite(size) || size <= 0) return;
     const maxPage = Math.max(1, Math.ceil(total / size));
-    setPage((prev) => (prev > maxPage ? maxPage : prev));
+    setPage((prev) => {
+      const next = prev > maxPage ? maxPage : prev;
+      if (next !== prev) {
+        pageChangeReasonRef.current = "clamp-ai";
+        logPagination("Clamping page to max (AI)", {
+          previous: prev,
+          next,
+          maxPage,
+        });
+      }
+      return next;
+    });
   }, [aiState.usingAi, aiState.aiResults?.total, size]);
 
   useEffect(() => {
@@ -322,7 +376,11 @@ export const EventCrmPage = ({ eventId }) => {
       orderBy: metaOrderBy,
       order: metaOrder,
     } = paginationMeta;
-    if (Number.isFinite(metaPage) && metaPage !== page) setPage(metaPage);
+    if (Number.isFinite(metaPage) && metaPage !== page) {
+      pageChangeReasonRef.current = "ai-pagination-sync";
+      logPagination("Syncing page from AI results", { metaPage });
+      setPage(metaPage);
+    }
     if (Number.isFinite(metaSize) && metaSize !== size) setSize(metaSize);
     if (metaOrderBy && metaOrderBy !== orderBy) setOrderBy(metaOrderBy);
     if (metaOrder && metaOrder !== order) setOrder(metaOrder);
@@ -343,6 +401,14 @@ export const EventCrmPage = ({ eventId }) => {
     !manualFilters.search.trim() &&
     (manualFilters.serverFilters || []).length === 0 &&
     (personsQuery.total || 0) === 0;
+
+  useEffect(() => {
+    logPagination("Page state updated", {
+      page,
+      reason: pageChangeReasonRef.current,
+    });
+    pageChangeReasonRef.current = "unknown";
+  }, [page, logPagination]);
 
   const pageLoading =
     !hasInitialLoaded &&

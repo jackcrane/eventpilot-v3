@@ -257,17 +257,19 @@ export const EventMailingListMembersPage = () => {
   });
 
   useEffect(() => {
+    if (membersLoading) return;
     if (Number.isFinite(resolvedPage) && resolvedPage !== page) {
       setPage(resolvedPage);
       setSelectedIds([]);
     }
-  }, [resolvedPage, page]);
+  }, [resolvedPage, page, membersLoading]);
 
   useEffect(() => {
+    if (membersLoading) return;
     if (Number.isFinite(resolvedSize) && resolvedSize !== pageSize) {
       setPageSize(resolvedSize);
     }
-  }, [resolvedSize, pageSize]);
+  }, [resolvedSize, pageSize, membersLoading]);
 
   const tableRows = useMemo(
     () =>
