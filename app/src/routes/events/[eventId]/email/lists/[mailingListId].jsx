@@ -481,6 +481,47 @@ export const EventMailingListMembersPage = () => {
       {AddPeopleOffcanvas}
       {RenameOffcanvas}
       {AiOffcanvas}
+      <Row justify="space-between" align="center" className="mb-3">
+        <div>
+          <Typography.H5 className="mb-0 text-secondary">MEMBERS</Typography.H5>
+          <Typography.Text className="text-muted mb-0">
+            {total || 0} member{(total || 0) === 1 ? "" : "s"}
+          </Typography.Text>
+        </div>
+        <Row gap={0.5}>
+          {selectedIds.length > 0 ? (
+            <Button
+              variant="danger"
+              onClick={handleRemoveSelected}
+              loading={removing}
+              outline
+            >
+              Remove selected ({selectedIds.length})
+            </Button>
+          ) : null}
+          <Dropdown
+            prompt="Actions"
+            items={[
+              {
+                text: "Add people",
+                onclick: handleAddPeople,
+              },
+              {
+                type: "divider",
+              },
+              {
+                text: "Rename list",
+                onclick: handleRename,
+              },
+              {
+                text: "Delete list",
+                onclick: handleDeleteList,
+              },
+            ]}
+          />
+        </Row>
+      </Row>
+
       <Card className="mb-3">
         <Row justify="space-between" align="center" wrap>
           <div style={{ maxWidth: "65%" }}>
@@ -540,46 +581,6 @@ export const EventMailingListMembersPage = () => {
           </Row>
         </Row>
       </Card>
-      <Row justify="space-between" align="center" className="mb-3">
-        <div>
-          <Typography.H5 className="mb-0 text-secondary">MEMBERS</Typography.H5>
-          <Typography.Text className="text-muted">
-            {total || 0} member{(total || 0) === 1 ? "" : "s"}
-          </Typography.Text>
-        </div>
-        <Row gap={0.5}>
-          {selectedIds.length > 0 ? (
-            <Button
-              variant="danger"
-              onClick={handleRemoveSelected}
-              loading={removing}
-              outline
-            >
-              Remove selected ({selectedIds.length})
-            </Button>
-          ) : null}
-          <Dropdown
-            prompt="Actions"
-            items={[
-              {
-                text: "Add people",
-                onclick: handleAddPeople,
-              },
-              {
-                type: "divider",
-              },
-              {
-                text: "Rename list",
-                onclick: handleRename,
-              },
-              {
-                text: "Delete list",
-                onclick: handleDeleteList,
-              },
-            ]}
-          />
-        </Row>
-      </Row>
 
       {membersError ? (
         <Typography.Text className="text-danger">

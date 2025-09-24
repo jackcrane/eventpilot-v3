@@ -2,8 +2,11 @@ import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { verifyAuth } from "#verifyAuth";
 import { LogType, MailingListMemberStatus } from "@prisma/client";
+import cuid from "cuid";
 import { z } from "zod";
 import { zerialize } from "zodex";
+import { evaluateSegment } from "../crm/segments/index.js";
+import { memberInclude } from "./memberUtils.js";
 
 const mailingListSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -60,6 +63,130 @@ const formatMailingList = (
 });
 
 const ipAddress = (req) => req.ip || req.headers["x-forwarded-for"];
+
+const seedMailingListFromSegment = async ({
+  eventId,
+  mailingList,
+  crmSavedSegmentId,
+  req,
+}) => {
+  if (!crmSavedSegmentId) return { created: 0, totalMatches: 0 };
+  const ast = mailingList?.crmSavedSegment?.ast;
+  const filter = ast?.filter;
+  if (!filter) return { created: 0, totalMatches: 0 };
+
+  try {
+    const evaluation = await evaluateSegment({
+      eventId,
+      currentInstanceId: req.instanceId || null,
+      filter,
+      debug: false,
+      pagination: {},
+    });
+
+    const people = Array.isArray(evaluation?.crmPersons)
+      ? evaluation.crmPersons
+      : [];
+
+    if (!people.length) {
+      await prisma.crmSavedSegment.update({
+        where: { id: crmSavedSegmentId },
+        data: { lastUsed: new Date() },
+      });
+      return { created: 0, totalMatches: 0 };
+    }
+
+    const uniqueIds = Array.from(
+      new Set(
+        people
+          .map((person) => person?.id)
+          .filter((id) => typeof id === "string" && id.length)
+      )
+    );
+
+    if (!uniqueIds.length) {
+      await prisma.crmSavedSegment.update({
+        where: { id: crmSavedSegmentId },
+        data: { lastUsed: new Date() },
+      });
+      return { created: 0, totalMatches: 0 };
+    }
+
+    let createdCount = 0;
+
+    await prisma.$transaction(async (tx) => {
+      const existingMembers = await tx.mailingListMember.findMany({
+        where: {
+          mailingListId: mailingList.id,
+          crmPersonId: { in: uniqueIds },
+        },
+        select: { crmPersonId: true },
+      });
+
+      const existingIds = new Set(
+        existingMembers.map((member) => member.crmPersonId)
+      );
+
+      const idsToCreate = uniqueIds.filter((id) => !existingIds.has(id));
+
+      if (idsToCreate.length) {
+        const now = new Date();
+        const createRows = idsToCreate.map((crmPersonId) => ({
+          id: cuid(),
+          mailingListId: mailingList.id,
+          crmPersonId,
+          status: MailingListMemberStatus.ACTIVE,
+          createdAt: now,
+          updatedAt: now,
+          deleted: false,
+        }));
+
+        await tx.mailingListMember.createMany({
+          data: createRows,
+          skipDuplicates: true,
+        });
+
+        const createdMembers = await tx.mailingListMember.findMany({
+          where: { id: { in: createRows.map((row) => row.id) } },
+          ...memberInclude,
+        });
+
+        createdCount = createdMembers.length;
+
+        if (createdMembers.length) {
+          await tx.logs.createMany({
+            data: createdMembers.map((member) => ({
+              type: LogType.MAILING_LIST_MEMBER_CREATED,
+              userId: req.user?.id ?? null,
+              ip: ipAddress(req),
+              eventId,
+              mailingListId: mailingList.id,
+              mailingListMemberId: member.id,
+              crmPersonId: member.crmPersonId,
+              crmSavedSegmentId,
+              data: { before: null, after: member },
+            })),
+          });
+        }
+      }
+
+      if (crmSavedSegmentId) {
+        await tx.crmSavedSegment.update({
+          where: { id: crmSavedSegmentId },
+          data: { lastUsed: new Date() },
+        });
+      }
+    });
+
+    return { created: createdCount, totalMatches: uniqueIds.length };
+  } catch (error) {
+    console.error(
+      `Error seeding mailing list ${mailingList?.id} from AI segment:`,
+      error
+    );
+    return { created: 0, totalMatches: 0 };
+  }
+};
 
 export const get = [
   verifyAuth(["manager"]),
@@ -186,8 +313,62 @@ export const post = [
       }
     }
 
+    const existingByTitle = await prisma.mailingList.findFirst({
+      where: {
+        eventId,
+        title,
+      },
+      select: {
+        id: true,
+        deleted: true,
+      },
+    });
+
+    if (existingByTitle && !existingByTitle.deleted) {
+      return res
+        .status(409)
+        .json({ message: "A mailing list with this title already exists." });
+    }
+
     try {
       const mailingList = await prisma.$transaction(async (tx) => {
+        if (existingByTitle?.deleted) {
+          await tx.mailingListMember.deleteMany({
+            where: { mailingListId: existingByTitle.id },
+          });
+
+          const restored = await tx.mailingList.update({
+            where: { id: existingByTitle.id },
+            data: {
+              title,
+              deleted: false,
+              ...(hasSegmentField
+                ? { crmSavedSegmentId: crmSavedSegmentId ?? null }
+                : {}),
+            },
+            select: {
+              ...baseMailingListSelect,
+              crmSavedSegment: { select: savedSegmentSelect },
+            },
+          });
+
+          await tx.logs.create({
+            data: {
+              type: LogType.MAILING_LIST_CREATED,
+              userId: req.user.id,
+              ip: ipAddress(req),
+              eventId,
+              mailingListId: restored.id,
+              data: { after: restored },
+              crmSavedSegmentId: hasSegmentField
+                ? crmSavedSegmentId ?? null
+                : restored.crmSavedSegmentId ?? null,
+            },
+          });
+
+          return restored;
+        }
+
         const created = await tx.mailingList.create({
           data: {
             title,
@@ -219,7 +400,21 @@ export const post = [
         return created;
       });
 
-      return res.status(201).json({ mailingList: formatMailingList(mailingList) });
+      let seeded = { created: 0, totalMatches: 0 };
+      if (hasSegmentField && crmSavedSegmentId) {
+        seeded = await seedMailingListFromSegment({
+          eventId,
+          mailingList,
+          crmSavedSegmentId,
+          req,
+        });
+      }
+
+      return res
+        .status(201)
+        .json({
+          mailingList: formatMailingList(mailingList, seeded.created),
+        });
     } catch (error) {
       console.error(`Error creating mailing list for event ${eventId}:`, error);
 

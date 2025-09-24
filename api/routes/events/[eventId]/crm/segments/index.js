@@ -139,7 +139,7 @@ const parsePagination = (raw) => {
   if (Number.isFinite(rawPage) && rawPage > 0)
     resolved.page = Math.floor(rawPage);
   if (Number.isFinite(rawSize) && rawSize > 0)
-    resolved.size = Math.min(Math.floor(rawSize), 200);
+    resolved.size = Math.floor(rawSize);
   if (rawOrder === "asc" || rawOrder === "desc") resolved.order = rawOrder;
   if (rawOrderBy) resolved.orderBy = rawOrderBy;
 
