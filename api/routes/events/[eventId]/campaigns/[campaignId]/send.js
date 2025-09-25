@@ -9,7 +9,7 @@ export const post = [
 
     const campaign = await prisma.campaign.findFirst({
       where: { id: campaignId, eventId },
-      select: { id: true },
+      select: { id: true, sendEffortStarted: true },
     });
 
     if (!campaign) {
@@ -17,6 +17,17 @@ export const post = [
     }
 
     try {
+      if (!campaign.sendEffortStarted) {
+        await prisma.campaign.updateMany({
+          where: { id: campaignId, eventId, sendEffortStarted: false },
+          data: {
+            sendImmediately: true,
+            sendAt: new Date(),
+            sendAtTz: null,
+          },
+        });
+      }
+
       const result = await dispatchCampaign({
         campaignId,
         initiatedByUserId: req.user.id,

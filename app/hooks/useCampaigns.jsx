@@ -1,4 +1,4 @@
-import useSWR from "swr";
+import useSWR, { mutate as mutateGlobal } from "swr";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
 import { authFetch } from "../util/url";
@@ -23,8 +23,49 @@ const parseResponse = async (res) => {
   return json;
 };
 
-export const useCampaigns = ({ eventId } = {}) => {
-  const key = eventId ? `/api/events/${eventId}/campaigns` : null;
+export const useCampaigns = ({
+  eventId,
+  page,
+  pageSize,
+  sortBy,
+  sortDirection,
+  search,
+  filters,
+} = {}) => {
+  const baseKey = eventId ? `/api/events/${eventId}/campaigns` : null;
+
+  const params = new URLSearchParams();
+
+  if (Number.isFinite(page) && page > 0) {
+    params.set("page", String(page));
+  }
+
+  if (Number.isFinite(pageSize) && pageSize > 0) {
+    params.set("size", String(pageSize));
+  }
+
+  if (typeof sortBy === "string" && sortBy.trim().length) {
+    params.set("sortBy", sortBy.trim());
+  }
+
+  if (typeof sortDirection === "string" && sortDirection.trim().length) {
+    params.set("sortDirection", sortDirection.trim());
+  }
+
+  if (typeof search === "string" && search.trim().length) {
+    params.set("q", search.trim());
+  }
+
+  if (filters) {
+    if (typeof filters === "string" && filters.length) {
+      params.set("filters", filters);
+    } else if (Array.isArray(filters) && filters.length) {
+      params.set("filters", JSON.stringify(filters));
+    }
+  }
+
+  const query = params.toString();
+  const key = baseKey ? (query ? `${baseKey}?${query}` : baseKey) : null;
 
   const {
     data,
@@ -33,7 +74,10 @@ export const useCampaigns = ({ eventId } = {}) => {
     mutate: refetch,
   } = useSWR(key, fetcher);
 
-  const { data: schema } = useSWR(key ? [key, "schema"] : null, fetchSchema);
+  const { data: schema } = useSWR(
+    baseKey ? [baseKey, "schema"] : null,
+    fetchSchema
+  );
 
   const createCampaign = async (payload) => {
     if (!eventId) return null;
@@ -121,6 +165,11 @@ export const useCampaigns = ({ eventId } = {}) => {
         result = payload?.result ?? null;
       } finally {
         await refetch();
+        if (campaignId) {
+          await mutateGlobal(
+            `/api/events/${eventId}/campaigns/${campaignId}/stats`
+          );
+        }
       }
 
       return result;
@@ -162,6 +211,10 @@ export const useCampaigns = ({ eventId } = {}) => {
 
   return {
     campaigns: data?.campaigns || [],
+    meta: data?.meta || null,
+    page: data?.meta?.page ?? page ?? 1,
+    size: data?.meta?.size ?? pageSize ?? 25,
+    total: data?.meta?.totalItems ?? data?.campaigns?.length ?? 0,
     schema,
     loading: isLoading,
     error,

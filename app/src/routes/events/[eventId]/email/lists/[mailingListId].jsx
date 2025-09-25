@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { TableV2 } from "tabler-react-2/dist/table-v2";
 import {
   Badge,
@@ -313,7 +313,10 @@ export const EventMailingListMembersPage = () => {
       const filter = ast?.filter || ast;
       const paged = Number.isFinite(pageSize) && pageSize > 0;
       const needsHydration =
-        filter && Number.isFinite(total) && total > 0 && initialIds.length < total;
+        filter &&
+        Number.isFinite(total) &&
+        total > 0 &&
+        initialIds.length < total;
 
       if (!needsHydration) {
         return initialIds;
@@ -465,7 +468,9 @@ export const EventMailingListMembersPage = () => {
           return (
             <div>
               <Typography.Text className="mb-0">
-                {person?.name || "Unnamed"}
+                <Link to={`/events/${eventId}/crm/${person?.id}`}>
+                  {person?.name || "Unnamed"}
+                </Link>
               </Typography.Text>
               {primaryEmail ? (
                 <Typography.Text className="mb-0 text-muted">

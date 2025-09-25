@@ -191,6 +191,17 @@ export const dispatchCampaign = async ({
     throw new Error("Template body is empty");
   }
 
+  const now = new Date();
+
+  if (!campaign.sendAt || campaign.sendAt > now) {
+    const updated = await prisma.campaign.update({
+      where: { id: campaignId },
+      data: { sendAt: now },
+      select: { sendAt: true },
+    });
+    campaign.sendAt = updated.sendAt;
+  }
+
   const locked = await markCampaignStarted(campaignId);
   if (!locked) {
     return {
