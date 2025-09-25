@@ -34,9 +34,7 @@ const parseCrmPersonIds = (value) => {
   if (!value) return [];
   const raw = Array.isArray(value) ? value : [value];
   return raw
-    .flatMap((entry) =>
-      typeof entry === "string" ? entry.split(",") : []
-    )
+    .flatMap((entry) => (typeof entry === "string" ? entry.split(",") : []))
     .map((entry) => entry.trim())
     .filter(Boolean);
 };
@@ -222,10 +220,13 @@ export const get = [
           })
         : [];
 
-      const countsById = memberCounts.reduce((acc, { mailingListId, _count }) => {
-        acc[mailingListId] = _count?._all ?? 0;
-        return acc;
-      }, {});
+      const countsById = memberCounts.reduce(
+        (acc, { mailingListId, _count }) => {
+          acc[mailingListId] = _count?._all ?? 0;
+          return acc;
+        },
+        {}
+      );
 
       let membershipCountsByListId = {};
 
@@ -361,8 +362,8 @@ export const post = [
               mailingListId: restored.id,
               data: { after: restored },
               crmSavedSegmentId: hasSegmentField
-                ? crmSavedSegmentId ?? null
-                : restored.crmSavedSegmentId ?? null,
+                ? (crmSavedSegmentId ?? null)
+                : (restored.crmSavedSegmentId ?? null),
             },
           });
 
@@ -392,8 +393,8 @@ export const post = [
             mailingListId: created.id,
             data: { after: created },
             crmSavedSegmentId: hasSegmentField
-              ? crmSavedSegmentId ?? null
-              : created.crmSavedSegmentId ?? null,
+              ? (crmSavedSegmentId ?? null)
+              : (created.crmSavedSegmentId ?? null),
           },
         });
 
@@ -410,11 +411,9 @@ export const post = [
         });
       }
 
-      return res
-        .status(201)
-        .json({
-          mailingList: formatMailingList(mailingList, seeded.created),
-        });
+      return res.status(201).json({
+        mailingList: formatMailingList(mailingList, seeded.created),
+      });
     } catch (error) {
       console.error(`Error creating mailing list for event ${eventId}:`, error);
 

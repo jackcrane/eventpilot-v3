@@ -51,6 +51,7 @@ const parseFilters = (input) => {
       })
       .filter(Boolean);
   } catch (error) {
+    console.warn(error);
     return [];
   }
 };
@@ -81,10 +82,7 @@ const buildNameCondition = (operation, value) => {
       return scoped({ not: null });
     case "not-exists":
       return {
-        OR: [
-          { crmPerson: { name: null } },
-          { crmPerson: { name: "" } },
-        ],
+        OR: [{ crmPerson: { name: null } }, { crmPerson: { name: "" } }],
       };
     default:
       return null;
@@ -573,7 +571,7 @@ export const post = [
             const member = affectedById.get(previous.id);
             if (!member) continue;
 
-          const isDeletion = isRemovalRequest;
+            const isDeletion = isRemovalRequest;
 
             logEntries.push({
               type: isDeletion
@@ -597,7 +595,9 @@ export const post = [
         }
       });
 
-      const createdMemberIds = new Set(createdMembers.map((member) => member.id));
+      const createdMemberIds = new Set(
+        createdMembers.map((member) => member.id)
+      );
       const duplicateRows = createRows.filter(
         (row) => !createdMemberIds.has(row.id)
       );
@@ -613,7 +613,9 @@ export const post = [
         });
 
         for (const existing of existingForDuplicates) {
-          if (!alreadyActive.some((m) => m.crmPersonId === existing.crmPersonId)) {
+          if (
+            !alreadyActive.some((m) => m.crmPersonId === existing.crmPersonId)
+          ) {
             alreadyActive.push(existing);
           }
         }

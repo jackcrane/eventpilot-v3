@@ -84,7 +84,9 @@ export const get = [
         },
       });
 
-      return res.json({ mailingList: formatMailingList(mailingList, memberCount) });
+      return res.json({
+        mailingList: formatMailingList(mailingList, memberCount),
+      });
     } catch (error) {
       console.error(
         `Error fetching mailing list ${mailingListId} for event ${eventId}:`,
@@ -181,8 +183,8 @@ export const put = [
               after: formatMailingList(after, afterCount),
             },
             crmSavedSegmentId: hasSegmentField
-              ? crmSavedSegmentId ?? null
-              : before.crmSavedSegmentId ?? null,
+              ? (crmSavedSegmentId ?? null)
+              : (before.crmSavedSegmentId ?? null),
           },
         });
 

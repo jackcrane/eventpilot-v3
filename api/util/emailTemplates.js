@@ -1,4 +1,3 @@
-
 const TOKEN_REGEX = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
 
 const escapeHtml = (value = "") =>
@@ -97,7 +96,11 @@ const toParagraphContent = (input = "") => {
     .join("");
 
   const segments = rawSegments
-    .map((lines) => lines.map((line) => parseLineTokens(line)).filter((tokens) => tokens.length))
+    .map((lines) =>
+      lines
+        .map((line) => parseLineTokens(line))
+        .filter((tokens) => tokens.length)
+    )
     .filter((lines) => lines.length);
 
   return { html, segments };
@@ -218,7 +221,8 @@ const applyVariant = (templateText, context, variant) => {
 export const renderEmailTemplate = (templateText, context = {}) => {
   const textBody = applyVariant(templateText || "", context, "text").trim();
   const htmlRaw = applyVariant(templateText || "", context, "html");
-  const { html: htmlBody, segments: htmlSegments } = toParagraphContent(htmlRaw);
+  const { html: htmlBody, segments: htmlSegments } =
+    toParagraphContent(htmlRaw);
   const preview = textBody.replace(/\s+/g, " ").trim().slice(0, 160);
   return {
     text: textBody,
@@ -235,7 +239,7 @@ export const isTemplateEmpty = (templateText) => {
 };
 
 export const describeTemplateContext = () =>
-  Object.entries(VARIABLE_DEFINITIONS).map(([key, resolver]) => ({
+  Object.entries(VARIABLE_DEFINITIONS).map(([key]) => ({
     key,
     // Convert resolver output into human description lazily when needed
     description: key,
