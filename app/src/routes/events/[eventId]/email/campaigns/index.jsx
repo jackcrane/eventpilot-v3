@@ -76,6 +76,13 @@ const CampaignStatsCell = ({ eventId, campaign }) => {
     );
   }
 
+  const openedWidth = stats.openedPercent || 0;
+  const unsubscribedWidth = stats.unsubscribedPercent || 0;
+  const deliveredOtherWidth = Math.max(
+    0,
+    (stats.deliveredPercent || 0) - openedWidth - unsubscribedWidth
+  );
+
   return (
     <div
       style={{
@@ -90,7 +97,7 @@ const CampaignStatsCell = ({ eventId, campaign }) => {
       <div
         style={{
           height: 10,
-          width: stats.openedPercent,
+          width: openedWidth,
           backgroundColor: "var(--tblr-green)",
           display: "inline-block",
         }}
@@ -98,8 +105,16 @@ const CampaignStatsCell = ({ eventId, campaign }) => {
       <div
         style={{
           height: 10,
-          width: Math.max(0, stats.deliveredPercent - stats.openedPercent),
+          width: deliveredOtherWidth,
           backgroundColor: "var(--tblr-blue)",
+          display: "inline-block",
+        }}
+      />
+      <div
+        style={{
+          height: 10,
+          width: unsubscribedWidth,
+          backgroundColor: "var(--tblr-red)",
           display: "inline-block",
         }}
       />

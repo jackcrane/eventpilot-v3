@@ -1,7 +1,7 @@
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { rawEmailClient } from "#postmark";
-import { LogType } from "@prisma/client";
+import { LogType, MailingListMemberStatus } from "@prisma/client";
 import cuid from "cuid";
 
 const TEST_DOMAIN_PATTERN = /@(?:example\.com|eventpilot-test\.com)$/i;
@@ -77,6 +77,31 @@ export const post = [
           .json({ message: "Email is missing required fields" });
       }
 
+      const campaign = existingEmail.campaign;
+
+      if (
+        existingEmail.crmPersonId &&
+        campaign?.mailingListId
+      ) {
+        const membership = await prisma.mailingListMember.findFirst({
+          where: {
+            mailingListId: campaign.mailingListId,
+            crmPersonId: existingEmail.crmPersonId,
+            deleted: false,
+          },
+          select: { status: true },
+        });
+
+        if (
+          membership?.status === MailingListMemberStatus.UNSUBSCRIBED
+        ) {
+          return res.status(409).json({
+            message:
+              "This recipient has unsubscribed from the mailing list.",
+          });
+        }
+      }
+
       const baseHtml = existingEmail.htmlBody || "";
       const baseText = existingEmail.textBody || "";
 
@@ -85,8 +110,6 @@ export const post = [
           .status(400)
           .json({ message: "Original email content is unavailable" });
       }
-
-      const campaign = existingEmail.campaign;
 
       if (!campaign) {
         return res

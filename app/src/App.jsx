@@ -48,6 +48,7 @@ import { EventEmailTemplateDetailPage } from "./routes/events/[eventId]/email/te
 import { EventEmailTemplateCreatePage } from "./routes/events/[eventId]/email/templates/new";
 import { EventEmailCampaignsPage } from "./routes/events/[eventId]/email/campaigns/index";
 import { EventEmailCampaignDetailPage } from "./routes/events/[eventId]/email/campaigns/[campaignId]";
+import { UnsubscribePage } from "./routes/unsubscribe";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -82,6 +83,7 @@ export default () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/waitlist" element={<WaitlistPage />} />
+            <Route path="/unsubscribe" element={<UnsubscribePage />} />
             {loggedIn ? (
               <>
                 <Route path="/me" element={<UserProfile />} />
