@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-  Table,
   Button,
   Typography,
   Input,
@@ -10,10 +9,13 @@ import {
   useOffcanvas,
   useConfirm,
   Spinner,
+  Badge,
 } from "tabler-react-2";
+import { TableV2 } from "tabler-react-2/dist/table-v2";
 import { EventPage } from "../../../../../../components/eventPage/EventPage";
 import { Row } from "../../../../../../util/Flex";
 import { Empty } from "../../../../../../components/empty/Empty";
+import { CampaignFilterBar } from "../../../../../../components/campaigns/CampaignFilterBar";
 import { useCampaigns } from "../../../../../../hooks/useCampaigns";
 import { useEmailTemplates } from "../../../../../../hooks/useEmailTemplates";
 import { useMailingLists } from "../../../../../../hooks/useMailingLists";
@@ -23,15 +25,29 @@ import { DATETIME_FORMAT } from "../../../../../../util/Constants";
 import { TzDateTime } from "../../../../../../components/tzDateTime/tzDateTime";
 import { useCampaignStats } from "../../../../../../hooks/useCampaignStats";
 
-const formatStatLine = ({ percent = 0, count = 0, total = 0 }) => {
-  if (!total) return "0% (0/0)";
-  const pct = Number(percent ?? 0);
-  const formatted = Number.isFinite(pct)
-    ? Number.isInteger(pct)
-      ? pct.toString()
-      : pct.toFixed(1)
-    : "0";
-  return `${formatted}% (${count}/${total})`;
+const CAMPAIGN_STATUS_COLORS = {
+  DRAFT: "gray",
+  SCHEDULED: "blue",
+  SENT: "green",
+};
+
+const resolveCampaignStatus = (campaign) => {
+  const raw = typeof campaign?.status === "string" ? campaign.status : null;
+  if (raw && raw.length) {
+    return raw.toUpperCase();
+  }
+  if (campaign?.sendEffortStarted) {
+    return "SENT";
+  }
+  if (campaign?.sendAt) {
+    return "SCHEDULED";
+  }
+  return "DRAFT";
+};
+
+const formatStatusLabel = (value) => {
+  if (typeof value !== "string" || !value.length) return "Unknown";
+  return `${value.charAt(0)}${value.slice(1).toLowerCase()}`;
 };
 
 const CampaignStatsCell = ({ eventId, campaign }) => {
@@ -361,6 +377,52 @@ const CreateCampaignForm = ({
 
 export const EventEmailCampaignsPage = () => {
   const { eventId } = useParams();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const defaultSorting = useMemo(
+    () => [
+      {
+        id: "createdAt",
+        desc: true,
+      },
+    ],
+    []
+  );
+  const [sorting, setSorting] = useState(defaultSorting);
+  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState([]);
+
+  const coerceFilterValue = (value) => {
+    if (value === undefined || value === null) return null;
+    if (typeof value === "string" || typeof value === "number") return value;
+    if (typeof value === "boolean") return value;
+    if (typeof value === "object" && "target" in value) {
+      return value.target?.value ?? null;
+    }
+    return value;
+  };
+
+  const serializedFilters = useMemo(() => {
+    if (!filters?.length) return [];
+    return filters
+      .map((filter) => {
+        const label = filter?.field?.label;
+        const operation = filter?.operation;
+        if (!label || !operation) return null;
+        return {
+          label,
+          operation,
+          value: coerceFilterValue(filter?.value),
+        };
+      })
+      .filter(Boolean);
+  }, [filters]);
+
+  const sortState = sorting?.[0] ?? defaultSorting[0];
+  const sortBy = sortState?.id || "createdAt";
+  const sortDirection = sortState?.desc ? "desc" : "asc";
+  const normalizedSearch = search.trim();
+
   const {
     campaigns,
     loading,
@@ -369,8 +431,17 @@ export const EventEmailCampaignsPage = () => {
     updateCampaign,
     sendCampaign,
     deleteCampaign,
+    page: resolvedPage,
+    size: resolvedSize,
+    total,
   } = useCampaigns({
     eventId,
+    page,
+    pageSize,
+    sortBy,
+    sortDirection,
+    search: normalizedSearch,
+    filters: serializedFilters,
   });
   const { templates, loading: templatesLoading } = useEmailTemplates({
     eventId,
@@ -406,6 +477,94 @@ export const EventEmailCampaignsPage = () => {
   const activeMailingLists = useMemo(
     () => (mailingLists || []).filter((list) => !list.deleted),
     [mailingLists]
+  );
+
+  useEffect(() => {
+    if (loading) return;
+    if (Number.isFinite(resolvedPage) && resolvedPage !== page) {
+      setPage(resolvedPage);
+    }
+  }, [resolvedPage, page, loading]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (Number.isFinite(resolvedSize) && resolvedSize !== pageSize) {
+      setPageSize(resolvedSize);
+    }
+  }, [resolvedSize, pageSize, loading]);
+
+  const filterFieldDefs = useMemo(
+    () => [
+      {
+        label: "status",
+        hrTitle: "Status",
+        type: "enum",
+        options: ["Draft", "Scheduled", "Sent"],
+        defaultOperation: "eq",
+      },
+      {
+        label: "name",
+        hrTitle: "Name",
+        type: "text",
+        defaultOperation: "contains",
+      },
+      {
+        label: "template",
+        hrTitle: "Template",
+        type: "text",
+        defaultOperation: "contains",
+      },
+      {
+        label: "mailingList",
+        hrTitle: "Mailing List",
+        type: "text",
+        defaultOperation: "contains",
+      },
+      {
+        label: "sendAt",
+        hrTitle: "Send Date",
+        type: "date",
+        defaultOperation: "date-after",
+      },
+      {
+        label: "createdAt",
+        hrTitle: "Created Date",
+        type: "date",
+        defaultOperation: "date-after",
+      },
+    ],
+    []
+  );
+
+  const hasAppliedFilters = useMemo(
+    () => Boolean(normalizedSearch) || serializedFilters.length > 0,
+    [normalizedSearch, serializedFilters]
+  );
+
+  const tableRows = useMemo(
+    () =>
+      Array.isArray(campaigns)
+        ? campaigns.map((campaign) => ({
+            ...campaign,
+            status: resolveCampaignStatus(campaign),
+          }))
+        : [],
+    [campaigns]
+  );
+
+  const handleSortingChange = useCallback(
+    (updater) => {
+      setPage(1);
+      setSorting((current) => {
+        const resolved =
+          typeof updater === "function" ? updater(current) : updater;
+        if (!resolved || resolved.length === 0) {
+          return defaultSorting;
+        }
+        return resolved;
+      });
+    },
+    [defaultSorting]
   );
 
   const resolveMailingListAudience = (mailingListId) => {
@@ -484,7 +643,159 @@ export const EventEmailCampaignsPage = () => {
     }
   };
 
-  const isEmptyState = !loading && !campaigns?.length;
+  const columns = useMemo(
+    () => [
+      {
+        id: "name",
+        header: () => "Name",
+        accessorKey: "name",
+        enableSorting: true,
+        size: 240,
+        cell: ({ row }) => (
+          <Link
+            to={`/events/${eventId}/email/campaigns/${row.original.id}`}
+          >
+            {row.original.name}
+          </Link>
+        ),
+      },
+      {
+        id: "status",
+        header: () => "Status",
+        accessorKey: "status",
+        enableSorting: true,
+        size: 140,
+        cell: ({ getValue }) => {
+          const value = String(getValue() || "").toUpperCase();
+          const label = formatStatusLabel(value);
+          const color = CAMPAIGN_STATUS_COLORS[value] || "gray";
+          return (
+            <Badge soft color={color}>
+              {label}
+            </Badge>
+          );
+        },
+      },
+      {
+        id: "template",
+        header: () => "Template",
+        accessorFn: (row) => row?.template?.name || "",
+        enableSorting: false,
+        size: 220,
+        cell: ({ row }) => {
+          const template = row.original.template;
+          if (!template) {
+            return (
+              <Typography.Text className="mb-0 text-muted">—</Typography.Text>
+            );
+          }
+          return (
+            <Link to={`/events/${eventId}/email/templates/${template.id}`}>
+              {template.name}
+            </Link>
+          );
+        },
+      },
+      {
+        id: "mailingList",
+        header: () => "Mailing list",
+        accessorFn: (row) => row?.mailingList?.title || "",
+        enableSorting: false,
+        size: 220,
+        cell: ({ row }) => {
+          const list = row.original.mailingList;
+          if (!list) {
+            return (
+              <Typography.Text className="mb-0 text-muted">—</Typography.Text>
+            );
+          }
+          return (
+            <Link to={`/events/${eventId}/email/lists/${list.id}`}>
+              {list.title}
+            </Link>
+          );
+        },
+      },
+      {
+        id: "recipientCount",
+        header: () => "Recipients",
+        accessorKey: "recipientCount",
+        enableSorting: false,
+        size: 120,
+        cell: ({ row }) => (
+          <CampaignRecipientCountCell
+            eventId={eventId}
+            campaign={row.original}
+          />
+        ),
+      },
+      {
+        id: "sendAt",
+        header: () => "Send at",
+        accessorFn: (row) => row?.sendAt || row?.createdAt || "",
+        enableSorting: true,
+        size: 180,
+        cell: ({ row }) => {
+          const target = row.original.sendAt || row.original.createdAt;
+          return target ? moment(target).format(DATETIME_FORMAT) : "—";
+        },
+      },
+      {
+        id: "actions",
+        header: () => "Actions",
+        enableSorting: false,
+        size: 260,
+        cell: ({ row }) => {
+          const campaign = row.original;
+          if (!canModifyCampaign(campaign)) {
+            return <CampaignStatsCell eventId={eventId} campaign={campaign} />;
+          }
+          return (
+            <Row gap={1}>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => handleSendNow(campaign)}
+                loading={sendNowId === campaign.id}
+              >
+                Send now
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleEdit(campaign)}
+              >
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => handleDelete(campaign)}
+              >
+                Delete
+              </Button>
+            </Row>
+          );
+        },
+      },
+    ],
+    [
+      eventId,
+      canModifyCampaign,
+      handleDelete,
+      handleEdit,
+      handleSendNow,
+      sendNowId,
+    ]
+  );
+
+  const totalCampaigns = Number.isFinite(total)
+    ? total
+    : Array.isArray(campaigns)
+    ? campaigns.length
+    : 0;
+  const isEmptyState =
+    !loading && totalCampaigns === 0 && hasAppliedFilters === false;
   const createDisabled = !activeTemplates.length || !activeMailingLists.length;
   const loadingState = loading || templatesLoading || mailingListsLoading;
 
@@ -500,7 +811,7 @@ export const EventEmailCampaignsPage = () => {
       <Row
         justify="space-between"
         align="center"
-        style={{ marginBottom: campaigns?.length ? 16 : 0 }}
+        style={{ marginBottom: totalCampaigns ? 16 : 0 }}
       >
         <div>
           {createDisabled && (
@@ -516,6 +827,23 @@ export const EventEmailCampaignsPage = () => {
         >
           New campaign
         </Button>
+      </Row>
+      <Row className="mb-3" gap={1} wrap>
+        <div style={{ flex: 1, minWidth: 280 }}>
+          <CampaignFilterBar
+            search={search}
+            setSearch={(value) => {
+              setPage(1);
+              setSearch(value);
+            }}
+            filterFieldDefs={filterFieldDefs}
+            onFiltersChange={(next) => {
+              setPage(1);
+              setFilters(next || []);
+            }}
+            placeholder="Search campaigns..."
+          />
+        </div>
       </Row>
       {error && (
         <Typography.Text className="text-danger">
@@ -536,96 +864,31 @@ export const EventEmailCampaignsPage = () => {
           }
         />
       ) : (
-        <div className="table-responsive">
-          <Table
-            className="card"
-            columns={[
-              {
-                label: "Name",
-                accessor: "name",
-                render: (value, row) => (
-                  <Link to={`/events/${eventId}/email/campaigns/${row.id}`}>
-                    {value}
-                  </Link>
-                ),
-              },
-              {
-                label: "Template",
-                accessor: "template",
-                render: (value) => (
-                  <Link to={`/events/${eventId}/email/templates/${value.id}`}>
-                    {value.name}
-                  </Link>
-                ),
-              },
-              {
-                label: "Mailing list",
-                accessor: "mailingList",
-                render: (value) => (
-                  <Link to={`/events/${eventId}/email/lists/${value.id}`}>
-                    {value.title}
-                  </Link>
-                ),
-              },
-              {
-                label: "Recipients",
-                accessor: "recipientCount",
-                render: (_, row) => (
-                  <CampaignRecipientCountCell
-                    eventId={eventId}
-                    campaign={row}
-                  />
-                ),
-              },
-              {
-                label: "Send at",
-                accessor: "sendAt",
-                render: (value, row) => {
-                  const target = value || row.createdAt;
-                  return target ? moment(target).format(DATETIME_FORMAT) : "—";
-                },
-              },
-              {
-                label: "Actions",
-                accessor: "id",
-                render: (value, row) => {
-                  if (!canModifyCampaign(row)) {
-                    return (
-                      <CampaignStatsCell eventId={eventId} campaign={row} />
-                    );
-                  }
-                  return (
-                    <Row gap={1}>
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={() => handleSendNow(row)}
-                        loading={sendNowId === row.id}
-                      >
-                        Send now
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(row)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => handleDelete(row)}
-                      >
-                        Delete
-                      </Button>
-                    </Row>
-                  );
-                },
-              },
-            ]}
-            data={campaigns}
-          />
-        </div>
+        <TableV2
+          parentClassName="card"
+          columns={columns}
+          data={tableRows}
+          totalRows={totalCampaigns}
+          page={page}
+          size={pageSize}
+          onPageChange={(nextPage) => setPage(nextPage)}
+          onSizeChange={(nextSize) => {
+            setPageSize(nextSize);
+            setPage(1);
+          }}
+          sorting={sorting}
+          onSortingChange={handleSortingChange}
+          getRowId={(row) => String(row.id)}
+          loading={loading}
+          stickyHeader
+          emptyState={() => (
+            <div className="py-4 text-center text-muted">
+              {hasAppliedFilters
+                ? "No campaigns match your filters."
+                : "Create your first campaign and it will appear here."}
+            </div>
+          )}
+        />
       )}
     </EventPage>
   );

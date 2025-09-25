@@ -14,7 +14,7 @@ import moment from "moment";
 import { EventPage } from "../../../../../../components/eventPage/EventPage";
 import { Empty } from "../../../../../../components/empty/Empty";
 import { EmailPreview } from "../../../../../../components/emailPreview/emailPreview";
-import { useCampaigns } from "../../../../../../hooks/useCampaigns";
+import { useCampaign } from "../../../../../../hooks/useCampaign";
 import { useCampaignRecipients } from "../../../../../../hooks/useCampaignRecipients";
 import { useCampaignStats } from "../../../../../../hooks/useCampaignStats";
 import { DATETIME_FORMAT } from "../../../../../../util/Constants";
@@ -78,12 +78,10 @@ export const EventEmailCampaignDetailPage = () => {
   const sortDirection = sortState ? (sortState.desc ? "desc" : "asc") : "asc";
   const normalizedStatus = statusFilter === "ALL" ? null : statusFilter;
 
-  const { campaigns, loading: campaignsLoading } = useCampaigns({ eventId });
-
-  const campaign = useMemo(
-    () => campaigns.find((entry) => entry.id === campaignId) || null,
-    [campaigns, campaignId]
-  );
+  const { campaign, loading: campaignLoading } = useCampaign({
+    eventId,
+    campaignId,
+  });
 
   const {
     recipients,
@@ -274,11 +272,11 @@ export const EventEmailCampaignDetailPage = () => {
     <EventPage
       title={campaign?.name || "Campaign details"}
       description="Review every email sent as part of this campaign."
-      loading={campaignsLoading}
+      loading={campaignLoading}
     >
       {OffcanvasElement}
 
-      {!campaignsLoading && !campaign ? (
+      {!campaignLoading && !campaign ? (
         <Empty
           gradient={false}
           title="Campaign not found"

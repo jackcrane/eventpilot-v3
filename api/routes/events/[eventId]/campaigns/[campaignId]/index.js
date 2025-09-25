@@ -8,6 +8,32 @@ import {
   formatCampaign,
 } from "../index.js";
 
+export const get = [
+  verifyAuth(["manager"]),
+  async (req, res) => {
+    const { eventId, campaignId } = req.params;
+
+    try {
+      const campaign = await prisma.campaign.findFirst({
+        where: { id: campaignId, eventId },
+        select: baseCampaignSelect,
+      });
+
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      return res.json({ campaign: formatCampaign(campaign) });
+    } catch (error) {
+      console.error(
+        `Error fetching campaign ${campaignId} for event ${eventId}:`,
+        error
+      );
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  },
+];
+
 const validateSchedule = ({ sendImmediately, sendAt }) => {
   if (!sendImmediately && sendAt) {
     return Number.isNaN(new Date(sendAt).getTime());
