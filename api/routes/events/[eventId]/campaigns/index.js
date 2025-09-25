@@ -3,6 +3,7 @@ import { serializeError } from "#serializeError";
 import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
 import { zerialize } from "zodex";
+import { dispatchCampaign } from "#util/campaignDispatch";
 
 export const campaignSchema = z
   .object({
@@ -42,6 +43,7 @@ export const baseCampaignSelect = {
   templateId: true,
   mailingListId: true,
   sendImmediately: true,
+  sendEffortStarted: true,
   sendAt: true,
   sendAtTz: true,
   createdAt: true,
@@ -164,6 +166,19 @@ export const post = [
         },
         select: baseCampaignSelect,
       });
+
+      if (sendImmediately) {
+        dispatchCampaign({
+          campaignId: created.id,
+          initiatedByUserId: req.user.id,
+          reqId: req.id,
+        }).catch((err) => {
+          console.error(
+            `[${req.id}] Failed to dispatch immediate campaign ${created.id}:`,
+            err
+          );
+        });
+      }
 
       return res.status(201).json({ campaign: formatCampaign(created) });
     } catch (error) {

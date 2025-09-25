@@ -100,6 +100,36 @@ export const useCampaigns = ({ eventId } = {}) => {
     }
   };
 
+  const sendCampaign = async (campaignId) => {
+    if (!eventId || !campaignId) return null;
+
+    try {
+      const request = authFetch(
+        `/api/events/${eventId}/campaigns/${campaignId}/send`,
+        {
+          method: "POST",
+        }
+      ).then(parseResponse);
+
+      let result = null;
+      try {
+        const payload = await toast.promise(request, {
+          loading: "Sending campaign...",
+          success: "Campaign dispatched",
+          error: (err) => err?.message || "Error sending campaign",
+        });
+        result = payload?.result ?? null;
+      } finally {
+        await refetch();
+      }
+
+      return result;
+    } catch (error) {
+      await refetch();
+      return null;
+    }
+  };
+
   const deleteCampaign = async (campaignId) => {
     if (!eventId || !campaignId) return false;
 
@@ -138,6 +168,7 @@ export const useCampaigns = ({ eventId } = {}) => {
     refetch,
     createCampaign,
     updateCampaign,
+    sendCampaign,
     deleteCampaign,
   };
 };

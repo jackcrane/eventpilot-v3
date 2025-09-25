@@ -1,6 +1,7 @@
 import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { verifyAuth } from "#verifyAuth";
+import { dispatchCampaign } from "#util/campaignDispatch";
 import {
   baseCampaignSelect,
   campaignSchema,
@@ -40,7 +41,7 @@ export const put = [
     try {
       const existing = await prisma.campaign.findFirst({
         where: { id: campaignId, eventId },
-        select: { id: true },
+        select: { id: true, sendEffortStarted: true, sendImmediately: true },
       });
 
       if (!existing) {
@@ -85,6 +86,19 @@ export const put = [
         },
         select: baseCampaignSelect,
       });
+
+      if (sendImmediately && !existing.sendEffortStarted) {
+        dispatchCampaign({
+          campaignId,
+          initiatedByUserId: req.user.id,
+          reqId: req.id,
+        }).catch((err) => {
+          console.error(
+            `[${req.id}] Failed to dispatch updated campaign ${campaignId}:`,
+            err
+          );
+        });
+      }
 
       return res.json({ campaign: formatCampaign(updated) });
     } catch (error) {

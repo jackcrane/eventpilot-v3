@@ -10,10 +10,19 @@ import React, { useEffect, useRef, useState } from "react";
  * - Invalid variables are visually flagged (red hue + border + tooltip).
  */
 
-export const VARIABLES = ["name", "email", "unsubLink", "unsubClickHere"];
+export const VARIABLES = [
+  "name",
+  "email",
+  "eventName",
+  "campaignName",
+  "unsubLink",
+  "unsubClickHere",
+];
 const VARIABLE_MAP = {
   name: "The recipient's name",
   email: "The recipient's email address",
+  eventName: "The event's name",
+  campaignName: "The campaign title",
   unsubLink: "Unsubscribe link, looks like a url",
   unsubClickHere: 'Unsubscribe link, looks like "click here".',
 };

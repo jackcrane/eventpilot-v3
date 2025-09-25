@@ -84,7 +84,7 @@ export const Email = ({
         fontStyle="semibold"
       />
     </Head>
-    <Preview>{preview}</Preview>
+    {preview ? <Preview>{preview}</Preview> : null}
     <Body style={{ ...styles.main, ...bodyStyle }}>
       <Container style={{ ...styles.container, ...containerStyle }}>
         <Img src={headerImage} width="100%" style={styles.headerImg} />

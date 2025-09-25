@@ -2,6 +2,7 @@ import { prisma } from "#prisma";
 import { sendEmail } from "#postmark";
 import { render } from "@react-email/render";
 import DailyDigestEmail from "#emails/daily-digest.jsx";
+import { dispatchCampaign } from "#util/campaignDispatch";
 import { LogType, MailingListMemberStatus } from "@prisma/client";
 import cuid from "cuid";
 // Gmail ingestion logic factored into reusable helper
@@ -179,6 +180,37 @@ const syncAiMailingLists = async ({ reqId } = {}) => {
   }
 };
 
+const dispatchDueCampaigns = async ({ reqId } = {}) => {
+  const now = new Date();
+  const due = await prisma.campaign.findMany({
+    where: {
+      sendEffortStarted: false,
+      OR: [
+        { sendImmediately: true },
+        {
+          sendImmediately: false,
+          sendAt: { not: null, lte: now },
+        },
+      ],
+      event: { deleted: false },
+      template: { deleted: false },
+      mailingList: { deleted: false },
+    },
+    select: { id: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (!due.length) return;
+
+  for (const campaign of due) {
+    try {
+      await dispatchCampaign({ campaignId: campaign.id, reqId });
+    } catch (error) {
+      console.error(`[${reqId || 'cron'}][CAMPAIGN] Failed to dispatch ${campaign.id}:`, error);
+    }
+  }
+};
+
 export const post = async (req, res) => {
   try {
     const { frequency } = req.body;
@@ -219,6 +251,8 @@ export const post = async (req, res) => {
         }
       }
     }
+
+    await dispatchDueCampaigns({ reqId: req.id });
 
     if (frequency === "DAILY") {
       const events = await prisma.event.findMany({

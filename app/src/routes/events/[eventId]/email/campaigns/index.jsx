@@ -257,7 +257,15 @@ const CreateCampaignForm = ({
 
 export const EventEmailCampaignsPage = () => {
   const { eventId } = useParams();
-  const { campaigns, loading, error, createCampaign, updateCampaign, deleteCampaign } =
+  const {
+    campaigns,
+    loading,
+    error,
+    createCampaign,
+    updateCampaign,
+    sendCampaign,
+    deleteCampaign,
+  } =
     useCampaigns({
       eventId,
     });
@@ -366,14 +374,7 @@ export const EventEmailCampaignsPage = () => {
     if (!proceed) return;
     setSendNowId(campaign.id);
     try {
-      await updateCampaign(campaign.id, {
-        name: campaign.name,
-        templateId: campaign.templateId,
-        mailingListId: campaign.mailingListId,
-        sendImmediately: true,
-        sendAt: null,
-        sendAtTz: null,
-      });
+      await sendCampaign(campaign.id);
     } finally {
       setSendNowId(null);
     }
