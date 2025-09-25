@@ -34,17 +34,6 @@ const formatStatLine = ({ percent = 0, count = 0, total = 0 }) => {
   return `${formatted}% (${count}/${total})`;
 };
 
-const PerformanceStat = ({ label, percent = 0, count = 0, total = 0 }) => (
-  <div>
-    <Typography.Text className="text-muted text-uppercase fw-bold">
-      {label}
-    </Typography.Text>
-    <Typography.H3 className="mb-0">
-      {formatStatLine({ percent, count, total })}
-    </Typography.H3>
-  </div>
-);
-
 const CampaignStatsCell = ({ eventId, campaign }) => {
   const { stats, loading, error } = useCampaignStats({
     eventId,
@@ -102,7 +91,7 @@ const CampaignStatsCell = ({ eventId, campaign }) => {
         style={{
           height: 10,
           width: stats.bouncedPercent,
-          backgroundColor: "var(--tblr-red)",
+          backgroundColor: "var(--tblr-yellow)",
           display: "inline-block",
         }}
       />
