@@ -300,19 +300,53 @@ export const EventMailingListMembersPage = () => {
     return setSavedSegment(savedSegmentId);
   };
 
-  const handleAiApply = async ({ results, savedSegmentId }) => {
+  const handleAiApply = async ({ results, savedSegmentId, ast }) => {
     if (!savedSegmentId) {
       toast.error("Unable to link AI segment");
       return;
     }
 
-    const ids = extractCrmPersonIds(results);
+    const ensureAllIds = async () => {
+      const initialIds = extractCrmPersonIds(results);
+      const total = Number(results?.total);
+      const pageSize = Number(results?.pagination?.size);
+      const filter = ast?.filter || ast;
+      const paged = Number.isFinite(pageSize) && pageSize > 0;
+      const needsHydration =
+        filter && Number.isFinite(total) && total > 0 && initialIds.length < total;
+
+      if (!needsHydration) {
+        return initialIds;
+      }
+
+      const full = await runSegment({
+        filter,
+        pagination: { page: null, size: null },
+      });
+
+      if (!full?.ok) {
+        throw full?.error || new Error("Unable to load full segment results");
+      }
+
+      const hydratedIds = extractCrmPersonIds(full);
+      if (hydratedIds.length >= total || !paged) {
+        return hydratedIds;
+      }
+
+      // Fallback to merging if the server still paginated for safety.
+      const merged = new Set([...initialIds, ...hydratedIds]);
+      return Array.from(merged);
+    };
+
     setAiUpdating(true);
     try {
+      const ids = await ensureAllIds();
       if (ids.length) {
         await addMembers({ crmPersonIds: ids });
       }
       await handleAttachSegment(savedSegmentId);
+    } catch (error) {
+      toast.error(error?.message || "Failed to apply AI segment");
     } finally {
       setAiUpdating(false);
     }

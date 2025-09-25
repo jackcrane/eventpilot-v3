@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
   Table,
   Button,
@@ -258,12 +258,20 @@ export const EventEmailCampaignsPage = () => {
               {
                 label: "Template",
                 accessor: "template",
-                render: (value) => value?.name || "-",
+                render: (value) => (
+                  <Link to={`/events/${eventId}/email/templates/${value.id}`}>
+                    {value.name}
+                  </Link>
+                ),
               },
               {
                 label: "Mailing list",
                 accessor: "mailingList",
-                render: (value) => value?.title || "-",
+                render: (value) => (
+                  <Link to={`/events/${eventId}/email/lists/${value.id}`}>
+                    {value.title}
+                  </Link>
+                ),
               },
               {
                 label: "Created",

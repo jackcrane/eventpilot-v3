@@ -7,6 +7,7 @@ import {
   Input,
   useOffcanvas,
   Badge,
+  useConfirm,
 } from "tabler-react-2";
 import { EventPage } from "../../../../../../components/eventPage/EventPage";
 import { Row } from "../../../../../../util/Flex";
@@ -395,6 +396,13 @@ export const EventMailingListsPage = () => {
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
     offcanvasProps: { position: "end", size: 420, zIndex: 1051 },
   });
+  const { confirm, ConfirmModal } = useConfirm({
+    title: "Delete mailing list",
+    text: "This will delete the mailing list and remove all of its members. Are you sure?",
+    commitText: "Delete",
+    cancelText: "Cancel",
+    confirmVariant: "danger",
+  });
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState([]);
 
@@ -449,9 +457,7 @@ export const EventMailingListsPage = () => {
     });
   };
   const handleDelete = async (list) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this mailing list?"
-    );
+    const confirmed = await confirm?.();
     if (!confirmed) return;
     await deleteMailingList(list.id);
   };
@@ -547,6 +553,7 @@ export const EventMailingListsPage = () => {
       description="Review, rename, or delete your mailing lists."
       loading={loading}
     >
+      {ConfirmModal}
       {OffcanvasElement}
       <Row
         justify="space-between"
