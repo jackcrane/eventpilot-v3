@@ -88,6 +88,9 @@ export const EventEmailCampaignDetailPage = () => {
     meta,
     loading: recipientsLoading,
     error: recipientsError,
+    resendEmail,
+    resendingEmailId,
+    mutationLoading: resending,
   } = useCampaignRecipients({
     eventId,
     campaignId,
@@ -210,19 +213,35 @@ export const EventEmailCampaignDetailPage = () => {
         id: "actions",
         header: () => "",
         enableSorting: false,
-        size: 140,
-        cell: ({ row }) => (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => openEmailPreview(row.original.id)}
-          >
-            View email
-          </Button>
-        ),
+        size: 220,
+        cell: ({ row }) => {
+          const email = row.original;
+          const emailId = email?.id;
+          const isResending = resendingEmailId === emailId;
+
+          return (
+            <Row gap={1} wrap={false} align="center">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => openEmailPreview(emailId)}
+              >
+                View email
+              </Button>
+              <Button
+                size="sm"
+                loading={isResending}
+                disabled={resending && !isResending}
+                onClick={() => emailId && resendEmail(emailId)}
+              >
+                Resend
+              </Button>
+            </Row>
+          );
+        },
       },
     ],
-    [eventId, openEmailPreview]
+    [eventId, openEmailPreview, resendEmail, resendingEmailId, resending]
   );
 
   const statusSummary = useMemo(() => {

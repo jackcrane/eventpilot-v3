@@ -1,4 +1,6 @@
+import { useCallback, useState } from "react";
 import useSWR from "swr";
+import { toast } from "react-hot-toast";
 import { authFetch } from "../util/url";
 
 const fetcher = async (url) => {
@@ -86,11 +88,51 @@ export const useCampaignRecipients = (
     sortDirection,
   };
 
+  const [resendingEmailId, setResendingEmailId] = useState(null);
+
+  const resendEmail = useCallback(
+    async (emailId) => {
+      if (!eventId || !campaignId || !emailId) return false;
+
+      setResendingEmailId(emailId);
+      try {
+        const request = async () => {
+          const response = await authFetch(
+            `/api/events/${eventId}/campaigns/${campaignId}/emails/${emailId}/resend`,
+            { method: "post" }
+          );
+          const json = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(json?.message || "Failed to resend email");
+          }
+          return json;
+        };
+
+        await toast.promise(request(), {
+          loading: "Resending email...",
+          success: "Email resent",
+          error: (err) => err?.message || "Failed to resend email",
+        });
+
+        await mutate();
+        return true;
+      } catch (error) {
+        return false;
+      } finally {
+        setResendingEmailId(null);
+      }
+    },
+    [campaignId, eventId, mutate]
+  );
+
   return {
     recipients: data?.emails ?? [],
     meta,
     loading: isLoading,
     error,
     refetch: mutate,
+    resendEmail,
+    resendingEmailId,
+    mutationLoading: resendingEmailId !== null,
   };
 };
