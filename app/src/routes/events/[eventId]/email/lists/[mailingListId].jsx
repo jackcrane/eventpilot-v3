@@ -365,10 +365,7 @@ export const EventMailingListMembersPage = () => {
     try {
       const response = await runSegment({
         filter: mailingList.crmSavedSegment.ast.filter,
-        pagination: {
-          ...DEFAULT_SEGMENT_PAGINATION,
-          size: 500,
-        },
+        pagination: { page: null, size: null },
       });
 
       if (!response?.ok) {
