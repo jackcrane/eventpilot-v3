@@ -57,7 +57,11 @@ const MAILING_LIST_FILTER_DEFINITIONS = [
 
 const coerceFilterValue = (raw) => {
   if (raw === undefined || raw === null) return null;
-  if (typeof raw === "string" || typeof raw === "number" || typeof raw === "boolean") {
+  if (
+    typeof raw === "string" ||
+    typeof raw === "number" ||
+    typeof raw === "boolean"
+  ) {
     return raw;
   }
   if (typeof raw === "object" && "target" in raw) {
@@ -143,7 +147,9 @@ const matchesNumber = (operation, candidate, value) => {
 const matchesDate = (operation, candidate, value) => {
   const candidateDate = candidate ? new Date(candidate) : null;
   const validCandidate =
-    candidateDate && !Number.isNaN(candidateDate.getTime()) ? candidateDate : null;
+    candidateDate && !Number.isNaN(candidateDate.getTime())
+      ? candidateDate
+      : null;
 
   if (operation === "exists") return Boolean(validCandidate);
   if (operation === "not-exists") return !validCandidate;
@@ -294,14 +300,6 @@ const CreateMailingListForm = ({ onSubmit, onCancel }) => {
         invalidText={showError ? "Title is required" : undefined}
       />
       <Row gap={0.5} justify="flex-end">
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={submitting}
-          onClick={onCancel}
-        >
-          Cancel
-        </Button>
         <Button
           type="submit"
           variant="primary"
