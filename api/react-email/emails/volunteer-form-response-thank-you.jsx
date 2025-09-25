@@ -1,179 +1,107 @@
-import {
-  Body,
-  Button,
-  Container,
-  Font,
-  Head,
-  Heading,
-  Html,
-  Img,
-  Link,
-  Preview,
-  Text,
-} from "@react-email/components";
+import { Heading, Link, Text } from "@react-email/components";
 import * as React from "react";
 import moment from "moment-timezone";
-import data from "../tzs.json";
-
-const baseUrl = "";
+import { Email } from "../components/Email";
+import timezones from "../tzs.json";
 
 const utc = (value) => {
-  const tz = data.find((t) => t?.value?.toLowerCase() === value?.toLowerCase());
-  // return tz;
+  const tz = timezones.find((t) => t?.value?.toLowerCase() === value?.toLowerCase());
   const vtr = tz?.utc?.[0];
   return vtr;
 };
 
-/** @type {{ main: import("react").CSSProperties }} */
 const styles = {
-  main: {
-    backgroundColor: "#f7f7f7",
-  },
-  container: {
-    maxWidth: "600px",
-    margin: "0 auto",
-    border: "1px solid #eee",
-    backgroundColor: "#ffffff",
-  },
-  content: {
-    padding: "20px",
-  },
   heading: {
     fontWeight: 400,
+    marginTop: 0,
   },
-  button: {
-    backgroundColor: "#0072ce",
-    color: "#ffffff",
-    borderRadius: "5px",
-    padding: "8px 16px",
-    textDecoration: "none",
-    border: "none",
-    display: "inline-block",
+  sectionHeading: {
+    fontWeight: 400,
+    marginTop: 24,
+    marginBottom: 8,
   },
-  or: {
-    color: "#8898aa",
-    fontSize: "12px",
-    lineHeight: "16px",
-    display: "inline-block",
+  locationHeading: {
+    fontWeight: 400,
+    marginTop: 16,
+    marginBottom: 0,
+  },
+  jobHeading: {
+    fontWeight: 400,
+    marginTop: 0,
+    marginBottom: 0,
+  },
+  shiftList: {
+    marginTop: 0,
+    paddingLeft: 16,
   },
 };
 
 export const VolunteerFormResponseThankYouEmail = ({ data, event }) => (
-  <Html>
-    <Head>
-      <Font
-        fontFamily="Inter"
-        fallbackFontFamily="system-ui"
-        webFont={{
-          url: "https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_fjbvMwCp504jAa1ZL7W0Q5nw.woff2",
-          format: "woff2",
-        }}
-        fontWeight={400}
-        fontStyle="normal"
-      />
-      <Font
-        fontFamily="Inter"
-        fallbackFontFamily="system-ui"
-        webFont={{
-          url: "https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_fjbvMwCp50PDca1ZL7W0Q5nw.woff2",
-          format: "woff2",
-        }}
-        fontWeight={600}
-        fontStyle="semibold"
-      />
-    </Head>
-    <Preview>
-      Thank you for volunteering! Here is a summary of your responses and the
-      shifts you registered for.
-    </Preview>
-    <Body style={styles.main}>
-      <Container style={styles.container}>
-        <Img
-          src={"https://geteventpilot.com/static/email-header.png"}
-          width="100%"
-        />
-        <div style={styles.content}>
-          <Heading mt={0} as={"h1"} style={styles.heading}>
-            Thank you for volunteering!
-          </Heading>
-          <Text>
-            Hi, {data.response.flat.name}! Thank you for volunteering for{" "}
-            {event.name}! Volunteers are critical to the success of every event,
-            and we are excited to have you on board.
-          </Text>
+  <Email preview="Thank you for volunteering! Here is your schedule">
+    <Heading as="h1" style={styles.heading}>
+      Thank you for volunteering!
+    </Heading>
+    <Text>
+      Hi, {data.response.flat.name}! Thank you for volunteering for {event.name}!
+      Volunteers are critical to the success of every event, and we are excited
+      to have you on board.
+    </Text>
 
-          <Heading mt={0} as={"h2"} style={styles.heading}>
-            Your shifts
-          </Heading>
+    <Heading as="h2" style={styles.sectionHeading}>
+      Your shifts
+    </Heading>
 
-          <Text>
-            We are excited to welcome you for your shifts. Here is what you
-            signed up for:
-          </Text>
+    <Text>
+      We are excited to welcome you for your shifts. Here is what you signed up
+      for:
+    </Text>
 
-          {data.groupedShifts.map((location) => (
-            <div key={location.id}>
-              <Heading
-                mt={16}
-                as={"h3"}
-                style={{ ...styles.heading, marginBottom: 0 }}
-              >
-                {location.name}
-              </Heading>
-              <Text style={{ marginTop: 0 }}>
-                {[location.address, location.city, location.state]
-                  .filter(Boolean)
-                  .join(", ")}
-              </Text>
-              {location.jobs.map((job) => (
-                <div key={job.id} style={{ paddingLeft: 16 }}>
-                  <Heading
-                    mt={0}
-                    as={"h4"}
-                    style={{ ...styles.heading, marginBottom: 0 }}
-                  >
-                    {job.name}
-                  </Heading>
-                  <div style={{ marginTop: 0 }}>
-                    <ul>
-                      {job.shifts.map((shift) => (
-                        <li key={shift.id}>
-                          <Text style={{ margin: 0 }}>
-                            {moment(shift.startTime)
-                              .tz(utc(shift.startTimeTz))
-                              .format("h:mm a")}
-                            {" - "}
-                            {moment(shift.endTime)
-                              .tz(utc(shift.endTimeTz))
-                              .format("h:mm a")}{" "}
-                            ({shift.startTimeTz})
-                          </Text>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              ))}
+    {data.groupedShifts.map((location) => (
+      <div key={location.id}>
+        <Heading as="h3" style={styles.locationHeading}>
+          {location.name}
+        </Heading>
+        <Text style={{ marginTop: 0 }}>
+          {[location.address, location.city, location.state]
+            .filter(Boolean)
+            .join(", ")}
+        </Text>
+        {location.jobs.map((job) => (
+          <div key={job.id} style={{ paddingLeft: 16 }}>
+            <Heading as="h4" style={styles.jobHeading}>
+              {job.name}
+            </Heading>
+            <div style={{ marginTop: 0 }}>
+              <ul style={styles.shiftList}>
+                {job.shifts.map((shift) => (
+                  <li key={shift.id}>
+                    <Text style={{ margin: 0 }}>
+                      {moment(shift.startTime)
+                        .tz(utc(shift.startTimeTz))
+                        .format("h:mm a")}
+                      {" - "}
+                      {moment(shift.endTime)
+                        .tz(utc(shift.endTimeTz))
+                        .format("h:mm a")}{" "}
+                      ({shift.startTimeTz})
+                    </Text>
+                  </li>
+                ))}
+              </ul>
             </div>
-          ))}
+          </div>
+        ))}
+      </div>
+    ))}
 
-          <Text>
-            We look forward to seeing you at {event.name}! If you have any
-            question about your involvement wiht {event.name}, please reach out
-            to your event team. If you have any technical questions, please
-            reach out to support@geteventpilot.com.
-          </Text>
-
-          <Text style={styles.or}>
-            We value your privacy and security. Please do not reply to this
-            email. If you need, you can{" "}
-            <Link href="mailto:support@geteventpilot.com">contact us here</Link>
-            .
-          </Text>
-        </div>
-      </Container>
-    </Body>
-  </Html>
+    <Text>
+      We look forward to seeing you at {event.name}! If you have any questions
+      about your involvement with {event.name}, please reach out to your event
+      team. If you have any technical questions, please reach out to
+      {" "}
+      <Link href="mailto:support@geteventpilot.com">support@geteventpilot.com</Link>.
+    </Text>
+  </Email>
 );
 
 VolunteerFormResponseThankYouEmail.PreviewProps = {
