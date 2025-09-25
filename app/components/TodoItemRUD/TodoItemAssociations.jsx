@@ -7,6 +7,7 @@ import { Row } from "../../util/Flex";
 import { Loading } from "../loading/Loading";
 import { FormResponseRUD } from "../formResponseRUD/FormResponseRUD";
 import { useConversationSubjects } from "../../hooks/useConversationSubjects";
+import { CrmPersonSelectorPanel } from "../crm/CrmPersonSelectorPanel";
 // import { EntitySelector } from "../EntitySelector/EntitySelector";
 
 /**
@@ -422,130 +423,22 @@ export const TodoItemAssociations = ({ todo, eventId, updateTodo }) => {
   }, [crmPersons]);
 
   const openCrmSelector = () => {
-    const initial = new Set(Array.from(initialSelectedCrmPersons));
+    const initial = Array.from(initialSelectedCrmPersons);
 
-    const CrmSelectorPanel = () => {
-      const [localSelected, setLocalSelected] = useState(initial);
-      const [filter, setFilter] = useState("");
-      const [saving, setSaving] = useState(false);
-
-      const filtered = useMemo(() => {
-        const q = filter.trim().toLowerCase();
-        if (!q) return crmSelectorItems;
-        return crmSelectorItems.filter((i) => {
-          const t = `${i.title || ""} ${i.subtitle || ""}`.toLowerCase();
-          return t.includes(q) || (i.id || "").toLowerCase().includes(q);
-        });
-      }, [crmSelectorItems, filter]);
-
-      // Limit number of rendered contacts for performance
-      const MAX_RENDER = 200;
-      const visible = filtered.slice(0, MAX_RENDER);
-      const isCropped = filtered.length > MAX_RENDER;
-
-      const toggle = (id) => {
-        setLocalSelected((prev) => {
-          const n = new Set(prev);
-          if (n.has(id)) n.delete(id);
-          else n.add(id);
-          return n;
-        });
-      };
-
-      const apply = async () => {
-        setSaving(true);
-        try {
-          await saveCrmPersons(Array.from(localSelected));
-          closeCrmSelectorPanel();
-        } finally {
-          setSaving(false);
-        }
-      };
-
-      return (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            height: "100%",
-            maxHeight: "calc(100dvh)",
+    openCrmSelectorPanel({
+      content: (
+        <CrmPersonSelectorPanel
+          items={crmSelectorItems}
+          loading={crmLoading}
+          initialSelectedIds={initial}
+          onCancel={closeCrmSelectorPanel}
+          onSubmit={async (ids) => {
+            const ok = await saveCrmPersons(ids);
+            return ok;
           }}
-        >
-          <div>
-            <Typography.H5 className="mb-0 text-secondary">CRM</Typography.H5>
-            <Typography.H1>Select Contacts</Typography.H1>
-            <Input
-              placeholder="Search by name or email"
-              value={filter}
-              onChange={setFilter}
-            />
-          </div>
-
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              overflowY: "auto",
-              marginTop: 8,
-              maxHeight: "calc(100dvh - 200px)",
-              borderBottomWidth: 1,
-              borderBottomStyle: "solid",
-              borderBottomColor: "var(--tblr-border-color)",
-              borderTopWidth: 1,
-              borderTopStyle: "solid",
-              borderTopColor: "var(--tblr-border-color)",
-            }}
-          >
-            {filtered.length === 0 ? (
-              <Typography.Text className="text-muted">
-                No results
-              </Typography.Text>
-            ) : (
-              <div className="list-group list-group-flush border-0">
-                {visible.map((it) => (
-                  <label
-                    key={it.id}
-                    className="list-group-item d-flex align-items-center border-0"
-                    style={{ cursor: "pointer" }}
-                  >
-                    <input
-                      className="form-check-input m-0 me-2"
-                      type="checkbox"
-                      checked={localSelected.has(it.id)}
-                      onChange={() => toggle(it.id)}
-                    />
-                    <div className="flex-fill">
-                      <div className="fw-bold">{it.title || it.id}</div>
-                      {it.subtitle && (
-                        <div className="text-muted small">{it.subtitle}</div>
-                      )}
-                    </div>
-                  </label>
-                ))}
-                {isCropped && (
-                  <div className="list-group-item border-0 p-2">
-                    <Typography.Text className="text-muted small">
-                      Some contacts were hidden. Please refine your search
-                    </Typography.Text>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <Row justify="end" gap={0.5} className="mt-2">
-            <Button outline onClick={closeCrmSelectorPanel} disabled={saving}>
-              Cancel
-            </Button>
-            <Button onClick={apply} loading={saving} variant="primary">
-              Save
-            </Button>
-          </Row>
-        </div>
-      );
-    };
-
-    openCrmSelectorPanel({ content: <CrmSelectorPanel /> });
+        />
+      ),
+    });
   };
 
   const saveCrmPersons = async (ids) => {

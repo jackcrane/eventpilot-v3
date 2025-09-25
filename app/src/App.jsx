@@ -41,7 +41,12 @@ import { EventSessionPage } from "./routes/events/[eventId]/session/[sessionId]"
 import { EventTodosPage } from "./routes/events/[eventId]/todos";
 import { WaitlistPage } from "./routes/waitlist";
 import { EventConversationsPage } from "./routes/events/[eventId]/conversations";
-// legacy conversations UI has been removed in favor of Gmail-based flow
+import { EventMailingListsPage } from "./routes/events/[eventId]/email/lists/index";
+import { EventMailingListMembersPage } from "./routes/events/[eventId]/email/lists/[mailingListId]";
+import { EventEmailTemplatesPage } from "./routes/events/[eventId]/email/templates/index";
+import { EventEmailTemplateDetailPage } from "./routes/events/[eventId]/email/templates/[templateId]";
+import { EventEmailTemplateCreatePage } from "./routes/events/[eventId]/email/templates/new";
+import { EventEmailCampaignsPage } from "./routes/events/[eventId]/email/campaigns/index";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -153,6 +158,30 @@ export default () => {
             <Route
               path="/events/:eventId/conversations"
               element={<EventConversationsPage />}
+            />
+            <Route
+              path="/events/:eventId/email/lists"
+              element={<EventMailingListsPage />}
+            />
+            <Route
+              path="/events/:eventId/email/lists/:mailingListId"
+              element={<EventMailingListMembersPage />}
+            />
+            <Route
+              path="/events/:eventId/email/templates"
+              element={<EventEmailTemplatesPage />}
+            />
+            <Route
+              path="/events/:eventId/email/templates/new"
+              element={<EventEmailTemplateCreatePage />}
+            />
+            <Route
+              path="/events/:eventId/email/templates/:templateId"
+              element={<EventEmailTemplateDetailPage />}
+            />
+            <Route
+              path="/events/:eventId/email/campaigns"
+              element={<EventEmailCampaignsPage />}
             />
 
             <Route

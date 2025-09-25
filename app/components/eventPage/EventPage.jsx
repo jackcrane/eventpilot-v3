@@ -68,18 +68,52 @@ export const EventPage = ({
     {
       type: "item",
       href: `${base}/crm`,
-      text: "Contacts",
+      text: "CRM",
       active: isActive(`${base}/crm`),
       icon: <Icon i="briefcase-2" size={18} color="var(--tblr-purple)" />,
     },
     {
-      type: "item",
-      href: `${base}/conversations`,
-      text: "Conversations",
-      active:
-        isActive(`${base}/conversations`) ||
-        pathname.startsWith(`${base}/conversations/`),
+      type: "dropdown",
+      text: "Emails",
       icon: <Icon i="mail" size={18} color="var(--tblr-green)" />,
+      children: [
+        {
+          type: "item",
+          href: `${base}/email/lists`,
+          text: "Lists",
+          active:
+            isActive(`${base}/email/lists`) ||
+            pathname.startsWith(`${base}/email/lists/`),
+          icon: <Icon i="list" size={18} color="var(--tblr-yellow)" />,
+        },
+        {
+          type: "item",
+          href: `${base}/email/templates`,
+          text: "Templates",
+          active:
+            isActive(`${base}/email/templates`) ||
+            pathname.startsWith(`${base}/email/templates/`),
+          icon: <Icon i="file-text" size={18} color="var(--tblr-purple)" />,
+        },
+        {
+          type: "item",
+          href: `${base}/email/campaigns`,
+          text: "Campaigns",
+          active:
+            isActive(`${base}/email/campaigns`) ||
+            pathname.startsWith(`${base}/email/campaigns/`),
+          icon: <Icon i="send" size={18} color="var(--tblr-orange)" />,
+        },
+        {
+          type: "item",
+          href: `${base}/conversations`,
+          text: "Conversations",
+          active:
+            isActive(`${base}/conversations`) ||
+            pathname.startsWith(`${base}/conversations/`),
+          icon: <Icon i="inbox" size={18} color="var(--tblr-green)" />,
+        },
+      ],
     },
     {
       type: "dropdown",

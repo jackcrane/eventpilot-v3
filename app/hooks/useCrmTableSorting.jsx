@@ -65,13 +65,16 @@ export const useCrmTableSorting = ({
       if (controlled) {
         const next = resolve(sorting);
         if (!Array.isArray(next) || next.length === 0) {
-          if (!orderBy) return;
-          const nextOrder = String(order).toLowerCase() === "desc" ? "asc" : "desc";
-          onSetOrder(orderBy, nextOrder);
           return;
         }
-        const { id, desc } = next[0];
-        onSetOrder(id, desc ? "desc" : "asc");
+
+        const { id, desc } = next[0] ?? {};
+        if (!id) return;
+
+        const normalizedOrder = desc ? "desc" : "asc";
+        if (id === orderBy && normalizedOrder === order) return;
+
+        onSetOrder(id, normalizedOrder);
         return;
       }
 

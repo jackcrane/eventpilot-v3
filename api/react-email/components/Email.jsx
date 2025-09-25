@@ -55,6 +55,11 @@ export const Email = ({
   children,
   headerImage = "https://geteventpilot.com/static/email-header.png",
   logoImage,
+  bodyStyle,
+  containerStyle,
+  contentStyle,
+  footer,
+  hideFooter = false,
 }) => (
   <Html>
     <Head>
@@ -79,19 +84,25 @@ export const Email = ({
         fontStyle="semibold"
       />
     </Head>
-    <Preview>{preview}</Preview>
-    <Body style={styles.main}>
-      <Container style={styles.container}>
+    {preview ? <Preview>{preview}</Preview> : null}
+    <Body style={{ ...styles.main, ...bodyStyle }}>
+      <Container style={{ ...styles.container, ...containerStyle }}>
         <Img src={headerImage} width="100%" style={styles.headerImg} />
         {logoImage && (
           <Img src={logoImage} width="100%" style={styles.logoImg} />
         )}
-        <div style={styles.content}>{children}</div>
-        <Text style={styles.footer}>
-          We value your privacy and security. Please do not reply to this email.
-          If you need, you can{" "}
-          <Link href="mailto:support@geteventpilot.com">contact us here</Link>.
-        </Text>
+        <div style={{ ...styles.content, ...contentStyle }}>{children}</div>
+        {!hideFooter &&
+          (footer ?? (
+            <Text style={styles.footer}>
+              We value your privacy and security. Please do not reply to this
+              email. If you need, you can{" "}
+              <Link href="mailto:support@geteventpilot.com">
+                contact us here
+              </Link>
+              .
+            </Text>
+          ))}
       </Container>
     </Body>
   </Html>

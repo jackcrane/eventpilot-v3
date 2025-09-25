@@ -8,10 +8,10 @@ export default {
     const responses = [];
 
     // Always send MINUTELY
-    responses.push({ frequency: "MINUTELY" });
+    responses.push({ frequency: "MINUTELY", minute });
 
     // Send HOURLY at the top of each hour
-    if (minute === 0) responses.push({ frequency: "HOURLY" });
+    if (minute === 0) responses.push({ frequency: "HOURLY", hour });
 
     // Send DAILY at 00:00 UTC
     if (minute === 0 && hour === 0) responses.push({ frequency: "DAILY" });
