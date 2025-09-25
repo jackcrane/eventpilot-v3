@@ -9,6 +9,7 @@ import {
   Checkbox,
   useOffcanvas,
   useConfirm,
+  Spinner,
 } from "tabler-react-2";
 import { EventPage } from "../../../../../../components/eventPage/EventPage";
 import { Row } from "../../../../../../util/Flex";
@@ -20,6 +21,94 @@ import { useEvent } from "../../../../../../hooks/useEvent";
 import moment from "moment";
 import { DATETIME_FORMAT } from "../../../../../../util/Constants";
 import { TzDateTime } from "../../../../../../components/tzDateTime/tzDateTime";
+import { useCampaignStats } from "../../../../../../hooks/useCampaignStats";
+
+const formatStatLine = ({ percent = 0, count = 0, total = 0 }) => {
+  if (!total) return "0% (0/0)";
+  const pct = Number(percent ?? 0);
+  const formatted = Number.isFinite(pct)
+    ? Number.isInteger(pct)
+      ? pct.toString()
+      : pct.toFixed(1)
+    : "0";
+  return `${formatted}% (${count}/${total})`;
+};
+
+const PerformanceStat = ({ label, percent = 0, count = 0, total = 0 }) => (
+  <div>
+    <Typography.Text className="text-muted text-uppercase fw-bold">
+      {label}
+    </Typography.Text>
+    <Typography.H3 className="mb-0">
+      {formatStatLine({ percent, count, total })}
+    </Typography.H3>
+  </div>
+);
+
+const CampaignStatsCell = ({ eventId, campaign }) => {
+  const { stats, loading, error } = useCampaignStats({
+    eventId,
+    campaignId: campaign?.id,
+  });
+
+  if (loading) {
+    return <Spinner size="sm" />;
+  }
+
+  if (error) {
+    return (
+      <Typography.Text className="text-danger">
+        Failed to load stats
+      </Typography.Text>
+    );
+  }
+
+  if (!stats || !stats.total) {
+    return (
+      <Typography.Text className="text-muted">
+        No email activity recorded yet.
+      </Typography.Text>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        borderRadius: 5,
+        backgroundColor: "var(--tblr-gray-200)",
+        overflow: "hidden",
+        width: 100,
+        height: 10,
+        lineHeight: 0,
+      }}
+    >
+      <div
+        style={{
+          height: 10,
+          width: stats.deliveredPercent,
+          backgroundColor: "var(--tblr-blue)",
+          display: "inline-block",
+        }}
+      />
+      <div
+        style={{
+          height: 10,
+          width: stats.openedPercent,
+          backgroundColor: "var(--tblr-green)",
+          display: "inline-block",
+        }}
+      />
+      <div
+        style={{
+          height: 10,
+          width: stats.bouncedPercent,
+          backgroundColor: "var(--tblr-red)",
+          display: "inline-block",
+        }}
+      />
+    </div>
+  );
+};
 
 const CreateCampaignForm = ({
   templates,
@@ -57,9 +146,13 @@ const CreateCampaignForm = ({
     if (!initialCampaign) return;
     setName(initialCampaign.name || "");
     setTemplateId(initialCampaign.templateId || templates[0]?.id || "");
-    setMailingListId(initialCampaign.mailingListId || mailingLists[0]?.id || "");
+    setMailingListId(
+      initialCampaign.mailingListId || mailingLists[0]?.id || ""
+    );
     setSendImmediately(initialCampaign.sendImmediately || false);
-    setSendAt(initialCampaign.sendImmediately ? null : initialCampaign.sendAt || null);
+    setSendAt(
+      initialCampaign.sendImmediately ? null : initialCampaign.sendAt || null
+    );
     setSendAtTz(
       initialCampaign.sendImmediately
         ? fallbackTz
@@ -110,11 +203,7 @@ const CreateCampaignForm = ({
   const scheduleReady = sendImmediately || (sendAt && sendAtTz);
 
   const ready = Boolean(
-    name.trim() &&
-      templateId &&
-      mailingListId &&
-      scheduleReady &&
-      !submitting
+    name.trim() && templateId && mailingListId && scheduleReady && !submitting
   );
   const submitDisabled = !ready || noTemplates || noMailingLists;
 
@@ -126,7 +215,8 @@ const CreateCampaignForm = ({
 
     try {
       const requiresImmediateConfirm =
-        sendImmediately && (!initialCampaign || !initialCampaign.sendImmediately);
+        sendImmediately &&
+        (!initialCampaign || !initialCampaign.sendImmediately);
 
       if (requiresImmediateConfirm && confirmImmediateSend) {
         const audience = resolveMailingListAudience?.(mailingListId);
@@ -265,10 +355,9 @@ export const EventEmailCampaignsPage = () => {
     updateCampaign,
     sendCampaign,
     deleteCampaign,
-  } =
-    useCampaigns({
-      eventId,
-    });
+  } = useCampaigns({
+    eventId,
+  });
   const { templates, loading: templatesLoading } = useEmailTemplates({
     eventId,
   });
@@ -279,24 +368,20 @@ export const EventEmailCampaignsPage = () => {
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
     offcanvasProps: { position: "end", size: 420, zIndex: 1051 },
   });
-  const {
-    confirm: confirmDeleteCampaign,
-    ConfirmModal: DeleteConfirmModal,
-  } = useConfirm({
-    title: "Delete scheduled campaign?",
-    text: "This action cannot be undone.",
-    confirmText: "Delete",
-    confirmVariant: "danger",
-  });
-  const {
-    confirm: confirmImmediateSend,
-    ConfirmModal: ImmediateConfirmModal,
-  } = useConfirm({
-    title: "Warning!",
-    text: "You are about to email people immediately. Are you sure?",
-    confirmText: "Send now",
-    confirmVariant: "danger",
-  });
+  const { confirm: confirmDeleteCampaign, ConfirmModal: DeleteConfirmModal } =
+    useConfirm({
+      title: "Delete scheduled campaign?",
+      text: "This action cannot be undone.",
+      confirmText: "Delete",
+      confirmVariant: "danger",
+    });
+  const { confirm: confirmImmediateSend, ConfirmModal: ImmediateConfirmModal } =
+    useConfirm({
+      title: "Warning!",
+      text: "You are about to email people immediately. Are you sure?",
+      confirmText: "Send now",
+      confirmVariant: "danger",
+    });
   const [sendNowId, setSendNowId] = useState(null);
 
   const activeTemplates = useMemo(
@@ -311,7 +396,9 @@ export const EventEmailCampaignsPage = () => {
 
   const resolveMailingListAudience = (mailingListId) => {
     if (!mailingListId) return { count: 0 };
-    const list = (mailingLists || []).find((entry) => entry.id === mailingListId);
+    const list = (mailingLists || []).find(
+      (entry) => entry.id === mailingListId
+    );
     return {
       count: list?.memberCount ?? 0,
       title: list?.title ?? "",
@@ -344,10 +431,13 @@ export const EventEmailCampaignsPage = () => {
 
   const openCreateCampaign = () => openCampaignForm();
 
-  const canModifyCampaign = (campaign) =>
-    !campaign.sendImmediately &&
-    campaign.sendAt &&
-    moment(campaign.sendAt).isAfter(moment());
+  const canModifyCampaign = (campaign) => {
+    return (
+      !campaign.sendImmediately &&
+      campaign.sendAt &&
+      moment(campaign.sendAt).isAfter(moment())
+    );
+  };
 
   const handleEdit = (campaign) => {
     if (!canModifyCampaign(campaign)) return;
@@ -459,16 +549,21 @@ export const EventEmailCampaignsPage = () => {
                 ),
               },
               {
-                label: "Created",
-                accessor: "createdAt",
-                render: (value) => moment(value).format(DATETIME_FORMAT),
+                label: "Send at",
+                accessor: "sendAt",
+                render: (value, row) => {
+                  const target = value || row.createdAt;
+                  return target ? moment(target).format(DATETIME_FORMAT) : "—";
+                },
               },
               {
                 label: "Actions",
                 accessor: "id",
                 render: (value, row) => {
                   if (!canModifyCampaign(row)) {
-                    return "—";
+                    return (
+                      <CampaignStatsCell eventId={eventId} campaign={row} />
+                    );
                   }
                   return (
                     <Row gap={1}>
@@ -480,7 +575,11 @@ export const EventEmailCampaignsPage = () => {
                       >
                         Send now
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(row)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(row)}
+                      >
                         Edit
                       </Button>
                       <Button

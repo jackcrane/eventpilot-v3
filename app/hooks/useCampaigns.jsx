@@ -1,4 +1,4 @@
-import useSWR from "swr";
+import useSWR, { mutate as mutateGlobal } from "swr";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
 import { authFetch } from "../util/url";
@@ -121,6 +121,11 @@ export const useCampaigns = ({ eventId } = {}) => {
         result = payload?.result ?? null;
       } finally {
         await refetch();
+        if (campaignId) {
+          await mutateGlobal(
+            `/api/events/${eventId}/campaigns/${campaignId}/stats`
+          );
+        }
       }
 
       return result;

@@ -145,7 +145,8 @@ export const post = [
           .json({ message: "Mailing list not found for this event." });
       }
 
-      const scheduledSend = sendImmediately ? null : sendAt;
+      const now = new Date();
+      const scheduledSend = sendImmediately ? now : sendAt;
       const scheduledTz = sendImmediately ? null : sendAtTz;
 
       if (scheduledSend && Number.isNaN(new Date(scheduledSend).getTime())) {
