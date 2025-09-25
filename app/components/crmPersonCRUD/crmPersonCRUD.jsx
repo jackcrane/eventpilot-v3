@@ -307,7 +307,13 @@ export const CrmPersonCRUD = ({
   }, [crmPerson]);
 
   const handleSubmit = async () => {
-    const payload = { ...localCrmPerson };
+    const payload = {
+      ...localCrmPerson,
+      emails: localCrmPerson?.emails ?? [],
+      phones: localCrmPerson?.phones ?? [],
+      fields: localCrmPerson?.fields ?? {},
+    };
+
     // Process emails: filter and map to { id, email }
     payload.emails = payload.emails
       .filter((e) => e.email?.length > 0)
