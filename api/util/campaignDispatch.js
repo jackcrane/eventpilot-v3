@@ -33,10 +33,10 @@ const sanitizeDisplayName = (value) =>
 
 const resolveFromAddress = (event) => {
   const label = sanitizeDisplayName(event?.name || "EventPilot");
-  return `${label} <no-reply@events.geteventpilot.com>`;
+  return `${label} <no-reply@event.geteventpilot.com>`;
 };
 
-const resolveReplyTo = () => "no-reply@events.geteventpilot.com";
+const resolveReplyTo = () => "no-reply@event.geteventpilot.com";
 
 const choosePersonEmail = (person) => {
   if (!person) return null;
