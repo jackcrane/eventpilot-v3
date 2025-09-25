@@ -339,6 +339,8 @@ export const dispatchCampaign = async ({
         realResponses.push(...res);
       }
 
+      console.log(realResponses);
+
       let pointer = 0;
       for (const originalIndex of realIndices) {
         responses[originalIndex] = realResponses[pointer++] || {
