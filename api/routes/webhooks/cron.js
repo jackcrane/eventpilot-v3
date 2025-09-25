@@ -192,7 +192,6 @@ const dispatchDueCampaigns = async ({ reqId } = {}) => {
           sendAt: { not: null, lte: now },
         },
       ],
-      event: { deleted: false },
       template: { deleted: false },
       mailingList: { deleted: false },
     },
@@ -206,7 +205,10 @@ const dispatchDueCampaigns = async ({ reqId } = {}) => {
     try {
       await dispatchCampaign({ campaignId: campaign.id, reqId });
     } catch (error) {
-      console.error(`[${reqId || 'cron'}][CAMPAIGN] Failed to dispatch ${campaign.id}:`, error);
+      console.error(
+        `[${reqId || "cron"}][CAMPAIGN] Failed to dispatch ${campaign.id}:`,
+        error
+      );
     }
   }
 };
