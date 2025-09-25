@@ -66,19 +66,61 @@ export const useCampaigns = ({ eventId } = {}) => {
     }
   };
 
-  const sendCampaign = async (campaignId) => {
+  const updateCampaign = async (campaignId, payload) => {
+    if (!eventId || !campaignId) return null;
+
+    try {
+      const parsed = schema
+        ? schema.safeParse(payload ?? {})
+        : { success: true, data: payload };
+
+      if (!parsed.success) {
+        toast.error("Validation error");
+        return null;
+      }
+
+      const request = authFetch(
+        `/api/events/${eventId}/campaigns/${campaignId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(parsed.data),
+        }
+      ).then(parseResponse);
+
+      const { campaign } = await toast.promise(request, {
+        loading: "Updating campaign...",
+        success: "Campaign updated",
+        error: (err) => err?.message || "Error updating campaign",
+      });
+
+      await refetch();
+      return campaign ?? null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const deleteCampaign = async (campaignId) => {
     if (!eventId || !campaignId) return false;
 
     try {
       const request = authFetch(
-        `/api/events/${eventId}/campaigns/${campaignId}/send`,
-        { method: "POST" }
-      ).then(parseResponse);
+        `/api/events/${eventId}/campaigns/${campaignId}`,
+        {
+          method: "DELETE",
+        }
+      ).then(async (res) => {
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          throw new Error(json?.message || "Request failed");
+        }
+        return true;
+      });
 
       await toast.promise(request, {
-        loading: "Sending campaign...",
-        success: "Campaign send simulated",
-        error: (err) => err?.message || "Error sending campaign",
+        loading: "Deleting campaign...",
+        success: "Campaign deleted",
+        error: (err) => err?.message || "Error deleting campaign",
       });
 
       await refetch();
@@ -95,6 +137,7 @@ export const useCampaigns = ({ eventId } = {}) => {
     error,
     refetch,
     createCampaign,
-    sendCampaign,
+    updateCampaign,
+    deleteCampaign,
   };
 };

@@ -4,18 +4,46 @@ import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
 import { zerialize } from "zodex";
 
-const campaignSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  templateId: z.string().cuid(),
-  mailingListId: z.string().cuid(),
-});
+export const campaignSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    templateId: z.string().cuid(),
+    mailingListId: z.string().cuid(),
+    sendImmediately: z.boolean().optional().default(false),
+    sendAt: z.string().datetime().nullish(),
+    sendAtTz: z.string().trim().min(1).nullish(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.sendImmediately) {
+      return;
+    }
 
-const baseCampaignSelect = {
+    if (!data.sendAt) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Send time is required when not sending immediately.",
+        path: ["sendAt"],
+      });
+    }
+
+    if (!data.sendAtTz) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Timezone is required when scheduling a send.",
+        path: ["sendAtTz"],
+      });
+    }
+  });
+
+export const baseCampaignSelect = {
   id: true,
   name: true,
   eventId: true,
   templateId: true,
   mailingListId: true,
+  sendImmediately: true,
+  sendAt: true,
+  sendAtTz: true,
   createdAt: true,
   updatedAt: true,
   template: {
@@ -34,7 +62,7 @@ const baseCampaignSelect = {
   },
 };
 
-const formatCampaign = (campaign) => ({
+export const formatCampaign = (campaign) => ({
   ...campaign,
   template: campaign.template
     ? {
@@ -82,7 +110,14 @@ export const post = [
       return res.status(400).json({ message: serializeError(result) });
     }
 
-    const { name, templateId, mailingListId } = result.data;
+    const {
+      name,
+      templateId,
+      mailingListId,
+      sendImmediately = false,
+      sendAt,
+      sendAtTz,
+    } = result.data;
 
     try {
       const [template, mailingList] = await Promise.all([
@@ -108,12 +143,24 @@ export const post = [
           .json({ message: "Mailing list not found for this event." });
       }
 
+      const scheduledSend = sendImmediately ? null : sendAt;
+      const scheduledTz = sendImmediately ? null : sendAtTz;
+
+      if (scheduledSend && Number.isNaN(new Date(scheduledSend).getTime())) {
+        return res
+          .status(400)
+          .json({ message: "Invalid send time provided." });
+      }
+
       const created = await prisma.campaign.create({
         data: {
           name,
           templateId,
           mailingListId,
           eventId,
+          sendImmediately,
+          sendAt: scheduledSend ? new Date(scheduledSend) : null,
+          sendAtTz: scheduledTz ?? null,
         },
         select: baseCampaignSelect,
       });

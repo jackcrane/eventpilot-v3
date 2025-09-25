@@ -1031,6 +1031,12 @@ model Campaign {
   mailingListId String
   mailingList   MailingList @relation(fields: [mailingListId], references: [id], onDelete: Cascade)
 
+  sendImmediately Boolean @default(false)
+  sendAt          DateTime?
+  sendAtTz        String?
+
+  sendEffortStarted Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

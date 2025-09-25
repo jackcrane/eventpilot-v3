@@ -6,7 +6,9 @@ import {
   Typography,
   Input,
   DropdownInput,
+  Checkbox,
   useOffcanvas,
+  useConfirm,
 } from "tabler-react-2";
 import { EventPage } from "../../../../../../components/eventPage/EventPage";
 import { Row } from "../../../../../../util/Flex";
@@ -14,14 +16,56 @@ import { Empty } from "../../../../../../components/empty/Empty";
 import { useCampaigns } from "../../../../../../hooks/useCampaigns";
 import { useEmailTemplates } from "../../../../../../hooks/useEmailTemplates";
 import { useMailingLists } from "../../../../../../hooks/useMailingLists";
+import { useEvent } from "../../../../../../hooks/useEvent";
 import moment from "moment";
 import { DATETIME_FORMAT } from "../../../../../../util/Constants";
+import { TzDateTime } from "../../../../../../components/tzDateTime/tzDateTime";
 
-const CreateCampaignForm = ({ templates, mailingLists, onSubmit, onClose }) => {
-  const [name, setName] = useState("");
-  const [templateId, setTemplateId] = useState(templates[0]?.id || "");
-  const [mailingListId, setMailingListId] = useState(mailingLists[0]?.id || "");
+const CreateCampaignForm = ({
+  templates,
+  mailingLists,
+  onSubmit,
+  onClose,
+  defaultTz,
+  initialCampaign,
+  mode = "create",
+  confirmImmediateSend,
+  resolveMailingListAudience,
+}) => {
+  const [name, setName] = useState(() => initialCampaign?.name || "");
+  const [templateId, setTemplateId] = useState(
+    () => initialCampaign?.templateId || templates[0]?.id || ""
+  );
+  const [mailingListId, setMailingListId] = useState(
+    () => initialCampaign?.mailingListId || mailingLists[0]?.id || ""
+  );
   const [submitting, setSubmitting] = useState(false);
+  const [sendImmediately, setSendImmediately] = useState(
+    () => initialCampaign?.sendImmediately || false
+  );
+  const fallbackTz = initialCampaign?.sendAtTz || defaultTz || "UTC";
+  const [sendAt, setSendAt] = useState(() =>
+    initialCampaign?.sendImmediately ? null : initialCampaign?.sendAt || null
+  );
+  const [sendAtTz, setSendAtTz] = useState(() =>
+    initialCampaign?.sendImmediately
+      ? fallbackTz
+      : initialCampaign?.sendAtTz || fallbackTz
+  );
+
+  useEffect(() => {
+    if (!initialCampaign) return;
+    setName(initialCampaign.name || "");
+    setTemplateId(initialCampaign.templateId || templates[0]?.id || "");
+    setMailingListId(initialCampaign.mailingListId || mailingLists[0]?.id || "");
+    setSendImmediately(initialCampaign.sendImmediately || false);
+    setSendAt(initialCampaign.sendImmediately ? null : initialCampaign.sendAt || null);
+    setSendAtTz(
+      initialCampaign.sendImmediately
+        ? fallbackTz
+        : initialCampaign.sendAtTz || fallbackTz
+    );
+  }, [initialCampaign, fallbackTz, templates, mailingLists]);
 
   useEffect(() => {
     if (!templates.length) {
@@ -50,8 +94,27 @@ const CreateCampaignForm = ({ templates, mailingLists, onSubmit, onClose }) => {
   const noTemplates = templates.length === 0;
   const noMailingLists = mailingLists.length === 0;
 
+  useEffect(() => {
+    if (!sendImmediately && !sendAtTz) {
+      setSendAtTz(fallbackTz);
+    }
+  }, [sendImmediately, fallbackTz, sendAtTz]);
+
+  useEffect(() => {
+    if (!sendImmediately) return;
+    if (sendAt) {
+      setSendAt(null);
+    }
+  }, [sendImmediately, sendAt]);
+
+  const scheduleReady = sendImmediately || (sendAt && sendAtTz);
+
   const ready = Boolean(
-    name.trim() && templateId && mailingListId && !submitting
+    name.trim() &&
+      templateId &&
+      mailingListId &&
+      scheduleReady &&
+      !submitting
   );
   const submitDisabled = !ready || noTemplates || noMailingLists;
 
@@ -62,14 +125,42 @@ const CreateCampaignForm = ({ templates, mailingLists, onSubmit, onClose }) => {
     let shouldClose = false;
 
     try {
+      const requiresImmediateConfirm =
+        sendImmediately && (!initialCampaign || !initialCampaign.sendImmediately);
+
+      if (requiresImmediateConfirm && confirmImmediateSend) {
+        const audience = resolveMailingListAudience?.(mailingListId);
+        const count = audience?.count ?? 0;
+        const label = count === 1 ? "person" : "people";
+        const proceed = await confirmImmediateSend({
+          title: "Warning!",
+          text: `You are about to email ${count} ${label}. Are you sure?`,
+          confirmText: "Send now",
+          confirmVariant: "danger",
+        });
+        if (!proceed) {
+          return;
+        }
+      }
+
       setSubmitting(true);
       const success = await onSubmit({
         name: name.trim(),
         templateId,
         mailingListId,
+        sendImmediately,
+        sendAt: sendImmediately ? null : sendAt,
+        sendAtTz: sendImmediately ? null : sendAtTz,
       });
       if (success) {
-        setName("");
+        if (mode === "create") {
+          setName("");
+          setTemplateId(templates[0]?.id || "");
+          setMailingListId(mailingLists[0]?.id || "");
+          setSendImmediately(false);
+          setSendAt(null);
+          setSendAtTz(fallbackTz);
+        }
         shouldClose = true;
       }
     } finally {
@@ -84,7 +175,9 @@ const CreateCampaignForm = ({ templates, mailingLists, onSubmit, onClose }) => {
     <form onSubmit={handleSubmit}>
       <div>
         <Typography.H5 className="mb-0 text-secondary">CAMPAIGN</Typography.H5>
-        <Typography.H1 className="mb-2">New Campaign</Typography.H1>
+        <Typography.H1 className="mb-2">
+          {mode === "edit" ? "Edit Campaign" : "New Campaign"}
+        </Typography.H1>
         <Typography.Text className="text-muted">
           Name your campaign, choose a template, and target a mailing list.
         </Typography.Text>
@@ -129,6 +222,25 @@ const CreateCampaignForm = ({ templates, mailingLists, onSubmit, onClose }) => {
           Add at least one template and mailing list to create a campaign.
         </Typography.Text>
       )}
+      <Checkbox
+        label="Send immediately"
+        value={sendImmediately}
+        onChange={(checked) => setSendImmediately(checked)}
+        className="mb-3"
+      />
+      {!sendImmediately && (
+        <TzDateTime
+          value={sendAt}
+          onChange={([iso, tz]) => {
+            setSendAt(iso);
+            setSendAtTz(tz);
+          }}
+          label="Schedule send"
+          required
+          tz={sendAtTz || fallbackTz}
+          defaultTime="09:00"
+        />
+      )}
       <Row justify="flex-end">
         <Button
           type="submit"
@@ -136,7 +248,7 @@ const CreateCampaignForm = ({ templates, mailingLists, onSubmit, onClose }) => {
           disabled={submitDisabled}
           loading={submitting}
         >
-          Create campaign
+          {mode === "edit" ? "Save changes" : "Create campaign"}
         </Button>
       </Row>
     </form>
@@ -145,19 +257,39 @@ const CreateCampaignForm = ({ templates, mailingLists, onSubmit, onClose }) => {
 
 export const EventEmailCampaignsPage = () => {
   const { eventId } = useParams();
-  const { campaigns, loading, error, createCampaign, sendCampaign } =
-    useCampaigns({ eventId });
+  const { campaigns, loading, error, createCampaign, updateCampaign, deleteCampaign } =
+    useCampaigns({
+      eventId,
+    });
   const { templates, loading: templatesLoading } = useEmailTemplates({
     eventId,
   });
   const { mailingLists, loading: mailingListsLoading } = useMailingLists({
     eventId,
   });
+  const { event } = useEvent({ eventId });
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
     offcanvasProps: { position: "end", size: 420, zIndex: 1051 },
   });
-
-  const [sendingId, setSendingId] = useState(null);
+  const {
+    confirm: confirmDeleteCampaign,
+    ConfirmModal: DeleteConfirmModal,
+  } = useConfirm({
+    title: "Delete scheduled campaign?",
+    text: "This action cannot be undone.",
+    confirmText: "Delete",
+    confirmVariant: "danger",
+  });
+  const {
+    confirm: confirmImmediateSend,
+    ConfirmModal: ImmediateConfirmModal,
+  } = useConfirm({
+    title: "Warning!",
+    text: "You are about to email people immediately. Are you sure?",
+    confirmText: "Send now",
+    confirmVariant: "danger",
+  });
+  const [sendNowId, setSendNowId] = useState(null);
 
   const activeTemplates = useMemo(
     () => (templates || []).filter((template) => !template.deleted),
@@ -169,16 +301,32 @@ export const EventEmailCampaignsPage = () => {
     [mailingLists]
   );
 
-  const openCreateCampaign = () => {
+  const resolveMailingListAudience = (mailingListId) => {
+    if (!mailingListId) return { count: 0 };
+    const list = (mailingLists || []).find((entry) => entry.id === mailingListId);
+    return {
+      count: list?.memberCount ?? 0,
+      title: list?.title ?? "",
+    };
+  };
+
+  const openCampaignForm = (campaign = null) => {
     offcanvas({
-      title: "New Campaign",
+      title: campaign ? "Edit Campaign" : "New Campaign",
       content: (
         <CreateCampaignForm
           templates={activeTemplates}
           mailingLists={activeMailingLists}
+          defaultTz={event?.defaultTz}
+          initialCampaign={campaign}
+          mode={campaign ? "edit" : "create"}
+          confirmImmediateSend={confirmImmediateSend}
+          resolveMailingListAudience={resolveMailingListAudience}
           onSubmit={async (payload) => {
-            const created = await createCampaign(payload);
-            return Boolean(created?.id);
+            const result = campaign
+              ? await updateCampaign(campaign.id, payload)
+              : await createCampaign(payload);
+            return Boolean(result?.id);
           }}
           onClose={close}
         />
@@ -186,14 +334,48 @@ export const EventEmailCampaignsPage = () => {
     });
   };
 
-  const handleSend = async (campaign) => {
-    if (!campaign?.id) return;
+  const openCreateCampaign = () => openCampaignForm();
 
+  const canModifyCampaign = (campaign) =>
+    !campaign.sendImmediately &&
+    campaign.sendAt &&
+    moment(campaign.sendAt).isAfter(moment());
+
+  const handleEdit = (campaign) => {
+    if (!canModifyCampaign(campaign)) return;
+    openCampaignForm(campaign);
+  };
+
+  const handleDelete = async (campaign) => {
+    if (!canModifyCampaign(campaign)) return;
+    if (!(await confirmDeleteCampaign())) return;
+    await deleteCampaign(campaign.id);
+  };
+
+  const handleSendNow = async (campaign) => {
+    if (!canModifyCampaign(campaign)) return;
+    const audience = resolveMailingListAudience(campaign.mailingListId);
+    const count = audience?.count ?? 0;
+    const label = count === 1 ? "person" : "people";
+    const proceed = await confirmImmediateSend({
+      title: "Warning!",
+      text: `You are about to email ${count} ${label}. Are you sure?`,
+      confirmText: "Send now",
+      confirmVariant: "danger",
+    });
+    if (!proceed) return;
+    setSendNowId(campaign.id);
     try {
-      setSendingId(campaign.id);
-      await sendCampaign(campaign.id);
+      await updateCampaign(campaign.id, {
+        name: campaign.name,
+        templateId: campaign.templateId,
+        mailingListId: campaign.mailingListId,
+        sendImmediately: true,
+        sendAt: null,
+        sendAtTz: null,
+      });
     } finally {
-      setSendingId(null);
+      setSendNowId(null);
     }
   };
 
@@ -208,6 +390,8 @@ export const EventEmailCampaignsPage = () => {
       description="Create and launch simple email blasts using your templates and mailing lists."
     >
       {OffcanvasElement}
+      {DeleteConfirmModal}
+      {ImmediateConfirmModal}
       <Row
         justify="space-between"
         align="center"
@@ -281,15 +465,33 @@ export const EventEmailCampaignsPage = () => {
               {
                 label: "Actions",
                 accessor: "id",
-                render: (value, row) => (
-                  <Button
-                    size="sm"
-                    onClick={() => handleSend(row)}
-                    loading={sendingId === row.id}
-                  >
-                    Send blast
-                  </Button>
-                ),
+                render: (value, row) => {
+                  if (!canModifyCampaign(row)) {
+                    return "—";
+                  }
+                  return (
+                    <Row gap={1}>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => handleSendNow(row)}
+                        loading={sendNowId === row.id}
+                      >
+                        Send now
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(row)}>
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleDelete(row)}
+                      >
+                        Delete
+                      </Button>
+                    </Row>
+                  );
+                },
               },
             ]}
             data={campaigns}
