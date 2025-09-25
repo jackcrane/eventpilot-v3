@@ -74,16 +74,16 @@ const CampaignStatsCell = ({ eventId, campaign }) => {
       <div
         style={{
           height: 10,
-          width: stats.deliveredPercent,
-          backgroundColor: "var(--tblr-blue)",
+          width: stats.openedPercent,
+          backgroundColor: "var(--tblr-green)",
           display: "inline-block",
         }}
       />
       <div
         style={{
           height: 10,
-          width: stats.openedPercent,
-          backgroundColor: "var(--tblr-green)",
+          width: Math.max(0, stats.deliveredPercent - stats.openedPercent),
+          backgroundColor: "var(--tblr-blue)",
           display: "inline-block",
         }}
       />
@@ -97,6 +97,31 @@ const CampaignStatsCell = ({ eventId, campaign }) => {
       />
     </div>
   );
+};
+
+const CampaignRecipientCountCell = ({ eventId, campaign }) => {
+  if (!campaign?.sendEffortStarted) {
+    return <Typography.Text className="text-muted">—</Typography.Text>;
+  }
+
+  const { stats, loading, error } = useCampaignStats({
+    eventId,
+    campaignId: campaign?.id,
+  });
+
+  if (loading) {
+    return <Spinner size="sm" />;
+  }
+
+  if (error) {
+    return (
+      <Typography.Text className="text-danger">Failed</Typography.Text>
+    );
+  }
+
+  const total = Number.isFinite(stats?.total) ? stats.total : 0;
+
+  return <Typography.Text className="mb-0">{total}</Typography.Text>;
 };
 
 const CreateCampaignForm = ({
@@ -540,6 +565,16 @@ export const EventEmailCampaignsPage = () => {
                   <Link to={`/events/${eventId}/email/lists/${value.id}`}>
                     {value.title}
                   </Link>
+                ),
+              },
+              {
+                label: "Recipients",
+                accessor: "recipientCount",
+                render: (_, row) => (
+                  <CampaignRecipientCountCell
+                    eventId={eventId}
+                    campaign={row}
+                  />
                 ),
               },
               {

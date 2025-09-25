@@ -36,7 +36,7 @@ const STATUS_OPTIONS = [
   { id: "BOUNCED", label: "Bounced" },
 ];
 
-const createDefaultSorting = () => [{ id: "createdAt", desc: true }];
+const createDefaultSorting = () => [{ id: "recipientName", desc: false }];
 
 const formatRecipientEmail = (recipient) => {
   if (recipient?.crmPersonEmail?.email) return recipient.crmPersonEmail.email;
@@ -44,6 +44,18 @@ const formatRecipientEmail = (recipient) => {
   if (typeof raw !== "string" || !raw.trim()) return "Unknown";
   const match = raw.match(/<([^>]+)>/);
   if (match?.[1]) return match[1];
+  return raw;
+};
+
+const formatRecipientName = (recipient) => {
+  if (recipient?.crmPerson?.name) return recipient.crmPerson.name;
+  const raw = recipient?.to;
+  if (typeof raw !== "string" || !raw.trim()) return "—";
+  const match = raw.match(/^(.*?)\s*<[^>]+>/);
+  if (match?.[1]) return match[1].trim() || "—";
+  if (raw.includes("@")) {
+    return raw.split("@")[0];
+  }
   return raw;
 };
 
@@ -62,8 +74,8 @@ export const EventEmailCampaignDetailPage = () => {
   }, [searchInput]);
 
   const sortState = sorting?.[0] ?? null;
-  const sortBy = sortState?.id || "createdAt";
-  const sortDirection = sortState ? (sortState.desc ? "desc" : "asc") : "desc";
+  const sortBy = sortState?.id || "recipientName";
+  const sortDirection = sortState ? (sortState.desc ? "desc" : "asc") : "asc";
   const normalizedStatus = statusFilter === "ALL" ? null : statusFilter;
 
   const { campaigns, loading: campaignsLoading } = useCampaigns({ eventId });
@@ -126,40 +138,44 @@ export const EventEmailCampaignDetailPage = () => {
   const columns = useMemo(
     () => [
       {
-        id: "recipient",
-        header: () => "Recipient",
+        id: "recipientName",
+        header: () => "Name",
+        accessorFn: (row) => formatRecipientName(row) || "",
+        enableSorting: true,
+        size: 220,
         cell: ({ row }) => {
           const recipient = row.original;
           const person = recipient?.crmPerson;
-          const email = formatRecipientEmail(recipient);
+          const displayName = formatRecipientName(recipient);
 
           if (person?.id) {
             return (
-              <div>
-                <Typography.Text className="mb-0">
-                  <Link to={`/events/${eventId}/crm/${person.id}`}>
-                    {person?.name || "Unnamed"}
-                  </Link>
-                </Typography.Text>
-                <Typography.Text className="mb-0 text-muted">
-                  {email}
-                </Typography.Text>
-              </div>
+              <Typography.Text className="mb-0">
+                <Link to={`/events/${eventId}/crm/${person.id}`}>
+                  {displayName}
+                </Link>
+              </Typography.Text>
             );
           }
 
           return (
-            <div>
-              <Typography.Text className="mb-0">
-                {recipient?.to || "Unknown recipient"}
-              </Typography.Text>
-              <Typography.Text className="mb-0 text-muted">
-                {email}
-              </Typography.Text>
-            </div>
+            <Typography.Text className="mb-0">
+              {displayName || "Unknown recipient"}
+            </Typography.Text>
           );
         },
-        enableSorting: false,
+      },
+      {
+        id: "recipientEmail",
+        header: () => "Email",
+        accessorFn: (row) => formatRecipientEmail(row) || "",
+        enableSorting: true,
+        size: 260,
+        cell: ({ row }) => (
+          <Typography.Text className="mb-0">
+            {formatRecipientEmail(row.original)}
+          </Typography.Text>
+        ),
       },
       {
         id: "status",
@@ -328,7 +344,7 @@ export const EventEmailCampaignDetailPage = () => {
           </Row>
 
           <Row gap={1} wrap style={{ marginBottom: 12 }}>
-            <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ flex: 1 }}>
               <Input
                 label="Search recipients"
                 placeholder="Search by name or email"
@@ -340,7 +356,7 @@ export const EventEmailCampaignDetailPage = () => {
                 className="mb-0"
               />
             </div>
-            <div style={{ width: 220 }}>
+            <div>
               <DropdownInput
                 label="Status"
                 prompt="Select a status"

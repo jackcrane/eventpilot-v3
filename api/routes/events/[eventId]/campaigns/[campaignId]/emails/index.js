@@ -5,7 +5,9 @@ import { z } from "zod";
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   size: z.coerce.number().int().min(1).max(100).default(25),
-  sortBy: z.enum(["createdAt", "status"]).optional(),
+  sortBy: z
+    .enum(["createdAt", "status", "recipientName", "recipientEmail"])
+    .optional(),
   sortDirection: z.enum(["asc", "desc"]).optional(),
   q: z.string().trim().min(1).max(120).optional(),
   status: z.string().optional(),
@@ -26,8 +28,8 @@ export const get = [
     const {
       page: rawPage,
       size,
-      sortBy = "createdAt",
-      sortDirection = "desc",
+      sortBy = "recipientName",
+      sortDirection = "asc",
       q,
       status: statusParam,
     } = parsed.data;
@@ -76,6 +78,21 @@ export const get = [
         if (sortBy === "status") {
           return { status: normalizedSortDirection };
         }
+
+        if (sortBy === "recipientName") {
+          return [
+            { crmPerson: { name: normalizedSortDirection } },
+            { to: normalizedSortDirection },
+          ];
+        }
+
+        if (sortBy === "recipientEmail") {
+          return [
+            { crmPersonEmail: { email: normalizedSortDirection } },
+            { to: normalizedSortDirection },
+          ];
+        }
+
         return { createdAt: normalizedSortDirection };
       })();
 
