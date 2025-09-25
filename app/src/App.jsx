@@ -47,6 +47,7 @@ import { EventEmailTemplatesPage } from "./routes/events/[eventId]/email/templat
 import { EventEmailTemplateDetailPage } from "./routes/events/[eventId]/email/templates/[templateId]";
 import { EventEmailTemplateCreatePage } from "./routes/events/[eventId]/email/templates/new";
 import { EventEmailCampaignsPage } from "./routes/events/[eventId]/email/campaigns/index";
+import { EventEmailCampaignDetailPage } from "./routes/events/[eventId]/email/campaigns/[campaignId]";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -182,6 +183,10 @@ export default () => {
             <Route
               path="/events/:eventId/email/campaigns"
               element={<EventEmailCampaignsPage />}
+            />
+            <Route
+              path="/events/:eventId/email/campaigns/:campaignId"
+              element={<EventEmailCampaignDetailPage />}
             />
 
             <Route

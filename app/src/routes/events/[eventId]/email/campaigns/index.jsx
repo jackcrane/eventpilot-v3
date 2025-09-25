@@ -518,6 +518,11 @@ export const EventEmailCampaignsPage = () => {
               {
                 label: "Name",
                 accessor: "name",
+                render: (value, row) => (
+                  <Link to={`/events/${eventId}/email/campaigns/${row.id}`}>
+                    {value}
+                  </Link>
+                ),
               },
               {
                 label: "Template",
