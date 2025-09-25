@@ -97,6 +97,15 @@ export const EventPage = ({
         },
         {
           type: "item",
+          href: `${base}/email/campaigns`,
+          text: "Campaigns",
+          active:
+            isActive(`${base}/email/campaigns`) ||
+            pathname.startsWith(`${base}/email/campaigns/`),
+          icon: <Icon i="send" size={18} color="var(--tblr-orange)" />,
+        },
+        {
+          type: "item",
           href: `${base}/conversations`,
           text: "Conversations",
           active:

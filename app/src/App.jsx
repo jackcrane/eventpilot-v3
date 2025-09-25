@@ -46,7 +46,7 @@ import { EventMailingListMembersPage } from "./routes/events/[eventId]/email/lis
 import { EventEmailTemplatesPage } from "./routes/events/[eventId]/email/templates/index";
 import { EventEmailTemplateDetailPage } from "./routes/events/[eventId]/email/templates/[templateId]";
 import { EventEmailTemplateCreatePage } from "./routes/events/[eventId]/email/templates/new";
-// legacy conversations UI has been removed in favor of Gmail-based flow
+import { EventEmailCampaignsPage } from "./routes/events/[eventId]/email/campaigns/index";
 
 export default () => {
   const { loggedIn, loading, login, user } = useAuth();
@@ -178,6 +178,10 @@ export default () => {
             <Route
               path="/events/:eventId/email/templates/:templateId"
               element={<EventEmailTemplateDetailPage />}
+            />
+            <Route
+              path="/events/:eventId/email/campaigns"
+              element={<EventEmailCampaignsPage />}
             />
 
             <Route
