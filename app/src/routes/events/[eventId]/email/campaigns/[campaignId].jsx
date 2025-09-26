@@ -353,11 +353,7 @@ export const EventEmailCampaignDetailPage = () => {
                     const isUnsubscribed = label === "Unsubscribed";
                     return (
                       <div key={label} style={{ textAlign: "right" }}>
-                        <Typography.H5
-                          className={`mb-0 ${
-                            isUnsubscribed ? "text-danger" : "text-secondary"
-                          }`}
-                        >
+                        <Typography.H5 className={`mb-0`}>
                           {label.toUpperCase()}
                         </Typography.H5>
                         <Typography.Text className="mb-0">

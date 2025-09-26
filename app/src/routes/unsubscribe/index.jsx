@@ -54,11 +54,7 @@ export const UnsubscribePage = () => {
     () =>
       mailingLists.map((list) => ({
         value: list.id,
-        label: (
-          <Typography.H4 className="mb-0">
-            {list.title}
-          </Typography.H4>
-        ),
+        label: <Typography.H4 className="mb-0">{list.title}</Typography.H4>,
       })),
     [mailingLists]
   );
@@ -75,10 +71,7 @@ export const UnsubscribePage = () => {
     const nextSelection = new Set();
 
     const defaultId = details.defaultMailingListId;
-    if (
-      defaultId &&
-      selectItems.some((item) => item.value === defaultId)
-    ) {
+    if (defaultId && selectItems.some((item) => item.value === defaultId)) {
       nextSelection.add(details.defaultMailingListId);
     }
 
@@ -163,10 +156,10 @@ export const UnsubscribePage = () => {
         background: "var(--tblr-body-bg)",
       }}
     >
-      <Card style={{ maxWidth: 520, width: "100%", padding: 32 }}>
+      <Card style={{ maxWidth: 520, width: "100%" }}>
         <H2 className="mb-2">Manage your email preferences</H2>
         <Text className="text-muted mb-3">
-          Choose which updates you’d like to stop receiving from this event.
+          Choose which updates you'd like to stop receiving from this event.
         </Text>
 
         {invalidLink && (
@@ -178,7 +171,7 @@ export const UnsubscribePage = () => {
 
         {error && !loading && !invalidLink ? (
           <Alert variant="danger" title="Something went wrong">
-            {error?.message || "We couldn’t load your preferences."}
+            {error?.message || "We couldn't load your preferences."}
           </Alert>
         ) : null}
 
@@ -191,55 +184,63 @@ export const UnsubscribePage = () => {
         {!loading && details && !invalidLink ? (
           submissionSuccess ? (
             <div className="text-center">
-              <Typography.H3 className="mb-2">You’re all set!</Typography.H3>
+              <Typography.H3 className="mb-2">You're all set!</Typography.H3>
               <Text className="text-muted">
-                Your email preferences have been updated.
+                Your email preferences have been updated. We are sad to see you
+                go. If you wish to rejoin, please reach out to the event.
               </Text>
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <Text className="mb-3">
-                {details.person?.name ? `Hi ${details.person.name},` : "Hi there,"}
-                {" "}
-                you’re managing messages from {details.event?.name || "this event"}
-                .
-              </Text>
-              <H4 className="mb-2">Mailing lists</H4>
-              {selectItems.length === 0 ? (
-                <Text className="text-muted">
-                  You’re not currently on any mailing lists for this event.
-                </Text>
-              ) : (
-                <EnclosedSelectGroup
-                  multiple
-                  direction="column"
-                  items={selectItems}
-                  value={selectedItems}
-                  onChange={handleMailingListChange}
+              <div className="mb-3">
+                <H4 className="mb-2">
+                  Pick which mailing lists you'd like to stop receiving from
+                </H4>
+                {selectItems.length === 0 ? (
+                  <Text className="text-muted">
+                    You're not currently on any mailing lists for this event.
+                  </Text>
+                ) : (
+                  <EnclosedSelectGroup
+                    multiple
+                    direction="column"
+                    items={selectItems}
+                    value={selectedItems}
+                    onChange={handleMailingListChange}
+                  />
+                )}
+              </div>
+
+              <H4 className="mb-2">
+                Or, unsubscribe from all emails from this event
+              </H4>
+
+              <div className="mb-4">
+                <Checkbox
+                  label={
+                    <span>
+                      <Text className="mb-1">
+                        Unsubscribe me from all {details.event?.name || "event"}{" "}
+                        emails
+                      </Text>
+                      <Text className="text-muted" style={{ fontSize: 12 }}>
+                        This will remove you from every mailing list associated
+                        with this event.
+                      </Text>
+                    </span>
+                  }
+                  value={unsubscribeAll}
+                  onChange={handleUnsubscribeAllChange}
                 />
-              )}
-            </div>
+              </div>
 
-            <div className="mb-4">
-              <Checkbox
-                label={`Unsubscribe me from all ${details.event?.name || "event"} emails`}
-                value={unsubscribeAll}
-                onChange={handleUnsubscribeAllChange}
-              />
-              <Text className="text-muted" style={{ fontSize: 12 }}>
-                This will remove you from every mailing list associated with
-                this event.
-              </Text>
-            </div>
-
-            <Button
-              type="submit"
-              loading={mutationLoading}
-              disabled={invalidLink || submissionSuccess}
-            >
-              Save preferences
-            </Button>
+              <Button
+                type="submit"
+                loading={mutationLoading}
+                disabled={invalidLink || submissionSuccess}
+              >
+                Save preferences
+              </Button>
             </form>
           )
         ) : null}

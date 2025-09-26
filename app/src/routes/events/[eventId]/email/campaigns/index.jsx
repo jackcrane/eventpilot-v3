@@ -145,9 +145,7 @@ const CampaignRecipientCountCell = ({ eventId, campaign }) => {
   }
 
   if (error) {
-    return (
-      <Typography.Text className="text-danger">Failed</Typography.Text>
-    );
+    return <Typography.Text className="text-danger">Failed</Typography.Text>;
   }
 
   const total = Number.isFinite(stats?.total) ? stats.total : 0;
@@ -318,7 +316,7 @@ const CreateCampaignForm = ({
         </Typography.Text>
       </div>
       <Input
-        label="Campaign name"
+        label="Campaign name (email subject)"
         placeholder="Participant reminder"
         value={name}
         onChange={(value) => setName(value)}
@@ -667,9 +665,7 @@ export const EventEmailCampaignsPage = () => {
         enableSorting: true,
         size: 240,
         cell: ({ row }) => (
-          <Link
-            to={`/events/${eventId}/email/campaigns/${row.original.id}`}
-          >
+          <Link to={`/events/${eventId}/email/campaigns/${row.original.id}`}>
             {row.original.name}
           </Link>
         ),

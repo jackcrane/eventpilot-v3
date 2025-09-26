@@ -98,21 +98,7 @@ export const CampaignBlastEmail = ({
       headerImage={resolveHeaderImage(event)}
       logoImage={resolveLogoImage(event)}
     >
-      {subject ? (
-        <Heading as="h1" style={styles.heading}>
-          {subject}
-        </Heading>
-      ) : null}
       {content ? <div style={styles.section}>{content}</div> : null}
-      {unsubscribeUrl ? (
-        <>
-          <Hr />
-          <Text style={styles.unsubscribe}>
-            Prefer not to receive these emails?{" "}
-            <Link href={unsubscribeUrl}>Unsubscribe</Link>.
-          </Text>
-        </>
-      ) : null}
     </Email>
   );
 };
@@ -131,7 +117,8 @@ CampaignBlastEmail.PreviewProps = {
       ],
     ],
   ],
-  unsubscribeUrl: "https://geteventpilot.com/unsubscribe?p=person123&e=email456",
+  unsubscribeUrl:
+    "https://geteventpilot.com/unsubscribe?p=person123&e=email456",
 };
 
 export default CampaignBlastEmail;

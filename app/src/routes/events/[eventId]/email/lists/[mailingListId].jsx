@@ -33,7 +33,7 @@ import { MailingListFilterBar } from "../../../../../../components/mailingLists/
 
 const STATUS_COLORS = {
   ACTIVE: "green",
-  UNSUBSCRIBED: "yellow",
+  UNSUBSCRIBED: "danger",
   INACTIVE: "orange",
   DISABLED: "red",
   DELETED: "red",
