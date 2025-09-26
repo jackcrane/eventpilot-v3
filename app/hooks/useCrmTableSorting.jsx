@@ -5,6 +5,7 @@ const ALLOWED_SORT_KEYS = new Set([
   "createdAt",
   "updatedAt",
   "source",
+  "lifetimeValue",
 ]);
 
 const canServerSort = (column) => {

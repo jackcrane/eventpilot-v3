@@ -115,11 +115,6 @@ export const EventCrmPage = ({ eventId }) => {
 
   const { createMailingList } = useMailingLists({ eventId });
 
-  const columnConfig = useCrmColumnConfig({
-    crmFields: crm.crmFields,
-    onViewPerson: (id) => navigate(`/events/${eventId}/crm/${id}`),
-  });
-
   const [aiCollapsed, setAiCollapsed] = useState(false);
 
   const [page, setPage] = useState(1);
@@ -220,6 +215,39 @@ export const EventCrmPage = ({ eventId }) => {
   }, [hasInitialLoaded, crm.loading, personsQuery.loading]);
 
   const basePersons = aiState.aiResults?.crmPersons || personsQuery.crmPersons;
+
+  const participantFieldLabels = useMemo(() => {
+    if (!Array.isArray(basePersons) || !basePersons.length) return [];
+    const labels = new Set();
+    for (const person of basePersons) {
+      const fields = person?.participantStats?.fields;
+      if (!fields) continue;
+      Object.keys(fields).forEach((label) => {
+        if (label) labels.add(label);
+      });
+    }
+    return Array.from(labels).sort((a, b) => a.localeCompare(b));
+  }, [basePersons]);
+
+  const volunteerFieldLabels = useMemo(() => {
+    if (!Array.isArray(basePersons) || !basePersons.length) return [];
+    const labels = new Set();
+    for (const person of basePersons) {
+      const fields = person?.volunteerStats?.fields;
+      if (!fields) continue;
+      Object.keys(fields).forEach((label) => {
+        if (label) labels.add(label);
+      });
+    }
+    return Array.from(labels).sort((a, b) => a.localeCompare(b));
+  }, [basePersons]);
+
+  const columnConfig = useCrmColumnConfig({
+    crmFields: crm.crmFields,
+    onViewPerson: (id) => navigate(`/events/${eventId}/crm/${id}`),
+    participantFieldLabels,
+    volunteerFieldLabels,
+  });
   const filteredPersons = useMemo(
     () =>
       basePersons

@@ -9,6 +9,51 @@ import { sendEmail } from "#postmark";
 import ImportFinishedEmail from "#emails/import-finished.jsx";
 import { render } from "@react-email/render";
 
+const parseFieldValue = (raw) => {
+  if (raw == null) return "";
+  const value = String(raw).trim();
+  if (!value) return "";
+  const first = value[0];
+  const last = value[value.length - 1];
+  if (
+    (first === "[" && last === "]") ||
+    (first === "{" && last === "}")
+  ) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((entry) => (entry == null ? "" : String(entry)))
+          .filter(Boolean)
+          .join(", ");
+      }
+      if (parsed && typeof parsed === "object") {
+        return Object.values(parsed)
+          .map((entry) => (entry == null ? "" : String(entry)))
+          .filter(Boolean)
+          .join(", ");
+      }
+    } catch (error) {
+      void error;
+    }
+  }
+  return value;
+};
+
+const formatFieldResponses = (responses = []) =>
+  responses
+    .map((response) => {
+      const label = response?.field?.label?.trim();
+      const fieldId = response?.field?.id ?? response?.fieldId ?? null;
+      const rawValue =
+        response?.option?.label ??
+        (response?.value != null ? String(response.value) : null);
+      const parsedValue = parseFieldValue(rawValue);
+      if (!fieldId || !label || !parsedValue) return null;
+      return { fieldId, label, value: parsedValue };
+    })
+    .filter(Boolean);
+
 export const get = [
   verifyAuth(["manager"]),
   async (req, res) => {
@@ -290,8 +335,61 @@ export const get = [
       const total = await prisma.crmPerson.count({ where });
 
       let crmPersons = [];
+      let precomputedLifetime = null;
 
-      if (orderBy && orderBy.startsWith("fields.")) {
+      const baseInclude = {
+        emails: {
+          where: { deleted: req.query.includeDeleted ? undefined : false },
+        },
+        phones: true,
+        fieldValues: true,
+      };
+
+      if (orderBy === "lifetimeValue") {
+        const idRows = await prisma.crmPerson.findMany({
+          where,
+          select: { id: true },
+        });
+        const allIds = idRows.map((row) => row.id);
+
+        if (allIds.length) {
+          const lifetimeGroups = await prisma.ledgerItem.groupBy({
+            by: ["crmPersonId"],
+            where: {
+              eventId,
+              crmPersonId: { in: allIds },
+            },
+            _sum: { amount: true },
+          });
+
+          precomputedLifetime = new Map(allIds.map((id) => [id, 0]));
+          for (const entry of lifetimeGroups) {
+            precomputedLifetime.set(
+              entry.crmPersonId,
+              Number(entry._sum?.amount || 0)
+            );
+          }
+
+          const sortedIds = [...allIds].sort((a, b) => {
+            const left = precomputedLifetime.get(a) ?? 0;
+            const right = precomputedLifetime.get(b) ?? 0;
+            return order === "asc" ? left - right : right - left;
+          });
+
+          const offset = page && size ? (page - 1) * size : 0;
+          const limit = page && size ? size : sortedIds.length;
+          const pageIds = sortedIds.slice(offset, offset + limit);
+
+          if (pageIds.length) {
+            crmPersons = await prisma.crmPerson.findMany({
+              where: { id: { in: pageIds } },
+              include: baseInclude,
+            });
+            const index = new Map(pageIds.map((id, idx) => [id, idx]));
+            crmPersons.sort((a, b) => index.get(a.id) - index.get(b.id));
+          }
+        }
+      } else if (orderBy && orderBy.startsWith("fields.")) {
         // Sorting by custom field requires a join on CrmPersonField.
         const fieldId = orderBy.split(".")[1];
         const offset = page && size ? (page - 1) * size : 0;
@@ -326,15 +424,7 @@ export const get = [
           const ids = rows.map((r) => r.id);
           const list = await prisma.crmPerson.findMany({
             where: { id: { in: ids } },
-            include: {
-              emails: {
-                where: {
-                  deleted: req.query.includeDeleted ? undefined : false,
-                },
-              },
-              phones: true,
-              fieldValues: true,
-            },
+            include: baseInclude,
           });
           const idx = new Map(ids.map((id, i) => [id, i]));
           crmPersons = list.sort((a, b) => idx.get(a.id) - idx.get(b.id));
@@ -348,23 +438,367 @@ export const get = [
 
         crmPersons = await prisma.crmPerson.findMany({
           where,
-          include: {
-            emails: {
-              where: { deleted: req.query.includeDeleted ? undefined : false },
-            },
-            phones: true,
-            fieldValues: true,
-          },
+          include: baseInclude,
           ...(page && size ? { skip: (page - 1) * size, take: size } : {}),
           orderBy: orderByClause,
         });
       }
 
-      res.json({
-        crmPersons: crmPersons.map((person) => ({
+      const personIds = crmPersons.map((person) => person.id);
+
+      let emailEntries = [];
+      let participantRegistrations = [];
+      let volunteerRegistrations = [];
+
+      if (personIds.length) {
+        [emailEntries, participantRegistrations, volunteerRegistrations] =
+          await Promise.all([
+            prisma.email.findMany({
+              where: {
+                OR: [
+                  { crmPersonId: { in: personIds } },
+                  { crmPersonEmail: { crmPersonId: { in: personIds } } },
+                ],
+              },
+              select: {
+                createdAt: true,
+                crmPersonId: true,
+                crmPersonEmail: { select: { crmPersonId: true } },
+              },
+              orderBy: { createdAt: "desc" },
+            }),
+            prisma.registration.findMany({
+              where: {
+                eventId,
+                crmPersonId: { in: personIds },
+                deleted: false,
+              },
+              select: {
+                id: true,
+                crmPersonId: true,
+                finalized: true,
+                createdAt: true,
+                instance: { select: { id: true, name: true } },
+                registrationTier: { select: { id: true, name: true } },
+                registrationPeriod: { select: { id: true, name: true } },
+                team: { select: { id: true, name: true } },
+                coupon: { select: { id: true, code: true, title: true } },
+                upsells: {
+                  select: {
+                    quantity: true,
+                    upsellItem: { select: { id: true, name: true } },
+                  },
+                },
+                fieldResponses: {
+                  select: {
+                    fieldId: true,
+                    value: true,
+                    option: { select: { label: true } },
+                    field: { select: { id: true, label: true } },
+                  },
+                },
+              },
+              orderBy: { createdAt: "desc" },
+            }),
+            prisma.volunteerRegistration.findMany({
+              where: {
+                eventId,
+                deleted: false,
+                crmPersonLink: { crmPersonId: { in: personIds } },
+              },
+              select: {
+                id: true,
+                createdAt: true,
+                instance: { select: { id: true, name: true } },
+                crmPersonLink: { select: { crmPersonId: true } },
+                fieldResponses: {
+                  select: {
+                    fieldId: true,
+                    value: true,
+                    field: { select: { id: true, label: true } },
+                  },
+                },
+                shifts: {
+                  select: {
+                    shift: {
+                      select: {
+                        id: true,
+                        job: {
+                          select: {
+                            id: true,
+                            name: true,
+                            location: { select: { id: true, name: true } },
+                          },
+                        },
+                        location: { select: { id: true, name: true } },
+                      },
+                    },
+                  },
+                },
+              },
+              orderBy: { createdAt: "desc" },
+            }),
+          ]);
+      }
+
+      let ledgerMap;
+      if (precomputedLifetime) {
+        ledgerMap = new Map(
+          personIds.map((id) => [id, precomputedLifetime.get(id) ?? 0])
+        );
+      } else if (personIds.length) {
+        const ledgerGroups = await prisma.ledgerItem.groupBy({
+          by: ["crmPersonId"],
+          where: {
+            eventId,
+            crmPersonId: { in: personIds },
+          },
+          _sum: { amount: true },
+        });
+        ledgerMap = new Map(
+          ledgerGroups.map((entry) => [
+            entry.crmPersonId,
+            Number(entry._sum?.amount || 0),
+          ])
+        );
+      } else {
+        ledgerMap = new Map();
+      }
+
+      const emailMap = new Map();
+      for (const email of emailEntries) {
+        const personId = email.crmPersonId ?? email.crmPersonEmail?.crmPersonId;
+        if (!personId || emailMap.has(personId)) continue;
+        emailMap.set(personId, email.createdAt);
+      }
+
+      const participantAccumulator = new Map();
+      for (const reg of participantRegistrations) {
+        if (!reg.crmPersonId) continue;
+        let summary = participantAccumulator.get(reg.crmPersonId);
+        if (!summary) {
+          summary = {
+            total: 0,
+            finalized: 0,
+            latest: null,
+            registrations: [],
+            tiers: new Set(),
+            periods: new Set(),
+            teams: new Set(),
+            coupons: new Set(),
+            upsellTotals: new Map(),
+            fieldValues: new Map(),
+          };
+          participantAccumulator.set(reg.crmPersonId, summary);
+        }
+
+        const detail = {
+          id: reg.id,
+          createdAt: reg.createdAt,
+          instanceId: reg.instance?.id ?? null,
+          instanceName: reg.instance?.name ?? null,
+          finalized: reg.finalized,
+          tierId: reg.registrationTier?.id ?? null,
+          tierName: reg.registrationTier?.name ?? null,
+          periodId: reg.registrationPeriod?.id ?? null,
+          periodName: reg.registrationPeriod?.name ?? null,
+          teamId: reg.team?.id ?? null,
+          teamName: reg.team?.name ?? null,
+          couponCode: reg.coupon?.code || reg.coupon?.title || null,
+          upsells: [],
+          fieldValues: formatFieldResponses(reg.fieldResponses),
+        };
+
+        if (Array.isArray(reg.upsells)) {
+          for (const upsell of reg.upsells) {
+            const name = upsell?.upsellItem?.name?.trim();
+            if (!name) continue;
+            const quantity = Number(upsell.quantity || 0) || 0;
+            const label = quantity > 1 ? `${name} ×${quantity}` : name;
+            detail.upsells.push(label);
+            const current = summary.upsellTotals.get(name) || 0;
+            summary.upsellTotals.set(name, current + (quantity || 1));
+          }
+        }
+
+        summary.total += 1;
+        if (reg.finalized) summary.finalized += 1;
+        summary.registrations.push(detail);
+        if (detail.tierName) summary.tiers.add(detail.tierName);
+        if (detail.periodName) summary.periods.add(detail.periodName);
+        if (detail.teamName) summary.teams.add(detail.teamName);
+        if (detail.couponCode) summary.coupons.add(detail.couponCode);
+
+        if (detail.fieldValues?.length) {
+          for (const field of detail.fieldValues) {
+            const label = field.label;
+            const value = field.value;
+            if (!label || !value) continue;
+            const existing = summary.fieldValues.get(label) || new Set();
+            existing.add(value);
+            summary.fieldValues.set(label, existing);
+          }
+        }
+        if (!summary.latest) summary.latest = detail;
+      }
+
+      const normalizedParticipantMap = new Map(
+        [...participantAccumulator.entries()].map(([personId, summary]) => [
+          personId,
+          {
+            total: summary.total,
+            finalized: summary.finalized,
+            latest: summary.latest,
+            registrations: summary.registrations,
+            tiers: Array.from(summary.tiers).sort((a, b) =>
+              a.localeCompare(b)
+            ),
+            periods: Array.from(summary.periods).sort((a, b) =>
+              a.localeCompare(b)
+            ),
+            teams: Array.from(summary.teams).sort((a, b) =>
+              a.localeCompare(b)
+            ),
+            coupons: Array.from(summary.coupons).sort((a, b) =>
+              a.localeCompare(b)
+            ),
+            upsells: Array.from(summary.upsellTotals.entries())
+              .map(([name, quantity]) =>
+                quantity > 1 ? `${name} ×${quantity}` : name
+              )
+              .sort((a, b) => a.localeCompare(b)),
+            fields: (() => {
+              const output = {};
+              for (const [label, values] of summary.fieldValues.entries()) {
+                output[label] = Array.from(values).join(", ");
+              }
+              return output;
+            })(),
+          },
+        ])
+      );
+
+      const volunteerAccumulator = new Map();
+      for (const reg of volunteerRegistrations) {
+        const personId = reg.crmPersonLink?.crmPersonId;
+        if (!personId) continue;
+        let summary = volunteerAccumulator.get(personId);
+        if (!summary) {
+          summary = {
+            total: 0,
+            totalShifts: 0,
+            latest: null,
+            registrations: [],
+            jobNames: new Set(),
+            locationNames: new Set(),
+            fieldValues: new Map(),
+          };
+          volunteerAccumulator.set(personId, summary);
+        }
+
+        const jobNames = new Set();
+        const locationNames = new Set();
+        for (const signup of reg.shifts || []) {
+          const shiftJob = signup.shift?.job;
+          if (shiftJob?.name) jobNames.add(shiftJob.name);
+          if (shiftJob?.location?.name)
+            locationNames.add(shiftJob.location.name);
+          if (signup.shift?.location?.name)
+            locationNames.add(signup.shift.location.name);
+        }
+
+        const detail = {
+          id: reg.id,
+          createdAt: reg.createdAt,
+          instanceId: reg.instance?.id ?? null,
+          instanceName: reg.instance?.name ?? null,
+          shiftCount: (reg.shifts || []).length,
+          jobNames: Array.from(jobNames),
+          locationNames: Array.from(locationNames),
+          fieldValues: formatFieldResponses(reg.fieldResponses),
+        };
+
+        summary.total += 1;
+        summary.totalShifts += detail.shiftCount;
+        summary.registrations.push(detail);
+        detail.jobNames.forEach((name) => summary.jobNames.add(name));
+        detail.locationNames.forEach((name) =>
+          summary.locationNames.add(name)
+        );
+        if (detail.fieldValues?.length) {
+          for (const field of detail.fieldValues) {
+            const label = field.label;
+            const value = field.value;
+            if (!label || !value) continue;
+            const existing = summary.fieldValues.get(label) || new Set();
+            existing.add(value);
+            summary.fieldValues.set(label, existing);
+          }
+        }
+        if (!summary.latest) summary.latest = detail;
+      }
+
+      const volunteerMap = new Map(
+        [...volunteerAccumulator.entries()].map(([personId, summary]) => [
+          personId,
+          {
+            total: summary.total,
+            totalShifts: summary.totalShifts,
+            latest: summary.latest,
+            registrations: summary.registrations,
+            jobs: Array.from(summary.jobNames).sort((a, b) =>
+              a.localeCompare(b)
+            ),
+            locations: Array.from(summary.locationNames).sort((a, b) =>
+              a.localeCompare(b)
+            ),
+            fields: (() => {
+              const output = {};
+              for (const [label, values] of summary.fieldValues.entries()) {
+                output[label] = Array.from(values).join(", ");
+              }
+              return output;
+            })(),
+          },
+        ])
+      );
+
+      const enrichedCrmPersons = crmPersons.map((person) => {
+        const participantStats = normalizedParticipantMap.get(person.id);
+        const volunteerStats = volunteerMap.get(person.id);
+        return {
           ...person,
           fields: collapseCrmValues(person.fieldValues),
-        })),
+          lifetimeValue: ledgerMap.get(person.id) ?? 0,
+          lastEmailedAt: emailMap.get(person.id) ?? null,
+          participantStats:
+            participantStats || {
+              total: 0,
+              finalized: 0,
+              latest: null,
+              registrations: [],
+              tiers: [],
+              periods: [],
+              teams: [],
+              coupons: [],
+              upsells: [],
+              fields: {},
+            },
+          volunteerStats:
+            volunteerStats || {
+              total: 0,
+              totalShifts: 0,
+              latest: null,
+              registrations: [],
+              jobs: [],
+              locations: [],
+              fields: {},
+            },
+        };
+      });
+
+      res.json({
+        crmPersons: enrichedCrmPersons,
         total,
       });
     } catch (error) {
