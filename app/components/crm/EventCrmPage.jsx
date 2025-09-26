@@ -244,7 +244,7 @@ export const EventCrmPage = ({ eventId }) => {
 
   const columnConfig = useCrmColumnConfig({
     crmFields: crm.crmFields,
-    onViewPerson: (id) => navigate(`/events/${eventId}/crm/${id}`),
+    onViewPerson: (id) => `/events/${eventId}/crm/${id}`,
     participantFieldLabels,
     volunteerFieldLabels,
   });

@@ -1,5 +1,6 @@
 import React from "react";
-import { Button, Badge } from "tabler-react-2";
+import { Link } from "react-router-dom";
+import { Badge } from "tabler-react-2";
 import { Icon } from "../Icon";
 import { fieldTypeToIcon } from "./fieldTypeToIcon";
 
@@ -209,26 +210,19 @@ export const buildVolunteerFieldColumn = (label) => ({
 
 export const createBaseColumns = (onViewPerson) => [
   {
-    id: "actions",
-    label: "Actions",
-    order: 1,
-    show: true,
-    accessor: "id",
-    render: (id) => (
-      <Button size="sm" onClick={() => onViewPerson(id)}>
-        <Icon i="info-circle" /> Details
-      </Button>
-    ),
-    sortable: false,
-  },
-  {
     id: "name",
     label: "Name",
-    order: 2,
+    order: 1,
     show: true,
     accessor: "name",
     sortable: true,
     icon: <Icon i="id-badge-2" />,
+    render: (value, row) => {
+      const id = row?.id;
+      if (!id || typeof value !== "string" || value.trim().length === 0)
+        return value;
+      return <Link to={onViewPerson(id)}>{value}</Link>;
+    },
   },
   {
     id: "emails",
