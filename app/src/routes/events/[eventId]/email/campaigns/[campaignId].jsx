@@ -25,7 +25,8 @@ const STATUS_COLORS = {
   SENT: "blue",
   DELIVERED: "teal",
   OPENED: "success",
-  BOUNCED: "danger",
+  UNSUBSCRIBED: "danger",
+  BOUNCED: "warning",
 };
 
 const STATUS_OPTIONS = [
@@ -33,6 +34,7 @@ const STATUS_OPTIONS = [
   { id: "SENT", label: "Sent" },
   { id: "DELIVERED", label: "Delivered" },
   { id: "OPENED", label: "Opened" },
+  { id: "UNSUBSCRIBED", label: "Unsubscribed" },
   { id: "BOUNCED", label: "Bounced" },
 ];
 
@@ -258,6 +260,11 @@ export const EventEmailCampaignDetailPage = () => {
         percent: stats.openedPercent,
       },
       {
+        label: "Unsubscribed",
+        value: `${stats.unsubscribedCount}/${stats.total}`,
+        percent: stats.unsubscribedPercent,
+      },
+      {
         label: "Bounced",
         value: `${stats.bouncedCount}/${stats.total}`,
         percent: stats.bouncedPercent,
@@ -342,19 +349,22 @@ export const EventEmailCampaignDetailPage = () => {
                 <Spinner size="sm" />
               ) : statusSummary ? (
                 <Row gap={1} align="center">
-                  {statusSummary.map(({ label, value, percent }) => (
-                    <div key={label} style={{ textAlign: "right" }}>
-                      <Typography.H5 className="mb-0 text-secondary">
-                        {label.toUpperCase()}
-                      </Typography.H5>
-                      <Typography.Text className="mb-0">
-                        {value}{" "}
-                        <span className="text-muted" style={{ fontSize: 10 }}>
-                          ({percent}%)
-                        </span>
-                      </Typography.Text>
-                    </div>
-                  ))}
+                  {statusSummary.map(({ label, value, percent }) => {
+                    const isUnsubscribed = label === "Unsubscribed";
+                    return (
+                      <div key={label} style={{ textAlign: "right" }}>
+                        <Typography.H5 className={`mb-0`}>
+                          {label.toUpperCase()}
+                        </Typography.H5>
+                        <Typography.Text className="mb-0">
+                          {value}{" "}
+                          <span className="text-muted" style={{ fontSize: 10 }}>
+                            ({percent}%)
+                          </span>
+                        </Typography.Text>
+                      </div>
+                    );
+                  })}
                 </Row>
               ) : null}
             </div>

@@ -13,7 +13,13 @@ const querySchema = z.object({
   status: z.string().optional(),
 });
 
-const EMAIL_STATUS_VALUES = ["SENT", "DELIVERED", "OPENED", "BOUNCED"];
+const EMAIL_STATUS_VALUES = [
+  "SENT",
+  "DELIVERED",
+  "OPENED",
+  "UNSUBSCRIBED",
+  "BOUNCED",
+];
 
 export const get = [
   verifyAuth(["manager"]),

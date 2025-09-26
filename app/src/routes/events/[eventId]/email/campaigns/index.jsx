@@ -76,6 +76,13 @@ const CampaignStatsCell = ({ eventId, campaign }) => {
     );
   }
 
+  const openedWidth = stats.openedPercent || 0;
+  const unsubscribedWidth = stats.unsubscribedPercent || 0;
+  const deliveredOtherWidth = Math.max(
+    0,
+    (stats.deliveredPercent || 0) - openedWidth - unsubscribedWidth
+  );
+
   return (
     <div
       style={{
@@ -90,7 +97,7 @@ const CampaignStatsCell = ({ eventId, campaign }) => {
       <div
         style={{
           height: 10,
-          width: stats.openedPercent,
+          width: openedWidth,
           backgroundColor: "var(--tblr-green)",
           display: "inline-block",
         }}
@@ -98,8 +105,16 @@ const CampaignStatsCell = ({ eventId, campaign }) => {
       <div
         style={{
           height: 10,
-          width: Math.max(0, stats.deliveredPercent - stats.openedPercent),
+          width: deliveredOtherWidth,
           backgroundColor: "var(--tblr-blue)",
+          display: "inline-block",
+        }}
+      />
+      <div
+        style={{
+          height: 10,
+          width: unsubscribedWidth,
+          backgroundColor: "var(--tblr-red)",
           display: "inline-block",
         }}
       />
@@ -130,9 +145,7 @@ const CampaignRecipientCountCell = ({ eventId, campaign }) => {
   }
 
   if (error) {
-    return (
-      <Typography.Text className="text-danger">Failed</Typography.Text>
-    );
+    return <Typography.Text className="text-danger">Failed</Typography.Text>;
   }
 
   const total = Number.isFinite(stats?.total) ? stats.total : 0;
@@ -303,7 +316,7 @@ const CreateCampaignForm = ({
         </Typography.Text>
       </div>
       <Input
-        label="Campaign name"
+        label="Campaign name (email subject)"
         placeholder="Participant reminder"
         value={name}
         onChange={(value) => setName(value)}
@@ -652,9 +665,7 @@ export const EventEmailCampaignsPage = () => {
         enableSorting: true,
         size: 240,
         cell: ({ row }) => (
-          <Link
-            to={`/events/${eventId}/email/campaigns/${row.original.id}`}
-          >
+          <Link to={`/events/${eventId}/email/campaigns/${row.original.id}`}>
             {row.original.name}
           </Link>
         ),

@@ -202,6 +202,7 @@ enum EmailStatus {
   SENT
   DELIVERED
   OPENED
+  UNSUBSCRIBED
   BOUNCED
 }
 
@@ -991,6 +992,7 @@ enum MailingListMemberStatus {
   ACTIVE
   UNSUBSCRIBED
   INACTIVE
+  DISABLED
   DELETED
 }
 

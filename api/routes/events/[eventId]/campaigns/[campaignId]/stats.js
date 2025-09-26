@@ -28,34 +28,39 @@ export const get = [
         _count: { _all: true },
       });
 
-      const totals = grouped.reduce(
+      const aggregates = grouped.reduce(
         (acc, entry) => {
           const count = entry._count._all;
           acc.total += count;
-
-          if (entry.status === EmailStatus.OPENED) {
-            acc.opened += count;
-            acc.delivered += count;
-          } else if (entry.status === EmailStatus.DELIVERED) {
-            acc.delivered += count;
-          } else if (entry.status === EmailStatus.BOUNCED) {
-            acc.bounced += count;
-          }
-
+          acc.byStatus[entry.status] = count;
           return acc;
         },
-        { total: 0, delivered: 0, opened: 0, bounced: 0 }
+        { total: 0, byStatus: {} }
       );
+
+      const deliveredCount =
+        (aggregates.byStatus[EmailStatus.DELIVERED] || 0) +
+        (aggregates.byStatus[EmailStatus.OPENED] || 0) +
+        (aggregates.byStatus[EmailStatus.UNSUBSCRIBED] || 0);
+      const openedCount = aggregates.byStatus[EmailStatus.OPENED] || 0;
+      const unsubscribedCount =
+        aggregates.byStatus[EmailStatus.UNSUBSCRIBED] || 0;
+      const bouncedCount = aggregates.byStatus[EmailStatus.BOUNCED] || 0;
 
       return res.json({
         stats: {
-          total: totals.total,
-          deliveredCount: totals.delivered,
-          openedCount: totals.opened,
-          bouncedCount: totals.bounced,
-          deliveredPercent: roundPercent(totals.delivered, totals.total),
-          openedPercent: roundPercent(totals.opened, totals.total),
-          bouncedPercent: roundPercent(totals.bounced, totals.total),
+          total: aggregates.total,
+          deliveredCount,
+          openedCount,
+          unsubscribedCount,
+          bouncedCount,
+          deliveredPercent: roundPercent(deliveredCount, aggregates.total),
+          openedPercent: roundPercent(openedCount, aggregates.total),
+          unsubscribedPercent: roundPercent(
+            unsubscribedCount,
+            aggregates.total
+          ),
+          bouncedPercent: roundPercent(bouncedCount, aggregates.total),
         },
       });
     } catch (error) {
