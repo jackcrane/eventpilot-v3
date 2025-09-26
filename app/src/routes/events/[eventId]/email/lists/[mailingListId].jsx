@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { TableV2 } from "tabler-react-2/dist/table-v2";
 import {
@@ -207,6 +207,8 @@ export const EventMailingListMembersPage = () => {
     loading: membersLoading,
     error: membersError,
     addMembers,
+    updateMemberStatus,
+    removeMember,
     page: resolvedPage,
     size: resolvedSize,
     totalMembers,
@@ -453,6 +455,37 @@ export const EventMailingListMembersPage = () => {
       onSelectionChange: setSelectedIds,
     });
 
+  const [memberAction, setMemberAction] = useState({ id: null, type: null });
+
+  const handleRemoveMember = useCallback(
+    async (crmPersonId) => {
+      if (!crmPersonId || memberAction.id) return;
+      setMemberAction({ id: crmPersonId, type: "remove" });
+      try {
+        await removeMember?.({ crmPersonId });
+      } finally {
+        setMemberAction({ id: null, type: null });
+      }
+    },
+    [memberAction.id, removeMember]
+  );
+
+  const handleResubscribeMember = useCallback(
+    async (crmPersonId) => {
+      if (!crmPersonId || memberAction.id) return;
+      setMemberAction({ id: crmPersonId, type: "resubscribe" });
+      try {
+        await updateMemberStatus?.({
+          crmPersonId,
+          status: "ACTIVE",
+        });
+      } finally {
+        setMemberAction({ id: null, type: null });
+      }
+    },
+    [memberAction.id, updateMemberStatus]
+  );
+
   const columns = useMemo(() => {
     const baseColumns = [
       {
@@ -513,10 +546,75 @@ export const EventMailingListMembersPage = () => {
           return c.isAfter(d) ? 1 : -1;
         },
       },
+      {
+        id: "actions",
+        header: () => "Actions",
+        size: 220,
+        enableSorting: false,
+        cell: ({ row }) => {
+          const crmPersonId =
+            row.original?.crmPersonId || row.original?.crmPerson?.id;
+          const status = row.original?.status;
+          const isUnsubscribed = status === "UNSUBSCRIBED";
+          const isDeleted = status === "DELETED" || row.original?.deleted;
+          const isActing = memberAction.id === crmPersonId;
+          const isRemoving = isActing && memberAction.type === "remove";
+          const isResubscribing =
+            isActing && memberAction.type === "resubscribe";
+
+          const onRemoveClick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleRemoveMember(crmPersonId);
+          };
+
+          const onResubscribeClick = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleResubscribeMember(crmPersonId);
+          };
+
+          return (
+            <Row gap={0.5} wrap={false}>
+              <Button
+                size="sm"
+                outline
+                type="button"
+                onClick={onRemoveClick}
+                disabled={
+                  !crmPersonId || isDeleted || isRemoving || isResubscribing
+                }
+                loading={isRemoving}
+              >
+                Remove
+              </Button>
+              {isUnsubscribed ? (
+                <Button
+                  size="sm"
+                  type="button"
+                  onClick={onResubscribeClick}
+                  disabled={
+                    !crmPersonId || isDeleted || isRemoving || isResubscribing
+                  }
+                  loading={isResubscribing}
+                >
+                  Re-subscribe
+                </Button>
+              ) : null}
+            </Row>
+          );
+        },
+      },
     ];
 
     return selectionColumn ? [selectionColumn, ...baseColumns] : baseColumns;
-  }, [selectionColumn]);
+  }, [
+    selectionColumn,
+    memberAction.id,
+    memberAction.type,
+    handleRemoveMember,
+    handleResubscribeMember,
+  ]);
 
   const filteredTotal = Number.isFinite(totalMembers)
     ? totalMembers
