@@ -461,6 +461,23 @@ export const dispatchCampaign = async ({
         reason: "POSTMARK_INACTIVE_RECIPIENT",
       });
     }
+
+    await prisma.logs.create({
+      data: {
+        type: LogType.EMAIL_SENT,
+        userId: initiatedByUserId || null,
+        campaignId: campaign.id,
+        mailingListId: campaign.mailingListId,
+        eventId: campaign.event.id,
+        data: {
+          summary,
+          disabledEntries,
+          dispatchedAt: new Date().toISOString(),
+          reqId,
+        },
+      },
+    });
+
     return summary;
   } catch (error) {
     console.error(`${logPrefix} Failed to dispatch campaign:`, error);

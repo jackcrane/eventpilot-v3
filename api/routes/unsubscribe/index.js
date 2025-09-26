@@ -6,6 +6,23 @@ import {
   MailingListMemberStatus,
 } from "@prisma/client";
 
+const ipAddress = (req) => req.ip || req.headers["x-forwarded-for"] || null;
+
+const membershipLogSelection = {
+  id: true,
+  status: true,
+  deleted: true,
+  mailingListId: true,
+  crmPersonId: true,
+  mailingList: {
+    select: {
+      id: true,
+      title: true,
+      deleted: true,
+    },
+  },
+};
+
 const querySchema = z.object({
   p: z.string().cuid(),
   e: z.string().cuid(),
@@ -119,17 +136,7 @@ const fetchContext = async ({ emailId, personId }) => {
         deleted: false,
       },
     },
-    select: {
-      id: true,
-      status: true,
-      mailingListId: true,
-      mailingList: {
-        select: {
-          id: true,
-          title: true,
-        },
-      },
-    },
+    select: membershipLogSelection,
   });
 
   return { email, campaign, person: email.crmPerson, memberships };
@@ -237,22 +244,32 @@ export const post = [
         campaign.mailingListId
       );
 
+      let markedUnsubscribed = false;
+
       await prisma.$transaction(async (tx) => {
         for (const membership of updates) {
-          await tx.mailingListMember.update({
+          const after = await tx.mailingListMember.update({
             where: { id: membership.id },
             data: { status: MailingListMemberStatus.UNSUBSCRIBED },
+            select: membershipLogSelection,
           });
 
           await tx.logs.create({
             data: {
               type: LogType.MAILING_LIST_MEMBER_MODIFIED,
+              userId: null,
+              ip: ipAddress(req),
               crmPersonId: personId,
               mailingListId: membership.mailingListId,
+              mailingListMemberId: membership.id,
+              campaignId: campaign.id,
+              emailId: email.id,
               eventId: campaign.event?.id ?? null,
               data: {
                 action: "UNSUBSCRIBE",
                 emailId: email.id,
+                before: membership,
+                after,
               },
             },
           });
@@ -263,8 +280,28 @@ export const post = [
             where: { id: email.id },
             data: { status: EmailStatus.UNSUBSCRIBED },
           });
+          markedUnsubscribed = true;
         }
       });
+
+      if (markedUnsubscribed) {
+        await prisma.logs.create({
+          data: {
+            type: LogType.EMAIL_WEBHOOK_RECEIVED,
+            userId: null,
+            ip: ipAddress(req),
+            emailId: email.id,
+            campaignId: campaign.id,
+            mailingListId: campaign.mailingListId,
+            eventId: campaign.event?.id ?? null,
+            crmPersonId: personId,
+            data: {
+              source: "unsubscribe-page",
+              message: "Email marked as unsubscribed via user preference update",
+            },
+          },
+        });
+      }
 
       const refreshed = await fetchContext({
         emailId: parsedBody.data.emailId,

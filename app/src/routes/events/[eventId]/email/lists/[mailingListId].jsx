@@ -559,7 +559,7 @@ export const EventMailingListMembersPage = () => {
           const isUnsubscribed = status === "UNSUBSCRIBED";
           const isDisabled = status === "DISABLED";
           const isInactive = status === "INACTIVE";
-          const canResubscribe = isUnsubscribed || isDisabled || isInactive;
+          const canResubscribe = isUnsubscribed || isInactive;
           const isDeleted = status === "DELETED" || row.original?.deleted;
           const isActing = memberAction.id === crmPersonId;
           const isRemoving = isActing && memberAction.type === "remove";
