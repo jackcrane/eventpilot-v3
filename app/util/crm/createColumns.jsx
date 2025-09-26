@@ -23,6 +23,15 @@ const renderLastEmailed = (value) => {
   return date.toLocaleString();
 };
 
+const renderEmailOpenRate = (_, row) => {
+  const stats = row?.emailStats;
+  const sent = Number(stats?.sent || 0);
+  const opened = Number(stats?.opened || 0);
+  if (!sent) return "—";
+  const percent = Math.round((opened / sent) * 100);
+  return `${percent}% (${opened}/${sent})`;
+};
+
 const renderParticipantTotals = (_, row) => {
   const stats = row?.participantStats;
   if (!stats?.total) return "—";
@@ -219,15 +228,22 @@ export const createBaseColumns = (onViewPerson) => [
     icon: <Icon i="id-badge-2" />,
     render: (value, row) => {
       const id = row?.id;
-      if (!id || typeof value !== "string" || value.trim().length === 0)
+      if (
+        !id ||
+        typeof value !== "string" ||
+        value.trim().length === 0 ||
+        typeof onViewPerson !== "function"
+      )
         return value;
-      return <Link to={onViewPerson(id)}>{value}</Link>;
+      const href = onViewPerson(id);
+      if (!href) return value;
+      return <Link to={href}>{value}</Link>;
     },
   },
   {
     id: "emails",
     label: "Email",
-    order: 3,
+    order: 2,
     show: true,
     accessor: "emails",
     render: (emails) => emails.map((email) => email.email).join(", "),
@@ -237,7 +253,7 @@ export const createBaseColumns = (onViewPerson) => [
   {
     id: "phones",
     label: "Phone",
-    order: 4,
+    order: 3,
     show: true,
     accessor: "phones",
     render: (phones) => phones.map((phone) => phone.phone).join(", "),
@@ -247,7 +263,7 @@ export const createBaseColumns = (onViewPerson) => [
   {
     id: "createdAt",
     label: "Created At",
-    order: 5,
+    order: 4,
     show: true,
     accessor: "createdAt",
     render: (value) => new Date(value).toLocaleDateString(),
@@ -257,7 +273,7 @@ export const createBaseColumns = (onViewPerson) => [
   {
     id: "source",
     label: "Source",
-    order: 6,
+    order: 5,
     show: true,
     accessor: "source",
     render: (value) => <Badge outline>{value}</Badge>,
@@ -266,7 +282,7 @@ export const createBaseColumns = (onViewPerson) => [
   {
     id: "lifetimeValue",
     label: "Lifetime Value",
-    order: 7,
+    order: 6,
     show: false,
     accessor: "lifetimeValue",
     render: renderLifetimeValue,
@@ -276,12 +292,22 @@ export const createBaseColumns = (onViewPerson) => [
   {
     id: "lastEmailedAt",
     label: "Last Emailed",
-    order: 8,
+    order: 7,
     show: false,
     accessor: "lastEmailedAt",
     render: renderLastEmailed,
     sortable: false,
     icon: <Icon i="mail" />,
+  },
+  {
+    id: "emailOpenRate",
+    label: "Email Open Rate",
+    order: 8,
+    show: false,
+    accessor: "emailOpenRate",
+    render: renderEmailOpenRate,
+    sortable: false,
+    icon: <Icon i="percentage" />,
   },
   {
     id: "registrationPeriod",
@@ -336,7 +362,7 @@ export const createBaseColumns = (onViewPerson) => [
   {
     id: "volunteerLocations",
     label: "Volunteer Locations",
-    order: 16,
+    order: 14,
     show: false,
     accessor: (row) => row?.volunteerStats?.locations ?? [],
     render: renderList,
@@ -346,7 +372,7 @@ export const createBaseColumns = (onViewPerson) => [
   {
     id: "volunteerJobs",
     label: "Volunteer Jobs",
-    order: 17,
+    order: 15,
     show: false,
     accessor: (row) => row?.volunteerStats?.jobs ?? [],
     render: renderList,

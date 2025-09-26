@@ -15,10 +15,7 @@ const parseFieldValue = (raw) => {
   if (!value) return "";
   const first = value[0];
   const last = value[value.length - 1];
-  if (
-    (first === "[" && last === "]") ||
-    (first === "{" && last === "}")
-  ) {
+  if ((first === "[" && last === "]") || (first === "{" && last === "}")) {
     try {
       const parsed = JSON.parse(value);
       if (Array.isArray(parsed)) {
@@ -464,6 +461,8 @@ export const get = [
                 createdAt: true,
                 crmPersonId: true,
                 crmPersonEmail: { select: { crmPersonId: true } },
+                opened: true,
+                status: true,
               },
               orderBy: { createdAt: "desc" },
             }),
@@ -566,10 +565,23 @@ export const get = [
       }
 
       const emailMap = new Map();
+      const emailStatsMap = new Map();
       for (const email of emailEntries) {
         const personId = email.crmPersonId ?? email.crmPersonEmail?.crmPersonId;
-        if (!personId || emailMap.has(personId)) continue;
-        emailMap.set(personId, email.createdAt);
+        if (!personId) continue;
+
+        const opened =
+          Boolean(email.opened) ||
+          String(email.status || "").toUpperCase() === "OPENED";
+
+        const stats = emailStatsMap.get(personId) || { sent: 0, opened: 0 };
+        stats.sent += 1;
+        if (opened) stats.opened += 1;
+        emailStatsMap.set(personId, stats);
+
+        if (!emailMap.has(personId)) {
+          emailMap.set(personId, email.createdAt);
+        }
       }
 
       const participantAccumulator = new Map();
@@ -650,15 +662,11 @@ export const get = [
             finalized: summary.finalized,
             latest: summary.latest,
             registrations: summary.registrations,
-            tiers: Array.from(summary.tiers).sort((a, b) =>
-              a.localeCompare(b)
-            ),
+            tiers: Array.from(summary.tiers).sort((a, b) => a.localeCompare(b)),
             periods: Array.from(summary.periods).sort((a, b) =>
               a.localeCompare(b)
             ),
-            teams: Array.from(summary.teams).sort((a, b) =>
-              a.localeCompare(b)
-            ),
+            teams: Array.from(summary.teams).sort((a, b) => a.localeCompare(b)),
             coupons: Array.from(summary.coupons).sort((a, b) =>
               a.localeCompare(b)
             ),
@@ -722,9 +730,7 @@ export const get = [
         summary.totalShifts += detail.shiftCount;
         summary.registrations.push(detail);
         detail.jobNames.forEach((name) => summary.jobNames.add(name));
-        detail.locationNames.forEach((name) =>
-          summary.locationNames.add(name)
-        );
+        detail.locationNames.forEach((name) => summary.locationNames.add(name));
         if (detail.fieldValues?.length) {
           for (const field of detail.fieldValues) {
             const label = field.label;
@@ -766,34 +772,44 @@ export const get = [
       const enrichedCrmPersons = crmPersons.map((person) => {
         const participantStats = normalizedParticipantMap.get(person.id);
         const volunteerStats = volunteerMap.get(person.id);
+        const emailStats = emailStatsMap.get(person.id) || {
+          sent: 0,
+          opened: 0,
+        };
+        const emailOpenRate =
+          emailStats.sent > 0 ? emailStats.opened / emailStats.sent : 0;
         return {
           ...person,
           fields: collapseCrmValues(person.fieldValues),
           lifetimeValue: ledgerMap.get(person.id) ?? 0,
           lastEmailedAt: emailMap.get(person.id) ?? null,
-          participantStats:
-            participantStats || {
-              total: 0,
-              finalized: 0,
-              latest: null,
-              registrations: [],
-              tiers: [],
-              periods: [],
-              teams: [],
-              coupons: [],
-              upsells: [],
-              fields: {},
-            },
-          volunteerStats:
-            volunteerStats || {
-              total: 0,
-              totalShifts: 0,
-              latest: null,
-              registrations: [],
-              jobs: [],
-              locations: [],
-              fields: {},
-            },
+          emailStats: {
+            sent: emailStats.sent,
+            opened: emailStats.opened,
+            openRate: emailOpenRate,
+          },
+          emailOpenRate,
+          participantStats: participantStats || {
+            total: 0,
+            finalized: 0,
+            latest: null,
+            registrations: [],
+            tiers: [],
+            periods: [],
+            teams: [],
+            coupons: [],
+            upsells: [],
+            fields: {},
+          },
+          volunteerStats: volunteerStats || {
+            total: 0,
+            totalShifts: 0,
+            latest: null,
+            registrations: [],
+            jobs: [],
+            locations: [],
+            fields: {},
+          },
         };
       });
 

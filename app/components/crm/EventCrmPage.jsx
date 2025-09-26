@@ -242,9 +242,15 @@ export const EventCrmPage = ({ eventId }) => {
     return Array.from(labels).sort((a, b) => a.localeCompare(b));
   }, [basePersons]);
 
+  const onViewPerson = useCallback(
+    (id) => `/events/${eventId}/crm/${id}`,
+    [eventId]
+  );
+
   const columnConfig = useCrmColumnConfig({
+    eventId,
     crmFields: crm.crmFields,
-    onViewPerson: (id) => `/events/${eventId}/crm/${id}`,
+    onViewPerson,
     participantFieldLabels,
     volunteerFieldLabels,
   });
