@@ -17,7 +17,7 @@ export const CrmHeaderActions = ({
     <Row gap={1} justify="flex-end" className="mb-3">
       <ColumnsPicker columns={columnConfig} onColumnsChange={setColumnConfig} />
       <Dropdown
-        prompt="Create/Import Contacts"
+        prompt="Actions"
         items={[
           {
             text: "Create a Contact",
@@ -35,12 +35,15 @@ export const CrmHeaderActions = ({
                 ),
               }),
           },
+          {
+            type: "divider",
+          },
+          {
+            text: "Create a field",
+            onclick: createCrmFieldModal,
+          },
         ]}
       />
-      <Button onClick={createCrmFieldModal} loading={mutationLoading}>
-        Create a Field
-      </Button>
     </Row>
   );
 };
-
