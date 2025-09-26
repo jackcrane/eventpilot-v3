@@ -1,10 +1,6 @@
 import { prisma } from "#prisma";
 import { z } from "zod";
-import {
-  EmailStatus,
-  LogType,
-  MailingListMemberStatus,
-} from "@prisma/client";
+import { EmailStatus, LogType, MailingListMemberStatus } from "@prisma/client";
 
 const ipAddress = (req) => req.ip || req.headers["x-forwarded-for"] || null;
 
@@ -35,12 +31,7 @@ const bodySchema = z.object({
   unsubscribeAll: z.boolean().optional().default(false),
 });
 
-const shapeResponse = ({
-  email,
-  campaign,
-  person,
-  memberships,
-}) => {
+const shapeResponse = ({ email, campaign, person, memberships }) => {
   const mailingLists = memberships
     .map((membership) => ({
       id: membership.mailingList.id,
@@ -205,7 +196,7 @@ export const post = [
           .json({ message: "Unsubscribe link is invalid or expired" });
       }
 
-      const { email, campaign, memberships, person } = context;
+      const { email, campaign, memberships } = context;
       const personId = parsedBody.data.personId;
 
       if (!memberships.length) {
@@ -297,7 +288,8 @@ export const post = [
             crmPersonId: personId,
             data: {
               source: "unsubscribe-page",
-              message: "Email marked as unsubscribed via user preference update",
+              message:
+                "Email marked as unsubscribed via user preference update",
             },
           },
         });

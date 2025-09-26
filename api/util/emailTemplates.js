@@ -42,18 +42,19 @@ const parseLineTokens = (line = "") => {
   while ((match = anchorPattern.exec(source))) {
     const [fullMatch, href, label] = match;
     const leading = source.slice(cursor, match.index);
-      if (leading) {
-        const textValue = decodeHtmlEntities(stripHtmlTags(leading));
-        if (textValue) {
-          tokens.push({ type: "text", value: textValue });
-        }
+    if (leading) {
+      const textValue = decodeHtmlEntities(stripHtmlTags(leading));
+      if (textValue) {
+        tokens.push({ type: "text", value: textValue });
       }
+    }
 
     if (href) {
       tokens.push({
         type: "link",
         href: decodeHtmlEntities(href),
-        label: decodeHtmlEntities(stripHtmlTags(label)) || decodeHtmlEntities(href),
+        label:
+          decodeHtmlEntities(stripHtmlTags(label)) || decodeHtmlEntities(href),
       });
     }
 
