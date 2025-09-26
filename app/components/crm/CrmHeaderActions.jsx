@@ -12,6 +12,8 @@ export const CrmHeaderActions = ({
   createCrmFieldModal,
   mutationLoading,
   CreateCrmFieldModalElement,
+  onDownloadCsv,
+  downloadingCsv,
 }) => {
   return (
     <Row gap={1} justify="flex-end" className="mb-3">
@@ -19,6 +21,17 @@ export const CrmHeaderActions = ({
       <Dropdown
         prompt="Actions"
         items={[
+          {
+            text: downloadingCsv ? "Preparing CSV..." : "Download CSV",
+            onclick: () => {
+              if (!downloadingCsv && typeof onDownloadCsv === "function") {
+                onDownloadCsv();
+              }
+            },
+          },
+          {
+            type: "divider",
+          },
           {
             text: "Create a Contact",
             onclick: () => offcanvas({ content: <CrmPersonCRUD /> }),

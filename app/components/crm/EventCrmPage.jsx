@@ -27,6 +27,7 @@ import { useMailingLists } from "../../hooks/useMailingLists";
 import { filterPersons } from "../../util/crm/filterPersons";
 import { CrmMailingListBulkAction } from "./CrmMailingListBulkAction";
 import { Row } from "../../util/Flex";
+import { useCrmCsvExport } from "../../hooks/useCrmCsvExport";
 
 const DESCRIPTION =
   "This is the contacts page. It is a powerful CRM for managing your event's contacts.";
@@ -254,6 +255,15 @@ export const EventCrmPage = ({ eventId }) => {
     participantFieldLabels,
     volunteerFieldLabels,
   });
+  const csvExport = useCrmCsvExport({
+    eventId,
+    search: manualFilters.search,
+    serverFilters: manualFilters.serverFilters,
+    clientFilters: manualFilters.filters,
+    orderBy,
+    order,
+    aiState,
+  });
   const filteredPersons = useMemo(
     () =>
       basePersons
@@ -479,6 +489,10 @@ export const EventCrmPage = ({ eventId }) => {
         createCrmFieldModal={fieldsModal.createCrmFieldModal}
         mutationLoading={fieldsModal.mutationLoading}
         CreateCrmFieldModalElement={fieldsModal.CreateCrmFieldModalElement}
+        onDownloadCsv={() =>
+          csvExport.downloadCsv({ columns: columnConfig.visibleColumns })
+        }
+        downloadingCsv={csvExport.downloading}
       />
 
       <Util.Hr style={{ margin: "1rem 0" }} />
