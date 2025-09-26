@@ -992,6 +992,7 @@ enum MailingListMemberStatus {
   ACTIVE
   UNSUBSCRIBED
   INACTIVE
+  DISABLED
   DELETED
 }
 

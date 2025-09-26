@@ -35,6 +35,7 @@ const STATUS_COLORS = {
   ACTIVE: "green",
   UNSUBSCRIBED: "yellow",
   INACTIVE: "orange",
+  DISABLED: "red",
   DELETED: "red",
 };
 
@@ -556,6 +557,9 @@ export const EventMailingListMembersPage = () => {
             row.original?.crmPersonId || row.original?.crmPerson?.id;
           const status = row.original?.status;
           const isUnsubscribed = status === "UNSUBSCRIBED";
+          const isDisabled = status === "DISABLED";
+          const isInactive = status === "INACTIVE";
+          const canResubscribe = isUnsubscribed || isDisabled || isInactive;
           const isDeleted = status === "DELETED" || row.original?.deleted;
           const isActing = memberAction.id === crmPersonId;
           const isRemoving = isActing && memberAction.type === "remove";
@@ -588,7 +592,7 @@ export const EventMailingListMembersPage = () => {
               >
                 Remove
               </Button>
-              {isUnsubscribed ? (
+              {canResubscribe ? (
                 <Button
                   size="sm"
                   type="button"

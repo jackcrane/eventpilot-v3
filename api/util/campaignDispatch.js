@@ -3,7 +3,11 @@ import { rawEmailClient } from "#postmark";
 import { render } from "@react-email/render";
 import CampaignBlastEmail from "#emails/campaign-blast.jsx";
 import { renderEmailTemplate, isTemplateEmpty } from "./emailTemplates.js";
-import { LogType, MailingListMemberStatus } from "@prisma/client";
+import {
+  EmailStatus,
+  LogType,
+  MailingListMemberStatus,
+} from "@prisma/client";
 import cuid from "cuid";
 
 const MAX_POSTMARK_BATCH = 500;
@@ -324,6 +328,8 @@ export const dispatchCampaign = async ({
     const responses = new Array(prepared.length);
     const realIndices = [];
     const realMessages = [];
+    const disabledEntries = [];
+    const disabledMemberIds = new Set();
 
     prepared.forEach((entry, index) => {
       if (entry.isMock) {
@@ -354,9 +360,25 @@ export const dispatchCampaign = async ({
 
       let pointer = 0;
       for (const originalIndex of realIndices) {
-        responses[originalIndex] = realResponses[pointer++] || {
-          MessageID: `postmark-${Date.now()}-${originalIndex}`,
-        };
+        const response =
+          realResponses[pointer++] || {
+            MessageID: `postmark-${Date.now()}-${originalIndex}`,
+          };
+
+        responses[originalIndex] = response;
+
+        if (
+          response?.ErrorCode === 406 &&
+          prepared[originalIndex]?.mailingListMemberId &&
+          !disabledMemberIds.has(prepared[originalIndex].mailingListMemberId)
+        ) {
+          disabledMemberIds.add(prepared[originalIndex].mailingListMemberId);
+          disabledEntries.push({
+            mailingListMemberId: prepared[originalIndex].mailingListMemberId,
+            crmPersonId: prepared[originalIndex].crmPersonId,
+            message: response?.Message || null,
+          });
+        }
       }
     }
 
@@ -365,6 +387,7 @@ export const dispatchCampaign = async ({
         const entry = prepared[i];
         const response = responses[i] || {};
         const messageId = response.MessageID || `mock-${Date.now()}-${i}`;
+        const inactiveRecipient = response?.ErrorCode === 406;
 
         await tx.email.update({
           where: { id: entry.emailId },
@@ -372,6 +395,7 @@ export const dispatchCampaign = async ({
             messageId,
             htmlBody: entry.htmlBody,
             textBody: entry.textBody,
+            ...(inactiveRecipient ? { status: EmailStatus.BOUNCED } : {}),
           },
         });
 
@@ -388,11 +412,55 @@ export const dispatchCampaign = async ({
           },
         });
       }
+
+      for (const disabledEntry of disabledEntries) {
+        if (!disabledEntry?.mailingListMemberId) continue;
+
+        const before = await tx.mailingListMember.findUnique({
+          where: { id: disabledEntry.mailingListMemberId },
+          ...memberInclude,
+        });
+
+        if (!before) continue;
+        if (before.status === MailingListMemberStatus.DISABLED) continue;
+
+        const after = await tx.mailingListMember.update({
+          where: { id: disabledEntry.mailingListMemberId },
+          data: { status: MailingListMemberStatus.DISABLED },
+          ...memberInclude,
+        });
+
+        await tx.logs.create({
+          data: {
+            type: LogType.MAILING_LIST_MEMBER_MODIFIED,
+            userId: initiatedByUserId || null,
+            emailId: null,
+            crmPersonId: disabledEntry.crmPersonId || null,
+            campaignId: campaign.id,
+            mailingListId: campaign.mailingListId,
+            eventId: campaign.event.id,
+            mailingListMemberId: after.id,
+            data: {
+              before,
+              after,
+              autoDisabledReason:
+                disabledEntry.message || "Postmark marked recipient inactive",
+            },
+          },
+        });
+      }
     });
 
     console.log(`${logPrefix} Dispatched ${prepared.length} emails`);
 
     summary.sent = prepared.length;
+    for (const disabledEntry of disabledEntries) {
+      summary.skipped.push({
+        memberId: disabledEntry.mailingListMemberId,
+        crmPersonId: disabledEntry.crmPersonId,
+        reason: "POSTMARK_INACTIVE_RECIPIENT",
+      });
+    }
     return summary;
   } catch (error) {
     console.error(`${logPrefix} Failed to dispatch campaign:`, error);

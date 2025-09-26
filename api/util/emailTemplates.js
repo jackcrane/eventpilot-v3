@@ -10,6 +10,26 @@ const escapeHtml = (value = "") =>
 
 const stripHtmlTags = (value = "") => String(value).replace(/<[^>]*>/g, "");
 
+const decodeHtmlEntities = (value = "") => {
+  const source = String(value);
+  if (!source) return "";
+
+  return source
+    .replace(/&#x([0-9a-fA-F]+);/g, (_match, hex) => {
+      const codePoint = Number.parseInt(hex, 16);
+      return Number.isNaN(codePoint) ? "" : String.fromCodePoint(codePoint);
+    })
+    .replace(/&#(\d+);/g, (_match, dec) => {
+      const codePoint = Number.parseInt(dec, 10);
+      return Number.isNaN(codePoint) ? "" : String.fromCodePoint(codePoint);
+    })
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+};
+
 const parseLineTokens = (line = "") => {
   const source = String(line);
   if (!source) return [];
@@ -22,18 +42,18 @@ const parseLineTokens = (line = "") => {
   while ((match = anchorPattern.exec(source))) {
     const [fullMatch, href, label] = match;
     const leading = source.slice(cursor, match.index);
-    if (leading) {
-      const textValue = stripHtmlTags(leading);
-      if (textValue) {
-        tokens.push({ type: "text", value: textValue });
+      if (leading) {
+        const textValue = decodeHtmlEntities(stripHtmlTags(leading));
+        if (textValue) {
+          tokens.push({ type: "text", value: textValue });
+        }
       }
-    }
 
     if (href) {
       tokens.push({
         type: "link",
-        href,
-        label: stripHtmlTags(label) || href,
+        href: decodeHtmlEntities(href),
+        label: decodeHtmlEntities(stripHtmlTags(label)) || decodeHtmlEntities(href),
       });
     }
 
@@ -41,14 +61,14 @@ const parseLineTokens = (line = "") => {
   }
 
   if (cursor < source.length) {
-    const trailing = stripHtmlTags(source.slice(cursor));
+    const trailing = decodeHtmlEntities(stripHtmlTags(source.slice(cursor)));
     if (trailing) {
       tokens.push({ type: "text", value: trailing });
     }
   }
 
   if (!tokens.length) {
-    const fallback = stripHtmlTags(source);
+    const fallback = decodeHtmlEntities(stripHtmlTags(source));
     return fallback ? [{ type: "text", value: fallback }] : [];
   }
 

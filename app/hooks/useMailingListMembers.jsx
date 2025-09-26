@@ -26,6 +26,7 @@ export const MAILING_LIST_MEMBER_STATUSES = [
   "ACTIVE",
   "UNSUBSCRIBED",
   "INACTIVE",
+  "DISABLED",
   "DELETED",
 ];
 
