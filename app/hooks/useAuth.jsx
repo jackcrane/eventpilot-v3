@@ -29,15 +29,39 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const formatErrorMessage = (value) => {
+    if (!value) return "An unexpected error occurred.";
+    if (typeof value === "string") return value;
+    if (Array.isArray(value)) {
+      const parts = value
+        .map((item) =>
+          typeof item === "object" && item !== null
+            ? formatErrorMessage(item.message || item.code)
+            : formatErrorMessage(item)
+        )
+        .filter(Boolean);
+      return parts.join(", ") || "An unexpected error occurred.";
+    }
+    if (typeof value === "object") {
+      if (value.message) return formatErrorMessage(value.message);
+      if (value.error) return formatErrorMessage(value.error);
+      return JSON.stringify(value);
+    }
+    return String(value);
+  };
+
+  const normalizeEmail = (value) => value?.trim().toLowerCase() || "";
+
   const login = async ({ email, password }) => {
     setMutationLoading(true);
     setError(null);
+    const normalizedEmail = normalizeEmail(email);
     const r = await fetch(u("/api/auth/login"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email: normalizedEmail, password }),
     });
 
     if (r.ok) {
@@ -50,7 +74,7 @@ export const AuthProvider = ({ children }) => {
       document.location.href = "/events";
     } else {
       const { message } = await r.json();
-      setError(message);
+      setError(formatErrorMessage(message));
       setMutationLoading(false);
     }
     setMutationLoading(false);
@@ -59,19 +83,20 @@ export const AuthProvider = ({ children }) => {
   const register = async ({ name, email, password }) => {
     setMutationLoading(true);
     setError(null);
+    const normalizedEmail = normalizeEmail(email);
     const r = await fetch(u("/api/auth/register"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email: normalizedEmail, password }),
     });
 
     if (r.ok) {
       setRegistered(true);
     } else {
       const { message } = await r.json();
-      setError(message);
+      setError(formatErrorMessage(message));
       setMutationLoading(false);
     }
     setMutationLoading(false);
@@ -97,7 +122,7 @@ export const AuthProvider = ({ children }) => {
     } else {
       const { message, email } = await r.json();
       setMeta({ email });
-      setError(message);
+      setError(formatErrorMessage(message));
       setMutationLoading(false);
     }
   };
@@ -105,12 +130,13 @@ export const AuthProvider = ({ children }) => {
   const resendVerificationEmail = async ({ email }) => {
     setMutationLoading(true);
     setError(null);
+    const normalizedEmail = normalizeEmail(email);
     const r = await fetch(u("/api/auth/register"), {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email: normalizedEmail }),
     });
 
     if (r.ok) {
@@ -118,7 +144,7 @@ export const AuthProvider = ({ children }) => {
       setMutationLoading(false);
     } else {
       const { message } = await r.json();
-      setError(message);
+      setError(formatErrorMessage(message));
       setMutationLoading(false);
     }
   };
@@ -160,7 +186,7 @@ export const AuthProvider = ({ children }) => {
       },
       body: JSON.stringify({
         name: data.name,
-        email: data.email,
+        email: normalizeEmail(data.email),
         phoneNumber: data.phoneNumber,
       }),
     });
@@ -175,8 +201,9 @@ export const AuthProvider = ({ children }) => {
       setMutationLoading(false);
     } else {
       const { message } = await r.json();
-      toast.error(message);
-      setError(message);
+      const formatted = formatErrorMessage(message);
+      toast.error(formatted);
+      setError(formatted);
       setMutationLoading(false);
     }
 
@@ -194,12 +221,13 @@ export const AuthProvider = ({ children }) => {
   const requestForgotPassword = async ({ email }) => {
     setMutationLoading(true);
     setError(null);
+    const normalizedEmail = normalizeEmail(email);
     const r = await fetch(u("/api/auth/reset-password"), {
       method: "put",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email: normalizedEmail }),
     });
 
     if (r.ok) {
@@ -209,7 +237,7 @@ export const AuthProvider = ({ children }) => {
       setForgotPasswordWaiting(true);
     } else {
       const { message } = await r.json();
-      setError(message);
+      setError(formatErrorMessage(message));
       setMutationLoading(false);
     }
 
@@ -238,7 +266,7 @@ export const AuthProvider = ({ children }) => {
       }, 2000);
     } else {
       const { message } = await r.json();
-      setError(message);
+      setError(formatErrorMessage(message));
       setMutationLoading(false);
     }
 
