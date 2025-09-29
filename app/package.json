@@ -6,7 +6,7 @@
   "scripts": {
     "start": "vite",
     "preview": "vite preview",
-    "build": "vite build",
+    "build": "export NODE_OPTIONS=--max-old-space-size=4000 && vite build",
     "generateHook": "node ./hooks/generateHook.js"
   },
   "dependencies": {
@@ -16,6 +16,7 @@
     "@paralleldrive/cuid2": "^2.2.2",
     "@reactour/tour": "^3.8.0",
     "@sentry/react": "^10.16.0",
+    "@sentry/vite-plugin": "^4.3.0",
     "@stripe/connect-js": "^3.3.25",
     "@stripe/react-connect-js": "^3.3.24",
     "@stripe/react-stripe-js": "^3.7.0",
