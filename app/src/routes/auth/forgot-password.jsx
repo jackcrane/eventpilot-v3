@@ -4,9 +4,10 @@ import { Alert, Card, Typography, Input, Button } from "tabler-react-2";
 import { Page } from "../../../components/page/Page";
 import styled from "styled-components";
 import { Grow, Row } from "../../../util/Flex";
-import { Spacer } from "../../../util/Spacer";
-import { useParams, useSearchParams } from "react-router-dom";
-const { H1, Text } = Typography;
+import { useSearchParams } from "react-router-dom";
+import { useForgotPasswordToken } from "../../../hooks/useForgotPasswordToken";
+
+const { Text } = Typography;
 
 export const ForgotPassword = () => {
   const {
@@ -17,19 +18,66 @@ export const ForgotPassword = () => {
     confirmForgotPassword,
   } = useAuth();
 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [searchParams] = useSearchParams();
   const [token, setToken] = useState(null);
 
   useEffect(() => {
-    console.log("token", searchParams);
-    const token = searchParams.get("forgottoken");
-    if (token) setToken(token);
+    const nextToken = searchParams.get("forgottoken");
+    setToken(nextToken);
+    setPassword("");
   }, [searchParams]);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const {
+    tokenValid,
+    loading: tokenLoading,
+    error: tokenError,
+  } = useForgotPasswordToken(token);
 
   if (token) {
+    if (tokenLoading) {
+      return (
+        <Page title="Forgot Password">
+          <LoginCard>
+            <>
+              <Typography.H1>Forgot Password</Typography.H1>
+              <Text>Validating your reset link...</Text>
+            </>
+          </LoginCard>
+        </Page>
+      );
+    }
+
+    if (!tokenValid) {
+      return (
+        <Page title="Forgot Password">
+          <LoginCard>
+            <>
+              <Typography.H1>Forgot Password</Typography.H1>
+              <Alert variant="danger" title="Reset link issue">
+                {tokenError ||
+                  "This reset link is no longer valid. Please request a new one."}
+              </Alert>
+              <Text>
+                You can request a new password reset email below.
+              </Text>
+              <Row justify="none" gap={2}>
+                <Grow />
+                <Button
+                  onClick={() => {
+                    window.location.href = "/forgot-password";
+                  }}
+                >
+                  Request New Link
+                </Button>
+              </Row>
+            </>
+          </LoginCard>
+        </Page>
+      );
+    }
+
     return (
       <Page title="Forgot Password">
         <LoginCard>
@@ -39,13 +87,18 @@ export const ForgotPassword = () => {
               We are sorry to see you have forgotten your password. Please enter
               your email below to reset your password.
             </Text>
+            {error && (
+              <Alert variant="danger" title={"Error"}>
+                {error}
+              </Alert>
+            )}
             <Input
               label="New Password"
               name="password"
               placeholder="Password"
               type="password"
               value={password}
-              onInput={(e) => setPassword(e)}
+              onInput={(value) => setPassword(value)}
             />
             <Row justify="none" gap={2}>
               <Grow />
@@ -101,7 +154,7 @@ export const ForgotPassword = () => {
             name="email"
             placeholder="Email"
             value={email}
-            onInput={(e) => setEmail(e)}
+            onInput={(value) => setEmail(value)}
           />
           <Row justify="none" gap={2}>
             <Grow />

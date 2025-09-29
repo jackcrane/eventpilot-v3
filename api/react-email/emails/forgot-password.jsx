@@ -35,7 +35,7 @@ export const ForgotPasswordEmail = ({ name, token }) => (
     </Text>
     <Button
       as="a"
-      href={`https://EventPilot.jackcrane.rocks/api/auth/reset-password?token=${token}`}
+      href={`https://geteventpilot.com/forgot-password?forgottoken=${token}`}
       style={styles.button}
     >
       Reset Password

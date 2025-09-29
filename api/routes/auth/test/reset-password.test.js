@@ -7,6 +7,73 @@ import { tc } from "#setup";
 import bcrypt from "bcrypt";
 
 describe("/auth/reset-password", () => {
+  describe("GET", () => {
+    it("Validates a reset token", async () => {
+      const passwordResetToken = await prisma.forgotPasswordToken.create({
+        data: {
+          userId: tc.user.id,
+        },
+      });
+
+      const res = await request(app)
+        .get("/api/auth/reset-password")
+        .query({ token: passwordResetToken.id });
+
+      expect(res.status).toBe(200);
+      expect(res.body.valid).toBe(true);
+    });
+
+    it("Returns 400 for an invalid token", async () => {
+      const res = await request(app)
+        .get("/api/auth/reset-password")
+        .query({ token: "invalid" });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe("Invalid token");
+    });
+
+    it("Returns 400 for an expired token", async () => {
+      const passwordResetToken = await prisma.forgotPasswordToken.create({
+        data: {
+          userId: tc.user.id,
+        },
+      });
+
+      await prisma.forgotPasswordToken.update({
+        where: {
+          id: passwordResetToken.id,
+        },
+        data: {
+          createdAt: new Date(Date.now() - 16 * 60 * 1000),
+        },
+      });
+
+      const res = await request(app)
+        .get("/api/auth/reset-password")
+        .query({ token: passwordResetToken.id });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe("Token expired");
+    });
+
+    it("Returns 400 when token is missing", async () => {
+      const res = await request(app).get("/api/auth/reset-password");
+
+      expect(res.status).toBe(400);
+      expect(res.body.message[0].message).toBe("Token is a required field");
+    });
+
+    it("Returns 500 for an internal server error", async () => {
+      const res = await request(app)
+        .get("/api/auth/reset-password")
+        .set({ forceError: true })
+        .query({ token: "whatever" });
+
+      expect(res.status).toBe(500);
+      expect(res.body.message).toBe("Internal server error");
+    });
+  });
+
   describe("PUT", () => {
     it("Fires a password reset email", async () => {
       const res = await request(app).put("/api/auth/reset-password").send({

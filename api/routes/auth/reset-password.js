@@ -7,6 +7,47 @@ import { forceTestError } from "#forceError";
 import ForgotPasswordEmail from "#emails/forgot-password.jsx";
 import { render } from "@react-email/render";
 
+export const get = async (req, res) => {
+  try {
+    forceTestError(req);
+    const { token } = req.query;
+
+    const schema = z.object({
+      token: z
+        .string({
+          required_error: "Token is a required field",
+        })
+        .min(1, { message: "Token is a required field" }),
+    });
+
+    const result = schema.safeParse({ token });
+
+    if (!result.success) {
+      return res.status(400).json({ message: result.error.issues });
+    }
+
+    const passwordResetToken = await prisma.forgotPasswordToken.findFirst({
+      where: {
+        id: result.data.token,
+        active: true,
+      },
+    });
+
+    if (!passwordResetToken) {
+      return res.status(400).json({ message: "Invalid token" });
+    }
+
+    if (Date.now() - passwordResetToken.createdAt.getTime() > 15 * 60 * 1000) {
+      return res.status(400).json({ message: "Token expired" });
+    }
+
+    return res.status(200).json({ valid: true });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const put = async (req, res) => {
   try {
     forceTestError(req);
