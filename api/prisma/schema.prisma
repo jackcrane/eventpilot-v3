@@ -464,6 +464,9 @@ model Event {
   gmailConnection     GmailConnection?
   campaigns           Campaign[]
 
+  dayOfDashboardProvisioners DayOfDashboardProvisioner[]
+  dayOfDashboardAccounts     DayOfDashboardAccount[]
+
   emailTemplates EmailTemplate[]
 
   stripeConnectedAccountId  String?
@@ -507,6 +510,59 @@ model GmailConnection {
   @@unique([eventId])
 }
 
+model DayOfDashboardProvisioner {
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  instanceId String?
+  instance   EventInstance? @relation("DayOfDashboardProvisionerInstance", fields: [instanceId], references: [id], onDelete: SetNull)
+
+  name                String?
+  pinLookupKey        String   @unique
+  pinHash             String
+  permissions         String[]
+  jwtExpiresInSeconds Int      @default(3600)
+  tokenVersion        Int      @default(0)
+  deleted             Boolean  @default(false)
+  lastPinGeneratedAt  DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts DayOfDashboardAccount[]
+
+  @@index([eventId])
+  @@index([instanceId])
+}
+
+model DayOfDashboardAccount {
+  id String @id @default(cuid())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  provisionerId String
+  provisioner   DayOfDashboardProvisioner @relation(fields: [provisionerId], references: [id], onDelete: Cascade)
+
+  instanceId String?
+  instance   EventInstance? @relation("DayOfDashboardAccountInstance", fields: [instanceId], references: [id], onDelete: SetNull)
+
+  name         String?
+  permissions  String[]
+  tokenVersion Int       @default(0)
+  lastIssuedAt DateTime?
+  deleted      Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventId])
+  @@index([provisionerId])
+  @@index([instanceId])
+}
+
 model EventInstance {
   id String @id @default(cuid())
 
@@ -524,24 +580,26 @@ model EventInstance {
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)
 
-  logs                      Logs[]
-  LedgerItem                LedgerItem[]
-  FormField                 VolunteerRegistrationField[]
-  FormResponse              VolunteerRegistration[]
-  Location                  Location[]
-  Job                       Job[]
-  Shift                     Shift[]
-  RegistrationTier          RegistrationTier[]
-  RegistrationPeriodPricing RegistrationPeriodPricing[]
-  RegistrationPeriod        RegistrationPeriod[]
-  Team                      Team[]
-  UpsellItem                UpsellItem[]
-  Registration              Registration[]
-  RegistrationPage          RegistrationPage[]
-  RegistrationField         RegistrationField[]
-  RegistrationFieldResponse RegistrationFieldResponse[]
-  coupons                   Coupon[]
-  Session                   Session[]
+  logs                       Logs[]
+  dayOfDashboardProvisioners DayOfDashboardProvisioner[]  @relation("DayOfDashboardProvisionerInstance")
+  dayOfDashboardAccounts     DayOfDashboardAccount[]      @relation("DayOfDashboardAccountInstance")
+  LedgerItem                 LedgerItem[]
+  FormField                  VolunteerRegistrationField[]
+  FormResponse               VolunteerRegistration[]
+  Location                   Location[]
+  Job                        Job[]
+  Shift                      Shift[]
+  RegistrationTier           RegistrationTier[]
+  RegistrationPeriodPricing  RegistrationPeriodPricing[]
+  RegistrationPeriod         RegistrationPeriod[]
+  Team                       Team[]
+  UpsellItem                 UpsellItem[]
+  Registration               Registration[]
+  RegistrationPage           RegistrationPage[]
+  RegistrationField          RegistrationField[]
+  RegistrationFieldResponse  RegistrationFieldResponse[]
+  coupons                    Coupon[]
+  Session                    Session[]
 }
 
 model LedgerItem {
@@ -1033,7 +1091,7 @@ model Campaign {
   mailingListId String
   mailingList   MailingList @relation(fields: [mailingListId], references: [id], onDelete: Cascade)
 
-  sendImmediately Boolean @default(false)
+  sendImmediately Boolean   @default(false)
   sendAt          DateTime?
   sendAtTz        String?
 
