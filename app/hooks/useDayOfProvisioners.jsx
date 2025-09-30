@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
-import useSWR from "swr";
+import useSWR, { mutate as mutateGlobal } from "swr";
 import toast from "react-hot-toast";
 import { authFetch } from "../util/url";
+import { useSelectedInstance } from "../contexts/SelectedInstanceContext";
 
 const MIN_EXPIRY_SECONDS = 60;
 const MAX_EXPIRY_SECONDS = 60 * 60 * 24 * 7;
@@ -41,6 +42,9 @@ export const PROVISIONER_PERMISSION_OPTIONS = [
 ];
 
 export const useDayOfProvisioners = ({ eventId }) => {
+  const { instance, instanceDropdownValue } = useSelectedInstance();
+  const selectedInstanceId = instance?.id || instanceDropdownValue?.id || null;
+
   const key = useMemo(() => {
     if (!eventId) return null;
     return `/api/events/${eventId}/day-of-dashboard/provisioners`;
@@ -50,11 +54,17 @@ export const useDayOfProvisioners = ({ eventId }) => {
     data,
     error,
     isLoading,
-    mutate,
+    mutate: mutateProvisioners,
   } = useSWR(key, fetcher);
   const [mutationLoading, setMutationLoading] = useState(false);
 
   const provisioners = data?.provisioners ?? [];
+
+  const invalidateAccountCaches = useCallback(() => {
+    if (!eventId) return Promise.resolve([]);
+    const base = `/api/events/${eventId}/day-of-dashboard/accounts`;
+    return mutateGlobal((key) => typeof key === "string" && key.startsWith(base));
+  }, [eventId]);
 
   const createProvisioner = useCallback(
     async ({ name, permissions, expiryIso }) => {
@@ -71,6 +81,7 @@ export const useDayOfProvisioners = ({ eventId }) => {
               name: name?.trim() || null,
               permissions: permissions || [],
               jwtExpiresInSeconds: expiresIn,
+              instanceId: selectedInstanceId,
             }),
           }
         ).then(async (response) => {
@@ -87,7 +98,8 @@ export const useDayOfProvisioners = ({ eventId }) => {
           error: (err) => err?.message || "Failed to create provisioner",
         });
 
-        await mutate();
+        await mutateProvisioners();
+        await invalidateAccountCaches();
         return { success: true, ...result };
       } catch (errorCaught) {
         console.error("Failed to create provisioner", errorCaught);
@@ -96,7 +108,7 @@ export const useDayOfProvisioners = ({ eventId }) => {
         setMutationLoading(false);
       }
     },
-    [eventId, mutate]
+    [eventId, invalidateAccountCaches, mutateProvisioners, selectedInstanceId]
   );
 
   const updateProvisioner = useCallback(
@@ -133,7 +145,8 @@ export const useDayOfProvisioners = ({ eventId }) => {
           error: (err) => err?.message || "Failed to update provisioner",
         });
 
-        await mutate();
+        await mutateProvisioners();
+        await invalidateAccountCaches();
         return true;
       } catch (errorCaught) {
         console.error("Failed to update provisioner", errorCaught);
@@ -142,7 +155,7 @@ export const useDayOfProvisioners = ({ eventId }) => {
         setMutationLoading(false);
       }
     },
-    [eventId, mutate]
+    [eventId, invalidateAccountCaches, mutateProvisioners]
   );
 
   const endProvisionerSessions = useCallback(
@@ -170,7 +183,8 @@ export const useDayOfProvisioners = ({ eventId }) => {
           error: (err) => err?.message || "Failed to end sessions",
         });
 
-        await mutate();
+        await mutateProvisioners();
+        await invalidateAccountCaches();
         return { success: true };
       } catch (errorCaught) {
         console.error("Failed to end provisioner sessions", errorCaught);
@@ -179,7 +193,7 @@ export const useDayOfProvisioners = ({ eventId }) => {
         setMutationLoading(false);
       }
     },
-    [eventId, mutate]
+    [eventId, invalidateAccountCaches, mutateProvisioners]
   );
 
   return {
@@ -187,7 +201,7 @@ export const useDayOfProvisioners = ({ eventId }) => {
     loading: Boolean(eventId) && (isLoading || mutationLoading),
     mutationLoading,
     error,
-    refetch: mutate,
+    refetch: mutateProvisioners,
     createProvisioner,
     updateProvisioner,
     endProvisionerSessions,

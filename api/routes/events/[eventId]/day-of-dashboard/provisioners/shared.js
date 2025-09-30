@@ -13,7 +13,11 @@ export const provisionerSelect = {
   updatedAt: true,
   _count: {
     select: {
-      accounts: true,
+      accounts: {
+        where: {
+          deleted: false,
+        },
+      },
     },
   },
 };

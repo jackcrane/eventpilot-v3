@@ -20,8 +20,8 @@ const optionForValue = (value) =>
 const computeInitialPermissions = (provisioner) => {
   const source = provisioner?.permissions ?? [];
   if (source.length) return source.map(optionForValue);
-  const fallback = PROVISIONER_PERMISSION_OPTIONS[0];
-  return fallback ? [fallback] : [];
+  // Default to no permissions selected initially
+  return [];
 };
 const computeInitialExpiryIso = (mode, provisioner) => {
   if (mode === "edit") {
