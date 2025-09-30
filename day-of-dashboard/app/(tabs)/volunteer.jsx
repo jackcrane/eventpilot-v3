@@ -9,16 +9,16 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
-} from 'react-native';
-import { Redirect } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { Redirect } from "expo-router";
+import { useMemo, useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { getDefaultRouteForPermissions } from '../../constants/dayOfPermissions';
-import { Colors } from '../../constants/theme';
-import { useDayOfSessionContext } from '../../contexts/DayOfSessionContext';
-import { useVolunteerRoster } from '../../hooks/useVolunteerRoster';
-import { useVolunteerDetail } from '../../hooks/useVolunteerDetail';
+import { getDefaultRouteForPermissions } from "../../constants/dayOfPermissions";
+import { DayOfColors } from "../../constants/theme";
+import { useDayOfSessionContext } from "../../contexts/DayOfSessionContext";
+import { useVolunteerRoster } from "../../hooks/useVolunteerRoster";
+import { useVolunteerDetail } from "../../hooks/useVolunteerDetail";
 
 const VolunteerDetailModal = ({ volunteerId, onClose }) => {
   const { detail, loading, error } = useVolunteerDetail(volunteerId);
@@ -59,14 +59,14 @@ const VolunteerDetailModal = ({ volunteerId, onClose }) => {
               {detail.fields.map((field) => {
                 const value = detail.response[field.id];
                 const displayValue =
-                  typeof value === 'string'
+                  typeof value === "string"
                     ? value
-                    : value?.label ?? value ?? '—';
+                    : value?.label ?? value ?? "—";
                 return (
                   <View key={field.id} style={styles.row}>
                     <Text style={styles.rowLabel}>{field.label}</Text>
                     <Text style={styles.rowValue}>
-                      {displayValue?.toString()?.length ? displayValue : '—'}
+                      {displayValue?.toString()?.length ? displayValue : "—"}
                     </Text>
                   </View>
                 );
@@ -83,7 +83,7 @@ const VolunteerDetailModal = ({ volunteerId, onClose }) => {
                         <Text style={styles.jobTitle}>{job.name}</Text>
                         {job.shifts.map((shift) => (
                           <Text key={shift.id} style={styles.shiftItem}>
-                            {new Date(shift.startTime).toLocaleString()} →{' '}
+                            {new Date(shift.startTime).toLocaleString()} →{" "}
                             {new Date(shift.endTime).toLocaleString()}
                           </Text>
                         ))}
@@ -102,8 +102,8 @@ const VolunteerDetailModal = ({ volunteerId, onClose }) => {
 
 const VolunteerScreen = () => {
   const { permissions, hydrated } = useDayOfSessionContext();
-  const hasPermission = permissions.includes('VOLUNTEER_CHECK_IN');
-  const [search, setSearch] = useState('');
+  const hasPermission = permissions.includes("VOLUNTEER_CHECK_IN");
+  const [search, setSearch] = useState("");
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
   const { volunteers, loading, error, refetch } = useVolunteerRoster();
 
@@ -129,29 +129,24 @@ const VolunteerScreen = () => {
     return <Redirect href={getDefaultRouteForPermissions(permissions)} />;
   }
 
+  const renderVolunteer = ({ item }) => (
+    <TouchableOpacity
+      style={styles.listRow}
+      onPress={() => setSelectedVolunteer(item.id)}
+    >
+      <Text style={styles.listTitle} numberOfLines={1}>
+        {item.name?.length ? item.name : "Unnamed Volunteer"}
+      </Text>
+      <Text style={styles.listMeta}>
+        Registered {new Date(item.createdAt).toLocaleDateString()}
+      </Text>
+      {item.email ? <Text style={styles.listDetail}>{item.email}</Text> : null}
+      {item.phone ? <Text style={styles.listDetail}>{item.phone}</Text> : null}
+    </TouchableOpacity>
+  );
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Volunteers</Text>
-        <Text style={styles.subtitle}>
-          Search roster and tap a volunteer to view their full registration.
-        </Text>
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Search by name, email, phone, or answer"
-          style={styles.searchInput}
-          placeholderTextColor="#7d8186"
-          autoCorrect={false}
-        />
-      </View>
-      {error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>
-            Unable to load volunteers. Pull to refresh.
-          </Text>
-        </View>
-      ) : null}
+    <View style={styles.safeArea}>
       <FlatList
         data={filteredVolunteers}
         keyExtractor={(item) => item.id}
@@ -159,31 +154,42 @@ const VolunteerScreen = () => {
           <RefreshControl refreshing={loading} onRefresh={() => refetch()} />
         }
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle=
-          {filteredVolunteers.length === 0 && !loading
+        keyboardDismissMode="on-drag"
+        // Make the list fill the screen and allow scrolling even with few items
+        contentContainerStyle={[
+          styles.listContainer,
+          filteredVolunteers.length === 0 && !loading
             ? styles.emptyListContainer
-            : styles.listContent}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => setSelectedVolunteer(item.id)}
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>
-                {item.name?.length ? item.name : 'Unnamed Volunteer'}
+            : null,
+        ]}
+        // Helpful UX tweaks for both platforms
+        bounces
+        alwaysBounceVertical
+        overScrollMode="always"
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Text style={styles.title}>Volunteers</Text>
+            <Text style={styles.subtitle}>
+              Search roster and tap a volunteer to view their full registration.
+            </Text>
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search by name, email, phone, or answer"
+              style={styles.searchInput}
+              placeholderTextColor={DayOfColors.light.tertiary}
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+            {error ? (
+              <Text style={styles.errorText}>
+                Unable to load volunteers. Pull to refresh.
               </Text>
-              <Text style={styles.cardTimestamp}>
-                Registered {new Date(item.createdAt).toLocaleDateString()}
-              </Text>
-            </View>
-            {item.email ? (
-              <Text style={styles.cardDetail}>{item.email}</Text>
             ) : null}
-            {item.phone ? (
-              <Text style={styles.cardDetail}>{item.phone}</Text>
-            ) : null}
-          </TouchableOpacity>
-        )}
+          </View>
+        }
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        renderItem={renderVolunteer}
         ListEmptyComponent={
           !loading ? (
             <View style={styles.emptyState}>
@@ -199,7 +205,7 @@ const VolunteerScreen = () => {
         volunteerId={selectedVolunteer}
         onClose={() => setSelectedVolunteer(null)}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -208,173 +214,158 @@ export default VolunteerScreen;
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f4f6fb',
+    backgroundColor: DayOfColors.light.bodyBg,
   },
   centerContent: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 24,
     paddingBottom: 16,
-    backgroundColor: '#f4f6fb',
     gap: 8,
   },
   title: {
     fontSize: 24,
-    fontWeight: '600',
-    color: '#101a33',
+    fontWeight: "600",
+    color: DayOfColors.light.text,
   },
   subtitle: {
     fontSize: 15,
-    color: '#596078',
+    color: DayOfColors.light.secondary,
   },
   searchInput: {
-    marginTop: 4,
-    borderRadius: 12,
+    marginTop: 12,
+    borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#dfe3eb',
+    backgroundColor: DayOfColors.light.gray[200],
     fontSize: 16,
-    color: '#101a33',
-  },
-  errorContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 8,
+    color: DayOfColors.light.text,
   },
   errorText: {
-    color: '#c33e3e',
+    color: DayOfColors.light.danger,
     fontSize: 14,
+    marginTop: 8,
   },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-    gap: 12,
-  },
-  emptyListContainer: {
+  // Ensures FlatList fills screen and stays scrollable
+  listContainer: {
     flexGrow: 1,
+    paddingBottom: 24,
+  },
+  // When empty, keep full height so pull-to-refresh/bounce still works
+  emptyListContainer: {
+    justifyContent: "center",
+  },
+  listRow: {
     paddingHorizontal: 20,
-    paddingBottom: 32,
+    paddingVertical: 14,
+    backgroundColor: DayOfColors.common.white,
+    gap: 4,
   },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-    gap: 6,
+  listTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: DayOfColors.light.text,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  listMeta: {
+    fontSize: 13,
+    color: DayOfColors.light.tertiary,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#101a33',
-    flex: 1,
-    marginRight: 12,
-  },
-  cardTimestamp: {
-    fontSize: 12,
-    color: '#7d8186',
-  },
-  cardDetail: {
+  listDetail: {
     fontSize: 14,
-    color: '#3a3f55',
+    color: DayOfColors.light.secondary,
+  },
+  separator: {
+    marginLeft: 20,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: DayOfColors.light.border,
   },
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: 32,
     gap: 8,
+    flex: 1,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#101a33',
+    fontWeight: "600",
+    color: DayOfColors.light.text,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#596078',
-    textAlign: 'center',
+    color: DayOfColors.light.secondary,
+    textAlign: "center",
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#f8f9fc',
+    backgroundColor: DayOfColors.common.white,
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#dfe3eb',
+    borderBottomColor: DayOfColors.light.border,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#101a33',
+    fontWeight: "600",
+    color: DayOfColors.light.text,
   },
   closeButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: Colors.light.tint,
+    backgroundColor: DayOfColors.light.primary,
   },
   closeButtonText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: DayOfColors.common.white,
+    fontWeight: "600",
   },
   modalStatus: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
     padding: 20,
     gap: 16,
   },
   section: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
+    backgroundColor: DayOfColors.light.gray[200],
     gap: 12,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#101a33',
+    fontWeight: "600",
+    color: DayOfColors.light.text,
   },
   row: {
     gap: 4,
   },
   rowLabel: {
     fontSize: 13,
-    fontWeight: '500',
-    color: '#596078',
+    fontWeight: "500",
+    color: DayOfColors.light.secondary,
   },
   rowValue: {
     fontSize: 15,
-    color: '#101a33',
+    color: DayOfColors.light.text,
   },
   shiftGroup: {
     gap: 8,
   },
   locationTitle: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#101a33',
+    fontWeight: "600",
+    color: DayOfColors.light.text,
   },
   jobGroup: {
     paddingLeft: 8,
@@ -382,11 +373,11 @@ const styles = StyleSheet.create({
   },
   jobTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#3a3f55',
+    fontWeight: "600",
+    color: DayOfColors.light.secondary,
   },
   shiftItem: {
     fontSize: 13,
-    color: '#596078',
+    color: DayOfColors.light.secondary,
   },
 });

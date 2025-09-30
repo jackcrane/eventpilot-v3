@@ -1,5 +1,6 @@
 import { StyleSheet, Text } from 'react-native';
 
+import { DayOfColors } from '../constants/theme';
 import { useThemeColor } from '../hooks/use-theme-color';
 
 export function ThemedText({
@@ -49,6 +50,6 @@ const styles = StyleSheet.create({
   link: {
     lineHeight: 30,
     fontSize: 16,
-    color: '#0a7ea4',
+    color: DayOfColors.light.primary,
   },
 });

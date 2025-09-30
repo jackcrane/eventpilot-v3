@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -8,13 +8,13 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useDayOfSessionContext } from '../../contexts/DayOfSessionContext';
-import { Colors } from '../../constants/theme';
-import { useColorScheme } from '../../hooks/use-color-scheme';
+import { useDayOfSessionContext } from "../../contexts/DayOfSessionContext";
+import { DayOfColors } from "../../constants/theme";
+import { useColorScheme } from "../../hooks/use-color-scheme";
 
 export default function NameEntryScreen() {
   const colorScheme = useColorScheme();
@@ -27,51 +27,54 @@ export default function NameEntryScreen() {
     updatingName,
     logout,
   } = useDayOfSessionContext();
-  const [name, setName] = useState(account?.name ?? '');
+  const [name, setName] = useState(account?.name ?? "");
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    setName(account?.name ?? '');
+    setName(account?.name ?? "");
   }, [account?.name]);
 
   useEffect(() => {
     if (!hydrated) return;
     if (!token) {
-      router.replace('/login');
+      router.replace("/login");
       return;
     }
     if (!requireName) {
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     }
   }, [hydrated, token, requireName]);
 
-  const disabled = useMemo(() => updatingName || !name.trim().length, [name, updatingName]);
+  const disabled = useMemo(
+    () => updatingName || !name.trim().length,
+    [name, updatingName]
+  );
 
   const handleSubmit = async () => {
     const trimmed = name.trim();
     if (!trimmed.length) {
-      setError('Please enter a name for this station.');
+      setError("Please enter a name for this station.");
       return;
     }
 
     try {
       setError(null);
       await setAccountName(trimmed);
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     } catch (submissionError) {
       if (submissionError instanceof Error && submissionError.message) {
         setError(submissionError.message);
-      } else if (typeof submissionError === 'string') {
+      } else if (typeof submissionError === "string") {
         setError(submissionError);
       } else {
-        setError('Unable to save. Please try again.');
+        setError("Unable to save. Please try again.");
       }
     }
   };
 
   const handleUseDifferentPin = async () => {
     await logout();
-    router.replace('/login');
+    router.replace("/login");
   };
 
   if (!hydrated) {
@@ -98,7 +101,8 @@ export default function NameEntryScreen() {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.select({ ios: 'padding', android: undefined })}>
+        behavior={Platform.select({ ios: "padding", android: undefined })}
+      >
         <View style={styles.card}>
           <Text style={styles.title}>Name this station</Text>
           <Text style={styles.subtitle}>
@@ -109,28 +113,45 @@ export default function NameEntryScreen() {
             onChangeText={setName}
             autoFocus
             placeholder="e.g. Volunteer Check-In 1"
-            placeholderTextColor={colorScheme === 'dark' ? '#9ca3af' : '#9aa0a6'}
-            style={[styles.input, colorScheme === 'dark' ? styles.inputDark : undefined]}
+            placeholderTextColor={
+              colorScheme === "dark"
+                ? DayOfColors.dark.tertiary
+                : DayOfColors.light.tertiary
+            }
+            style={[
+              styles.input,
+              colorScheme === "dark" ? styles.inputDark : undefined,
+            ]}
             returnKeyType="done"
             onSubmitEditing={handleSubmit}
           />
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <TouchableOpacity
-            style={[styles.button, disabled ? styles.buttonDisabled : undefined]}
+            style={[
+              styles.button,
+              disabled ? styles.buttonDisabled : undefined,
+            ]}
             onPress={handleSubmit}
-            disabled={disabled}>
+            disabled={disabled}
+          >
             {updatingName ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={DayOfColors.common.white} />
             ) : (
               <Text style={styles.buttonText}>Save name</Text>
             )}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={handleUseDifferentPin}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={handleUseDifferentPin}
+          >
             <Text
               style={[
                 styles.secondaryButtonText,
-                colorScheme === 'dark' ? styles.secondaryButtonTextDark : undefined,
-              ]}>
+                colorScheme === "dark"
+                  ? styles.secondaryButtonTextDark
+                  : undefined,
+              ]}
+            >
               Use a different PIN
             </Text>
           </TouchableOpacity>
@@ -143,21 +164,21 @@ export default function NameEntryScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f4f6fb',
+    backgroundColor: DayOfColors.light.bodyBg,
   },
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 16,
   },
   card: {
-    width: '100%',
+    width: "100%",
     maxWidth: 420,
     borderRadius: 12,
     padding: 24,
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    shadowColor: '#000',
+    backgroundColor: DayOfColors.common.surfaceOverlay,
+    shadowColor: DayOfColors.common.black,
     shadowOpacity: 0.15,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
@@ -166,63 +187,63 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    textAlign: 'center',
-    color: '#555',
+    textAlign: "center",
+    color: DayOfColors.light.secondary,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#c5c9d0',
+    borderColor: DayOfColors.light.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    backgroundColor: '#fff',
-    color: '#111',
+    backgroundColor: DayOfColors.common.white,
+    color: DayOfColors.light.text,
   },
   inputDark: {
-    borderColor: '#3a3c40',
-    backgroundColor: '#1f1f1f',
-    color: Colors.dark.text,
+    borderColor: DayOfColors.dark.border,
+    backgroundColor: DayOfColors.dark.bodyBg,
+    color: DayOfColors.dark.text,
   },
   button: {
     marginTop: 4,
-    backgroundColor: '#0077ff',
+    backgroundColor: DayOfColors.light.primary,
     paddingVertical: 14,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   buttonDisabled: {
-    backgroundColor: '#97c2ff',
+    backgroundColor: DayOfColors.light.primaryLt,
   },
   buttonText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: DayOfColors.common.white,
+    fontWeight: "600",
     fontSize: 16,
   },
   secondaryButton: {
     paddingVertical: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   secondaryButtonText: {
-    color: '#4a4c50',
-    fontWeight: '500',
+    color: DayOfColors.light.secondary,
+    fontWeight: "500",
     fontSize: 15,
   },
   secondaryButtonTextDark: {
-    color: '#f3f4f6',
+    color: DayOfColors.dark.secondary,
   },
   errorText: {
-    color: '#d93025',
-    textAlign: 'center',
+    color: DayOfColors.light.danger,
+    textAlign: "center",
   },
   loadingContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

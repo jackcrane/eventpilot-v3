@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DAY_OF_PERMISSION_TABS } from '../../constants/dayOfPermissions';
 import { useDayOfSessionContext } from '../../contexts/DayOfSessionContext';
+import { DayOfColors } from '../../constants/theme';
 
 const SettingsScreen = () => {
   const { account, permissions, logout } = useDayOfSessionContext();
@@ -82,7 +83,7 @@ export default SettingsScreen;
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f4f6fb',
+    backgroundColor: DayOfColors.light.bodyBg,
   },
   container: {
     padding: 24,
@@ -91,8 +92,8 @@ const styles = StyleSheet.create({
   section: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: '#fff',
-    shadowColor: '#00000020',
+    backgroundColor: DayOfColors.common.white,
+    shadowColor: DayOfColors.common.shadow,
     shadowOpacity: 0.1,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
@@ -102,19 +103,19 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     letterSpacing: 0.8,
-    color: '#6b6f76',
+    color: DayOfColors.light.secondary,
     textTransform: 'uppercase',
     fontWeight: '600',
   },
   sectionValue: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1a1c20',
+    color: DayOfColors.light.text,
   },
   badge: {
     marginTop: 4,
-    backgroundColor: '#e7f0ff',
-    color: '#084b9b',
+    backgroundColor: DayOfColors.light.primaryLt,
+    color: DayOfColors.light.primary,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 8,
@@ -126,10 +127,10 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    backgroundColor: '#202124',
+    backgroundColor: DayOfColors.light.primary,
   },
   logoutButtonText: {
-    color: '#fff',
+    color: DayOfColors.common.white,
     fontSize: 16,
     fontWeight: '600',
   },

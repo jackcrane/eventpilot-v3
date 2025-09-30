@@ -13,7 +13,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useDayOfSessionContext } from '../../contexts/DayOfSessionContext';
-import { Colors } from '../../constants/theme';
+import { DayOfColors } from '../../constants/theme';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 
 const PIN_LENGTH = 6;
@@ -110,7 +110,7 @@ export default function PinLoginScreen() {
             onPress={handleSubmit}
             disabled={disabled}>
             {loggingIn ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={DayOfColors.common.white} />
             ) : (
               <Text style={styles.buttonText}>Continue</Text>
             )}
@@ -124,7 +124,7 @@ export default function PinLoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f4f6fb',
+    backgroundColor: DayOfColors.light.bodyBg,
   },
   container: {
     flex: 1,
@@ -137,8 +137,8 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     borderRadius: 12,
     padding: 24,
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    shadowColor: '#000',
+    backgroundColor: DayOfColors.common.surfaceOverlay,
+    shadowColor: DayOfColors.common.black,
     shadowOpacity: 0.15,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#555',
+    color: DayOfColors.light.secondary,
     marginBottom: 12,
   },
   input: {
@@ -164,33 +164,33 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderWidth: 2,
     borderRadius: 10,
-    borderColor: '#ccc',
+    borderColor: DayOfColors.light.border,
     marginBottom: 4,
-    color: '#111',
-    backgroundColor: '#fff',
+    color: DayOfColors.light.text,
+    backgroundColor: DayOfColors.common.white,
   },
   inputDark: {
-    borderColor: '#555',
-    backgroundColor: '#1f1f1f',
-    color: Colors.dark.text,
+    borderColor: DayOfColors.dark.border,
+    backgroundColor: DayOfColors.dark.bodyBg,
+    color: DayOfColors.dark.text,
   },
   button: {
     marginTop: 8,
-    backgroundColor: '#0077ff',
+    backgroundColor: DayOfColors.light.primary,
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#97c2ff',
+    backgroundColor: DayOfColors.light.primaryLt,
   },
   buttonText: {
-    color: '#fff',
+    color: DayOfColors.common.white,
     fontWeight: '600',
     fontSize: 16,
   },
   errorText: {
-    color: '#d93025',
+    color: DayOfColors.light.danger,
     textAlign: 'center',
   },
   loadingContainer: {

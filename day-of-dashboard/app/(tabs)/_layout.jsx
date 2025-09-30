@@ -6,7 +6,7 @@ import { HapticTab } from "../../components/haptic-tab";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { useDayOfSessionContext } from "../../contexts/DayOfSessionContext";
 import { DAY_OF_PERMISSION_TABS } from "../../constants/dayOfPermissions";
-import { Colors } from "../../constants/theme";
+import { Colors, DayOfColors } from "../../constants/theme";
 import { useColorScheme } from "../../hooks/use-color-scheme";
 
 export default function TabLayout() {
@@ -82,7 +82,7 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f4f6fb",
+    backgroundColor: DayOfColors.light.bodyBg,
   },
   loadingContainer: {
     flex: 1,
