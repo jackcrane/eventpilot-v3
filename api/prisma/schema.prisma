@@ -559,6 +559,9 @@ model DayOfDashboardAccount {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  checkIns VolunteerShiftSignup[] @relation("VolunteerShiftSignupCheckedInBy")
+  logs     Logs[]
+
   @@index([eventId])
   @@index([provisionerId])
   @@index([instanceId])
@@ -842,6 +845,10 @@ model VolunteerShiftSignup {
 
   shiftId String
   shift   Shift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  checkedInAt   DateTime?
+  checkedInById String?
+  checkedInBy   DayOfDashboardAccount? @relation("VolunteerShiftSignupCheckedInBy", fields: [checkedInById], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1432,6 +1439,9 @@ model Logs {
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  dayOfDashboardAccountId String?
+  dayOfDashboardAccount   DayOfDashboardAccount? @relation(fields: [dayOfDashboardAccountId], references: [id], onDelete: SetNull)
+
   emailPreferencesId String?
   emailPreferences   EmailPreferences? @relation(fields: [emailPreferencesId], references: [id], onDelete: Cascade)
 
@@ -1685,6 +1695,8 @@ enum LogType {
   SHIFT_CREATED
   SHIFT_MODIFIED
   SHIFT_DELETED
+  VOLUNTEER_SHIFT_CHECKED_IN
+  VOLUNTEER_SHIFT_CHECKED_OUT
   STRIPE_CUSTOMER_CREATED
   STRIPE_CUSTOMER_UPDATED
   STRIPE_SETUP_INTENT_CREATED

@@ -30,7 +30,7 @@ export const groupByLocationAndJob = (responses) => {
   const result = [];
   const locationMap = new Map();
 
-  responses.forEach(({ shift }) => {
+  responses.forEach(({ shift, checkedInAt, checkedInBy }) => {
     const { job, ...shiftData } = shift;
     const { location } = job;
 
@@ -53,7 +53,11 @@ export const groupByLocationAndJob = (responses) => {
     }
 
     // Add the shift to this job
-    jobEntry.shifts.push(shiftData);
+    jobEntry.shifts.push({
+      ...shiftData,
+      checkedInAt,
+      checkedInBy,
+    });
   });
 
   return result;
@@ -76,6 +80,12 @@ export const findSubmission = async (eventId, submissionId) => {
                   location: true,
                 },
               },
+            },
+          },
+          checkedInBy: {
+            select: {
+              id: true,
+              name: true,
             },
           },
         },
@@ -106,7 +116,16 @@ export const findSubmission = async (eventId, submissionId) => {
     },
   });
 
-  const shifts = [...resp.shifts];
+  const shifts = resp.shifts.map((signup) => ({
+    shift: signup.shift,
+    checkedInAt: signup.checkedInAt,
+    checkedInBy: signup.checkedInBy
+      ? {
+          id: signup.checkedInBy.id,
+          name: signup.checkedInBy.name,
+        }
+      : null,
+  }));
   const formattedResponse = formatFormResponse(resp, fields);
 
   // Robustly resolve special fields (prefer eventpilotFieldType, then fallbacks)
@@ -191,7 +210,11 @@ export const findSubmission = async (eventId, submissionId) => {
     fields: fieldsMeta,
     pii: resp.pii,
     groupedShifts: groupByLocationAndJob(shifts),
-    shifts: shifts.map((s) => s.shift),
+    shifts: shifts.map((s) => ({
+      ...s.shift,
+      checkedInAt: s.checkedInAt,
+      checkedInBy: s.checkedInBy,
+    })),
   };
 };
 
