@@ -3,6 +3,7 @@ export const provisionerSelect = {
   eventId: true,
   instanceId: true,
   name: true,
+  pin: true,
   permissions: true,
   jwtExpiresInSeconds: true,
   tokenVersion: true,
@@ -23,6 +24,7 @@ export const formatProvisioner = (record) => {
     ...rest,
     instanceId: rest.instanceId ?? null,
     name: rest.name ?? null,
+    pin: rest.pin ?? null,
     deleted: Boolean(rest.deleted),
     accountCount: _count?.accounts ?? 0,
   };

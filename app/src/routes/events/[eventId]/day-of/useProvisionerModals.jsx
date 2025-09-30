@@ -41,13 +41,14 @@ export const useProvisionerModals = ({
               expiresAtTz: expiryTz || defaultTz,
             };
 
-            revealPin(created, result.pin);
+            const pinValue = result.pin ?? created.pin;
+            revealPin(created, pinValue);
 
             offcanvas({
               content: (
                 <ProvisionerSuccess
                   name={created.name || "Provisioner"}
-                  pin={result.pin}
+                  pin={pinValue}
                   expiryIso={created.expiresAt}
                   expiryTz={created.expiresAtTz || defaultTz}
                   onClose={close}

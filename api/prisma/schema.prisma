@@ -520,6 +520,7 @@ model DayOfDashboardProvisioner {
   instance   EventInstance? @relation("DayOfDashboardProvisionerInstance", fields: [instanceId], references: [id], onDelete: SetNull)
 
   name                String?
+  pin                 String?
   pinLookupKey        String   @unique
   pinHash             String
   permissions         String[]

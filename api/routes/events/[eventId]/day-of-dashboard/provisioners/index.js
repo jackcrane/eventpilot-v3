@@ -125,6 +125,7 @@ export const post = [
           name: name?.trim() || null,
           permissions,
           jwtExpiresInSeconds: expiresIn,
+          pin,
           pinLookupKey,
           pinHash,
           lastPinGeneratedAt: new Date(),
