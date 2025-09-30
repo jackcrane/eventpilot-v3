@@ -199,7 +199,7 @@ export const findSubmission = async (eventId, submissionId) => {
  * GET → fetch a single submission with flattened values
  */
 export const get = [
-  verifyAuth(["manager"]),
+  verifyAuth(["manager", "dod:volunteer"]),
   async (req, res) => {
     const { eventId, submissionId } = req.params;
 

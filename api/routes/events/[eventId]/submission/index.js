@@ -189,7 +189,7 @@ export const post = async (req, res) => {
 };
 
 export const get = [
-  verifyAuth(["manager"], true),
+  verifyAuth(["manager", "dod:volunteer"], true),
   async (req, res) => {
     const { eventId } = req.params;
     const instanceId = req.instanceId;
