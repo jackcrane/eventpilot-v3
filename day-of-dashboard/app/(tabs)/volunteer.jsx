@@ -339,6 +339,7 @@ const VolunteerScreen = () => {
               placeholderTextColor={DayOfColors.light.tertiary}
               autoCorrect={false}
               autoCapitalize="none"
+              clearButtonMode="always"
             />
             {error ? (
               <Text style={styles.errorText}>
