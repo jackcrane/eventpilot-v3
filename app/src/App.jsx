@@ -84,6 +84,11 @@ const EventJobs = React.lazy(() =>
     default: m.EventJobs,
   }))
 );
+const EventProvisionersPage = React.lazy(() =>
+  import("./routes/events/[eventId]/day-of/provisioners").then((m) => ({
+    default: m.EventProvisionersPage,
+  }))
+);
 
 const RegistrationBuilder = React.lazy(() =>
   import("./routes/events/[eventId]/registration/builder").then((m) => ({
@@ -290,6 +295,10 @@ export default () => {
               <Route
                 path="/events/:eventId/volunteers/jobs"
                 element={<EventJobs />}
+              />
+              <Route
+                path="/events/:eventId/day-of/provisioners"
+                element={<EventProvisionersPage />}
               />
 
               <Route
