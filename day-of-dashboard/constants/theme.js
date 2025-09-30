@@ -1,8 +1,3 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from "react-native";
 
 const tintColorLight = "#206bc4";
@@ -52,14 +47,14 @@ export const DayOfColors = {
     secondary: tablerGray[700],
     tertiary: tablerGray[600],
     gray: tablerGray,
-    primary: "#206bc4",
-    primaryLt: "#8cbaff",
-    danger: "#d63939",
-    dangerLt: "#ffa8a8",
+    primary: "#066ed0",
+    primaryLt: "#e8f0fa",
+    danger: "#d63938",
+    dangerLt: "#fcebea",
     success: "#2fb344",
-    successLt: "#8ce99a",
+    successLt: "#ecf7ec",
     warning: "#f59f00",
-    warningLt: "#ffe066",
+    warningLt: "#fdf4ea",
     border: tablerGray[400],
   },
   dark: {
@@ -68,14 +63,14 @@ export const DayOfColors = {
     secondary: tablerGray[500],
     tertiary: tablerGray[400],
     gray: tablerGray,
-    primary: "#4dabf7",
-    primaryLt: "#a5d8ff",
-    danger: "#f03e3e",
-    dangerLt: "#ffa8a8",
-    success: "#40c057",
-    successLt: "#8ce99a",
+    primary: "#066ed0",
+    primaryLt: "#1f3046",
+    danger: "#d63938",
+    dangerLt: "#332c37",
+    success: "#2fb344",
+    successLt: "#223738",
     warning: "#f59f00",
-    warningLt: "#ffe066",
+    warningLt: "#353536",
     border: "#2c2e33",
   },
 };
