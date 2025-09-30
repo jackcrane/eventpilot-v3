@@ -1,15 +1,17 @@
 import SwiftUI
 
 struct VolunteersScreen: View {
+    @EnvironmentObject private var sessionStore: DayOfSessionStore
+
     var body: some View {
         NavigationStack {
             List {
-                Section("Volunteers") {
-                    ForEach(0..<8, id: \.self) { idx in
-                        HStack {
-                            Image(systemName: "hands.sparkles")
-                            Text("Volunteer #\(idx + 1)")
-                        }
+                Section("Volunteer Tools") {
+                    Text("Use this tab to manage volunteer check-ins during the event.")
+                        .foregroundStyle(.secondary)
+                    if let permissions = sessionStore.session?.account.permissions {
+                        Text("Permissions: \(permissions.joined(separator: ", ")).")
+                            .font(.callout)
                     }
                 }
             }
@@ -20,4 +22,5 @@ struct VolunteersScreen: View {
 
 #Preview {
     VolunteersScreen()
+        .environmentObject(DayOfSessionStore())
 }

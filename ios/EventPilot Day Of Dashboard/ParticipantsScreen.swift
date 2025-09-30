@@ -1,15 +1,16 @@
 import SwiftUI
 
 struct ParticipantsScreen: View {
+    @EnvironmentObject private var sessionStore: DayOfSessionStore
+
     var body: some View {
         NavigationStack {
             List {
-                Section("Participants") {
-                    ForEach(0..<10, id: \.self) { idx in
-                        HStack {
-                            Image(systemName: "person.crop.circle")
-                            Text("Participant #\(idx + 1)")
-                        }
+                Section("Participant Check-In") {
+                    Text("Participant-facing tools will appear here once connected to the live API.")
+                        .foregroundStyle(.secondary)
+                    if let name = sessionStore.session?.account.name, !name.isEmpty {
+                        Text("Signed in as \(name).").font(.callout)
                     }
                 }
             }
@@ -20,4 +21,5 @@ struct ParticipantsScreen: View {
 
 #Preview {
     ParticipantsScreen()
+        .environmentObject(DayOfSessionStore())
 }
