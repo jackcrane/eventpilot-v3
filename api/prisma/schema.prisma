@@ -560,6 +560,7 @@ model DayOfDashboardAccount {
   updatedAt DateTime @updatedAt
 
   checkIns VolunteerShiftSignup[] @relation("VolunteerShiftSignupCheckedInBy")
+  registrationCheckIns Registration[] @relation("RegistrationCheckedInBy")
   logs     Logs[]
 
   @@index([eventId])
@@ -1311,6 +1312,10 @@ model Registration {
   upsells        RegistrationUpsell[]
   fieldResponses RegistrationFieldResponse[]
 
+  checkedInAt   DateTime?
+  checkedInById String?
+  checkedInBy   DayOfDashboardAccount? @relation("RegistrationCheckedInBy", fields: [checkedInById], references: [id], onDelete: SetNull)
+
   finalized Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -1325,6 +1330,8 @@ model Registration {
   ledgerItems LedgerItem[]
   Session     Session[]
   TodoItem    TodoItem[]
+
+  @@index([checkedInById])
 }
 
 model RegistrationUpsell {

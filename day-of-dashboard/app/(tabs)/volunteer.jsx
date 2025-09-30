@@ -23,7 +23,6 @@ import { useVolunteerDetail } from "../../hooks/useVolunteerDetail";
 import { useVolunteerShiftCheckins } from "../../hooks/useVolunteerShiftCheckins";
 import {
   formatDate,
-  formatDateTime,
   formatDateTimeWithoutTimeZone,
   formatShiftRange,
 } from "../../utils/date";
@@ -62,6 +61,9 @@ const VolunteerDetailModal = ({ volunteerId, onClose }) => {
       return initialValue !== currentValue;
     });
   }, [checkState, initialState]);
+
+  const hasAssignedShifts = Boolean(detail?.groupedShifts?.length);
+  const totalShiftCount = detail?.shifts?.length ?? 0;
 
   const handleSave = useCallback(async () => {
     if (!detail?.shifts?.length) return;
@@ -140,10 +142,10 @@ const VolunteerDetailModal = ({ volunteerId, onClose }) => {
                 );
               })}
             </View>
-            {detail.groupedShifts?.length ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Assigned Shifts</Text>
-                {detail.groupedShifts.map((location) => (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Assigned Shifts</Text>
+              {hasAssignedShifts ? (
+                detail.groupedShifts?.map((location) => (
                   <View key={location.id} style={styles.shiftGroup}>
                     <Text style={styles.locationTitle}>{location.name}</Text>
                     {location.jobs.map((job) => (
@@ -162,8 +164,6 @@ const VolunteerDetailModal = ({ volunteerId, onClose }) => {
                             startTimeTz: shift.startTimeTz,
                             endTimeTz: shift.endTimeTz,
                           });
-                          const shiftTzLabel =
-                            shift.startTimeTz || shift.endTimeTz;
                           return (
                             <View key={shift.id} style={styles.shiftItemRow}>
                               <View style={styles.shiftInfo}>
@@ -182,20 +182,11 @@ const VolunteerDetailModal = ({ volunteerId, onClose }) => {
                                     : "Not checked in"}
                                   {dirty ? " (unsaved)" : ""}
                                 </Text>
-                                {shift.checkedInBy?.name &&
-                                shift.checkedInAt ? (
+                                {shift.checkedInAt ? (
                                   <Text style={styles.checkInMeta}>
-                                    Last checked in by {shift.checkedInBy.name}{" "}
-                                    on{" "}
-                                    {formatDateTimeWithoutTimeZone(
-                                      shift.checkedInAt
-                                    )}
-                                  </Text>
-                                ) : null}
-                                {!shift.checkedInBy?.name &&
-                                shift.checkedInAt ? (
-                                  <Text style={styles.checkInMeta}>
-                                    Last checked in on{" "}
+                                    {shift.checkedInBy?.name
+                                      ? `Last checked in by ${shift.checkedInBy.name}`
+                                      : "Last checked in"}{" "}
                                     {formatDateTimeWithoutTimeZone(
                                       shift.checkedInAt
                                     )}
@@ -214,39 +205,53 @@ const VolunteerDetailModal = ({ volunteerId, onClose }) => {
                       </View>
                     ))}
                   </View>
-                ))}
-                <View style={styles.actions}>
-                  {hasChanges ? (
-                    <Text style={styles.unsavedBanner}>
-                      You have unsaved check-in changes.
-                    </Text>
-                  ) : null}
-                  <TouchableOpacity
-                    style={[
-                      styles.saveButton,
-                      (!hasChanges || updating) && styles.saveButtonDisabled,
-                    ]}
-                    onPress={handleSave}
-                    disabled={!hasChanges || updating}
-                  >
-                    {updating ? (
-                      <ActivityIndicator color={DayOfColors.common.white} />
-                    ) : (
-                      <Text style={styles.saveButtonText}>Save Check-Ins</Text>
-                    )}
-                  </TouchableOpacity>
-                  {saveError ? (
-                    <Text style={styles.saveError}>{saveError}</Text>
-                  ) : null}
-                  {updateError && !saveError ? (
-                    <Text style={styles.saveError}>
-                      {updateError.message ??
-                        "Unable to update shifts. Please try again."}
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
-            ) : null}
+                ))
+              ) : (
+                <Text style={styles.checkInMeta}>
+                  This volunteer has no assigned shifts yet.
+                </Text>
+              )}
+            </View>
+
+            <View style={styles.bottomSpacer} />
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Check-In</Text>
+              <Text style={styles.checkInMeta}>
+                {totalShiftCount
+                  ? "Toggle each shift above and save to capture attendance."
+                  : "Assign shifts to enable check-in tracking for this volunteer."}
+              </Text>
+              {hasChanges ? (
+                <Text style={styles.unsavedBanner}>
+                  You have unsaved check-in changes.
+                </Text>
+              ) : null}
+              <TouchableOpacity
+                style={[
+                  styles.saveButton,
+                  (totalShiftCount === 0 || !hasChanges || updating) &&
+                    styles.saveButtonDisabled,
+                ]}
+                onPress={handleSave}
+                disabled={totalShiftCount === 0 || !hasChanges || updating}
+              >
+                {updating ? (
+                  <ActivityIndicator color={DayOfColors.common.white} />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save Check-Ins</Text>
+                )}
+              </TouchableOpacity>
+              {saveError ? (
+                <Text style={styles.saveError}>{saveError}</Text>
+              ) : null}
+              {updateError && !saveError ? (
+                <Text style={styles.saveError}>
+                  {updateError.message ??
+                    "Unable to update shifts. Please try again."}
+                </Text>
+              ) : null}
+            </View>
           </ScrollView>
         )}
       </SafeAreaView>
@@ -400,7 +405,7 @@ const styles = StyleSheet.create({
     color: DayOfColors.light.text,
   },
   errorText: {
-    color: DayOfColors.light.danger,
+    color: DayOfColors.light.error,
     fontSize: 14,
     marginTop: 8,
   },
@@ -455,16 +460,17 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: DayOfColors.common.white,
+    backgroundColor: DayOfColors.light.bodyBg,
   },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: DayOfColors.light.border,
+    borderBottomColor: DayOfColors.light.gray[200],
   },
   modalTitle: {
     fontSize: 20,
@@ -473,45 +479,50 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: DayOfColors.light.primary,
+    backgroundColor: DayOfColors.light.gray[200],
   },
   closeButtonText: {
-    color: DayOfColors.common.white,
+    fontSize: 14,
     fontWeight: "600",
+    color: DayOfColors.light.text,
   },
   modalStatus: {
-    flex: 1,
+    padding: 24,
     justifyContent: "center",
     alignItems: "center",
   },
   modalContent: {
     padding: 20,
-    gap: 16,
+    gap: 24,
+    paddingBottom: 40,
+    flexGrow: 1,
   },
   section: {
-    borderRadius: 12,
-    padding: 16,
-    backgroundColor: DayOfColors.light.gray[200],
     gap: 12,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
     color: DayOfColors.light.text,
   },
   row: {
-    gap: 4,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
   },
   rowLabel: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: DayOfColors.light.secondary,
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: DayOfColors.light.text,
   },
   rowValue: {
-    fontSize: 15,
-    color: DayOfColors.light.text,
+    flex: 1,
+    fontSize: 14,
+    textAlign: "right",
+    color: DayOfColors.light.secondary,
   },
   shiftGroup: {
     gap: 12,
@@ -555,16 +566,12 @@ const styles = StyleSheet.create({
     color: DayOfColors.light.secondary,
   },
   checkInMeta: {
-    fontSize: 12,
-    color: DayOfColors.light.tertiary,
-  },
-  actions: {
-    marginTop: 16,
-    gap: 8,
+    fontSize: 13,
+    color: DayOfColors.light.secondary,
   },
   unsavedBanner: {
     fontSize: 13,
-    color: DayOfColors.light.secondary,
+    color: DayOfColors.light.warning,
   },
   saveButton: {
     alignItems: "center",
@@ -574,7 +581,7 @@ const styles = StyleSheet.create({
     backgroundColor: DayOfColors.light.primary,
   },
   saveButtonDisabled: {
-    opacity: 0.6,
+    backgroundColor: DayOfColors.light.gray[300],
   },
   saveButtonText: {
     color: DayOfColors.common.white,
@@ -582,7 +589,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   saveError: {
+    marginTop: 8,
     fontSize: 12,
-    color: DayOfColors.light.danger,
+    color: DayOfColors.light.error,
+  },
+  bottomSpacer: {
+    flex: 1,
   },
 });
