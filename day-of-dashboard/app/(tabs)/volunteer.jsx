@@ -1,14 +1,9 @@
 import {
   ActivityIndicator,
-  FlatList,
-  Modal,
-  RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
-  ScrollView,
   Switch,
 } from "react-native";
 import { Redirect } from "expo-router";
@@ -26,6 +21,12 @@ import {
   formatDateTimeWithoutTimeZone,
   formatShiftRange,
 } from "../../utils/date";
+import RosterList, {
+  rosterListStyles,
+} from "../../components/roster/RosterList";
+import RosterDetailModal, {
+  rosterDetailStyles,
+} from "../../components/roster/RosterDetailModal";
 
 const VolunteerDetailModal = ({ volunteerId, onClose }) => {
   const { detail, loading, error, refetch } = useVolunteerDetail(volunteerId);
@@ -91,171 +92,152 @@ const VolunteerDetailModal = ({ volunteerId, onClose }) => {
   }, [checkState, detail?.shifts, initialState, refetch, updateCheckIns]);
 
   return (
-    <Modal
-      animationType="slide"
-      presentationStyle="pageSheet"
+    <RosterDetailModal
+      title="Volunteer Details"
       visible={Boolean(volunteerId)}
-      onRequestClose={onClose}
+      onClose={onClose}
+      loading={loading}
+      error={error}
+      errorText="Unable to load volunteer. Please try again."
     >
-      <SafeAreaView
-        style={styles.modalContainer}
-        edges={["top", "left", "right"]}
-      >
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Volunteer Details</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
-        </View>
-        {loading && (
-          <View style={styles.modalStatus}>
-            <ActivityIndicator />
+      {detail ? (
+        <>
+          <View style={rosterDetailStyles.section}>
+            <Text style={rosterDetailStyles.sectionTitle}>Profile</Text>
+            {detail.fields.map((field) => {
+              const value = detail.response[field.id];
+              const displayValue =
+                typeof value === "string"
+                  ? value
+                  : value?.label ?? value ?? "—";
+              return (
+                <View key={field.id} style={rosterDetailStyles.row}>
+                  <Text style={rosterDetailStyles.rowLabel}>{field.label}</Text>
+                  <Text style={rosterDetailStyles.rowValue}>
+                    {displayValue?.toString()?.length ? displayValue : "—"}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
-        )}
-        {!loading && error && (
-          <View style={styles.modalStatus}>
-            <Text style={styles.errorText}>
-              Unable to load volunteer. Please try again.
-            </Text>
-          </View>
-        )}
-        {!loading && !error && detail && (
-          <ScrollView
-            contentContainerStyle={styles.modalContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Profile</Text>
-              {detail.fields.map((field) => {
-                const value = detail.response[field.id];
-                const displayValue =
-                  typeof value === "string"
-                    ? value
-                    : value?.label ?? value ?? "—";
-                return (
-                  <View key={field.id} style={styles.row}>
-                    <Text style={styles.rowLabel}>{field.label}</Text>
-                    <Text style={styles.rowValue}>
-                      {displayValue?.toString()?.length ? displayValue : "—"}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Assigned Shifts</Text>
-              {hasAssignedShifts ? (
-                detail.groupedShifts?.map((location) => (
-                  <View key={location.id} style={styles.shiftGroup}>
-                    <Text style={styles.locationTitle}>{location.name}</Text>
-                    {location.jobs.map((job) => (
-                      <View key={job.id} style={styles.jobGroup}>
-                        <Text style={styles.jobTitle}>{job.name}</Text>
-                        {job.shifts.map((shift) => {
-                          const current = Boolean(
-                            checkState[shift.id] ?? initialState[shift.id]
-                          );
-                          const initialValue = Boolean(initialState[shift.id]);
-                          const dirty = current !== initialValue;
-                          const isCheckedIn = current;
-                          const shiftRange = formatShiftRange({
-                            startTime: shift.startTime,
-                            endTime: shift.endTime,
-                            startTimeTz: shift.startTimeTz,
-                            endTimeTz: shift.endTimeTz,
-                          });
-                          return (
-                            <View key={shift.id} style={styles.shiftItemRow}>
-                              <View style={styles.shiftInfo}>
-                                <Text style={styles.shiftItemLabel}>
-                                  {shiftRange}
-                                </Text>
-                                <Text
-                                  style={
-                                    isCheckedIn
-                                      ? styles.shiftCheckedInText
-                                      : styles.shiftNotCheckedInText
-                                  }
-                                >
-                                  {isCheckedIn
-                                    ? "Checked in"
-                                    : "Not checked in"}
-                                  {dirty ? " (unsaved)" : ""}
-                                </Text>
-                                {shift.checkedInAt ? (
-                                  <Text style={styles.checkInMeta}>
-                                    {shift.checkedInBy?.name
-                                      ? `Last checked in by ${shift.checkedInBy.name}`
-                                      : "Last checked in"}{" "}
-                                    {formatDateTimeWithoutTimeZone(
-                                      shift.checkedInAt
-                                    )}
-                                  </Text>
-                                ) : null}
-                              </View>
-                              <Switch
-                                value={current}
-                                onValueChange={(value) =>
-                                  toggleShift(shift.id, value)
+          <View style={rosterDetailStyles.section}>
+            <Text style={rosterDetailStyles.sectionTitle}>Assigned Shifts</Text>
+            {hasAssignedShifts ? (
+              detail.groupedShifts?.map((location) => (
+                <View key={location.id} style={volunteerStyles.shiftGroup}>
+                  <Text style={volunteerStyles.locationTitle}>
+                    {location.name}
+                  </Text>
+                  {location.jobs.map((job) => (
+                    <View key={job.id} style={volunteerStyles.jobGroup}>
+                      <Text style={volunteerStyles.jobTitle}>{job.name}</Text>
+                      {job.shifts.map((shift) => {
+                        const current = Boolean(
+                          checkState[shift.id] ?? initialState[shift.id]
+                        );
+                        const initialValue = Boolean(initialState[shift.id]);
+                        const dirty = current !== initialValue;
+                        const isCheckedIn = current;
+                        const shiftRange = formatShiftRange({
+                          startTime: shift.startTime,
+                          endTime: shift.endTime,
+                          startTimeTz: shift.startTimeTz,
+                          endTimeTz: shift.endTimeTz,
+                        });
+                        return (
+                          <View
+                            key={shift.id}
+                            style={volunteerStyles.shiftItemRow}
+                          >
+                            <View style={volunteerStyles.shiftInfo}>
+                              <Text style={volunteerStyles.shiftItemLabel}>
+                                {shiftRange}
+                              </Text>
+                              <Text
+                                style={
+                                  isCheckedIn
+                                    ? volunteerStyles.shiftCheckedInText
+                                    : volunteerStyles.shiftNotCheckedInText
                                 }
-                              />
+                              >
+                                {isCheckedIn ? "Checked in" : "Not checked in"}
+                                {dirty ? " (unsaved)" : ""}
+                              </Text>
+                              {shift.checkedInAt ? (
+                                <Text style={rosterDetailStyles.checkInMeta}>
+                                  {shift.checkedInBy?.name
+                                    ? `Last checked in by ${shift.checkedInBy.name}`
+                                    : "Last checked in"}{" "}
+                                  {formatDateTimeWithoutTimeZone(
+                                    shift.checkedInAt
+                                  )}
+                                </Text>
+                              ) : null}
                             </View>
-                          );
-                        })}
-                      </View>
-                    ))}
-                  </View>
-                ))
+                            <Switch
+                              value={current}
+                              onValueChange={(value) =>
+                                toggleShift(shift.id, value)
+                              }
+                            />
+                          </View>
+                        );
+                      })}
+                    </View>
+                  ))}
+                </View>
+              ))
+            ) : (
+              <Text style={rosterDetailStyles.checkInMeta}>
+                This volunteer has no assigned shifts yet.
+              </Text>
+            )}
+          </View>
+
+          <View style={rosterDetailStyles.bottomSpacer} />
+
+          <View style={rosterDetailStyles.section}>
+            <Text style={rosterDetailStyles.sectionTitle}>Check-In</Text>
+            <Text style={rosterDetailStyles.checkInMeta}>
+              {totalShiftCount
+                ? "Toggle each shift above and save to capture attendance."
+                : "Assign shifts to enable check-in tracking for this volunteer."}
+            </Text>
+            {hasChanges ? (
+              <Text style={rosterDetailStyles.unsavedBanner}>
+                You have unsaved check-in changes.
+              </Text>
+            ) : null}
+            <TouchableOpacity
+              style={[
+                rosterDetailStyles.saveButton,
+                (totalShiftCount === 0 || !hasChanges || updating) &&
+                  rosterDetailStyles.saveButtonDisabled,
+              ]}
+              onPress={handleSave}
+              disabled={totalShiftCount === 0 || !hasChanges || updating}
+            >
+              {updating ? (
+                <ActivityIndicator color={DayOfColors.common.white} />
               ) : (
-                <Text style={styles.checkInMeta}>
-                  This volunteer has no assigned shifts yet.
+                <Text style={rosterDetailStyles.saveButtonText}>
+                  Save Check-Ins
                 </Text>
               )}
-            </View>
-
-            <View style={styles.bottomSpacer} />
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Check-In</Text>
-              <Text style={styles.checkInMeta}>
-                {totalShiftCount
-                  ? "Toggle each shift above and save to capture attendance."
-                  : "Assign shifts to enable check-in tracking for this volunteer."}
+            </TouchableOpacity>
+            {saveError ? (
+              <Text style={rosterDetailStyles.saveError}>{saveError}</Text>
+            ) : null}
+            {updateError && !saveError ? (
+              <Text style={rosterDetailStyles.saveError}>
+                {updateError.message ??
+                  "Unable to update shifts. Please try again."}
               </Text>
-              {hasChanges ? (
-                <Text style={styles.unsavedBanner}>
-                  You have unsaved check-in changes.
-                </Text>
-              ) : null}
-              <TouchableOpacity
-                style={[
-                  styles.saveButton,
-                  (totalShiftCount === 0 || !hasChanges || updating) &&
-                    styles.saveButtonDisabled,
-                ]}
-                onPress={handleSave}
-                disabled={totalShiftCount === 0 || !hasChanges || updating}
-              >
-                {updating ? (
-                  <ActivityIndicator color={DayOfColors.common.white} />
-                ) : (
-                  <Text style={styles.saveButtonText}>Save Check-Ins</Text>
-                )}
-              </TouchableOpacity>
-              {saveError ? (
-                <Text style={styles.saveError}>{saveError}</Text>
-              ) : null}
-              {updateError && !saveError ? (
-                <Text style={styles.saveError}>
-                  {updateError.message ??
-                    "Unable to update shifts. Please try again."}
-                </Text>
-              ) : null}
-            </View>
-          </ScrollView>
-        )}
-      </SafeAreaView>
-    </Modal>
+            ) : null}
+          </View>
+        </>
+      ) : null}
+    </RosterDetailModal>
   );
 };
 
@@ -274,10 +256,20 @@ const VolunteerScreen = () => {
     );
   }, [search, volunteers]);
 
+  const getVolunteerRowData = useCallback(
+    (item) => ({
+      id: item.id,
+      title: item.name?.length ? item.name : "Unnamed Volunteer",
+      meta: `Registered ${formatDate(item.createdAt)}`,
+      details: [item.email, item.phone].filter(Boolean),
+    }),
+    []
+  );
+
   if (!hydrated) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.centerContent}>
+      <SafeAreaView style={rosterListStyles.safeArea}>
+        <View style={rosterListStyles.centerContent}>
           <ActivityIndicator />
         </View>
       </SafeAreaView>
@@ -288,78 +280,24 @@ const VolunteerScreen = () => {
     return <Redirect href={getDefaultRouteForPermissions(permissions)} />;
   }
 
-  const renderVolunteer = ({ item }) => (
-    <TouchableOpacity
-      style={styles.listRow}
-      onPress={() => setSelectedVolunteer(item.id)}
-    >
-      <Text style={styles.listTitle} numberOfLines={1}>
-        {item.name?.length ? item.name : "Unnamed Volunteer"}
-      </Text>
-      <Text style={styles.listMeta}>
-        Registered {formatDate(item.createdAt)}
-      </Text>
-      {item.email ? <Text style={styles.listDetail}>{item.email}</Text> : null}
-      {item.phone ? <Text style={styles.listDetail}>{item.phone}</Text> : null}
-    </TouchableOpacity>
-  );
-
   return (
-    <View style={styles.safeArea}>
-      <FlatList
+    <View style={rosterListStyles.safeArea}>
+      <RosterList
+        title="Volunteers"
+        subtitle="Search roster and tap a volunteer to view their full registration."
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by name, email, phone, or answer"
+        errorText={
+          error ? "Unable to load volunteers. Pull to refresh." : undefined
+        }
         data={filteredVolunteers}
-        keyExtractor={(item) => item.id}
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={() => refetch()} />
-        }
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        // Make the list fill the screen and allow scrolling even with few items
-        contentContainerStyle={[
-          styles.listContainer,
-          filteredVolunteers.length === 0 && !loading
-            ? styles.emptyListContainer
-            : null,
-        ]}
-        // Helpful UX tweaks for both platforms
-        bounces
-        alwaysBounceVertical
-        overScrollMode="always"
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.title}>Volunteers</Text>
-            <Text style={styles.subtitle}>
-              Search roster and tap a volunteer to view their full registration.
-            </Text>
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search by name, email, phone, or answer"
-              style={styles.searchInput}
-              placeholderTextColor={DayOfColors.light.tertiary}
-              autoCorrect={false}
-              autoCapitalize="none"
-              clearButtonMode="always"
-            />
-            {error ? (
-              <Text style={styles.errorText}>
-                Unable to load volunteers. Pull to refresh.
-              </Text>
-            ) : null}
-          </View>
-        }
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        renderItem={renderVolunteer}
-        ListEmptyComponent={
-          !loading ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No volunteers yet</Text>
-              <Text style={styles.emptySubtitle}>
-                Volunteers will appear here once they register.
-              </Text>
-            </View>
-          ) : null
-        }
+        loading={loading}
+        onRefresh={refetch}
+        emptyTitle="No volunteers yet"
+        emptySubtitle="Volunteers will appear here once they register."
+        getRowData={getVolunteerRowData}
+        onSelectItem={setSelectedVolunteer}
       />
       <VolunteerDetailModal
         volunteerId={selectedVolunteer}
@@ -371,160 +309,7 @@ const VolunteerScreen = () => {
 
 export default VolunteerScreen;
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: DayOfColors.light.bodyBg,
-  },
-  centerContent: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 16,
-    gap: 8,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: DayOfColors.light.text,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: DayOfColors.light.secondary,
-  },
-  searchInput: {
-    marginTop: 12,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: DayOfColors.light.gray[200],
-    fontSize: 16,
-    color: DayOfColors.light.text,
-  },
-  errorText: {
-    color: DayOfColors.light.error,
-    fontSize: 14,
-    marginTop: 8,
-  },
-  // Ensures FlatList fills screen and stays scrollable
-  listContainer: {
-    flexGrow: 1,
-    paddingBottom: 24,
-  },
-  // When empty, keep full height so pull-to-refresh/bounce still works
-  emptyListContainer: {
-    justifyContent: "center",
-  },
-  listRow: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: DayOfColors.common.white,
-    gap: 4,
-  },
-  listTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: DayOfColors.light.text,
-  },
-  listMeta: {
-    fontSize: 13,
-    color: DayOfColors.light.tertiary,
-  },
-  listDetail: {
-    fontSize: 14,
-    color: DayOfColors.light.secondary,
-  },
-  separator: {
-    marginLeft: 20,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: DayOfColors.light.border,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingHorizontal: 32,
-    gap: 8,
-    flex: 1,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: DayOfColors.light.text,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: DayOfColors.light.secondary,
-    textAlign: "center",
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: DayOfColors.light.bodyBg,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: DayOfColors.light.gray[200],
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: DayOfColors.light.text,
-  },
-  closeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: DayOfColors.light.gray[200],
-  },
-  closeButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: DayOfColors.light.text,
-  },
-  modalStatus: {
-    padding: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    padding: 20,
-    gap: 24,
-    paddingBottom: 40,
-    flexGrow: 1,
-  },
-  section: {
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: DayOfColors.light.text,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  rowLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "600",
-    color: DayOfColors.light.text,
-  },
-  rowValue: {
-    flex: 1,
-    fontSize: 14,
-    textAlign: "right",
-    color: DayOfColors.light.secondary,
-  },
+const volunteerStyles = StyleSheet.create({
   shiftGroup: {
     gap: 12,
   },
@@ -565,36 +350,5 @@ const styles = StyleSheet.create({
   shiftNotCheckedInText: {
     fontSize: 13,
     color: DayOfColors.light.secondary,
-  },
-  checkInMeta: {
-    fontSize: 13,
-    color: DayOfColors.light.secondary,
-  },
-  unsavedBanner: {
-    fontSize: 13,
-    color: DayOfColors.light.warning,
-  },
-  saveButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: DayOfColors.light.primary,
-  },
-  saveButtonDisabled: {
-    backgroundColor: DayOfColors.light.gray[300],
-  },
-  saveButtonText: {
-    color: DayOfColors.common.white,
-    fontWeight: "600",
-    fontSize: 15,
-  },
-  saveError: {
-    marginTop: 8,
-    fontSize: 12,
-    color: DayOfColors.light.error,
-  },
-  bottomSpacer: {
-    flex: 1,
   },
 });
