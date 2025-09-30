@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -6,15 +6,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SWRConfig } from 'swr';
 
 import { DayOfSessionProvider } from '../contexts/DayOfSessionContext';
-import { useColorScheme } from '../hooks/use-color-scheme';
-
 export const unstable_settings = {
   initialRouteName: 'login',
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <SWRConfig
       value={{
@@ -24,7 +20,7 @@ export default function RootLayout() {
       }}>
       <SafeAreaProvider>
         <DayOfSessionProvider>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <ThemeProvider value={DefaultTheme}>
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="login" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -33,7 +29,7 @@ export default function RootLayout() {
                 options={{ presentation: 'modal', title: 'Modal' }}
               />
             </Stack>
-            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+            <StatusBar style="dark" />
           </ThemeProvider>
         </DayOfSessionProvider>
       </SafeAreaProvider>

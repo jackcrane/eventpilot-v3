@@ -1,26 +1,25 @@
-import { useMemo } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { Tabs, Redirect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { Tabs, Redirect } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { HapticTab } from '../../components/haptic-tab';
-import { IconSymbol } from '../../components/ui/icon-symbol';
-import { useDayOfSessionContext } from '../../contexts/DayOfSessionContext';
-import { DAY_OF_PERMISSION_TABS } from '../../constants/dayOfPermissions';
-import { Colors } from '../../constants/theme';
-import { useColorScheme } from '../../hooks/use-color-scheme';
+import { HapticTab } from "../../components/haptic-tab";
+import { IconSymbol } from "../../components/ui/icon-symbol";
+import { useDayOfSessionContext } from "../../contexts/DayOfSessionContext";
+import { DAY_OF_PERMISSION_TABS } from "../../constants/dayOfPermissions";
+import { Colors } from "../../constants/theme";
+import { useColorScheme } from "../../hooks/use-color-scheme";
 
 export default function TabLayout() {
+  const { hydrated, token, permissions, requireName } =
+    useDayOfSessionContext();
   const colorScheme = useColorScheme();
-  const { hydrated, token, permissions, requireName } = useDayOfSessionContext();
-
-  const activeTabs = useMemo(
-    () =>
-      DAY_OF_PERMISSION_TABS.filter((tab) =>
-        permissions.some((permission) => permission === tab.permission)
-      ),
-    [permissions]
-  );
+  const activePermissions = permissions ?? [];
+  const tabs = DAY_OF_PERMISSION_TABS.map((tab) => ({
+    ...tab,
+    hasPermission: activePermissions.includes(tab.permission),
+  }));
+  const visibleTabs = tabs.filter((tab) => tab.hasPermission);
+  const hiddenTabs = tabs.filter((tab) => !tab.hasPermission);
 
   if (!hydrated) {
     return (
@@ -41,30 +40,36 @@ export default function TabLayout() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+          tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
           headerShown: false,
-          tabBarButton: HapticTab,
-        }}>
+        }}
+      >
         <Tabs.Screen name="index" options={{ href: null }} />
-        {activeTabs.map((tab) => (
+        {hiddenTabs.map((tab) => (
+          <Tabs.Screen key={tab.name} name={tab.name} options={{ href: null }} />
+        ))}
+        {visibleTabs.map((tab) => (
           <Tabs.Screen
             key={tab.name}
             name={tab.name}
             options={{
               title: tab.title,
+              tabBarButton: HapticTab,
               tabBarIcon: ({ color }) => (
                 <IconSymbol size={28} name={tab.icon} color={color} />
               ),
+              tabBarAccessibilityLabel: tab.title,
             }}
           />
         ))}
         <Tabs.Screen
           name="settings"
           options={{
-            title: 'Settings',
+            title: "Settings",
+            tabBarButton: HapticTab,
             tabBarIcon: ({ color }) => (
               <IconSymbol size={28} name="gearshape.fill" color={color} />
             ),
@@ -77,11 +82,11 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f4f6fb',
+    backgroundColor: "#f4f6fb",
   },
   loadingContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

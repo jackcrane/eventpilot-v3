@@ -57,7 +57,12 @@ export const get = [
 ];
 
 export const put = [
-  verifyAuth(["manager"]),
+  verifyAuth([
+    "manager",
+    "dod:volunteer",
+    "dod:registration",
+    "dod:pointOfSale",
+  ]),
   async (req, res) => {
     const { eventId, accountId } = req.params;
     const parseResult = updateSchema.safeParse(req.body);
@@ -67,6 +72,23 @@ export const put = [
     }
 
     const data = parseResult.data;
+
+    if (req.isDayOfDashboardRequest) {
+      if (!req.dayOfDashboardAccount || req.dayOfDashboardAccount.id !== accountId) {
+        return res
+          .status(403)
+          .json({ message: "Access forbidden: insufficient permissions" });
+      }
+
+      if (
+        Object.prototype.hasOwnProperty.call(data, "instanceId") ||
+        Object.prototype.hasOwnProperty.call(data, "permissions")
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Access forbidden: insufficient permissions" });
+      }
+    }
 
     const account = await prisma.dayOfDashboardAccount.findFirst({
       where: { id: accountId, eventId },
@@ -78,7 +100,10 @@ export const put = [
     }
 
     let resolvedInstanceId = undefined;
-    if (Object.prototype.hasOwnProperty.call(data, "instanceId")) {
+    if (
+      Object.prototype.hasOwnProperty.call(data, "instanceId") &&
+      !req.isDayOfDashboardRequest
+    ) {
       if (data.instanceId === null) {
         resolvedInstanceId = null;
       } else if (data.instanceId) {
@@ -93,9 +118,10 @@ export const put = [
       }
     }
 
-    const normalizedPermissions = data.permissions
-      ? normalizePermissions(data.permissions)
-      : undefined;
+    const normalizedPermissions =
+      !req.isDayOfDashboardRequest && data.permissions
+        ? normalizePermissions(data.permissions)
+        : undefined;
 
     if (normalizedPermissions && !normalizedPermissions.length) {
       return res
