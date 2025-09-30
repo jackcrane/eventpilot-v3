@@ -30,6 +30,7 @@ export const EventProvisionersPage = () => {
     error,
     createProvisioner,
     updateProvisioner,
+    endProvisionerSessions,
   } = useDayOfProvisioners({ eventId });
   const { offcanvas, OffcanvasElement, close } = useOffcanvas({
     offcanvasProps: { position: "end", size: 470, zIndex: 1050 },
@@ -42,11 +43,19 @@ export const EventProvisionersPage = () => {
   );
 
   const defaultTz = event?.defaultTz || "UTC";
-  const { openCreate, openEdit, knownPins, shownPins, revealPin } =
+  const {
+    openCreate,
+    openEdit,
+    knownPins,
+    shownPins,
+    revealPin,
+    EndSessionsConfirmModal,
+  } =
     useProvisionerModals({
       defaultTz,
       createProvisioner,
       updateProvisioner,
+      endProvisionerSessions,
       offcanvas,
       close,
     });
@@ -65,6 +74,7 @@ export const EventProvisionersPage = () => {
       loading={loading || eventLoading}
       description="Manage on-site access codes for staff and volunteers."
     >
+      {EndSessionsConfirmModal}
       {OffcanvasElement}
       {error && (
         <Typography.Text className="text-danger">

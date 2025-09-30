@@ -45,6 +45,7 @@ export const ProvisionerForm = ({
   defaultTz = DEFAULT_TZ,
   onSubmit,
   onClose,
+  onEndSessions,
 }) => {
   const [name, setName] = useState(() => computeInitialName(provisioner));
   const [permissions, setPermissions] = useState(() =>
@@ -66,6 +67,7 @@ export const ProvisionerForm = ({
   }, [mode, provisioner, defaultTz]);
 
   const [saving, setSaving] = useState(false);
+  const [endingSessions, setEndingSessions] = useState(false);
 
   const submitDisabled =
     saving || !name.trim().length || !permissions?.length || (mode === "create" && !expiryIso);
@@ -106,6 +108,21 @@ export const ProvisionerForm = ({
         Promise.resolve(onSubmit?.(payload))
           .finally(() => setSaving(false));
       }}
+      onEndSessions={
+        mode === "edit" && onEndSessions && provisioner?.id
+          ? async () => {
+              if (endingSessions) return;
+              setEndingSessions(true);
+              try {
+                await onEndSessions();
+              } finally {
+                setEndingSessions(false);
+              }
+            }
+          : undefined
+      }
+      endSessionsDisabled={endingSessions || saving}
+      endSessionsLoading={endingSessions}
     />
   );
 };

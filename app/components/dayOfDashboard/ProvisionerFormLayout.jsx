@@ -33,6 +33,9 @@ export const ProvisionerFormLayout = ({
   defaultTz,
   onClose,
   onSubmit,
+  onEndSessions,
+  endSessionsDisabled,
+  endSessionsLoading,
 }) => (
   <>
     <form
@@ -90,13 +93,23 @@ export const ProvisionerFormLayout = ({
         </Button>
       </Row>
     </form>
-    <Alert variant="danger" title="Invalidate Access" className="mt-3">
-      <p>
-        You can end all sessions spawned by this provisioner. This will
-        immediately prevent any accounts created from this provisioner from
-        accessing your event, and they will be logged out.
-      </p>
-      <Button variant="danger">End all sessions</Button>
-    </Alert>
+    {mode === "edit" && onEndSessions && (
+      <Alert variant="danger" title="Invalidate Access" className="mt-3">
+        <p>
+          You can end all sessions spawned by this provisioner. This will
+          immediately prevent any accounts created from this provisioner from
+          accessing your event, and they will be logged out.
+        </p>
+        <Button
+          variant="danger"
+          type="button"
+          onClick={onEndSessions}
+          disabled={endSessionsDisabled}
+          loading={endSessionsLoading}
+        >
+          End all sessions
+        </Button>
+      </Alert>
+    )}
   </>
 );

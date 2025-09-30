@@ -6,7 +6,7 @@ import { normalizePermissions } from "#util/dayOfDashboard.js";
 import {
   formatProvisioner,
   provisionerSelect,
-} from "./shared.js";
+} from "../shared.js";
 
 const updateSchema = z
   .object({

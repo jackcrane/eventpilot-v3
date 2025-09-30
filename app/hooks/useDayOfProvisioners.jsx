@@ -145,6 +145,43 @@ export const useDayOfProvisioners = ({ eventId }) => {
     [eventId, mutate]
   );
 
+  const endProvisionerSessions = useCallback(
+    async (provisionerId) => {
+      if (!eventId || !provisionerId) return { success: false };
+
+      setMutationLoading(true);
+      try {
+        const promise = authFetch(
+          `/api/events/${eventId}/day-of-dashboard/provisioners/${provisionerId}/end-sessions`,
+          {
+            method: "POST",
+          }
+        ).then(async (response) => {
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(body?.message || "Failed to end sessions");
+          }
+          return body;
+        });
+
+        await toast.promise(promise, {
+          loading: "Ending sessions...",
+          success: "All sessions ended",
+          error: (err) => err?.message || "Failed to end sessions",
+        });
+
+        await mutate();
+        return { success: true };
+      } catch (errorCaught) {
+        console.error("Failed to end provisioner sessions", errorCaught);
+        return { success: false, error: errorCaught };
+      } finally {
+        setMutationLoading(false);
+      }
+    },
+    [eventId, mutate]
+  );
+
   return {
     provisioners,
     loading: Boolean(eventId) && (isLoading || mutationLoading),
@@ -153,5 +190,6 @@ export const useDayOfProvisioners = ({ eventId }) => {
     refetch: mutate,
     createProvisioner,
     updateProvisioner,
+    endProvisionerSessions,
   };
 };
