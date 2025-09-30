@@ -5,8 +5,8 @@ import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SWRConfig } from 'swr';
 
-import { DayOfSessionProvider } from '@/contexts/DayOfSessionContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { DayOfSessionProvider } from '../contexts/DayOfSessionContext';
+import { useColorScheme } from '../hooks/use-color-scheme';
 
 export const unstable_settings = {
   initialRouteName: 'login',

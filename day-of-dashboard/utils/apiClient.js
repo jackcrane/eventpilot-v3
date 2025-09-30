@@ -1,10 +1,7 @@
 import Constants from 'expo-constants';
 
 export class DayOfApiError extends Error {
-  status: number;
-  body: unknown;
-
-  constructor(status: number, message: string, body: unknown) {
+  constructor(status, message, body) {
     super(message);
     this.name = 'DayOfApiError';
     this.status = status;
@@ -31,7 +28,7 @@ const resolveBaseUrl = () => {
 
 const API_BASE_URL = resolveBaseUrl();
 
-const buildUrl = (path: string) => {
+const buildUrl = (path) => {
   if (!path) {
     throw new Error('Path is required');
   }
@@ -44,7 +41,7 @@ const buildUrl = (path: string) => {
   return `${API_BASE_URL}${path}`;
 };
 
-const normalizeHeaders = (headers?: HeadersInit) => {
+const normalizeHeaders = (headers) => {
   if (!headers) return {};
   if (headers instanceof Headers) {
     return Object.fromEntries(headers.entries());
@@ -52,7 +49,7 @@ const normalizeHeaders = (headers?: HeadersInit) => {
   return { ...headers };
 };
 
-const parseErrorResponse = async (response: Response) => {
+const parseErrorResponse = async (response) => {
   try {
     const data = await response.json();
     const message =
@@ -70,7 +67,7 @@ const parseErrorResponse = async (response: Response) => {
   }
 };
 
-export const dayOfPublicFetch = async (path: string, options?: RequestInit) => {
+export const dayOfPublicFetch = async (path, options) => {
   const url = buildUrl(path);
   const headers = {
     'Content-Type': 'application/json',
@@ -91,9 +88,9 @@ export const dayOfPublicFetch = async (path: string, options?: RequestInit) => {
 };
 
 export const dayOfAuthFetch = async (
-  path: string,
-  auth: { token: string; instanceId: string | null },
-  options?: RequestInit
+  path,
+  auth,
+  options
 ) => {
   const url = buildUrl(path);
   const headers = {
@@ -116,10 +113,9 @@ export const dayOfAuthFetch = async (
   return response;
 };
 
-export const dayOfJson = async <T>(response: Response): Promise<T> => {
+export const dayOfJson = async (response) => {
   const data = await response.json();
-  return data as T;
+  return data;
 };
 
 export const API_BASE = API_BASE_URL;
-

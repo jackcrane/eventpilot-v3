@@ -2,29 +2,30 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SESSION_STORAGE_KEY = 'day-of-dashboard/session';
 
-export type StoredDayOfSession = {
-  token: string;
-  accountId: string;
-  eventId: string;
-  provisionerId: string;
-  instanceId: string | null;
-  permissions: string[];
-  name: string | null;
-  expiresAt: string;
-};
+/**
+ * @typedef {Object} StoredDayOfSession
+ * @property {string} token
+ * @property {string} accountId
+ * @property {string} eventId
+ * @property {string} provisionerId
+ * @property {string|null} instanceId
+ * @property {string[]} permissions
+ * @property {string|null} name
+ * @property {string} expiresAt
+ */
 
 export const loadStoredSession = async () => {
   try {
     const raw = await AsyncStorage.getItem(SESSION_STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as StoredDayOfSession;
+    return JSON.parse(raw);
   } catch (error) {
     console.warn('Failed to read session from storage', error);
     return null;
   }
 };
 
-export const persistSession = async (session: StoredDayOfSession) => {
+export const persistSession = async (session) => {
   try {
     await AsyncStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
   } catch (error) {
@@ -40,9 +41,7 @@ export const clearSession = async () => {
   }
 };
 
-export const updateStoredSession = async (
-  updater: (session: StoredDayOfSession | null) => StoredDayOfSession | null
-) => {
+export const updateStoredSession = async (updater) => {
   const current = await loadStoredSession();
   const next = updater(current);
   if (!next) {
@@ -54,4 +53,3 @@ export const updateStoredSession = async (
 };
 
 export const getSessionStorageKey = () => SESSION_STORAGE_KEY;
-

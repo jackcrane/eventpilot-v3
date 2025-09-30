@@ -12,29 +12,33 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useDayOfSessionContext } from '@/contexts/DayOfSessionContext';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useDayOfSessionContext } from '../../contexts/DayOfSessionContext';
+import { Colors } from '../../constants/theme';
+import { useColorScheme } from '../../hooks/use-color-scheme';
 
 const PIN_LENGTH = 6;
 
-export default function LoginScreen() {
+export default function PinLoginScreen() {
   const colorScheme = useColorScheme();
   const {
     hydrated,
     token,
+    requireName,
     login,
     loggingIn,
     loginError,
   } = useDayOfSessionContext();
   const [pin, setPin] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (hydrated && token) {
+    if (!hydrated || !token) return;
+    if (requireName) {
+      router.replace('/login/name');
+    } else {
       router.replace('/(tabs)');
     }
-  }, [hydrated, token]);
+  }, [hydrated, token, requireName]);
 
   const disabled = useMemo(
     () => loggingIn || pin.trim().length !== PIN_LENGTH,
@@ -50,8 +54,12 @@ export default function LoginScreen() {
 
     try {
       setError(null);
-      await login({ pin: normalized });
-      router.replace('/(tabs)');
+      const result = await login({ pin: normalized });
+      if (result.account.name?.trim()) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/login/name');
+      }
     } catch (submissionError) {
       if (submissionError instanceof Error && submissionError.message) {
         setError(submissionError.message);
@@ -82,21 +90,21 @@ export default function LoginScreen() {
         behavior={Platform.select({ ios: 'padding', android: undefined })}>
         <View style={styles.card}>
           <Text style={styles.title}>Day-Of Dashboard</Text>
-        <Text style={styles.subtitle}>Enter your 6-digit access PIN</Text>
-        <TextInput
-          value={pin}
-          maxLength={PIN_LENGTH}
-          inputMode="numeric"
-          keyboardType={Platform.select({ ios: 'number-pad', android: 'numeric' })}
-          textContentType="oneTimeCode"
-          autoFocus
-          onChangeText={(value) => {
-            const digitsOnly = value.replace(/\D+/g, '');
-            setPin(digitsOnly);
-          }}
-          style={[styles.input, colorScheme === 'dark' ? styles.inputDark : undefined]}
-        />
-        {combinedError ? <Text style={styles.errorText}>{combinedError}</Text> : null}
+          <Text style={styles.subtitle}>Enter your 6-digit access PIN</Text>
+          <TextInput
+            value={pin}
+            maxLength={PIN_LENGTH}
+            inputMode="numeric"
+            keyboardType={Platform.select({ ios: 'number-pad', android: 'numeric' })}
+            textContentType="oneTimeCode"
+            autoFocus
+            onChangeText={(value) => {
+              const digitsOnly = value.replace(/\D+/g, '');
+              setPin(digitsOnly);
+            }}
+            style={[styles.input, colorScheme === 'dark' ? styles.inputDark : undefined]}
+          />
+          {combinedError ? <Text style={styles.errorText}>{combinedError}</Text> : null}
           <TouchableOpacity
             style={[styles.button, disabled ? styles.buttonDisabled : undefined]}
             onPress={handleSubmit}
@@ -104,7 +112,7 @@ export default function LoginScreen() {
             {loggingIn ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Log In</Text>
+              <Text style={styles.buttonText}>Continue</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -135,18 +143,18 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
+    gap: 12,
   },
   title: {
     fontSize: 28,
     fontWeight: '600',
-    marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
     color: '#555',
-    marginBottom: 24,
+    marginBottom: 12,
   },
   input: {
     fontSize: 24,
@@ -157,7 +165,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderRadius: 10,
     borderColor: '#ccc',
-    marginBottom: 16,
+    marginBottom: 4,
     color: '#111',
     backgroundColor: '#fff',
   },
@@ -183,7 +191,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#d93025',
-    marginBottom: 8,
     textAlign: 'center',
   },
   loadingContainer: {

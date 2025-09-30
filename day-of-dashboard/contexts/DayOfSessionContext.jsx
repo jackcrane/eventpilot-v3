@@ -1,14 +1,10 @@
-import { createContext, type ReactNode, useContext } from 'react';
+import { createContext, useContext } from 'react';
 
-import { DayOfSessionState, useDayOfSession } from '@/hooks/useDayOfSession';
+import { useDayOfSession } from '../hooks/useDayOfSession';
 
-const DayOfSessionContext = createContext<DayOfSessionState | null>(null);
+const DayOfSessionContext = createContext(null);
 
-type ProviderProps = {
-  children: ReactNode;
-};
-
-export const DayOfSessionProvider = ({ children }: ProviderProps) => {
+export const DayOfSessionProvider = ({ children }) => {
   const value = useDayOfSession();
   return (
     <DayOfSessionContext.Provider value={value}>

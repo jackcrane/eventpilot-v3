@@ -1,4 +1,4 @@
-export const DAY_OF_PERMISSION_TABS = [
+export const DAY_OF_PERMISSION_TABS = Object.freeze([
   {
     permission: 'VOLUNTEER_CHECK_IN',
     name: 'volunteer',
@@ -20,14 +20,11 @@ export const DAY_OF_PERMISSION_TABS = [
     icon: 'creditcard.fill',
     route: '/(tabs)/point-of-sale',
   },
-] as const;
+]);
 
-export const getDefaultRouteForPermissions = (permissions: string[]) => {
+export const getDefaultRouteForPermissions = (permissions) => {
   const match = DAY_OF_PERMISSION_TABS.find((tab) =>
     permissions.includes(tab.permission)
   );
   return match?.route ?? '/(tabs)/settings';
 };
-
-export type DayOfPermissionTab = (typeof DAY_OF_PERMISSION_TABS)[number];
-

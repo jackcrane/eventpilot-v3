@@ -10,8 +10,8 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DAY_OF_PERMISSION_TABS } from '@/constants/dayOfPermissions';
-import { useDayOfSessionContext } from '@/contexts/DayOfSessionContext';
+import { DAY_OF_PERMISSION_TABS } from '../../constants/dayOfPermissions';
+import { useDayOfSessionContext } from '../../contexts/DayOfSessionContext';
 
 const SettingsScreen = () => {
   const { account, permissions, logout } = useDayOfSessionContext();

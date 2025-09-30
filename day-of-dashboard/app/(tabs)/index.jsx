@@ -1,8 +1,8 @@
 import { ActivityIndicator, View } from 'react-native';
 import { Redirect } from 'expo-router';
 
-import { useDayOfSessionContext } from '@/contexts/DayOfSessionContext';
-import { getDefaultRouteForPermissions } from '@/constants/dayOfPermissions';
+import { useDayOfSessionContext } from '../../contexts/DayOfSessionContext';
+import { getDefaultRouteForPermissions } from '../../constants/dayOfPermissions';
 
 const IndexScreen = () => {
   const { hydrated, token, permissions } = useDayOfSessionContext();

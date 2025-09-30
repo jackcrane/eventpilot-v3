@@ -1,0 +1,87 @@
+import { useMemo } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Tabs, Redirect } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { HapticTab } from '../../components/haptic-tab';
+import { IconSymbol } from '../../components/ui/icon-symbol';
+import { useDayOfSessionContext } from '../../contexts/DayOfSessionContext';
+import { DAY_OF_PERMISSION_TABS } from '../../constants/dayOfPermissions';
+import { Colors } from '../../constants/theme';
+import { useColorScheme } from '../../hooks/use-color-scheme';
+
+export default function TabLayout() {
+  const colorScheme = useColorScheme();
+  const { hydrated, token, permissions, requireName } = useDayOfSessionContext();
+
+  const activeTabs = useMemo(
+    () =>
+      DAY_OF_PERMISSION_TABS.filter((tab) =>
+        permissions.some((permission) => permission === tab.permission)
+      ),
+    [permissions]
+  );
+
+  if (!hydrated) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!token) {
+    return <Redirect href="/login" />;
+  }
+
+  if (requireName) {
+    return <Redirect href="/login/name" />;
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+          headerShown: false,
+          tabBarButton: HapticTab,
+        }}>
+        <Tabs.Screen name="index" options={{ href: null }} />
+        {activeTabs.map((tab) => (
+          <Tabs.Screen
+            key={tab.name}
+            name={tab.name}
+            options={{
+              title: tab.title,
+              tabBarIcon: ({ color }) => (
+                <IconSymbol size={28} name={tab.icon} color={color} />
+              ),
+            }}
+          />
+        ))}
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: 'Settings',
+            tabBarIcon: ({ color }) => (
+              <IconSymbol size={28} name="gearshape.fill" color={color} />
+            ),
+          }}
+        />
+      </Tabs>
+    </SafeAreaView>
+  );
+}
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f4f6fb',
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

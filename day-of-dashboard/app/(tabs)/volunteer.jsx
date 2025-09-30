@@ -2,8 +2,8 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Redirect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { getDefaultRouteForPermissions } from '@/constants/dayOfPermissions';
-import { useDayOfSessionContext } from '@/contexts/DayOfSessionContext';
+import { getDefaultRouteForPermissions } from '../../constants/dayOfPermissions';
+import { useDayOfSessionContext } from '../../contexts/DayOfSessionContext';
 
 const VolunteerScreen = () => {
   const { account, permissions, hydrated } = useDayOfSessionContext();

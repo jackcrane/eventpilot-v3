@@ -1,78 +1,96 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import useSWR from 'swr';
-import useSWRMutation from 'swr/mutation';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
+import useSWRMutation from "swr/mutation";
 
 import {
   DayOfApiError,
   dayOfAuthFetch,
   dayOfJson,
   dayOfPublicFetch,
-} from '@/utils/apiClient';
+} from "../utils/apiClient";
 import {
-  StoredDayOfSession,
   clearSession as clearStoredSession,
   loadStoredSession,
   persistSession,
-} from '@/utils/storage';
+} from "../utils/storage";
 
-export type DayOfDashboardPermission = string;
+/**
+ * @typedef {string} DayOfDashboardPermission
+ */
 
-export type DayOfDashboardAccount = {
-  id: string;
-  eventId: string;
-  provisionerId: string;
-  instanceId: string | null;
-  name: string | null;
-  permissions: DayOfDashboardPermission[];
-  tokenVersion: number;
-  lastIssuedAt: string | null;
-  deleted: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
+/**
+ * @typedef {Object} DayOfDashboardAccount
+ * @property {string} id
+ * @property {string} eventId
+ * @property {string} provisionerId
+ * @property {string|null} instanceId
+ * @property {string|null} name
+ * @property {DayOfDashboardPermission[]} permissions
+ * @property {number} tokenVersion
+ * @property {string|null} lastIssuedAt
+ * @property {boolean} deleted
+ * @property {string} createdAt
+ * @property {string} updatedAt
+ */
 
-export type LoginSuccessPayload = {
-  token: string;
-  expiresAt: string;
-  account: DayOfDashboardAccount;
-  provisioner: {
-    id: string;
-    eventId: string;
-    instanceId: string | null;
-    permissions: DayOfDashboardPermission[];
-    jwtExpiresInSeconds: number;
-    tokenVersion: number;
-  };
-};
+/**
+ * @typedef {Object} LoginSuccessPayload
+ * @property {string} token
+ * @property {string} expiresAt
+ * @property {DayOfDashboardAccount} account
+ * @property {{
+ *   id: string;
+ *   eventId: string;
+ *   instanceId: string | null;
+ *   permissions: DayOfDashboardPermission[];
+ *   jwtExpiresInSeconds: number;
+ *   tokenVersion: number;
+ * }} provisioner
+ */
 
-export type DayOfSessionState = {
-  hydrated: boolean;
-  loading: boolean;
-  account: DayOfDashboardAccount | null;
-  token: string | null;
-  permissions: DayOfDashboardPermission[];
-  login: (input: { pin: string; name?: string | null }) => Promise<LoginSuccessPayload>;
-  logout: () => Promise<void>;
-  requireName: boolean;
-  setAccountName: (name: string) => Promise<void>;
-  updatingName: boolean;
-  loginError: string | null;
-  loggingIn: boolean;
-};
+/**
+ * @typedef {Object} DayOfSessionActions
+ * @property {(input: { pin: string, name?: string | null }) => Promise<LoginSuccessPayload>} login
+ * @property {() => Promise<void>} logout
+ * @property {(name: string) => Promise<void>} setAccountName
+ */
 
-type AccountFetcherKey = [string, string, string | null];
+/**
+ * @typedef {DayOfSessionActions & {
+ *   hydrated: boolean;
+ *   loading: boolean;
+ *   account: DayOfDashboardAccount | null;
+ *   token: string | null;
+ *   permissions: DayOfDashboardPermission[];
+ *   requireName: boolean;
+ *   updatingName: boolean;
+ *   loginError: string | null;
+ *   loggingIn: boolean;
+ * }} DayOfSessionState
+ */
 
-type AccountResponse = {
-  account: DayOfDashboardAccount;
-};
+/**
+ * @typedef {[string, string, string | null]} AccountFetcherKey
+ */
 
-const fetchAccount = async ([url, token, instanceId]: AccountFetcherKey) => {
-  const response = await dayOfAuthFetch(url, { token, instanceId }, { method: 'GET' });
-  return dayOfJson<AccountResponse>(response);
+/**
+ * @typedef {{ account: DayOfDashboardAccount }} AccountResponse
+ */
+
+/**
+ * @param {AccountFetcherKey} params
+ */
+const fetchAccount = async ([url, token, instanceId]) => {
+  const response = await dayOfAuthFetch(
+    url,
+    { token, instanceId },
+    { method: "GET" }
+  );
+  return dayOfJson(response);
 };
 
 const useStoredSession = () => {
-  const [session, setSession] = useState<StoredDayOfSession | null>(null);
+  const [session, setSession] = useState(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -93,7 +111,7 @@ const useStoredSession = () => {
     };
   }, []);
 
-  const saveSession = useCallback(async (value: StoredDayOfSession | null) => {
+  const saveSession = useCallback(async (value) => {
     if (!value) {
       await clearStoredSession();
       setSession(null);
@@ -103,18 +121,25 @@ const useStoredSession = () => {
     setSession(value);
   }, []);
 
-  return { session, hydrated, saveSession } as const;
+  return { session, hydrated, saveSession };
 };
 
-export const useDayOfSession = (): DayOfSessionState => {
+/**
+ * @returns {DayOfSessionState}
+ */
+export const useDayOfSession = () => {
   const { session, hydrated, saveSession } = useStoredSession();
-  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState(null);
 
   const accountKey = useMemo(() => {
     if (!session?.token) return null;
     if (!session.accountId || !session.eventId) return null;
     const path = `/api/events/${session.eventId}/day-of-dashboard/accounts/${session.accountId}`;
-    return [path, session.token, session.instanceId ?? null] as AccountFetcherKey;
+    return [
+      path,
+      session.token,
+      session.instanceId ?? null,
+    ];
   }, [session]);
 
   const {
@@ -126,25 +151,25 @@ export const useDayOfSession = (): DayOfSessionState => {
     shouldRetryOnError: false,
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
-    refreshInterval: session?.token ? 30_000 : 0,
+    refreshInterval: session?.token ? 10_000 : 0,
     refreshWhenHidden: false,
   });
 
   const loginMutation = useSWRMutation(
-    '/api/day-of-dashboard/login',
+    "/api/day-of-dashboard/login",
     async (
-      url: string,
-      { arg }: { arg: { pin: string; name?: string | null } }
+      url,
+      { arg }
     ) => {
       const payload = {
         pin: `${arg.pin}`.trim(),
         ...(arg.name ? { name: `${arg.name}`.trim() } : {}),
       };
       const response = await dayOfPublicFetch(url, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(payload),
       });
-      const data = await dayOfJson<LoginSuccessPayload>(response);
+      const data = await dayOfJson(response);
       return data;
     },
     { revalidate: false }
@@ -155,34 +180,37 @@ export const useDayOfSession = (): DayOfSessionState => {
       session
         ? `/api/events/${session.eventId}/day-of-dashboard/accounts/${session.accountId}`
         : null,
-    async (url: string, { arg }: { arg: { name: string } }) => {
+    async (url, { arg }) => {
       if (!session) {
-        throw new Error('No active session');
+        throw new Error("No active session");
       }
       const response = await dayOfAuthFetch(
         url,
         { token: session.token, instanceId: session.instanceId },
         {
-          method: 'PUT',
+          method: "PUT",
           body: JSON.stringify({ name: arg.name.trim() }),
         }
       );
-      const data = await dayOfJson<AccountResponse>(response);
+      const data = await dayOfJson(response);
       return data;
     },
     { revalidate: false }
   );
 
-  const login = useCallback<DayOfSessionState['login']>(
+  const login = useCallback(
     async ({ pin, name }) => {
       setLoginError(null);
       const trimmedPin = `${pin}`.trim();
       if (!trimmedPin) {
-        throw new Error('PIN is required');
+        throw new Error("PIN is required");
       }
       try {
-        const data = await loginMutation.trigger({ pin: trimmedPin, name: name ?? undefined });
-        const storedSession: StoredDayOfSession = {
+        const data = await loginMutation.trigger({
+          pin: trimmedPin,
+          name: name ?? undefined,
+        });
+        const storedSession = {
           token: data.token,
           accountId: data.account.id,
           eventId: data.account.eventId,
@@ -193,16 +221,15 @@ export const useDayOfSession = (): DayOfSessionState => {
           expiresAt: data.expiresAt,
         };
         await saveSession(storedSession);
-        await mutateAccount(
-          () => ({ account: data.account }),
-          { revalidate: false }
-        );
+        await mutateAccount(() => ({ account: data.account }), {
+          revalidate: false,
+        });
         return data;
       } catch (error) {
         if (error instanceof DayOfApiError) {
           setLoginError(error.message);
         } else {
-          setLoginError('Unable to log in. Please try again.');
+          setLoginError("Unable to log in. Please try again.");
         }
         throw error;
       }
@@ -226,28 +253,27 @@ export const useDayOfSession = (): DayOfSessionState => {
   }, [accountError, logout]);
 
   const setAccountName = useCallback(
-    async (name: string) => {
+    async (name) => {
       if (!session) return;
       const trimmed = name.trim();
       if (!trimmed.length) {
-        throw new Error('Name must be at least one character');
+        throw new Error("Name must be at least one character");
       }
 
       try {
         const result = await updateNameMutation.trigger({ name: trimmed });
-        const updatedSession: StoredDayOfSession = {
+        const updatedSession = {
           ...session,
           name: result.account.name ?? trimmed,
           permissions: result.account.permissions || session.permissions,
         };
         await saveSession(updatedSession);
-        await mutateAccount(
-          () => ({ account: result.account }),
-          { revalidate: false }
-        );
+        await mutateAccount(() => ({ account: result.account }), {
+          revalidate: false,
+        });
       } catch (error) {
         if (error instanceof DayOfApiError && error.status === 403) {
-          const updatedSession: StoredDayOfSession = {
+          const updatedSession = {
             ...session,
             name: trimmed,
           };
@@ -274,7 +300,8 @@ export const useDayOfSession = (): DayOfSessionState => {
     [account?.permissions, session?.permissions]
   );
 
-  const loading = Boolean(token) && (accountLoading || (!accountData && !accountError));
+  const loading =
+    Boolean(token) && (accountLoading || (!accountData && !accountError));
 
   const requireName = useMemo(() => {
     if (!token) return false;
@@ -286,21 +313,23 @@ export const useDayOfSession = (): DayOfSessionState => {
   return {
     hydrated,
     loading,
-    account: account ?? (session
-      ? {
-          id: session.accountId,
-          eventId: session.eventId,
-          provisionerId: session.provisionerId,
-          instanceId: session.instanceId,
-          name: session.name,
-          permissions: session.permissions,
-          tokenVersion: 0,
-          lastIssuedAt: null,
-          deleted: false,
-          createdAt: '',
-          updatedAt: '',
-        }
-      : null),
+    account:
+      account ??
+      (session
+        ? {
+            id: session.accountId,
+            eventId: session.eventId,
+            provisionerId: session.provisionerId,
+            instanceId: session.instanceId,
+            name: session.name,
+            permissions: session.permissions,
+            tokenVersion: 0,
+            lastIssuedAt: null,
+            deleted: false,
+            createdAt: "",
+            updatedAt: "",
+          }
+        : null),
     token,
     permissions,
     login,

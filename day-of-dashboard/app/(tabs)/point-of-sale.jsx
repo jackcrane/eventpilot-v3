@@ -2,13 +2,13 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Redirect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { getDefaultRouteForPermissions } from '@/constants/dayOfPermissions';
-import { useDayOfSessionContext } from '@/contexts/DayOfSessionContext';
+import { getDefaultRouteForPermissions } from '../../constants/dayOfPermissions';
+import { useDayOfSessionContext } from '../../contexts/DayOfSessionContext';
 
-const RegistrationScreen = () => {
+const PointOfSaleScreen = () => {
   const { account, permissions, hydrated } = useDayOfSessionContext();
 
-  const hasPermission = permissions.includes('PARTICIPANT_CHECK_IN');
+  const hasPermission = permissions.includes('POINT_OF_SALE');
 
   if (!hydrated) {
     return (
@@ -27,19 +27,19 @@ const RegistrationScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.title}>Participant Registration</Text>
+        <Text style={styles.title}>Point of Sale</Text>
         <Text style={styles.subtitle}>
-          Registration tools for {account?.name ? account.name : 'this station'} go here.
+          Configure POS for {account?.name ? account.name : 'this station'}.
         </Text>
         <Text style={styles.placeholder}>
-          Hook up participant check-in flows as they become available.
+          Integrate product selection and payment handling here.
         </Text>
       </View>
     </SafeAreaView>
   );
 };
 
-export default RegistrationScreen;
+export default PointOfSaleScreen;
 
 const styles = StyleSheet.create({
   safeArea: {

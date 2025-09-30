@@ -63,15 +63,6 @@ export const put = [
 
     const data = parseResult.data;
 
-    const provisioner = await prisma.dayOfDashboardProvisioner.findFirst({
-      where: { id: provisionerId, eventId },
-      select: { id: true, permissions: true },
-    });
-
-    if (!provisioner) {
-      return res.status(404).json({ message: "Provisioner not found" });
-    }
-
     let resolvedInstanceId = undefined;
     if (Object.prototype.hasOwnProperty.call(data, "instanceId")) {
       if (data.instanceId === null) {
@@ -97,18 +88,50 @@ export const put = [
     }
 
     try {
-      const updated = await prisma.dayOfDashboardProvisioner.update({
-        where: { id: provisionerId },
-        data: {
-          name: Object.prototype.hasOwnProperty.call(data, "name")
-            ? data.name?.trim() || null
-            : undefined,
-          instanceId: resolvedInstanceId,
-          permissions: normalizedPermissions,
-          jwtExpiresInSeconds: data.jwtExpiresInSeconds,
-        },
-        select: provisionerSelect,
+      const updated = await prisma.$transaction(async (tx) => {
+        const existing = await tx.dayOfDashboardProvisioner.findFirst({
+          where: { id: provisionerId, eventId },
+          select: { id: true, permissions: true },
+        });
+
+        if (!existing) {
+          return null;
+        }
+
+        const existingPermissions = normalizePermissions(existing.permissions);
+        const shouldSyncAccounts =
+          normalizedPermissions !== undefined &&
+          (normalizedPermissions.length !== existingPermissions.length ||
+            normalizedPermissions.some((permission, index) => permission !== existingPermissions[index]));
+
+        const provisioner = await tx.dayOfDashboardProvisioner.update({
+          where: { id: provisionerId },
+          data: {
+            name: Object.prototype.hasOwnProperty.call(data, "name")
+              ? data.name?.trim() || null
+              : undefined,
+            instanceId: resolvedInstanceId,
+            permissions: normalizedPermissions,
+            jwtExpiresInSeconds: data.jwtExpiresInSeconds,
+          },
+          select: provisionerSelect,
+        });
+
+        if (shouldSyncAccounts) {
+          await tx.dayOfDashboardAccount.updateMany({
+            where: { provisionerId },
+            data: {
+              permissions: normalizedPermissions,
+            },
+          });
+        }
+
+        return provisioner;
       });
+
+      if (!updated) {
+        return res.status(404).json({ message: "Provisioner not found" });
+      }
 
       return res.json({ provisioner: formatProvisioner(updated) });
     } catch (error) {
