@@ -6,7 +6,7 @@ import {
   Alert,
 } from "tabler-react-2";
 import { Row } from "../../util/Flex";
-import { TzDateTime } from "../tzDateTime/TzDateTime";
+import { TzDateTime } from "../tzDateTime/tzDateTime";
 import { PROVISIONER_PERMISSION_OPTIONS } from "../../hooks/useDayOfProvisioners";
 
 const READ_ONLY_OVERLAY_STYLE = {
