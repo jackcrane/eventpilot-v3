@@ -1,15 +1,22 @@
 {
   "expo": {
-    "name": "day-of-dashboard",
+    "name": "EventPilot Day-of Dashboard",
     "slug": "day-of-dashboard",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "dayofdashboard",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.geteventpilot.dayofdashboard",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "com.apple.developer.proximity-reader.payment.acceptance": true
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +26,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.geteventpilot.dayofdashboard"
     },
     "web": {
       "output": "static",
@@ -35,14 +43,29 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#ffffff"
           }
+        }
+      ],
+      [
+        "@stripe/stripe-terminal-react-native",
+        {
+          "bluetoothBackgroundMode": true,
+          "locationWhenInUsePermission": "Location access is required to accept payments.",
+          "bluetoothPeripheralPermission": "Bluetooth access is required to connect to some card readers.",
+          "bluetoothAlwaysUsagePermission": "This app uses bluetooth to connect to supported card readers."
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0f64de59-9df9-478b-b7fd-de72b979ba35"
+      }
     }
   }
 }
