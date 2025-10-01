@@ -93,7 +93,10 @@ export const get = [
         if (!hydratedField) return;
         const canonicalField = {
           ...hydratedField,
-          options: hydratedField.options ?? fieldMap.get(response.fieldId)?.options ?? [],
+          options:
+            hydratedField.options ??
+            fieldMap.get(response.fieldId)?.options ??
+            [],
         };
         resolvedResponses[response.fieldId] = formatResponseValue(
           canonicalField,
@@ -103,7 +106,9 @@ export const get = [
 
       const nameField =
         fields.find((field) => field.fieldType === "participantName") ||
-        fields.find((field) => (field.label || "").toLowerCase().includes("name")) ||
+        fields.find((field) =>
+          (field.label || "").toLowerCase().includes("name")
+        ) ||
         null;
       const emailField =
         fields.find((field) => field.fieldType === "participantEmail") ||
@@ -111,17 +116,19 @@ export const get = [
         null;
       const phoneField =
         fields.find((field) => field.fieldType === "participantPhone") ||
-        fields.find((field) => (field.label || "").toLowerCase().includes("phone")) ||
+        fields.find((field) =>
+          (field.label || "").toLowerCase().includes("phone")
+        ) ||
         null;
 
       const nameValue = nameField
-        ? resolvedResponses[nameField.id] ?? rawResponses[nameField.id]
+        ? (resolvedResponses[nameField.id] ?? rawResponses[nameField.id])
         : null;
       const emailValue = emailField
-        ? resolvedResponses[emailField.id] ?? rawResponses[emailField.id]
+        ? (resolvedResponses[emailField.id] ?? rawResponses[emailField.id])
         : null;
       const phoneValue = phoneField
-        ? resolvedResponses[phoneField.id] ?? rawResponses[phoneField.id]
+        ? (resolvedResponses[phoneField.id] ?? rawResponses[phoneField.id])
         : null;
 
       const fieldMeta = fields.map((field) => ({

@@ -74,7 +74,10 @@ export const put = [
     const data = parseResult.data;
 
     if (req.isDayOfDashboardRequest) {
-      if (!req.dayOfDashboardAccount || req.dayOfDashboardAccount.id !== accountId) {
+      if (
+        !req.dayOfDashboardAccount ||
+        req.dayOfDashboardAccount.id !== accountId
+      ) {
         return res
           .status(403)
           .json({ message: "Access forbidden: insufficient permissions" });

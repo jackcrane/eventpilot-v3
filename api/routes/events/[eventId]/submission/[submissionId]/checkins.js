@@ -32,6 +32,7 @@ const resolveTimeZone = (value) => {
     new Intl.DateTimeFormat("en-US", { timeZone: trimmed });
     return trimmed;
   } catch (error) {
+    void error;
     const lower = trimmed.toLowerCase();
     const matchByValue = timezones.find(
       (tz) => tz?.value?.toLowerCase() === lower
@@ -104,7 +105,9 @@ export const patch = [
         return res.status(404).json({ message: "Submission not found" });
       }
 
-      const requestedShiftIds = [...new Set(checkIns.map((item) => item.shiftId))];
+      const requestedShiftIds = [
+        ...new Set(checkIns.map((item) => item.shiftId)),
+      ];
 
       const signups = await prisma.volunteerShiftSignup.findMany({
         where: {
@@ -264,6 +267,7 @@ export const patch = [
                   timeZone: resolvedTz,
                 });
               } catch (formatError) {
+                void formatError;
                 formatter = new Intl.DateTimeFormat("en-US", {
                   dateStyle: "medium",
                   timeStyle: "short",
@@ -306,9 +310,7 @@ export const patch = [
             const subject = eventName?.length
               ? `Thank you for volunteering at ${eventName}`
               : "Thank you for volunteering today";
-            const organizer = eventName?.length
-              ? eventName
-              : "our team";
+            const organizer = eventName?.length ? eventName : "our team";
             const shiftText = shiftLines.join("\n");
 
             const textBody = `${greeting}

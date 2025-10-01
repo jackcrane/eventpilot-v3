@@ -16,7 +16,7 @@ export const waitlistSchema = z.object({
     .string({ required_error: "Email is required" })
     .email("Please provide a valid email"),
   organization: z.string().optional(),
-  website: z.string().url().optional().or(z.literal("").optional()),
+  website: z.string().optional().or(z.literal("").optional()),
   message: z.string().max(2000).optional(),
   eventSize: z.preprocess(
     (v) => (typeof v === "string" ? parseInt(v, 10) : v),

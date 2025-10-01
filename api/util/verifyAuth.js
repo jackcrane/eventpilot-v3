@@ -59,6 +59,7 @@ export const verifyAuth =
         try {
           decoded = jwt.verify(token, process.env.JWT_SECRET);
         } catch (error) {
+          void error;
           return res.sendStatus(401);
         }
 
@@ -143,9 +144,7 @@ export const verifyAuth =
           return next();
         } catch (error) {
           console.error("Failed to verify day-of dashboard account", error);
-          return res
-            .status(500)
-            .json({ message: "Internal server error" });
+          return res.status(500).json({ message: "Internal server error" });
         }
       }
 

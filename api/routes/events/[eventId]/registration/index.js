@@ -15,7 +15,10 @@ export const normalizeForSearch = (value) => {
   if (typeof value === "number") return String(value);
   if (typeof value === "boolean") return value ? "true" : "false";
   if (Array.isArray(value)) {
-    return value.map((item) => normalizeForSearch(item)).filter(Boolean).join(" ");
+    return value
+      .map((item) => normalizeForSearch(item))
+      .filter(Boolean)
+      .join(" ");
   }
   if (typeof value === "object") {
     if (value.label) return normalizeForSearch(value.label);
@@ -39,7 +42,7 @@ export const formatResponseValue = (field, response) => {
       });
       return match
         ? { id: match.id, label: match.label, value: match.value }
-        : response.value ?? null;
+        : (response.value ?? null);
     }
     case "CHECKBOX": {
       if (typeof response.value === "boolean") return response.value;
@@ -132,15 +135,12 @@ export const get = [
 
       const fieldMap = new Map(fields.map((field) => [field.id, field]));
 
-      const nameFieldId =
-        fields.find((field) => field.fieldType === "participantName")?.id ?? null;
-      const emailFieldId =
-        fields.find((field) => field.fieldType === "participantEmail")?.id ?? null;
       const phoneFieldId =
         fields.find((field) => field.fieldType === "participantPhone")?.id ??
         fields.find((field) =>
           (field.label || "").toLowerCase().includes("phone")
-        )?.id ?? null;
+        )?.id ??
+        null;
 
       const registrations = registrationsRaw.map((registration) => {
         const { fieldResponses, ...rest } = registration;
@@ -156,7 +156,7 @@ export const get = [
 
         const { name, email } = factory.getNameAndEmail(registration);
         const phoneRaw = phoneFieldId
-          ? resolvedResponses[phoneFieldId] ?? rawResponses[phoneFieldId]
+          ? (resolvedResponses[phoneFieldId] ?? rawResponses[phoneFieldId])
           : undefined;
 
         const searchTokens = new Set();

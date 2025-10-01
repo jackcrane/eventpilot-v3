@@ -3,10 +3,7 @@ import { verifyAuth } from "#verifyAuth";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { normalizePermissions } from "#util/dayOfDashboard.js";
-import {
-  formatProvisioner,
-  provisionerSelect,
-} from "../shared.js";
+import { formatProvisioner, provisionerSelect } from "../shared.js";
 
 const updateSchema = z
   .object({
@@ -84,7 +81,9 @@ export const put = [
       : undefined;
 
     if (normalizedPermissions && !normalizedPermissions.length) {
-      return res.status(400).json({ message: "At least one permission required" });
+      return res
+        .status(400)
+        .json({ message: "At least one permission required" });
     }
 
     try {
@@ -102,7 +101,9 @@ export const put = [
         const shouldSyncAccounts =
           normalizedPermissions !== undefined &&
           (normalizedPermissions.length !== existingPermissions.length ||
-            normalizedPermissions.some((permission, index) => permission !== existingPermissions[index]));
+            normalizedPermissions.some(
+              (permission, index) => permission !== existingPermissions[index]
+            ));
 
         const provisioner = await tx.dayOfDashboardProvisioner.update({
           where: { id: provisionerId },
@@ -165,7 +166,9 @@ export const del = [
           },
         });
 
-        await tx.dayOfDashboardProvisioner.delete({ where: { id: provisionerId } });
+        await tx.dayOfDashboardProvisioner.delete({
+          where: { id: provisionerId },
+        });
 
         return provisioner;
       });
