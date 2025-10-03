@@ -56,13 +56,28 @@ export const get = [
   async (req, res) => {
     const eventId = req.params.eventId;
 
+    // --- lightweight timing instrumentation ---
+    const NS_PER_MS = 1_000_000n;
+    const startNs = process.hrtime.bigint();
+    let lastNs = startNs;
+    const tmark = (label, extra = {}) => {
+      const now = process.hrtime.bigint();
+      const sinceLastMs = Number(now - lastNs) / Number(NS_PER_MS);
+      const totalMs = Number(now - startNs) / Number(NS_PER_MS);
+      lastNs = now;
+      console.log(
+        `[CRM GET] ${label} +${sinceLastMs.toFixed(3)}ms (total ${totalMs.toFixed(
+          3
+        )}ms) ${Object.keys(extra).length ? JSON.stringify(extra) : ""}`
+      );
+    };
+
     try {
-      // Optional pagination: page (1-based) and size
-      const rawPage = req.query.page ? parseInt(req.query.page, 10) : null;
-      const rawSize = req.query.size ? parseInt(req.query.size, 10) : null;
-      const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : null;
-      const size =
-        Number.isFinite(rawSize) && rawSize > 0 ? Math.min(rawSize, 200) : null;
+      const page = Math.max(parseInt(req.query.page ?? "1", 10), 1);
+      const size = Math.min(
+        Math.max(parseInt(req.query.size ?? "50", 10), 1),
+        200
+      );
 
       // Optional sorting: orderBy (accessor) and order (asc/desc)
       const order =
@@ -106,6 +121,13 @@ export const get = [
           ],
         });
       }
+      tmark("Parsed query params & text search", {
+        q,
+        page,
+        size,
+        orderBy,
+        order,
+      });
 
       // Filter parsing: expect JSON stringified array of { path, operation, value }
       let filters = [];
@@ -115,9 +137,9 @@ export const get = [
           if (Array.isArray(parsed)) filters = parsed;
         } catch (_) {
           void _;
-          // ignore
         }
       }
+      tmark("Parsed filters", { filtersCount: filters.length });
 
       // Build Prisma where clauses for common fields and simple custom field ops
       for (const f of filters) {
@@ -225,7 +247,6 @@ export const get = [
               NOT: { fieldValues: { some: { crmFieldId: fieldId } } },
             });
           } else if (val) {
-            // Textual comparisons via Prisma; numeric/date handled later via raw
             if (
               [
                 "eq",
@@ -244,6 +265,9 @@ export const get = [
           }
         }
       }
+      tmark("Built where (base + simple filters)", {
+        andClauses: andClauses.length,
+      });
 
       // Fields we can sort via Prisma directly
       const prismaSortable = new Set([
@@ -274,7 +298,6 @@ export const get = [
         const fieldId = sf.path.split(".")[1];
         const cmp = sf.operation;
         const rawVal = String(sf.value || "");
-        // Build SQL comparator
         let comparator = null;
         let expr = null;
         if (cmp === "greater-than") comparator = ">";
@@ -298,6 +321,7 @@ export const get = [
         }
 
         if (expr && comparator) {
+          tmark("Special filter query start", { fieldId, cmp, rawVal });
           const rows = await prisma.$queryRawUnsafe(
             `
             SELECT p.id
@@ -311,12 +335,16 @@ export const get = [
             eventId,
             rawVal
           );
+          tmark("Special filter query end", { matchedIds: rows.length });
           const set = new Set(rows.map((r) => r.id));
           idsConstraint = idsConstraint
             ? new Set([...idsConstraint].filter((id) => set.has(id)))
             : set;
         }
       }
+      tmark("Applied special filters (intersection)", {
+        idsConstraintSize: idsConstraint ? idsConstraint.size : null,
+      });
 
       // Apply Prisma where assembled so far, augmented by idsConstraint if present
       let where = andClauses.length
@@ -325,11 +353,11 @@ export const get = [
       if (idsConstraint && idsConstraint.size > 0) {
         where = { AND: [where, { id: { in: Array.from(idsConstraint) } }] };
       } else if (idsConstraint && idsConstraint.size === 0) {
-        // No matches
         where = { AND: [whereBase, { id: { in: [] } }] };
       }
 
       const total = await prisma.crmPerson.count({ where });
+      tmark("Counted crmPerson total", { total });
 
       let crmPersons = [];
       let precomputedLifetime = null;
@@ -343,13 +371,18 @@ export const get = [
       };
 
       if (orderBy === "lifetimeValue") {
+        tmark("Begin lifetimeValue ordering - collect IDs");
         const idRows = await prisma.crmPerson.findMany({
           where,
           select: { id: true },
+          take: size,
+          skip: (page - 1) * size,
         });
         const allIds = idRows.map((row) => row.id);
+        tmark("Collected IDs for lifetimeValue", { ids: allIds.length });
 
         if (allIds.length) {
+          tmark("GroupBy ledgerItem start", { ids: allIds.length });
           const lifetimeGroups = await prisma.ledgerItem.groupBy({
             by: ["crmPersonId"],
             where: {
@@ -358,6 +391,7 @@ export const get = [
             },
             _sum: { amount: true },
           });
+          tmark("GroupBy ledgerItem end", { rows: lifetimeGroups.length });
 
           precomputedLifetime = new Map(allIds.map((id) => [id, 0]));
           for (const entry of lifetimeGroups) {
@@ -376,32 +410,51 @@ export const get = [
           const offset = page && size ? (page - 1) * size : 0;
           const limit = page && size ? size : sortedIds.length;
           const pageIds = sortedIds.slice(offset, offset + limit);
+          tmark("Sorted & sliced lifetimeValue IDs", {
+            pageIds: pageIds.length,
+            offset,
+            limit,
+          });
 
           if (pageIds.length) {
             crmPersons = await prisma.crmPerson.findMany({
               where: { id: { in: pageIds } },
               include: baseInclude,
+              take: size,
+              skip: (page - 1) * size,
             });
             const index = new Map(pageIds.map((id, idx) => [id, idx]));
             crmPersons.sort((a, b) => index.get(a.id) - index.get(b.id));
           }
         }
+        tmark("Fetched crmPersons (lifetimeValue)", {
+          count: crmPersons.length,
+        });
       } else if (orderBy && orderBy.startsWith("fields.")) {
-        // Sorting by custom field requires a join on CrmPersonField.
         const fieldId = orderBy.split(".")[1];
         const offset = page && size ? (page - 1) * size : 0;
         const limit = page && size ? size : total || 1;
 
-        // Pre-filter IDs using the assembled Prisma where
+        tmark("Custom-field sort: prefilter IDs start");
         const baseIdsRows = await prisma.crmPerson.findMany({
           where,
           select: { id: true },
+          take: size,
+          skip: (page - 1) * size,
         });
         const baseIds = baseIdsRows.map((r) => r.id);
+        tmark("Custom-field sort: prefilter IDs end", {
+          baseIds: baseIds.length,
+        });
+
         if (baseIds.length === 0) {
           crmPersons = [];
         } else {
-          // Order by the custom field's value, nulls last. We coalesce to lower() for stable text sort.
+          tmark("Custom-field ORDER BY query start", {
+            fieldId,
+            limit,
+            offset,
+          });
           const rows = await prisma.$queryRawUnsafe(
             `
             SELECT p.id
@@ -417,6 +470,7 @@ export const get = [
             limit,
             offset
           );
+          tmark("Custom-field ORDER BY query end", { returned: rows.length });
 
           const ids = rows.map((r) => r.id);
           const list = await prisma.crmPerson.findMany({
@@ -426,28 +480,38 @@ export const get = [
           const idx = new Map(ids.map((id, i) => [id, i]));
           crmPersons = list.sort((a, b) => idx.get(a.id) - idx.get(b.id));
         }
+        tmark("Fetched crmPersons (custom-field sort)", {
+          count: crmPersons.length,
+        });
       } else {
-        // Default Prisma-based ordering
         const orderByClause =
           orderBy && prismaSortable.has(orderBy)
             ? { [orderBy]: order }
             : { createdAt: "desc" };
 
+        tmark("Default Prisma findMany start", {
+          orderByClause,
+          paged: Boolean(page && size),
+        });
         crmPersons = await prisma.crmPerson.findMany({
           where,
           include: baseInclude,
-          ...(page && size ? { skip: (page - 1) * size, take: size } : {}),
+          take: size,
+          skip: (page - 1) * size,
           orderBy: orderByClause,
         });
+        tmark("Default Prisma findMany end", { count: crmPersons.length });
       }
 
       const personIds = crmPersons.map((person) => person.id);
+      tmark("Person IDs extracted", { personIds: personIds.length });
 
       let emailEntries = [];
       let participantRegistrations = [];
       let volunteerRegistrations = [];
 
       if (personIds.length) {
+        tmark("Parallel fetch (emails, participants, volunteers) start");
         [emailEntries, participantRegistrations, volunteerRegistrations] =
           await Promise.all([
             prisma.email.findMany({
@@ -538,6 +602,11 @@ export const get = [
               orderBy: { createdAt: "desc" },
             }),
           ]);
+        tmark("Parallel fetch end", {
+          emails: emailEntries.length,
+          participantRegistrations: participantRegistrations.length,
+          volunteerRegistrations: volunteerRegistrations.length,
+        });
       }
 
       let ledgerMap;
@@ -545,7 +614,9 @@ export const get = [
         ledgerMap = new Map(
           personIds.map((id) => [id, precomputedLifetime.get(id) ?? 0])
         );
+        tmark("Used precomputed lifetime map");
       } else if (personIds.length) {
+        tmark("GroupBy ledgerItem (page-only) start");
         const ledgerGroups = await prisma.ledgerItem.groupBy({
           by: ["crmPersonId"],
           where: {
@@ -560,8 +631,12 @@ export const get = [
             Number(entry._sum?.amount || 0),
           ])
         );
+        tmark("GroupBy ledgerItem (page-only) end", {
+          ledgerGroups: ledgerGroups.length,
+        });
       } else {
         ledgerMap = new Map();
+        tmark("Empty ledger map (no persons)");
       }
 
       const emailMap = new Map();
@@ -583,6 +658,9 @@ export const get = [
           emailMap.set(personId, email.createdAt);
         }
       }
+      tmark("Computed email stats", {
+        personsWithEmails: emailStatsMap.size,
+      });
 
       const participantAccumulator = new Map();
       for (const reg of participantRegistrations) {
@@ -653,6 +731,9 @@ export const get = [
         }
         if (!summary.latest) summary.latest = detail;
       }
+      tmark("Aggregated participant registrations", {
+        personsWithParticipantRegs: participantAccumulator.size,
+      });
 
       const normalizedParticipantMap = new Map(
         [...participantAccumulator.entries()].map(([personId, summary]) => [
@@ -685,6 +766,9 @@ export const get = [
           },
         ])
       );
+      tmark("Normalized participant map", {
+        normalizedCount: normalizedParticipantMap.size,
+      });
 
       const volunteerAccumulator = new Map();
       for (const reg of volunteerRegistrations) {
@@ -743,6 +827,9 @@ export const get = [
         }
         if (!summary.latest) summary.latest = detail;
       }
+      tmark("Aggregated volunteer registrations", {
+        personsWithVolunteerRegs: volunteerAccumulator.size,
+      });
 
       const volunteerMap = new Map(
         [...volunteerAccumulator.entries()].map(([personId, summary]) => [
@@ -768,6 +855,7 @@ export const get = [
           },
         ])
       );
+      tmark("Built volunteer map", { normalizedCount: volunteerMap.size });
 
       const enrichedCrmPersons = crmPersons.map((person) => {
         const participantStats = normalizedParticipantMap.get(person.id);
@@ -812,13 +900,18 @@ export const get = [
           },
         };
       });
+      tmark("Assembled enriched persons", {
+        enriched: enrichedCrmPersons.length,
+      });
 
       res.json({
         crmPersons: enrichedCrmPersons,
         total,
       });
+      tmark("Response sent");
     } catch (error) {
       console.error("Error in GET /event/:eventId/crm:", error);
+      tmark("Error path");
       res.status(500).json({ error: "Internal server error" });
     }
   },
