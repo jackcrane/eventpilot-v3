@@ -1,19 +1,31 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import * as Sentry from "@sentry/node";
 import registerRoutes from "./util/router.js";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// SLow down requests
-// app.use(async (req, res, next) => {
-//   await new Promise((resolve) => setTimeout(resolve, 300));
-//   next();
-// });
+const sentryEnabled =
+  process.env.NODE_ENV !== "test" && Boolean(process.env.SENTRY_DSN);
+
+if (sentryEnabled) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV,
+    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE || 0),
+    registerEsmLoaderHooks: {
+      exclude: [/react-email\//],
+    },
+    maxValueLength: 2048,
+  });
+}
 
 app.use(
   cors({
@@ -30,6 +42,11 @@ app.use((req, res, next) => {
     .fill(null)
     .map(() => charSet.charAt(Math.floor(Math.random() * charSet.length)))
     .join("");
+
+  if (sentryEnabled) {
+    const scope = Sentry.getCurrentScope();
+    scope?.setTag("request_id", req.id);
+  }
 
   next();
 });
@@ -63,6 +80,22 @@ app.use("/static", express.static(path.join(process.cwd(), "static")));
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../app/dist", "index.html"));
+});
+
+if (sentryEnabled) {
+  Sentry.setupExpressErrorHandler(app);
+}
+
+app.use((err, req, res, next) => {
+  console.error(`[${req?.id ?? "unknown"}][ERROR]`, err);
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    error: status === 500 ? "Internal Server Error" : err.message,
+  });
 });
 
 const PORT = process.env.PORT || 3000;
