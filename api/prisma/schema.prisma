@@ -190,6 +190,10 @@ model Email {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([crmPersonId, createdAt(sort: Desc)])
+  @@index([crmPersonEmailId, createdAt(sort: Desc)])
+  @@index([campaignId])
 }
 
 enum CampaignEmailQueueStatus {
@@ -734,6 +738,7 @@ model VolunteerRegistration {
   TodoItem TodoItem[]
 
   @@map("FormResponse")
+  @@index([eventId, deleted, instanceId, createdAt(sort: Desc)])
 }
 
 model PII {
@@ -923,6 +928,8 @@ model CrmPerson {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   MailingListMember MailingListMember[]
+
+  @@index([eventId, deleted, createdAt(sort: Desc)])
 }
 
 model CrmPersonLink {
@@ -936,6 +943,8 @@ model CrmPersonLink {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([crmPersonId])
 }
 
 model CrmPersonEmail {
@@ -953,6 +962,8 @@ model CrmPersonEmail {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deleted   Boolean  @default(false)
+
+  @@index([crmPersonId])
 }
 
 model CrmPersonPhone {
@@ -1332,6 +1343,7 @@ model Registration {
   TodoItem    TodoItem[]
 
   @@index([checkedInById])
+  @@index([eventId, deleted, crmPersonId, createdAt(sort: Desc)])
 }
 
 model RegistrationUpsell {
