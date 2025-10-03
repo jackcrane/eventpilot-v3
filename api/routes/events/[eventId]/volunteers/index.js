@@ -76,7 +76,8 @@ const buildOrderFragments = ({ orderBy, order, fieldById }) => {
     }
   }
 
-  const direction = normalizeOrder(order) === "asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`;
+  const direction =
+    normalizeOrder(order) === "asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`;
   const orderExpr = Prisma.sql`${target} ${direction} NULLS LAST`;
 
   return {
@@ -88,10 +89,9 @@ const buildOrderFragments = ({ orderBy, order, fieldById }) => {
 const combineWithAnd = (fragments = []) => {
   const filtered = Array.isArray(fragments) ? fragments.filter(Boolean) : [];
   if (!filtered.length) return Prisma.sql`1 = 1`;
-  return filtered.slice(1).reduce(
-    (acc, fragment) => Prisma.sql`${acc} AND ${fragment}`,
-    filtered[0]
-  );
+  return filtered
+    .slice(1)
+    .reduce((acc, fragment) => Prisma.sql`${acc} AND ${fragment}`, filtered[0]);
 };
 
 const escapeLike = (value = "") =>
@@ -106,10 +106,13 @@ const likeExpression = (column, pattern) =>
 const notLikeExpression = (column, pattern) =>
   Prisma.sql`NOT (${column} ILIKE ${pattern} ESCAPE '\\')`;
 
+// eslint-disable-next-line no-unused-vars
 const buildStringComparison = (column, operation, rawValue) => {
   const op = String(operation || "").toLowerCase();
-  if (op === "exists") return Prisma.sql`${column} IS NOT NULL AND ${column} <> ''`;
-  if (op === "not-exists") return Prisma.sql`${column} IS NULL OR ${column} = ''`;
+  if (op === "exists")
+    return Prisma.sql`${column} IS NOT NULL AND ${column} <> ''`;
+  if (op === "not-exists")
+    return Prisma.sql`${column} IS NULL OR ${column} = ''`;
 
   const value = rawValue == null ? "" : String(rawValue);
   const trimmed = value.trim();
@@ -361,8 +364,8 @@ const mapVolunteerRecord = ({ record, fields, nameField, emailField }) => {
     shifts: shiftDetails,
     groupedShifts,
     flat: {
-      name: nameField ? fieldDisplay[nameField.id] ?? null : null,
-      email: emailField ? fieldDisplay[emailField.id] ?? null : null,
+      name: nameField ? (fieldDisplay[nameField.id] ?? null) : null,
+      email: emailField ? (fieldDisplay[emailField.id] ?? null) : null,
     },
   };
 };
@@ -375,14 +378,19 @@ export const get = [
     const parseResult = querySchema.safeParse(req.query);
 
     if (!parseResult.success) {
-      return res.status(400).json({ message: "Invalid query", details: parseResult.error.issues });
+      return res
+        .status(400)
+        .json({ message: "Invalid query", details: parseResult.error.issues });
     }
 
     const { page, size } = parseResult.data;
     let orderBy = parseResult.data.orderBy || "createdAt";
     const order = normalizeOrder(parseResult.data.order);
 
-    const { fields, byId, byPilotType } = await getVolunteerFields(eventId, instanceId);
+    const { fields, byId, byPilotType } = await getVolunteerFields(
+      eventId,
+      instanceId
+    );
 
     if (!byId.size) {
       return res.json({

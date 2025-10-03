@@ -43,8 +43,10 @@ const getRegistrationFields = async (eventId, instanceId) => {
   });
 
   const byId = new Map(fields.map((field) => [field.id, field]));
-  const nameField = fields.find((field) => field.fieldType === "participantName") || null;
-  const emailField = fields.find((field) => field.fieldType === "participantEmail") || null;
+  const nameField =
+    fields.find((field) => field.fieldType === "participantName") || null;
+  const emailField =
+    fields.find((field) => field.fieldType === "participantEmail") || null;
 
   return { fields, byId, nameField, emailField };
 };
@@ -52,10 +54,9 @@ const getRegistrationFields = async (eventId, instanceId) => {
 const combineWithAnd = (fragments = []) => {
   const filtered = Array.isArray(fragments) ? fragments.filter(Boolean) : [];
   if (!filtered.length) return Prisma.sql`1 = 1`;
-  return filtered.slice(1).reduce(
-    (acc, fragment) => Prisma.sql`${acc} AND ${fragment}`,
-    filtered[0]
-  );
+  return filtered
+    .slice(1)
+    .reduce((acc, fragment) => Prisma.sql`${acc} AND ${fragment}`, filtered[0]);
 };
 
 const baseWhere = ({ eventId, instanceId }) => {
@@ -120,7 +121,8 @@ const buildOrderFragments = ({ orderBy, order, fieldById }) => {
     }
   }
 
-  const direction = normalizeOrder(order) === "asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`;
+  const direction =
+    normalizeOrder(order) === "asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`;
   const orderExpr = Prisma.sql`${target} ${direction} NULLS LAST`;
 
   return {
@@ -194,8 +196,8 @@ const mapRegistrationRecord = ({
     fields: fieldValues,
     fieldDisplay,
     flat: {
-      name: nameField ? fieldDisplay[nameField.id] ?? name : name,
-      email: emailField ? fieldDisplay[emailField.id] ?? email : email,
+      name: nameField ? (fieldDisplay[nameField.id] ?? name) : name,
+      email: emailField ? (fieldDisplay[emailField.id] ?? email) : email,
     },
     tier: {
       id: record.registrationTierId,
@@ -262,9 +264,15 @@ export const get = [
       const fieldId = orderBy.slice(6);
       if (!byId.has(fieldId)) orderBy = "createdAt";
     } else if (
-      !["createdAt", "updatedAt", "finalized", "priceSnapshot", "tier", "period", "team"].includes(
-        orderBy
-      )
+      ![
+        "createdAt",
+        "updatedAt",
+        "finalized",
+        "priceSnapshot",
+        "tier",
+        "period",
+        "team",
+      ].includes(orderBy)
     ) {
       orderBy = "createdAt";
     }
@@ -273,7 +281,11 @@ export const get = [
       where: { eventId, instanceId, deleted: false },
     });
 
-    const { joins, orderExpr } = buildOrderFragments({ orderBy, order, fieldById: byId });
+    const { joins, orderExpr } = buildOrderFragments({
+      orderBy,
+      order,
+      fieldById: byId,
+    });
     const whereClause = baseWhere({ eventId, instanceId });
     let joinSql = Prisma.sql``;
     joins.forEach((fragment) => {
@@ -317,7 +329,7 @@ ${fragment}`;
         },
         registrationTier: { select: { id: true, name: true } },
         registrationPeriod: { select: { id: true, name: true } },
-        registrationPeriodPricing: { select: { id: true, name: true } },
+        registrationPeriodPricing: { select: { id: true } },
         team: { select: { id: true, name: true } },
         upsells: {
           include: {
@@ -329,7 +341,9 @@ ${fragment}`;
       },
     });
 
-    const registrationById = new Map(registrations.map((entry) => [entry.id, entry]));
+    const registrationById = new Map(
+      registrations.map((entry) => [entry.id, entry])
+    );
 
     const rows = orderedIds
       .map((id) => registrationById.get(id))
