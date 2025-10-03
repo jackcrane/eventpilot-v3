@@ -4,8 +4,8 @@ import { verifyAuth } from "#verifyAuth";
 import { LogType, MailingListMemberStatus } from "@prisma/client";
 import { z } from "zod";
 import { zerialize } from "zodex";
-import {
 import { reportApiError } from "#util/reportApiError.js";
+import {
   ensureCrmPerson,
   ensureMailingList,
   findMember,

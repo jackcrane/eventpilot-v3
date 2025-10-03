@@ -3,8 +3,8 @@ import { verifyAuth } from "#verifyAuth";
 import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
 import { prisma } from "#prisma";
-import {
 import { reportApiError } from "#util/reportApiError.js";
+import {
   deleteMissingPeriods,
   deleteMissingTiers,
   syncPricingForPeriods,

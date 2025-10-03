@@ -1,12 +1,8 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { z } from "zod";
-import {
 import { reportApiError } from "#util/reportApiError.js";
-  S3Client,
-  GetObjectCommand,
-  HeadObjectCommand,
-} from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getGmailClientForEvent, sendNewEmail } from "#util/google";
 import { sendEmailEvent } from "#sse";
 import { upsertConversationCrmPerson } from "#util/upsertConversationCrmPerson";

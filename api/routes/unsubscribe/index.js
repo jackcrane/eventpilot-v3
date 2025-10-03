@@ -158,8 +158,8 @@ export const get = [
       return res.json(shapeResponse(context));
     } catch (error) {
       console.error("Failed to load unsubscribe context", error);
+      reportApiError(error, req);
       return res
-        reportApiError(error, req);
         .status(500)
         .json({ message: "Failed to load unsubscribe details" });
     }
@@ -310,8 +310,8 @@ export const post = [
       });
     } catch (error) {
       console.error("Failed to process unsubscribe request", error);
+      reportApiError(error, req);
       return res
-        reportApiError(error, req);
         .status(500)
         .json({ message: "Failed to update your preferences" });
     }

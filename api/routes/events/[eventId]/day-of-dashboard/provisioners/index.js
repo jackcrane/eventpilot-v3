@@ -2,8 +2,8 @@ import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
-import {
 import { reportApiError } from "#util/reportApiError.js";
+import {
   derivePinLookupKey,
   generateDashboardPin,
   hashPin,
@@ -141,8 +141,8 @@ export const post = [
       });
     } catch (error) {
       console.error("Failed to create day-of dashboard provisioner", error);
+      reportApiError(error, req);
       return res
-        reportApiError(error, req);
         .status(500)
         .json({ message: "Failed to create provisioner" });
     }

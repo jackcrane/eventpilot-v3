@@ -1,11 +1,7 @@
 import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
-import {
 import { reportApiError } from "#util/reportApiError.js";
-  S3Client,
-  GetObjectCommand,
-  HeadObjectCommand,
-} from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import {
   getGmailClientForEvent,
   sendThreadReply,

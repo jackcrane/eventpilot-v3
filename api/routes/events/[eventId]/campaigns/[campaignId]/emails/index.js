@@ -163,8 +163,9 @@ export const get = [
         `Failed to load campaign emails for campaign ${campaignId} on event ${eventId}:`,
         error
       );
+      reportApiError(error, req);
+
       return res
-        reportApiError(error, req);
         .status(500)
         .json({ message: "Failed to load campaign recipients" });
     }

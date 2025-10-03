@@ -1,7 +1,7 @@
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
-import {
 import { reportApiError } from "#util/reportApiError.js";
+import {
   derivePinLookupKey,
   generateDashboardPin,
   hashPin,

@@ -2,8 +2,8 @@ import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
-import {
 import { reportApiError } from "#util/reportApiError.js";
+import {
   derivePinLookupKey,
   generateDashboardPin,
   hashPin,

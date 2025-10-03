@@ -2,8 +2,8 @@ import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { verifyAuth } from "#verifyAuth";
 import { dispatchCampaign } from "#util/campaignDispatch";
-import {
 import { reportApiError } from "#util/reportApiError.js";
+import {
   baseCampaignSelect,
   campaignSchema,
   formatCampaign,
