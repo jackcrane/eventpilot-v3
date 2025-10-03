@@ -57,7 +57,6 @@ export const get = [
     const eventId = req.params.eventId;
 
     // --- lightweight timing instrumentation ---
-    const NS_PER_US = 1_000n;
     const NS_PER_MS = 1_000_000n;
     const startNs = process.hrtime.bigint();
     let lastNs = startNs;
