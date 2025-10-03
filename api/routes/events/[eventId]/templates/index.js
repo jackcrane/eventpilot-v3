@@ -35,7 +35,6 @@ export const get = [
     const includeDeleted = !!req.query.includeDeleted;
 
     try {
-      throw new Error("Test error");
       const templates = await prisma.emailTemplate.findMany({
         where: {
           eventId,
