@@ -11,6 +11,7 @@ import {
   memberInclude,
   memberSummarySelect,
 } from "../memberUtils";
+import { createLogBuffer } from "../../../../../util/logging.js";
 
 const toStringValue = (value) => {
   if (value === undefined || value === null) return null;
@@ -469,6 +470,8 @@ export const post = [
       let createdMembers = [];
       let createdResultCount = 0;
 
+      const logBuffer = createLogBuffer();
+
       await prisma.$transaction(async (tx) => {
         if (createRows.length) {
           const result = await tx.mailingListMember.createMany({
@@ -590,7 +593,7 @@ export const post = [
           }
 
           if (logEntries.length) {
-            await tx.logs.createMany({ data: logEntries });
+            logBuffer.pushMany(logEntries);
           }
         }
       });
@@ -641,6 +644,8 @@ export const post = [
           };
         });
       }
+
+      await logBuffer.flush();
 
       const response = {
         created: createdResultCount,

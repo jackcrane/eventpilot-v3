@@ -7,6 +7,7 @@ import { z } from "zod";
 import { zerialize } from "zodex";
 import { evaluateSegment } from "../crm/segments/index.js";
 import { memberInclude } from "./memberUtils.js";
+import { createLogBuffer } from "../../../../util/logging.js";
 
 const mailingListSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -111,6 +112,7 @@ const seedMailingListFromSegment = async ({
     }
 
     let createdCount = 0;
+    const logBuffer = createLogBuffer();
 
     await prisma.$transaction(async (tx) => {
       const existingMembers = await tx.mailingListMember.findMany({
@@ -152,8 +154,8 @@ const seedMailingListFromSegment = async ({
         createdCount = createdMembers.length;
 
         if (createdMembers.length) {
-          await tx.logs.createMany({
-            data: createdMembers.map((member) => ({
+          logBuffer.pushMany(
+            createdMembers.map((member) => ({
               type: LogType.MAILING_LIST_MEMBER_CREATED,
               userId: req.user?.id ?? null,
               ip: ipAddress(req),
@@ -163,8 +165,8 @@ const seedMailingListFromSegment = async ({
               crmPersonId: member.crmPersonId,
               crmSavedSegmentId,
               data: { before: null, after: member },
-            })),
-          });
+            }))
+          );
         }
       }
 
@@ -175,6 +177,8 @@ const seedMailingListFromSegment = async ({
         });
       }
     });
+
+    await logBuffer.flush();
 
     return { created: createdCount, totalMatches: uniqueIds.length };
   } catch (error) {
@@ -332,6 +336,7 @@ export const post = [
     }
 
     try {
+      const logBuffer = createLogBuffer();
       const mailingList = await prisma.$transaction(async (tx) => {
         if (existingByTitle?.deleted) {
           await tx.mailingListMember.deleteMany({
@@ -353,18 +358,16 @@ export const post = [
             },
           });
 
-          await tx.logs.create({
-            data: {
-              type: LogType.MAILING_LIST_CREATED,
-              userId: req.user.id,
-              ip: ipAddress(req),
-              eventId,
-              mailingListId: restored.id,
-              data: { after: restored },
-              crmSavedSegmentId: hasSegmentField
-                ? (crmSavedSegmentId ?? null)
-                : (restored.crmSavedSegmentId ?? null),
-            },
+          logBuffer.push({
+            type: LogType.MAILING_LIST_CREATED,
+            userId: req.user.id,
+            ip: ipAddress(req),
+            eventId,
+            mailingListId: restored.id,
+            data: { after: restored },
+            crmSavedSegmentId: hasSegmentField
+              ? (crmSavedSegmentId ?? null)
+              : (restored.crmSavedSegmentId ?? null),
           });
 
           return restored;
@@ -384,22 +387,22 @@ export const post = [
           },
         });
 
-        await tx.logs.create({
-          data: {
-            type: LogType.MAILING_LIST_CREATED,
-            userId: req.user.id,
-            ip: ipAddress(req),
-            eventId,
-            mailingListId: created.id,
-            data: { after: created },
-            crmSavedSegmentId: hasSegmentField
-              ? (crmSavedSegmentId ?? null)
-              : (created.crmSavedSegmentId ?? null),
-          },
+        logBuffer.push({
+          type: LogType.MAILING_LIST_CREATED,
+          userId: req.user.id,
+          ip: ipAddress(req),
+          eventId,
+          mailingListId: created.id,
+          data: { after: created },
+          crmSavedSegmentId: hasSegmentField
+            ? (crmSavedSegmentId ?? null)
+            : (created.crmSavedSegmentId ?? null),
         });
 
         return created;
       });
+
+      await logBuffer.flush();
 
       let seeded = { created: 0, totalMatches: 0 };
       if (hasSegmentField && crmSavedSegmentId) {

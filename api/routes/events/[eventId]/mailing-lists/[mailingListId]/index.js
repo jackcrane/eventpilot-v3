@@ -4,6 +4,7 @@ import { verifyAuth } from "#verifyAuth";
 import { LogType, MailingListMemberStatus } from "@prisma/client";
 import { z } from "zod";
 import { zerialize } from "zodex";
+import { createLogBuffer } from "../../../../../util/logging.js";
 
 const mailingListSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -156,6 +157,8 @@ export const put = [
         updateData.crmSavedSegmentId = crmSavedSegmentId ?? null;
       }
 
+      const logBuffer = createLogBuffer();
+
       const mailingList = await prisma.$transaction(async (tx) => {
         const after = await tx.mailingList.update({
           where: { id: mailingListId },
@@ -171,25 +174,25 @@ export const put = [
           },
         });
 
-        await tx.logs.create({
+        logBuffer.push({
+          type: LogType.MAILING_LIST_MODIFIED,
+          userId: req.user.id,
+          ip: ipAddress(req),
+          eventId,
+          mailingListId,
           data: {
-            type: LogType.MAILING_LIST_MODIFIED,
-            userId: req.user.id,
-            ip: ipAddress(req),
-            eventId,
-            mailingListId,
-            data: {
-              before: formatMailingList(before, beforeCount),
-              after: formatMailingList(after, afterCount),
-            },
-            crmSavedSegmentId: hasSegmentField
-              ? (crmSavedSegmentId ?? null)
-              : (before.crmSavedSegmentId ?? null),
+            before: formatMailingList(before, beforeCount),
+            after: formatMailingList(after, afterCount),
           },
+          crmSavedSegmentId: hasSegmentField
+            ? (crmSavedSegmentId ?? null)
+            : (before.crmSavedSegmentId ?? null),
         });
 
         return formatMailingList(after, afterCount);
       });
+
+      await logBuffer.flush();
 
       return res.json({ mailingList });
     } catch (error) {
@@ -236,6 +239,8 @@ export const del = [
         },
       });
 
+      const logBuffer = createLogBuffer();
+
       await prisma.$transaction(async (tx) => {
         await tx.mailingList.update({
           where: { id: mailingListId },
@@ -247,17 +252,17 @@ export const del = [
           data: { deleted: true, status: MailingListMemberStatus.DELETED },
         });
 
-        await tx.logs.create({
-          data: {
-            type: LogType.MAILING_LIST_DELETED,
-            userId: req.user.id,
-            ip: ipAddress(req),
-            eventId,
-            mailingListId,
-            data: { before: formatMailingList(before, beforeCount) },
-          },
+        logBuffer.push({
+          type: LogType.MAILING_LIST_DELETED,
+          userId: req.user.id,
+          ip: ipAddress(req),
+          eventId,
+          mailingListId,
+          data: { before: formatMailingList(before, beforeCount) },
         });
       });
+
+      await logBuffer.flush();
 
       return res.status(204).send();
     } catch (error) {

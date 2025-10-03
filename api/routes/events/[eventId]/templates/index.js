@@ -4,6 +4,7 @@ import { verifyAuth } from "#verifyAuth";
 import { LogType } from "@prisma/client";
 import { z } from "zod";
 import { zerialize } from "zodex";
+import { createLogBuffer } from "../../../../util/logging.js";
 
 const templateSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -65,6 +66,8 @@ export const post = [
     const { name, textBody } = result.data;
 
     try {
+      const logBuffer = createLogBuffer();
+
       const template = await prisma.$transaction(async (tx) => {
         const created = await tx.emailTemplate.create({
           data: {
@@ -75,19 +78,19 @@ export const post = [
           select: baseTemplateSelect,
         });
 
-        await tx.logs.create({
-          data: {
-            type: LogType.EMAIL_TEMPLATE_CREATED,
-            userId: req.user.id,
-            ip: ipAddress(req),
-            eventId,
-            emailTemplateId: created.id,
-            data: { after: created },
-          },
+        logBuffer.push({
+          type: LogType.EMAIL_TEMPLATE_CREATED,
+          userId: req.user.id,
+          ip: ipAddress(req),
+          eventId,
+          emailTemplateId: created.id,
+          data: { after: created },
         });
 
         return created;
       });
+
+      await logBuffer.flush();
 
       return res.status(201).json({ template: formatTemplate(template) });
     } catch (error) {

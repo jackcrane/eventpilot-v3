@@ -8,6 +8,7 @@ import { findSubmission } from "./index.js";
 import { render } from "@react-email/render";
 import VolunteerShiftCheckInEmail from "#emails/volunteer-shift-check-in.jsx";
 import { createRequire } from "module";
+import { createLogBuffer } from "../../../../../util/logging.js";
 
 const sanitizeDisplayName = (value) =>
   String(value || "")
@@ -157,6 +158,7 @@ export const patch = [
       const now = new Date();
       const updates = [];
       const logEntries = [];
+      const logBuffer = createLogBuffer();
       const newlyCheckedIn = [];
       let updatedCount = 0;
       let skippedCount = 0;
@@ -243,11 +245,13 @@ export const patch = [
       }
 
       const transactionOps = [...updates];
-      if (logEntries.length) {
-        transactionOps.push(prisma.logs.createMany({ data: logEntries }));
-      }
 
       await prisma.$transaction(transactionOps);
+
+      if (logEntries.length) {
+        logBuffer.pushMany(logEntries);
+        await logBuffer.flush();
+      }
 
       if (newlyCheckedIn.length) {
         try {

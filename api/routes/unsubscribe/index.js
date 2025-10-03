@@ -1,4 +1,5 @@
 import { prisma } from "#prisma";
+import { createLogBuffer } from "../../util/logging.js";
 import { z } from "zod";
 import { EmailStatus, LogType, MailingListMemberStatus } from "@prisma/client";
 
@@ -236,6 +237,7 @@ export const post = [
       );
 
       let markedUnsubscribed = false;
+      const logBuffer = createLogBuffer();
 
       await prisma.$transaction(async (tx) => {
         for (const membership of updates) {
@@ -245,23 +247,21 @@ export const post = [
             select: membershipLogSelection,
           });
 
-          await tx.logs.create({
+          logBuffer.push({
+            type: LogType.MAILING_LIST_MEMBER_MODIFIED,
+            userId: null,
+            ip: ipAddress(req),
+            crmPersonId: personId,
+            mailingListId: membership.mailingListId,
+            mailingListMemberId: membership.id,
+            campaignId: campaign.id,
+            emailId: email.id,
+            eventId: campaign.event?.id ?? null,
             data: {
-              type: LogType.MAILING_LIST_MEMBER_MODIFIED,
-              userId: null,
-              ip: ipAddress(req),
-              crmPersonId: personId,
-              mailingListId: membership.mailingListId,
-              mailingListMemberId: membership.id,
-              campaignId: campaign.id,
+              action: "UNSUBSCRIBE",
               emailId: email.id,
-              eventId: campaign.event?.id ?? null,
-              data: {
-                action: "UNSUBSCRIBE",
-                emailId: email.id,
-                before: membership,
-                after,
-              },
+              before: membership,
+              after,
             },
           });
         }
@@ -276,24 +276,24 @@ export const post = [
       });
 
       if (markedUnsubscribed) {
-        await prisma.logs.create({
+        logBuffer.push({
+          type: LogType.EMAIL_WEBHOOK_RECEIVED,
+          userId: null,
+          ip: ipAddress(req),
+          emailId: email.id,
+          campaignId: campaign.id,
+          mailingListId: campaign.mailingListId,
+          eventId: campaign.event?.id ?? null,
+          crmPersonId: personId,
           data: {
-            type: LogType.EMAIL_WEBHOOK_RECEIVED,
-            userId: null,
-            ip: ipAddress(req),
-            emailId: email.id,
-            campaignId: campaign.id,
-            mailingListId: campaign.mailingListId,
-            eventId: campaign.event?.id ?? null,
-            crmPersonId: personId,
-            data: {
-              source: "unsubscribe-page",
-              message:
-                "Email marked as unsubscribed via user preference update",
-            },
+            source: "unsubscribe-page",
+            message:
+              "Email marked as unsubscribed via user preference update",
           },
         });
       }
+
+      await logBuffer.flush();
 
       const refreshed = await fetchContext({
         emailId: parsedBody.data.emailId,

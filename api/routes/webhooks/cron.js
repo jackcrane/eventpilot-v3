@@ -10,6 +10,7 @@ import { ingestGmailWindowForEvent } from "./fragments/ingestGmailWindow.js";
 import { evaluateSegment } from "../events/[eventId]/crm/segments/index.js";
 import { memberInclude } from "../events/[eventId]/mailing-lists/memberUtils.js";
 import { getNextInstance } from "#util/getNextInstance";
+import { createLogBuffer } from "../../util/logging.js";
 
 const savedSegmentSelection = {
   id: true,
@@ -135,6 +136,8 @@ const syncAiMailingLists = async ({ reqId } = {}) => {
         deleted: false,
       }));
 
+      const logBuffer = createLogBuffer();
+
       await prisma.$transaction(async (tx) => {
         if (createRows.length) {
           await tx.mailingListMember.createMany({
@@ -148,8 +151,8 @@ const syncAiMailingLists = async ({ reqId } = {}) => {
           });
 
           if (createdMembers.length) {
-            await tx.logs.createMany({
-              data: createdMembers.map((member) => ({
+            logBuffer.pushMany(
+              createdMembers.map((member) => ({
                 type: LogType.MAILING_LIST_MEMBER_CREATED,
                 userId: null,
                 ip: null,
@@ -159,8 +162,8 @@ const syncAiMailingLists = async ({ reqId } = {}) => {
                 crmPersonId: member.crmPersonId,
                 crmSavedSegmentId: list.crmSavedSegmentId,
                 data: { before: null, after: member },
-              })),
-            });
+              }))
+            );
           }
         }
 
@@ -171,6 +174,10 @@ const syncAiMailingLists = async ({ reqId } = {}) => {
           });
         }
       });
+
+      if (logBuffer.size) {
+        await logBuffer.flush();
+      }
     } catch (error) {
       console.error(
         `[${reqId || "cron"}] [CRON][MAILING_LIST_AI] Failed for list ${list.id}:`,

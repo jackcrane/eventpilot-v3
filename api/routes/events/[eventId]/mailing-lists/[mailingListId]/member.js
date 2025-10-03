@@ -11,6 +11,7 @@ import {
   ipAddress,
   memberInclude,
 } from "../memberUtils";
+import { createLogBuffer } from "../../../../../util/logging.js";
 
 const memberCreateSchema = z.object({
   crmPersonId: z.string(),
@@ -59,6 +60,8 @@ export const post = [
         return res.json({ member: existing });
       }
 
+      const logBuffer = createLogBuffer();
+
       const member = await prisma.$transaction(async (tx) => {
         let logType = LogType.MAILING_LIST_MEMBER_CREATED;
         let before = existing ?? null;
@@ -88,21 +91,21 @@ export const post = [
           });
         }
 
-        await tx.logs.create({
-          data: {
-            type: logType,
-            userId: req.user.id,
-            ip: ipAddress(req),
-            eventId,
-            mailingListId,
-            mailingListMemberId: after.id,
-            crmPersonId,
-            data: { before, after },
-          },
+        logBuffer.push({
+          type: logType,
+          userId: req.user.id,
+          ip: ipAddress(req),
+          eventId,
+          mailingListId,
+          mailingListMemberId: after.id,
+          crmPersonId,
+          data: { before, after },
         });
 
         return after;
       });
+
+      await logBuffer.flush();
 
       const statusCode = existing ? 200 : 201;
       return res.status(statusCode).json({ member });
@@ -144,6 +147,8 @@ export const put = [
         return res.json({ member: existing });
       }
 
+      const logBuffer = createLogBuffer();
+
       const member = await prisma.$transaction(async (tx) => {
         const after = await tx.mailingListMember.update({
           where: { id: existing.id },
@@ -151,21 +156,21 @@ export const put = [
           ...memberInclude,
         });
 
-        await tx.logs.create({
-          data: {
-            type: LogType.MAILING_LIST_MEMBER_MODIFIED,
-            userId: req.user.id,
-            ip: ipAddress(req),
-            eventId,
-            mailingListId,
-            mailingListMemberId: existing.id,
-            crmPersonId,
-            data: { before: existing, after },
-          },
+        logBuffer.push({
+          type: LogType.MAILING_LIST_MEMBER_MODIFIED,
+          userId: req.user.id,
+          ip: ipAddress(req),
+          eventId,
+          mailingListId,
+          mailingListMemberId: existing.id,
+          crmPersonId,
+          data: { before: existing, after },
         });
 
         return after;
       });
+
+      await logBuffer.flush();
 
       return res.json({ member });
     } catch (error) {
@@ -202,25 +207,27 @@ export const del = [
         return res.status(404).json({ message: "Mailing list member not found" });
       }
 
+      const logBuffer = createLogBuffer();
+
       await prisma.$transaction(async (tx) => {
         await tx.mailingListMember.update({
           where: { id: existing.id },
           data: { deleted: true, status: MailingListMemberStatus.DELETED },
         });
 
-        await tx.logs.create({
-          data: {
-            type: LogType.MAILING_LIST_MEMBER_DELETED,
-            userId: req.user.id,
-            ip: ipAddress(req),
-            eventId,
-            mailingListId,
-            mailingListMemberId: existing.id,
-            crmPersonId,
-            data: { before: existing },
-          },
+        logBuffer.push({
+          type: LogType.MAILING_LIST_MEMBER_DELETED,
+          userId: req.user.id,
+          ip: ipAddress(req),
+          eventId,
+          mailingListId,
+          mailingListMemberId: existing.id,
+          crmPersonId,
+          data: { before: existing },
         });
       });
+
+      await logBuffer.flush();
 
       return res.status(204).send();
     } catch (error) {
