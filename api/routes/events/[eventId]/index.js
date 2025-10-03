@@ -70,7 +70,6 @@ export const get = [
         logo: {
           select: {
             location: true,
-            nothing: true,
           },
         },
         banner: {
