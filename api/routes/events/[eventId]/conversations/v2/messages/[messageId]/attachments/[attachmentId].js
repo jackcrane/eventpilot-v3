@@ -1,6 +1,7 @@
 import { getGmailClientForEvent } from "#util/google";
 import { verifyAttachment } from "#util/signedUrl";
 import {
+import { reportApiError } from "#util/reportApiError.js";
   S3Client,
   HeadObjectCommand,
   PutObjectCommand,

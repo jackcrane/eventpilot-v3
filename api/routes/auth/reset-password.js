@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import { forceTestError } from "#forceError";
 import ForgotPasswordEmail from "#emails/forgot-password.jsx";
 import { render } from "@react-email/render";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = async (req, res) => {
   try {

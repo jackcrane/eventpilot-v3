@@ -6,6 +6,7 @@ import cuid from "cuid";
 import { z } from "zod";
 import { zerialize } from "zodex";
 import {
+import { reportApiError } from "#util/reportApiError.js";
   ensureMailingList,
   ipAddress,
   memberInclude,

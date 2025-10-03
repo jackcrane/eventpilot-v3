@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 import { LogType } from "@prisma/client";
 import { zerialize } from "zodex";
 import { todoUpdateSchema } from "../index.js";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   verifyAuth(["manager"]),

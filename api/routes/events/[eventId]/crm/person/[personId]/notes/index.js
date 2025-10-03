@@ -2,6 +2,7 @@ import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { z } from "zod";
 import { LogType } from "@prisma/client";
+import { reportApiError } from "#util/reportApiError.js";
 
 const createNoteSchema = z.object({
   text: z.string().min(1, "Note cannot be empty").max(5000),

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
 import { collapseCrmValues } from "..";
+import { reportApiError } from "#util/reportApiError.js";
 
 // Iteration spec: current (from X-Instance header), previous (relative to current),
 // a specific instanceId, a calendar year (if unique), or an instance by name

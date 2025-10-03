@@ -5,6 +5,7 @@ import { LogType, MailingListMemberStatus } from "@prisma/client";
 import { z } from "zod";
 import { zerialize } from "zodex";
 import { createLogBuffer } from "../../../../../util/logging.js";
+import { reportApiError } from "#util/reportApiError.js";
 
 const mailingListSchema = z.object({
   title: z.string().trim().min(1).max(120),

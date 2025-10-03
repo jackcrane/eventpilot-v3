@@ -5,6 +5,7 @@ import { LogType } from "@prisma/client";
 import { stripe } from "#stripe";
 import { eventSchema } from "./[eventId]";
 import { zerialize } from "zodex";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   verifyAuth(["manager"]),

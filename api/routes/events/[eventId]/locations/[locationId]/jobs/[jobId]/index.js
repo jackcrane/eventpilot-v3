@@ -4,6 +4,7 @@ import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { LogType } from "@prisma/client";
 import { getChangedKeys } from "#getChangedKeys";
+import { reportApiError } from "#util/reportApiError.js";
 
 const schema = z.object({
   name: z.string().min(2),

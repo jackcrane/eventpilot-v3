@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 import { LogType } from "@prisma/client";
 import { fieldSchema } from "./index";
 import { diffObjects } from "../../../../../util/diffObjects";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   verifyAuth(["manager"]),

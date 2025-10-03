@@ -2,6 +2,7 @@ import { prisma } from "#prisma";
 import { createLogBuffer } from "../../util/logging.js";
 import { z } from "zod";
 import { EmailStatus, LogType, MailingListMemberStatus } from "@prisma/client";
+import { reportApiError } from "#util/reportApiError.js";
 
 const ipAddress = (req) => req.ip || req.headers["x-forwarded-for"] || null;
 

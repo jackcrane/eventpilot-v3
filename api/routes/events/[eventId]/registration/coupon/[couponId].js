@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { z } from "zod";
 import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
+import { reportApiError } from "#util/reportApiError.js";
 
 const couponUpdateSchema = z
   .object({

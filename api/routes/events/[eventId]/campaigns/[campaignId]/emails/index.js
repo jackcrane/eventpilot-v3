@@ -1,6 +1,7 @@
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
+import { reportApiError } from "#util/reportApiError.js";
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

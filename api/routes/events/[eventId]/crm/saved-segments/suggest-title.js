@@ -3,6 +3,7 @@ import { z } from "zod";
 import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
 import { isOpenAIConfigured, createResponse, extractText } from "#util/openai";
+import { reportApiError } from "#util/reportApiError.js";
 
 // Config now centralized in #util/openai
 

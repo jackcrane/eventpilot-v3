@@ -1,6 +1,7 @@
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { EmailStatus } from "@prisma/client";
+import { reportApiError } from "#util/reportApiError.js";
 
 const roundPercent = (count, total) => {
   if (!total || total <= 0) return 0;

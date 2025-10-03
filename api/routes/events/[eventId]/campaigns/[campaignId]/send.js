@@ -1,6 +1,7 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { dispatchCampaign } from "#util/campaignDispatch";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const post = [
   verifyAuth(["manager"]),

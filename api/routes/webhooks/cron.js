@@ -5,6 +5,7 @@ import DailyDigestEmail from "#emails/daily-digest.jsx";
 import { dispatchCampaign } from "#util/campaignDispatch";
 import { LogType, MailingListMemberStatus } from "@prisma/client";
 import cuid from "cuid";
+import { reportApiError } from "#util/reportApiError.js";
 // Gmail ingestion logic factored into reusable helper
 import { ingestGmailWindowForEvent } from "./fragments/ingestGmailWindow.js";
 import { evaluateSegment } from "../events/[eventId]/crm/segments/index.js";

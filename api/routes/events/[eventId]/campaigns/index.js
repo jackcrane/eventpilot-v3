@@ -4,6 +4,7 @@ import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
 import { zerialize } from "zodex";
 import { dispatchCampaign } from "#util/campaignDispatch";
+import { reportApiError } from "#util/reportApiError.js";
 
 const SORTABLE_FIELDS = ["name", "sendAt", "createdAt", "status"];
 

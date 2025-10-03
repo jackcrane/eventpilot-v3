@@ -1,6 +1,7 @@
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { NameAndEmailFromRegistrationFactory } from "../../../../util/getNameAndEmailFromRegistration";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const arrayToObject = (arr) =>
   arr.reduce((acc, cur) => Object.assign(acc, cur), {});

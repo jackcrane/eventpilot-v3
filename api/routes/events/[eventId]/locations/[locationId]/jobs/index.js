@@ -2,6 +2,7 @@ import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { LogType } from "@prisma/client";
 import { z } from "zod";
+import { reportApiError } from "#util/reportApiError.js";
 
 const schema = z.object({
   name: z.string().min(2),

@@ -2,6 +2,7 @@ import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { z } from "zod";
 import {
+import { reportApiError } from "#util/reportApiError.js";
   S3Client,
   GetObjectCommand,
   HeadObjectCommand,

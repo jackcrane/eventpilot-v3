@@ -3,6 +3,7 @@ import { verifyAuth } from "#verifyAuth";
 import { rawEmailClient } from "#postmark";
 import { LogType, MailingListMemberStatus } from "@prisma/client";
 import cuid from "cuid";
+import { reportApiError } from "#util/reportApiError.js";
 
 const TEST_DOMAIN_PATTERN = /@(?:example\.com|eventpilot-test\.com)$/i;
 

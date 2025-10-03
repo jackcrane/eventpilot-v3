@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { LogType } from "@prisma/client";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
+import { reportApiError } from "#util/reportApiError.js";
 
 dotenv.config();
 

@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { normalizePermissions } from "#util/dayOfDashboard.js";
 import { formatProvisioner, provisionerSelect } from "../shared.js";
+import { reportApiError } from "#util/reportApiError.js";
 
 const updateSchema = z
   .object({

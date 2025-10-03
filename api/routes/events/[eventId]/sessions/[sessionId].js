@@ -1,6 +1,7 @@
 import { prisma } from "#prisma";
 import { uploadFile } from "#file";
 import { verifyAuth } from "#verifyAuth";
+import { reportApiError } from "#util/reportApiError.js";
 
 /**
  * POST /api/events/:eventId/sessions/:sessionId

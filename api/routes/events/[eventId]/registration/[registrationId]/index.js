@@ -1,6 +1,7 @@
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import {
+import { reportApiError } from "#util/reportApiError.js";
   arrayToObject,
   formatResponseValue,
   getOrderedFields,

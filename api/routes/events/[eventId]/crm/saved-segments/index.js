@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { z } from "zod";
 import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
+import { reportApiError } from "#util/reportApiError.js";
 
 // Schema for creating a saved segment
 export const savedSegmentCreateSchema = z.object({

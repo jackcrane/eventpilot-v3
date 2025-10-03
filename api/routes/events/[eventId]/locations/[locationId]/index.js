@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 import { locationSchema as schema } from "..";
 import { getChangedKeys } from "#getChangedKeys";
 import { LogType } from "@prisma/client";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   verifyAuth(["manager"], true),

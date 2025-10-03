@@ -3,6 +3,7 @@ import { verifyAuth } from "#verifyAuth";
 import { serializeError } from "#serializeError";
 import { formSchema } from "../../../../util/formSchema";
 import { zerialize } from "zodex";
+import { reportApiError } from "#util/reportApiError.js";
 
 // detect new items (stringified integers)
 const isNew = (id) => /^\d+$/.test(id);

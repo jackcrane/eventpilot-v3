@@ -8,6 +8,7 @@ import express from "express";
 import { sendEmail } from "#postmark";
 import ImportFinishedEmail from "#emails/import-finished.jsx";
 import { render } from "@react-email/render";
+import { reportApiError } from "#util/reportApiError.js";
 
 const parseFieldValue = (raw) => {
   if (raw == null) return "";

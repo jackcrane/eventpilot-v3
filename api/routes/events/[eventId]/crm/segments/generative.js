@@ -7,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import { segmentSchema, evaluateSegment } from "./index.js";
 import { isOpenAIConfigured, createResponse, extractText } from "#util/openai";
+import { reportApiError } from "#util/reportApiError.js";
 
 // Input schema for the generative endpoint
 const paginationInputSchema = z

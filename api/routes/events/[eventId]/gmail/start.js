@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { verifyAuth } from "#verifyAuth";
+import { reportApiError } from "#util/reportApiError.js";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 // Request top-level Gmail scope for widest permissions

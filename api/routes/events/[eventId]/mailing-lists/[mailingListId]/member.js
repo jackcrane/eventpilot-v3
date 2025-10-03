@@ -5,6 +5,7 @@ import { LogType, MailingListMemberStatus } from "@prisma/client";
 import { z } from "zod";
 import { zerialize } from "zodex";
 import {
+import { reportApiError } from "#util/reportApiError.js";
   ensureCrmPerson,
   ensureMailingList,
   findMember,

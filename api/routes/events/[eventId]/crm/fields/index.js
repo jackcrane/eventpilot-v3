@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { LogType } from "@prisma/client";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const fieldSchema = z.object({
   label: z.string().min(2).max(50),

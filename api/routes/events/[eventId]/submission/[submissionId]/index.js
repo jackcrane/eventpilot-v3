@@ -4,6 +4,7 @@ import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { getChangedKeys } from "#getChangedKeys";
 import { LogType } from "@prisma/client";
+import { reportApiError } from "#util/reportApiError.js";
 
 // Schema for validating updates
 const bodySchema = z.object({

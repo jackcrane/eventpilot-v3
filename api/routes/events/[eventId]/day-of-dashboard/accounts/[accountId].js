@@ -3,6 +3,7 @@ import { verifyAuth } from "#verifyAuth";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
 import {
+import { reportApiError } from "#util/reportApiError.js";
   derivePinLookupKey,
   generateDashboardPin,
   hashPin,

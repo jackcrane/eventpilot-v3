@@ -4,6 +4,7 @@ import { z } from "zod";
 import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
 import { generateTeamCode } from "#util/generateTeamCode";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const couponSchema = z
   .object({

@@ -9,6 +9,7 @@ import { render } from "@react-email/render";
 import VolunteerShiftCheckInEmail from "#emails/volunteer-shift-check-in.jsx";
 import { createRequire } from "module";
 import { createLogBuffer } from "../../../../../util/logging.js";
+import { reportApiError } from "#util/reportApiError.js";
 
 const sanitizeDisplayName = (value) =>
   String(value || "")

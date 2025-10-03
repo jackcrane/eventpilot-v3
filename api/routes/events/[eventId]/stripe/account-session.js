@@ -1,6 +1,7 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { stripe } from "#stripe";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   verifyAuth(["manager"]),

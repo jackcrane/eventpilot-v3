@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { normalizePermissions } from "#util/dayOfDashboard.js";
 import { accountSelect, formatAccount } from "./shared.js";
+import { reportApiError } from "#util/reportApiError.js";
 
 const createAccountSchema = z.object({
   provisionerId: z.string().cuid(),

@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { LogType } from "@prisma/client";
+import { reportApiError } from "#util/reportApiError.js";
 
 // Allow either text OR at least one file
 const commentSchema = z

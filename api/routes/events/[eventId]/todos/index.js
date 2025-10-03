@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { LogType, TodoItemStatus } from "@prisma/client";
 import { zerialize } from "zodex";
+import { reportApiError } from "#util/reportApiError.js";
 
 // Create schema: used for POST on collection
 export const todoCreateSchema = z.object({

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { LogType } from "@prisma/client";
 import { collapseCrmValues } from "../..";
 import { diffObjects } from "../../../../../../util/diffObjects";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const personSchema = z.object({
   name: z.string().min(2).max(50),

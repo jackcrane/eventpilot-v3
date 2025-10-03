@@ -8,6 +8,7 @@ import { zerialize } from "zodex";
 import { evaluateSegment } from "../crm/segments/index.js";
 import { memberInclude } from "./memberUtils.js";
 import { createLogBuffer } from "../../../../util/logging.js";
+import { reportApiError } from "#util/reportApiError.js";
 
 const mailingListSchema = z.object({
   title: z.string().trim().min(1).max(120),

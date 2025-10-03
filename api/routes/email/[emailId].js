@@ -1,4 +1,5 @@
 import { prisma } from "#prisma";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   async (req, res) => {

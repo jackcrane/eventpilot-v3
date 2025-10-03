@@ -1,6 +1,7 @@
 import { verifyAuth } from "#verifyAuth";
 import { calculateProgress } from "#calculateProgress";
 import { prisma } from "#prisma";
+import { reportApiError } from "#util/reportApiError.js";
 
 const eventStart = async (eventId, instanceId) => {
   const shift = await prisma.shift.findFirst({

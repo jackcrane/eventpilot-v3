@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 import { setupStripePI } from "../fragments/consumer/registrationRequiresPayment";
 import { finalizeRegistration } from "../../../../../util/finalizeRegistration";
 import { createLedgerItemForRegistration } from "../../../../../util/ledger";
+import { reportApiError } from "#util/reportApiError.js";
 
 const applyCouponSchema = z.object({
   registrationId: z.string().min(1),

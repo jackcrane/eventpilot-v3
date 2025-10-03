@@ -3,6 +3,7 @@ import { serializeError } from "#serializeError";
 import { verifyAuth } from "#verifyAuth";
 import { dispatchCampaign } from "#util/campaignDispatch";
 import {
+import { reportApiError } from "#util/reportApiError.js";
   baseCampaignSelect,
   campaignSchema,
   formatCampaign,

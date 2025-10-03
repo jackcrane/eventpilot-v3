@@ -5,6 +5,7 @@ import { prisma } from "#prisma";
 import { render } from "@react-email/render";
 import WaitlistNotification from "#emails/waitlist-notification.jsx";
 import WaitlistConfirmation from "#emails/waitlist-confirmation.jsx";
+import { reportApiError } from "#util/reportApiError.js";
 
 // Public endpoint: allow unauthenticated waitlist submissions
 
