@@ -4,6 +4,7 @@ import { verifyAuth } from "#verifyAuth";
 import { LogType } from "@prisma/client";
 import { z } from "zod";
 import { zerialize } from "zodex";
+import { createLogBuffer } from "../../../../../util/logging.js";
 
 const templateSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -157,23 +158,25 @@ export const del = [
         return res.status(404).json({ message: "Template not found" });
       }
 
+      const logBuffer = createLogBuffer();
+
       await prisma.$transaction(async (tx) => {
         await tx.emailTemplate.update({
           where: { id: templateId },
           data: { deleted: true },
         });
 
-        await tx.logs.create({
-          data: {
-            type: LogType.EMAIL_TEMPLATE_DELETED,
-            userId: req.user.id,
-            ip: ipAddress(req),
-            eventId,
-            emailTemplateId: templateId,
-            data: { before: formatTemplate(before) },
-          },
+        logBuffer.push({
+          type: LogType.EMAIL_TEMPLATE_DELETED,
+          userId: req.user.id,
+          ip: ipAddress(req),
+          eventId,
+          emailTemplateId: templateId,
+          data: { before: formatTemplate(before) },
         });
       });
+
+      await logBuffer.flush();
 
       return res.status(204).send();
     } catch (error) {

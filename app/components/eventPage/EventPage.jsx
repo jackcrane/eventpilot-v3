@@ -192,6 +192,20 @@ export const EventPage = ({
         },
       ],
     },
+    {
+      type: "dropdown",
+      text: "Day-of",
+      icon: <Icon i="devices" size={18} color="var(--tblr-cyan)" />,
+      children: [
+        {
+          type: "item",
+          href: `${base}/day-of/provisioners`,
+          text: "Provisioners",
+          active: isActive(`${base}/day-of/provisioners`),
+          icon: <Icon i="key" size={18} color="var(--tblr-cyan)" />,
+        },
+      ],
+    },
     { type: "divider" },
     {
       type: "dropdown",

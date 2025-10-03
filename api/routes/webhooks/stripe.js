@@ -93,6 +93,12 @@ export const post = [
 
     // Attach event/person when possible for the raw receipt log
     const baseAffiliation = await resolveAffiliations(event.data?.object);
+
+    if (!baseAffiliation?.eventId) {
+      console.warn(`[STRIPE] No event ID found for event ${event.id}`);
+      return response.status(200).send("No event ID found");
+    }
+
     await prisma.logs.create({
       data: {
         type: "STRIPE_WEBHOOK_RECEIVED",

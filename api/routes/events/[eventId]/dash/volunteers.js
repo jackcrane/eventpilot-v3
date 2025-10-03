@@ -2,7 +2,7 @@ import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 
 export const get = [
-  verifyAuth(["manager"]),
+  verifyAuth(["manager", "dod:volunteer"]),
   async (req, res) => {
     const eventId = req.params.eventId;
     const instanceId = req.instanceId;

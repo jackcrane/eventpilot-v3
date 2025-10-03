@@ -3,7 +3,13 @@ import { Typography } from "tabler-react-2";
 import classNames from "classnames";
 import { Icon } from "../../util/Icon";
 
-export const DataBox = ({ title, description, value, trend = null }) => {
+export const DataBox = ({
+  title,
+  description,
+  value,
+  trend = null,
+  vsLastString,
+}) => {
   const showTrend = trend !== null && trend !== undefined;
   const hasTrendData =
     !!trend && trend?.previousAsOf != null && Number(trend?.previousAsOf) > 0;
@@ -20,7 +26,11 @@ export const DataBox = ({ title, description, value, trend = null }) => {
           {hasTrendData ? (
             <>
               <Icon
-                i={Number(trend?.delta ?? 0) >= 0 ? "trending-up" : "trending-down"}
+                i={
+                  Number(trend?.delta ?? 0) >= 0
+                    ? "trending-up"
+                    : "trending-down"
+                }
                 color={
                   Number(trend?.delta ?? 0) >= 0
                     ? "var(--tblr-success)"
@@ -32,7 +42,7 @@ export const DataBox = ({ title, description, value, trend = null }) => {
                 {trend?.percentChange != null
                   ? `${trend.percentChange.toFixed(1)}%`
                   : "—"}{" "}
-                vs last ({Number(trend?.previousAsOf ?? 0)})
+                vs last ({vsLastString || Number(trend?.previousAsOf ?? 0)})
               </Typography.Text>
             </>
           ) : (
