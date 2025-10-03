@@ -3,6 +3,7 @@ import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { LogType } from "@prisma/client";
+import { reportApiError } from "#util/reportApiError.js";
 
 const bodySchema = z.object({
   checkedIn: z.boolean(),
@@ -100,6 +101,7 @@ export const patch = [
       });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

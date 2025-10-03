@@ -4,6 +4,7 @@ import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
 import { zerialize } from "zodex";
 import { dispatchCampaign } from "#util/campaignDispatch";
+import { reportApiError } from "#util/reportApiError.js";
 
 const SORTABLE_FIELDS = ["name", "sendAt", "createdAt", "status"];
 
@@ -386,6 +387,7 @@ export const get = [
       });
     } catch (error) {
       console.error(`Error fetching campaigns for event ${eventId}:`, error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -473,6 +475,7 @@ export const post = [
       return res.status(201).json({ campaign: formatCampaign(created) });
     } catch (error) {
       console.error(`Error creating campaign for event ${eventId}:`, error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

@@ -1,11 +1,8 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { z } from "zod";
-import {
-  S3Client,
-  GetObjectCommand,
-  HeadObjectCommand,
-} from "@aws-sdk/client-s3";
+import { reportApiError } from "#util/reportApiError.js";
+import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getGmailClientForEvent, sendNewEmail } from "#util/google";
 import { sendEmailEvent } from "#sse";
 import { upsertConversationCrmPerson } from "#util/upsertConversationCrmPerson";
@@ -350,6 +347,7 @@ export const get = [
       });
     } catch (e) {
       console.error("[conversations v2 threads]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -662,6 +660,7 @@ export const post = [
         return res.status(400).json({ message: "No recipients provided" });
       }
       console.error("[conversations v2 threads compose]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

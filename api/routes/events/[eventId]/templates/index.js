@@ -4,6 +4,7 @@ import { verifyAuth } from "#verifyAuth";
 import { LogType } from "@prisma/client";
 import { z } from "zod";
 import { zerialize } from "zodex";
+import { reportApiError } from "#util/reportApiError.js";
 import { createLogBuffer } from "../../../../util/logging.js";
 
 const templateSchema = z.object({
@@ -47,7 +48,8 @@ export const get = [
 
       return res.json({ templates: response });
     } catch (error) {
-      console.error(`Error fetching templates for event ${eventId}:`, error);
+      // console.error(`Error fetching templates for event ${eventId}:`, error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -102,6 +104,7 @@ export const post = [
           .json({ message: "A template with this name already exists." });
       }
 
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

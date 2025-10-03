@@ -5,6 +5,7 @@ import { LogType } from "@prisma/client";
 import { finalizeRegistration } from "../../util/finalizeRegistration";
 import { getCrmPersonByEmail } from "../../util/getCrmPersonByEmail";
 import { createLedgerItemForRegistration } from "../../util/ledger";
+import { reportApiError } from "#util/reportApiError.js";
 
 const stripe = new Stripe(process.env.STRIPE_SK, {
   apiVersion: "2024-04-10",
@@ -313,6 +314,7 @@ export const post = [
       response.json({ received: true });
     } catch (error) {
       console.error("[STRIPE] Webhook error:", error);
+      reportApiError(error, request);
       response.status(500).send("Webhook handler failed");
     }
   },

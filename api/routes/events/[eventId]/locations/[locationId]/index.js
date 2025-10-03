@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 import { locationSchema as schema } from "..";
 import { getChangedKeys } from "#getChangedKeys";
 import { LogType } from "@prisma/client";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   verifyAuth(["manager"], true),
@@ -52,6 +53,7 @@ export const get = [
       });
     } catch (error) {
       console.log(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },
@@ -105,6 +107,7 @@ export const put = [
       });
     } catch (error) {
       console.log(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },
@@ -134,6 +137,7 @@ export const del = [
 
       return res.status(204).end();
     } catch (error) {
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

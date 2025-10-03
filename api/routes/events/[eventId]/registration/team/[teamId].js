@@ -2,6 +2,7 @@ import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { teamSchema } from "./index";
 import { zerialize } from "zodex";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -70,6 +71,7 @@ export const put = [
           message: { code: { _errors: ["Code must be unique"] } },
         });
       }
+      reportApiError(e, req);
       return res.status(500).json({ message: e.message });
     }
   },

@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { verifyAuth } from "#verifyAuth";
+import { reportApiError } from "#util/reportApiError.js";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 // Request top-level Gmail scope for widest permissions
@@ -40,6 +41,7 @@ export const get = [
       return res.status(200).json({ url });
     } catch (e) {
       console.error(e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

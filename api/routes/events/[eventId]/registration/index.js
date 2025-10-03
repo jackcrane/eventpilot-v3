@@ -1,6 +1,7 @@
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { NameAndEmailFromRegistrationFactory } from "../../../../util/getNameAndEmailFromRegistration";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const arrayToObject = (arr) =>
   arr.reduce((acc, cur) => Object.assign(acc, cur), {});
@@ -197,6 +198,7 @@ export const get = [
       return res.json({ registrations, fields });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

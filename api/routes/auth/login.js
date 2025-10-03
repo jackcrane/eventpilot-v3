@@ -8,6 +8,7 @@ import { getGeolocation } from "#geolocation";
 import { forceTestError } from "#forceError";
 import LoginEmail from "#emails/login.jsx";
 import { render } from "@react-email/render";
+import { reportApiError } from "#util/reportApiError.js";
 
 dotenv.config();
 
@@ -74,6 +75,7 @@ export const post = async (req, res) => {
     return res.status(200).json({ token });
   } catch (error) {
     console.error(error);
+    reportApiError(error, req);
     return res.status(500).json({ message: "Internal server error" });
   }
 };

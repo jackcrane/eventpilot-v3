@@ -2,6 +2,7 @@ import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
+import { reportApiError } from "#util/reportApiError.js";
 import {
   derivePinLookupKey,
   generateDashboardPin,
@@ -52,6 +53,7 @@ export const get = [
       });
     } catch (error) {
       console.error("Failed to fetch day-of dashboard provisioners", error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to fetch provisioners" });
     }
   },
@@ -139,6 +141,7 @@ export const post = [
       });
     } catch (error) {
       console.error("Failed to create day-of dashboard provisioner", error);
+      reportApiError(error, req);
       return res
         .status(500)
         .json({ message: "Failed to create provisioner" });

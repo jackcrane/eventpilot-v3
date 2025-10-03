@@ -4,6 +4,7 @@ import { z } from "zod";
 import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
 import { generateTeamCode } from "#util/generateTeamCode";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const couponSchema = z
   .object({
@@ -117,6 +118,7 @@ export const post = [
           message: { code: { _errors: ["Code must be unique"] } },
         });
       }
+      reportApiError(e, req);
       return res.status(500).json({ message: e.message });
     }
   },

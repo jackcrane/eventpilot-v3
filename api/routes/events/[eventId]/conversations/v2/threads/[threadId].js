@@ -1,10 +1,7 @@
 import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
-import {
-  S3Client,
-  GetObjectCommand,
-  HeadObjectCommand,
-} from "@aws-sdk/client-s3";
+import { reportApiError } from "#util/reportApiError.js";
+import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import {
   getGmailClientForEvent,
   sendThreadReply,
@@ -247,6 +244,7 @@ export const get = [
         .json({ thread, messages: all, responseRecipient, participants });
     } catch (e) {
       console.error("[conversations v2 thread get]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -631,6 +629,7 @@ export const post = [
           .json({ message: "Gmail connection expired; please reconnect" });
       }
       console.error("[conversations v2 thread post]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -670,6 +669,7 @@ export const del = [
           .json({ message: "Gmail connection expired; please reconnect" });
       }
       console.error("[conversations v2 thread delete]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -723,6 +723,7 @@ export const patch = [
           .json({ message: "Gmail connection expired; please reconnect" });
       }
       console.error("[conversations v2 thread options]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

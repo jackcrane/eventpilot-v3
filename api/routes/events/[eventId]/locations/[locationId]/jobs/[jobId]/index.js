@@ -4,6 +4,7 @@ import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { LogType } from "@prisma/client";
 import { getChangedKeys } from "#getChangedKeys";
+import { reportApiError } from "#util/reportApiError.js";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -52,6 +53,7 @@ export const get = [
         job,
       });
     } catch (error) {
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },
@@ -82,6 +84,7 @@ export const del = [
 
       return res.status(204).end();
     } catch (error) {
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },
@@ -196,6 +199,7 @@ export const put = [
       return res.json({ job });
     } catch (error) {
       console.log(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

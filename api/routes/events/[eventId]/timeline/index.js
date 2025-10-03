@@ -1,5 +1,6 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
+import { reportApiError } from "#util/reportApiError.js";
 
 const getRegistrationPeriodChangeovers = async (eventId) => {
   const periods = await prisma.registrationPeriod.findMany({
@@ -64,6 +65,7 @@ export const get = [
       res.json({ events });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       res.status(500).json({ error });
     }
   },

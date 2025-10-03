@@ -1,5 +1,6 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
+import { reportApiError } from "#util/reportApiError.js";
 
 // GET /api/events/:eventId/crm/person/:personId/involvement
 // Returns a simple summary of the person's involvement grouped by instance
@@ -100,6 +101,7 @@ export const get = [
       return res.json({ involvement });
     } catch (e) {
       console.error("[INVOLVEMENT][GET] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

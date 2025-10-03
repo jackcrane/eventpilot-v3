@@ -5,6 +5,7 @@ import { LogType } from "@prisma/client";
 import { z } from "zod";
 import { zerialize } from "zodex";
 import { createLogBuffer } from "../../../../../util/logging.js";
+import { reportApiError } from "#util/reportApiError.js";
 
 const templateSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -67,6 +68,7 @@ export const get = [
         `Error fetching template ${templateId} for event ${eventId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -134,6 +136,7 @@ export const put = [
           .json({ message: "A template with this name already exists." });
       }
 
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -184,6 +187,7 @@ export const del = [
         `Error deleting template ${templateId} for event ${eventId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

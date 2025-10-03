@@ -1,10 +1,7 @@
 import { getGmailClientForEvent } from "#util/google";
 import { verifyAttachment } from "#util/signedUrl";
-import {
-  S3Client,
-  HeadObjectCommand,
-  PutObjectCommand,
-} from "@aws-sdk/client-s3";
+import { reportApiError } from "#util/reportApiError.js";
+import { S3Client, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 
 // Flatten MIME tree with parent links (root included)
 const flattenParts = (root) => {
@@ -294,6 +291,7 @@ export const get = [
           .json({ message: "Gmail connection expired; please reconnect" });
       }
       console.error("[conversations v2 attachment get]", e);
+      reportApiError(e, req);
       return res.status(500).end();
     }
   },

@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 import { LogType } from "@prisma/client";
 import { fieldSchema } from "./index";
 import { diffObjects } from "../../../../../util/diffObjects";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -83,6 +84,7 @@ export const put = [
       });
     } catch (error) {
       console.error("Error in PUT /event/:eventId/crm/:fieldId:", error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

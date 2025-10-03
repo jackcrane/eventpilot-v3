@@ -1,4 +1,5 @@
 import { prisma } from "#prisma";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   async (req, res) => {
@@ -48,6 +49,7 @@ export const get = [
       });
     } catch (error) {
       console.error("Error in GET /event/:eventId/email/:emailId:", error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

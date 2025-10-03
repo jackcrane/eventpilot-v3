@@ -2,6 +2,7 @@ import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { LogType } from "@prisma/client";
 import { z } from "zod";
+import { reportApiError } from "#util/reportApiError.js";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -96,6 +97,7 @@ export const post = [
       return res.status(201).json({ message: "Job created", job });
     } catch (error) {
       console.log(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },
@@ -123,6 +125,7 @@ export const get = [
         jobs,
       });
     } catch (error) {
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },
@@ -154,6 +157,7 @@ export const del = [
       return res.status(204).end();
     } catch (error) {
       console.log(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

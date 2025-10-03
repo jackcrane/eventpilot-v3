@@ -8,6 +8,7 @@ import { zerialize } from "zodex";
 import { evaluateSegment } from "../crm/segments/index.js";
 import { memberInclude } from "./memberUtils.js";
 import { createLogBuffer } from "../../../../util/logging.js";
+import { reportApiError } from "#util/reportApiError.js";
 
 const mailingListSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -279,6 +280,7 @@ export const get = [
         `Error fetching mailing lists for event ${eventId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -426,6 +428,7 @@ export const post = [
           .json({ message: "A mailing list with this title already exists." });
       }
 
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

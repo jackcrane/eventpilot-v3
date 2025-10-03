@@ -2,6 +2,7 @@ import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { LogType } from "@prisma/client";
 import { rawUpload } from "#file";
+import { reportApiError } from "#util/reportApiError.js";
 
 // Accept any file type; use rawUpload and then persist in DB
 export const post = [
@@ -107,6 +108,7 @@ export const post = [
       });
     } catch (e) {
       console.error("[NOTES][FILE][POST] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

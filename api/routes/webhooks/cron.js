@@ -5,6 +5,7 @@ import DailyDigestEmail from "#emails/daily-digest.jsx";
 import { dispatchCampaign } from "#util/campaignDispatch";
 import { LogType, MailingListMemberStatus } from "@prisma/client";
 import cuid from "cuid";
+import { reportApiError } from "#util/reportApiError.js";
 // Gmail ingestion logic factored into reusable helper
 import { ingestGmailWindowForEvent } from "./fragments/ingestGmailWindow.js";
 import { evaluateSegment } from "../events/[eventId]/crm/segments/index.js";
@@ -320,6 +321,7 @@ export const post = async (req, res) => {
     return res.status(200).json({ message: "Webhook received" });
   } catch (e) {
     console.error("Error in POST /webhooks/cron:", e);
+    reportApiError(e, req);
     return res.status(500).json({ error: "Internal server error" });
   }
 };

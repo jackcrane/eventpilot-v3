@@ -2,6 +2,7 @@ import { prisma } from "#prisma";
 import { createLogBuffer } from "../../util/logging.js";
 import { z } from "zod";
 import { EmailStatus, LogType, MailingListMemberStatus } from "@prisma/client";
+import { reportApiError } from "#util/reportApiError.js";
 
 const ipAddress = (req) => req.ip || req.headers["x-forwarded-for"] || null;
 
@@ -157,6 +158,7 @@ export const get = [
       return res.json(shapeResponse(context));
     } catch (error) {
       console.error("Failed to load unsubscribe context", error);
+      reportApiError(error, req);
       return res
         .status(500)
         .json({ message: "Failed to load unsubscribe details" });
@@ -308,6 +310,7 @@ export const post = [
       });
     } catch (error) {
       console.error("Failed to process unsubscribe request", error);
+      reportApiError(error, req);
       return res
         .status(500)
         .json({ message: "Failed to update your preferences" });

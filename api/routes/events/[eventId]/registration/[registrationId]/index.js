@@ -1,5 +1,6 @@
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
+import { reportApiError } from "#util/reportApiError.js";
 import {
   arrayToObject,
   formatResponseValue,
@@ -176,6 +177,7 @@ export const get = [
       });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

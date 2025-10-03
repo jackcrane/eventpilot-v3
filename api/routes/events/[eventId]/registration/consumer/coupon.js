@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 import { setupStripePI } from "../fragments/consumer/registrationRequiresPayment";
 import { finalizeRegistration } from "../../../../../util/finalizeRegistration";
 import { createLedgerItemForRegistration } from "../../../../../util/ledger";
+import { reportApiError } from "#util/reportApiError.js";
 
 const applyCouponSchema = z.object({
   registrationId: z.string().min(1),
@@ -146,6 +147,7 @@ export const post = [
       });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res
         .status(500)
         .json({ message: error?.message || "Server error" });
@@ -237,6 +239,7 @@ export const del = [
       });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res
         .status(500)
         .json({ message: error?.message || "Server error" });

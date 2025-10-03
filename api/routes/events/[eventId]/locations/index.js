@@ -2,6 +2,7 @@ import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { LogType } from "@prisma/client";
 import { z } from "zod";
+import { reportApiError } from "#util/reportApiError.js";
 
 const schema = z.object({
   name: z.string().min(2).max(50),
@@ -62,6 +63,7 @@ export const post = [
       return res.status(201).json({ message: "Location created", location });
     } catch (error) {
       console.log(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

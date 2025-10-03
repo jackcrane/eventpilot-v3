@@ -1,6 +1,7 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { dispatchCampaign } from "#util/campaignDispatch";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const post = [
   verifyAuth(["manager"]),
@@ -40,6 +41,7 @@ export const post = [
         `[${req.id}] Failed to send campaign ${campaignId} for event ${eventId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to send campaign" });
     }
   },

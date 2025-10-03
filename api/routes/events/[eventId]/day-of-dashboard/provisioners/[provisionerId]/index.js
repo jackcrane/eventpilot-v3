@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { normalizePermissions } from "#util/dayOfDashboard.js";
 import { formatProvisioner, provisionerSelect } from "../shared.js";
+import { reportApiError } from "#util/reportApiError.js";
 
 const updateSchema = z
   .object({
@@ -137,6 +138,7 @@ export const put = [
       return res.json({ provisioner: formatProvisioner(updated) });
     } catch (error) {
       console.error("Failed to update day-of dashboard provisioner", error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to update provisioner" });
     }
   },
@@ -185,6 +187,7 @@ export const del = [
       });
     } catch (error) {
       console.error("Failed to delete day-of dashboard provisioner", error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to delete provisioner" });
     }
   },

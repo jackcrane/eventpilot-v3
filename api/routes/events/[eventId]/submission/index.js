@@ -8,6 +8,7 @@ import { sendEmail } from "#postmark";
 import { findSubmission } from "./[submissionId]";
 import { render } from "@react-email/render";
 import VolunteerFormResponseThankYouEmail from "#emails/volunteer-form-response-thank-you.jsx";
+import { reportApiError } from "#util/reportApiError.js";
 
 const bodySchema = z.object({
   values: z.record(z.string(), z.string()),
@@ -184,6 +185,7 @@ export const post = async (req, res) => {
     res.json({ id: formResponse.id });
   } catch (error) {
     console.log(error);
+    reportApiError(error, req);
     res.status(500).json({ message: error.message });
   }
 };
@@ -248,6 +250,7 @@ export const get = [
       });
     } catch (error) {
       console.log(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

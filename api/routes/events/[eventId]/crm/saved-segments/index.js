@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { z } from "zod";
 import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
+import { reportApiError } from "#util/reportApiError.js";
 
 // Schema for creating a saved segment
 export const savedSegmentCreateSchema = z.object({
@@ -24,6 +25,7 @@ export const get = [
       return res.json({ savedSegments: rows });
     } catch (e) {
       console.error("[CRM SAVED SEGMENTS][GET] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -52,6 +54,7 @@ export const post = [
       return res.status(201).json({ savedSegment: saved });
     } catch (e) {
       console.error("[CRM SAVED SEGMENTS][POST] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

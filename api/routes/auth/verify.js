@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { LogType } from "@prisma/client";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
+import { reportApiError } from "#util/reportApiError.js";
 
 dotenv.config();
 
@@ -82,6 +83,7 @@ export const get = async (req, res) => {
     return res.status(200).json({ token: authtoken, name: user.name });
   } catch (error) {
     console.error(error);
+    reportApiError(error, req);
     return res.status(500).json({ message: "Internal server error" });
   }
 };

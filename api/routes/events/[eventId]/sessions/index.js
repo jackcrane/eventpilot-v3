@@ -1,4 +1,5 @@
 import { prisma } from "#prisma";
+import { reportApiError } from "#util/reportApiError.js";
 
 /**
  * POST /api/events/:eventId/sessions
@@ -41,6 +42,7 @@ export const post = [
       res.json(session);
     } catch (err) {
       console.error("Create session error:", err);
+      reportApiError(err, req);
       res.status(500).json({ message: "Failed to create session" });
     }
   },

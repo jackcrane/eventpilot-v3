@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { LogType, TodoItemStatus } from "@prisma/client";
 import { zerialize } from "zodex";
+import { reportApiError } from "#util/reportApiError.js";
 
 // Create schema: used for POST on collection
 export const todoCreateSchema = z.object({
@@ -58,6 +59,7 @@ export const get = [
       });
     } catch (e) {
       console.error("[TODOS][GET] Error:", e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },
@@ -140,6 +142,7 @@ export const post = [
       res.json({ todo });
     } catch (e) {
       console.error("[TODOS][POST] Error:", e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },

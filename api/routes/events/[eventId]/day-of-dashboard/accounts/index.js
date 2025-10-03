@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { normalizePermissions } from "#util/dayOfDashboard.js";
 import { accountSelect, formatAccount } from "./shared.js";
+import { reportApiError } from "#util/reportApiError.js";
 
 const createAccountSchema = z.object({
   provisionerId: z.string().cuid(),
@@ -44,6 +45,7 @@ export const get = [
       });
     } catch (error) {
       console.error("Failed to fetch day-of dashboard accounts", error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to fetch accounts" });
     }
   },
@@ -114,6 +116,7 @@ export const post = [
       return res.status(201).json({ account: formatAccount(account) });
     } catch (error) {
       console.error("Failed to create day-of dashboard account", error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to create account" });
     }
   },

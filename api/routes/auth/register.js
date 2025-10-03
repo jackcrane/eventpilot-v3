@@ -6,6 +6,7 @@ import { sendEmail } from "#postmark";
 import { forceTestError } from "#forceError";
 import WelcomeEmail from "#emails/welcome.jsx";
 import { render } from "@react-email/render";
+import { reportApiError } from "#util/reportApiError.js";
 // No longer creating Stripe customers at the user level
 
 export const post = async (req, res) => {
@@ -91,6 +92,7 @@ export const post = async (req, res) => {
     return res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     console.error(error);
+    reportApiError(error, req);
     return res.status(500).json({ message: "Internal server error" });
   }
 };

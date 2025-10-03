@@ -1,5 +1,6 @@
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -72,6 +73,7 @@ export const get = [
       res.json({ totalOnTeams, trend });
     } catch (error) {
       console.error("Error in GET /events/:eventId/dash/team-joins:", error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

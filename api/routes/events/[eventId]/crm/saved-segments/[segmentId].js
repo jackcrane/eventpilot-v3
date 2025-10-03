@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { z } from "zod";
 import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
+import { reportApiError } from "#util/reportApiError.js";
 
 const savedSegmentUpdateSchema = z.object({
   title: z.string().min(1).optional(),
@@ -40,6 +41,7 @@ export const patch = [
       return res.json({ savedSegment: updated });
     } catch (e) {
       console.error("[CRM SAVED SEGMENTS][PATCH] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

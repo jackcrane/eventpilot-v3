@@ -3,6 +3,7 @@ import { z } from "zod";
 import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
 import { isOpenAIConfigured, createResponse, extractText } from "#util/openai";
+import { reportApiError } from "#util/reportApiError.js";
 
 // Config now centralized in #util/openai
 
@@ -78,6 +79,7 @@ export const post = [
       return res.json({ title });
     } catch (e) {
       console.error("[CRM SAVED SEGMENTS][SUGGEST TITLE][POST] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

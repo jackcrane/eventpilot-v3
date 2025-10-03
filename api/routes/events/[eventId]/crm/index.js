@@ -1,5 +1,6 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const collapseCrmValues = (arr) => {
   return Object.fromEntries(
@@ -45,6 +46,7 @@ export const get = [
       });
     } catch (error) {
       console.error("Error in GET /event/:eventId/crm:", error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

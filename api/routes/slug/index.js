@@ -1,6 +1,7 @@
 import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   async (req, res) => {
@@ -39,6 +40,7 @@ export const get = [
       }
     } catch (e) {
       console.log(e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },

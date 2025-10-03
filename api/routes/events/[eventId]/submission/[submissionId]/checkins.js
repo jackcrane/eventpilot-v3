@@ -9,6 +9,7 @@ import { render } from "@react-email/render";
 import VolunteerShiftCheckInEmail from "#emails/volunteer-shift-check-in.jsx";
 import { createRequire } from "module";
 import { createLogBuffer } from "../../../../../util/logging.js";
+import { reportApiError } from "#util/reportApiError.js";
 
 const sanitizeDisplayName = (value) =>
   String(value || "")
@@ -355,6 +356,7 @@ ${organizer}`;
       return res.json({ updated: updatedCount, skipped: skippedCount });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

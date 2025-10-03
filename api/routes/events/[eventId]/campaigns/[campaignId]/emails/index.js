@@ -1,6 +1,7 @@
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
+import { reportApiError } from "#util/reportApiError.js";
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -162,6 +163,8 @@ export const get = [
         `Failed to load campaign emails for campaign ${campaignId} on event ${eventId}:`,
         error
       );
+      reportApiError(error, req);
+
       return res
         .status(500)
         .json({ message: "Failed to load campaign recipients" });

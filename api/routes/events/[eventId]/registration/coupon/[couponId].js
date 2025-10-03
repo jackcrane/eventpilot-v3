@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { z } from "zod";
 import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
+import { reportApiError } from "#util/reportApiError.js";
 
 const couponUpdateSchema = z
   .object({
@@ -108,6 +109,7 @@ export const put = [
           .status(400)
           .json({ message: { code: { _errors: ["Code must be unique"] } } });
       }
+      reportApiError(e, req);
       return res.status(500).json({ message: e.message });
     }
   },

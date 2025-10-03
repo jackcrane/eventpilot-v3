@@ -3,6 +3,7 @@ import { verifyAuth } from "#verifyAuth";
 import { serializeError } from "#serializeError";
 import { formSchema } from "../../../../util/formSchema";
 import { zerialize } from "zodex";
+import { reportApiError } from "#util/reportApiError.js";
 
 // detect new items (stringified integers)
 const isNew = (id) => /^\d+$/.test(id);
@@ -179,6 +180,7 @@ export const get = [
       return res.json({ pages });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ error });
     }
   },
@@ -209,6 +211,7 @@ export const put = [
       return res.json({ message: "Form upserted successfully" });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ error });
     }
   },

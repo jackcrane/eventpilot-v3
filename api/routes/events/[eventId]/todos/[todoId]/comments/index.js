@@ -3,6 +3,7 @@ import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
 import { z } from "zod";
 import { LogType } from "@prisma/client";
+import { reportApiError } from "#util/reportApiError.js";
 
 // Allow either text OR at least one file
 const commentSchema = z
@@ -37,6 +38,7 @@ export const get = [
       res.json({ comments });
     } catch (e) {
       console.error("[TODO][COMMENTS][GET] Error:", e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },
@@ -91,6 +93,7 @@ export const post = [
       res.json({ comment: full });
     } catch (e) {
       console.error("[TODO][COMMENTS][POST] Error:", e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },

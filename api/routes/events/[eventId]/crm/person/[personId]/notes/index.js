@@ -2,6 +2,7 @@ import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { z } from "zod";
 import { LogType } from "@prisma/client";
+import { reportApiError } from "#util/reportApiError.js";
 
 const createNoteSchema = z.object({
   text: z.string().min(1, "Note cannot be empty").max(5000),
@@ -54,6 +55,7 @@ export const get = [
       return res.json({ notes });
     } catch (e) {
       console.error("[NOTES][GET] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -92,6 +94,7 @@ export const post = [
       return res.json({ note: mapLogToNote(log) });
     } catch (e) {
       console.error("[NOTES][POST] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

@@ -5,6 +5,7 @@ import { LogType } from "@prisma/client";
 import { stripe } from "#stripe";
 import { eventSchema } from "./[eventId]";
 import { zerialize } from "zodex";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -49,6 +50,7 @@ export const get = [
       });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       res.status(500).json({ error });
     }
   },
@@ -250,6 +252,7 @@ export const post = [
         void e;
       }
 
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },

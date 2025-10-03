@@ -9,6 +9,7 @@ import { finalizeRegistration } from "../../../../util/finalizeRegistration";
 import { createLedgerItemForRegistration } from "../../../../util/ledger";
 import { getNextInstance } from "#util/getNextInstance.js";
 import { createLogBuffer } from "../../../../util/logging.js";
+import { reportApiError } from "#util/reportApiError.js";
 
 const registrationSubmissionSchema = z.object({
   responses: z.record(z.string(), z.any()),
@@ -431,6 +432,7 @@ export const post = [
       });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ error });
     }
   },

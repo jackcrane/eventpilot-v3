@@ -3,6 +3,7 @@ import { verifyAuth } from "#verifyAuth";
 import { rawEmailClient } from "#postmark";
 import { LogType, MailingListMemberStatus } from "@prisma/client";
 import cuid from "cuid";
+import { reportApiError } from "#util/reportApiError.js";
 
 const TEST_DOMAIN_PATTERN = /@(?:example\.com|eventpilot-test\.com)$/i;
 
@@ -79,10 +80,7 @@ export const post = [
 
       const campaign = existingEmail.campaign;
 
-      if (
-        existingEmail.crmPersonId &&
-        campaign?.mailingListId
-      ) {
+      if (existingEmail.crmPersonId && campaign?.mailingListId) {
         const membership = await prisma.mailingListMember.findFirst({
           where: {
             mailingListId: campaign.mailingListId,
@@ -92,12 +90,9 @@ export const post = [
           select: { status: true },
         });
 
-        if (
-          membership?.status === MailingListMemberStatus.UNSUBSCRIBED
-        ) {
+        if (membership?.status === MailingListMemberStatus.UNSUBSCRIBED) {
           return res.status(409).json({
-            message:
-              "This recipient has unsubscribed from the mailing list.",
+            message: "This recipient has unsubscribed from the mailing list.",
           });
         }
       }
@@ -150,7 +145,10 @@ export const post = [
           existingEmail.id
         );
         if (currentUrl) {
-          const pattern = new RegExp(currentUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
+          const pattern = new RegExp(
+            currentUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+            "g"
+          );
           if (htmlBody) {
             htmlBody = htmlBody.replace(pattern, unsubscribeReplacement);
           }
@@ -183,6 +181,7 @@ export const post = [
             `Failed to resend email ${emailId} for campaign ${campaignId}:`,
             error
           );
+          reportApiError(error, req);
           return res
             .status(500)
             .json({ message: "Failed to dispatch the resend" });
@@ -224,6 +223,7 @@ export const post = [
         `Unexpected error while resending email ${emailId} for campaign ${campaignId}:`,
         error
       );
+      reportApiError(error, req);
       return res
         .status(500)
         .json({ message: "Unexpected error while resending email" });

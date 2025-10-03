@@ -3,6 +3,7 @@ import { getNextInstance } from "#util/getNextInstance";
 import { verifyAuth } from "#verifyAuth";
 import { instanceSchema } from "./index";
 import { zerialize } from "zodex";
+import { reportApiError } from "#util/reportApiError.js";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -31,6 +32,7 @@ export const get = [
       });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -54,6 +56,7 @@ export const put = [
       res.json({ instance });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -73,6 +76,7 @@ export const del = [
       res.json({ message: "Instance deleted successfully" });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

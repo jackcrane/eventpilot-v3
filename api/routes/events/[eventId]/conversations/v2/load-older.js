@@ -1,6 +1,7 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { ingestGmailWindowForEvent } from "../../../../webhooks/fragments/ingestGmailWindow.js";
+import { reportApiError } from "#util/reportApiError.js";
 
 const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
 
@@ -72,6 +73,7 @@ export const post = [
           .json({ message: "Gmail connection expired; please reconnect" });
       }
       console.error("[conversations v2 load-older]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
