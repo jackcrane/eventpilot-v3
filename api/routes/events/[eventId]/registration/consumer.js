@@ -8,6 +8,7 @@ import { registrationRequiresPayment } from "./fragments/consumer/registrationRe
 import { finalizeRegistration } from "../../../../util/finalizeRegistration";
 import { createLedgerItemForRegistration } from "../../../../util/ledger";
 import { getNextInstance } from "#util/getNextInstance.js";
+import { createLogBuffer } from "../../../../util/logging.js";
 
 const registrationSubmissionSchema = z.object({
   responses: z.record(z.string(), z.any()),
@@ -124,6 +125,7 @@ export const post = [
       // TODO: Right now we are just going to trust the data is valid and nothing required is missing.
 
       // Create a transaction
+      const logBuffer = createLogBuffer();
       const transaction = await prisma.$transaction(
         async (tx) => {
           // 1) Create a new registration
@@ -332,34 +334,32 @@ export const post = [
             },
           });
 
-          await tx.logs.createMany({
-            data: [
-              {
-                type: LogType.REGISTRATION_CREATED,
-                eventId,
-                ip: req.ip,
-                data: JSON.stringify(fullRegistration),
-                registrationId: registration.id,
-                instanceId,
-              },
-              {
-                type: LogType.REGISTRATION_PERIOD_PRICING_SOLD,
-                eventId,
-                ip: req.ip,
-                registrationPeriodPricingId: selectedPeriodPricing.id,
-                registrationId: registration.id,
-                instanceId,
-              },
-              ...selectedUpsells.map((u) => ({
-                type: LogType.UPSELL_SOLD,
-                eventId,
-                ip: req.ip,
-                upsellItemId: u,
-                registrationId: registration.id,
-                instanceId,
-              })),
-            ],
-          });
+          logBuffer.pushMany([
+            {
+              type: LogType.REGISTRATION_CREATED,
+              eventId,
+              ip: req.ip,
+              data: JSON.stringify(fullRegistration),
+              registrationId: registration.id,
+              instanceId,
+            },
+            {
+              type: LogType.REGISTRATION_PERIOD_PRICING_SOLD,
+              eventId,
+              ip: req.ip,
+              registrationPeriodPricingId: selectedPeriodPricing.id,
+              registrationId: registration.id,
+              instanceId,
+            },
+            ...selectedUpsells.map((u) => ({
+              type: LogType.UPSELL_SOLD,
+              eventId,
+              ip: req.ip,
+              upsellItemId: u,
+              registrationId: registration.id,
+              instanceId,
+            })),
+          ]);
 
           return {
             registration: fullRegistration,
@@ -373,6 +373,8 @@ export const post = [
           maxWait: 30_000,
         }
       );
+
+      await logBuffer.flush();
 
       const { requiresPayment, registrationId, price } = transaction;
 
