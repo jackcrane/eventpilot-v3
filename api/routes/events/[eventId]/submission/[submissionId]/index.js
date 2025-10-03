@@ -286,6 +286,7 @@ export const put = [
       return res.json({ id: updated.id });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },
@@ -347,6 +348,7 @@ export const patch = [
       });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },
@@ -385,6 +387,7 @@ export const del = [
 
       return res.status(204).end();
     } catch (error) {
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

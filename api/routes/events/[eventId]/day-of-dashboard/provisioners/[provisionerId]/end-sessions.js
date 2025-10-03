@@ -79,6 +79,7 @@ export const post = [
       });
     } catch (error) {
       console.error("Failed to end day-of dashboard provisioner sessions", error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to end sessions" });
     }
   },

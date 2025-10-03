@@ -350,6 +350,7 @@ export const get = [
       });
     } catch (e) {
       console.error("[conversations v2 threads]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -662,6 +663,7 @@ export const post = [
         return res.status(400).json({ message: "No recipients provided" });
       }
       console.error("[conversations v2 threads compose]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

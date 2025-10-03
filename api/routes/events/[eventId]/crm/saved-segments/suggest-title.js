@@ -78,6 +78,7 @@ export const post = [
       return res.json({ title });
     } catch (e) {
       console.error("[CRM SAVED SEGMENTS][SUGGEST TITLE][POST] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

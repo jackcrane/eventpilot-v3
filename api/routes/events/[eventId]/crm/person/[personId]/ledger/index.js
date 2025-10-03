@@ -38,6 +38,7 @@ export const get = [
       return res.json({ ledgerItems, lifetimeValue });
     } catch (e) {
       console.error("[LEDGER][GET] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

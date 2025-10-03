@@ -64,6 +64,7 @@ export const post = [
       });
     } catch (error) {
       console.error("Error in POST /event/:eventId/crm:", error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

@@ -912,6 +912,7 @@ export const get = [
     } catch (error) {
       console.error("Error in GET /event/:eventId/crm:", error);
       tmark("Error path");
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -1070,6 +1071,7 @@ export const post = [
         return res.status(400).json({ message: err.message });
       }
       console.error("Error in POST /event/:eventId/crm:", err);
+      reportApiError(err, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -1098,6 +1100,7 @@ export const patch = [
       return res.json({ imports });
     } catch (e) {
       console.log(e);
+      reportApiError(e, req);
       return res.status(500).json({ error: e.message });
     }
   },

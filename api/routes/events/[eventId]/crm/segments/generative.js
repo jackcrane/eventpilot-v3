@@ -260,6 +260,7 @@ export const post = [
       return res.json({ segment: validated.data, results });
     } catch (e) {
       console.error("[CRM SEGMENTS][GENERATIVE][POST] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

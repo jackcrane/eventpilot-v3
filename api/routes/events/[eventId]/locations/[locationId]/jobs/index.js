@@ -96,6 +96,7 @@ export const post = [
       return res.status(201).json({ message: "Job created", job });
     } catch (error) {
       console.log(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },
@@ -123,6 +124,7 @@ export const get = [
         jobs,
       });
     } catch (error) {
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },
@@ -154,6 +156,7 @@ export const del = [
       return res.status(204).end();
     } catch (error) {
       console.log(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

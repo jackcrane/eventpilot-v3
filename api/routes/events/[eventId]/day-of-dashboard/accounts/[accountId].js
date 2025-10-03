@@ -148,6 +148,7 @@ export const put = [
       return res.json({ account: formatAccount(updated) });
     } catch (error) {
       console.error("Failed to update day-of dashboard account", error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to update account" });
     }
   },
@@ -242,6 +243,7 @@ export const del = [
       return res.json(payload);
     } catch (error) {
       console.error("Failed to delete day-of dashboard account", error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to delete account" });
     }
   },

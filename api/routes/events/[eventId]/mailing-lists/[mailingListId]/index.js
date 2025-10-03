@@ -93,6 +93,7 @@ export const get = [
         `Error fetching mailing list ${mailingListId} for event ${eventId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -207,6 +208,7 @@ export const put = [
           .json({ message: "A mailing list with this title already exists." });
       }
 
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -270,6 +272,7 @@ export const del = [
         `Error deleting mailing list ${mailingListId} for event ${eventId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

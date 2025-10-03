@@ -294,6 +294,7 @@ export const get = [
           .json({ message: "Gmail connection expired; please reconnect" });
       }
       console.error("[conversations v2 attachment get]", e);
+      reportApiError(e, req);
       return res.status(500).end();
     }
   },

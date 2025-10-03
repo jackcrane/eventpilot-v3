@@ -54,6 +54,7 @@ export const get = [
       return res.json({ notes });
     } catch (e) {
       console.error("[NOTES][GET] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -92,6 +93,7 @@ export const post = [
       return res.json({ note: mapLogToNote(log) });
     } catch (e) {
       console.error("[NOTES][POST] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

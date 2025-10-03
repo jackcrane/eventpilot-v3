@@ -40,6 +40,7 @@ export const post = [
         `[${req.id}] Failed to send campaign ${campaignId} for event ${eventId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to send campaign" });
     }
   },

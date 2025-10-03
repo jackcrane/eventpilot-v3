@@ -431,6 +431,7 @@ export const post = [
       });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ error });
     }
   },

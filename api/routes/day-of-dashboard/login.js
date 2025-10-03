@@ -6,6 +6,7 @@ import {
   signDayOfDashboardJwt,
   verifyPin,
 } from "#util/dayOfDashboard.js";
+import { reportApiError } from "#util/reportApiError.js";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -127,6 +128,7 @@ export const post = async (req, res) => {
     });
   } catch (error) {
     console.error("Failed to login day-of dashboard account", error);
+    reportApiError(error, req);
     return res.status(500).json({ message: "Failed to create dashboard session" });
   }
 };

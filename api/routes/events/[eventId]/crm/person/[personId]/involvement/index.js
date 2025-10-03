@@ -100,6 +100,7 @@ export const get = [
       return res.json({ involvement });
     } catch (e) {
       console.error("[INVOLVEMENT][GET] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

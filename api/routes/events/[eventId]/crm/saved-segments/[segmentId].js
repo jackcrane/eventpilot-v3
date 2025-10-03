@@ -40,6 +40,7 @@ export const patch = [
       return res.json({ savedSegment: updated });
     } catch (e) {
       console.error("[CRM SAVED SEGMENTS][PATCH] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

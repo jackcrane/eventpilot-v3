@@ -179,6 +179,7 @@ export const get = [
       return res.json({ pages });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ error });
     }
   },
@@ -209,6 +210,7 @@ export const put = [
       return res.json({ message: "Form upserted successfully" });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ error });
     }
   },

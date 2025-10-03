@@ -355,6 +355,7 @@ ${organizer}`;
       return res.json({ updated: updatedCount, skipped: skippedCount });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

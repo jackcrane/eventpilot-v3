@@ -44,6 +44,7 @@ export const get = async (req, res) => {
     return res.status(200).json({ valid: true });
   } catch (error) {
     console.error(error);
+    reportApiError(error, req);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -107,6 +108,7 @@ export const put = async (req, res) => {
     return res.status(200).json({ message: "Password reset request sent" });
   } catch (error) {
     console.error(error);
+    reportApiError(error, req);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -178,6 +180,7 @@ export const post = async (req, res) => {
     return res.status(200).json({ message: "Password reset successfully" });
   } catch (error) {
     console.error(error);
+    reportApiError(error, req);
     return res.status(500).json({ message: "Internal server error" });
   }
 };

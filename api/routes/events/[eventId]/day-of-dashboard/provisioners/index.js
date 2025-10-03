@@ -52,6 +52,7 @@ export const get = [
       });
     } catch (error) {
       console.error("Failed to fetch day-of dashboard provisioners", error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to fetch provisioners" });
     }
   },
@@ -140,6 +141,7 @@ export const post = [
     } catch (error) {
       console.error("Failed to create day-of dashboard provisioner", error);
       return res
+        reportApiError(error, req);
         .status(500)
         .json({ message: "Failed to create provisioner" });
     }

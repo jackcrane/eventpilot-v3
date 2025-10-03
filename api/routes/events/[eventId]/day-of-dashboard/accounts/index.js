@@ -44,6 +44,7 @@ export const get = [
       });
     } catch (error) {
       console.error("Failed to fetch day-of dashboard accounts", error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to fetch accounts" });
     }
   },
@@ -114,6 +115,7 @@ export const post = [
       return res.status(201).json({ account: formatAccount(account) });
     } catch (error) {
       console.error("Failed to create day-of dashboard account", error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to create account" });
     }
   },

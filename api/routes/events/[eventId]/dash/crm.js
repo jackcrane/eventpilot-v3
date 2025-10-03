@@ -12,6 +12,7 @@ export const get = [
       res.json({ totalCrm });
     } catch (error) {
       console.error("Error in GET /events/:eventId/dash/crm:", error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

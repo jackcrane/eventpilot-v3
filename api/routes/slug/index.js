@@ -39,6 +39,7 @@ export const get = [
       }
     } catch (e) {
       console.log(e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },

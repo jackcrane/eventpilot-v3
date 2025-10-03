@@ -79,6 +79,7 @@ export const post = [
           message: { code: { _errors: ["Code must be unique"] } },
         });
       }
+      reportApiError(e, req);
       return res.status(500).json({ message: e.message });
     }
   },

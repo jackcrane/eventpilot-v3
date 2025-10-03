@@ -34,6 +34,7 @@ export const get = [
       res.json({ todo });
     } catch (e) {
       console.error("[TODO][GET] Error:", e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },
@@ -264,6 +265,7 @@ export const put = [
       res.json({ todo: updated });
     } catch (e) {
       console.error("[TODO][PUT] Error:", e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },
@@ -301,6 +303,7 @@ export const del = [
       res.json({ ok: true });
     } catch (e) {
       console.error("[TODO][DEL] Error:", e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },

@@ -84,6 +84,7 @@ export const post = [
       res.json({ ok: true });
     } catch (e) {
       console.error(e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Internal server error" });
     }
   },

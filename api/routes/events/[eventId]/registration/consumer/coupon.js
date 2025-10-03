@@ -147,6 +147,7 @@ export const post = [
     } catch (error) {
       console.error(error);
       return res
+        reportApiError(error, req);
         .status(500)
         .json({ message: error?.message || "Server error" });
     }
@@ -238,6 +239,7 @@ export const del = [
     } catch (error) {
       console.error(error);
       return res
+        reportApiError(error, req);
         .status(500)
         .json({ message: error?.message || "Server error" });
     }

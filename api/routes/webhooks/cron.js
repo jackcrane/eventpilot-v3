@@ -320,6 +320,7 @@ export const post = async (req, res) => {
     return res.status(200).json({ message: "Webhook received" });
   } catch (e) {
     console.error("Error in POST /webhooks/cron:", e);
+    reportApiError(e, req);
     return res.status(500).json({ error: "Internal server error" });
   }
 };

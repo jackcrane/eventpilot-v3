@@ -114,6 +114,7 @@ export const post = [
         `Error creating mailing list member for mailing list ${mailingListId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -178,6 +179,7 @@ export const put = [
         `Error updating mailing list member for mailing list ${mailingListId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -235,6 +237,7 @@ export const del = [
         `Error removing mailing list member for mailing list ${mailingListId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

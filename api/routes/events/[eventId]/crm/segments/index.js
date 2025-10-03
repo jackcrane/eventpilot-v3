@@ -754,6 +754,7 @@ export const post = [
       if (e?.status) {
         return res.status(e.status).json({ message: e.message });
       }
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

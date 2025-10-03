@@ -113,6 +113,7 @@ export const get = [
       res.json({ total, withUpsells, percent, previous });
     } catch (error) {
       console.error("Error in GET /events/:eventId/dash/upsells:", error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

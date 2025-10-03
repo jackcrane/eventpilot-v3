@@ -349,6 +349,7 @@ export const get = [
         `Error fetching members for mailing list ${mailingListId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -671,6 +672,7 @@ export const post = [
         `Error batch-adding members to mailing list ${mailingListId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

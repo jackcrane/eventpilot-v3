@@ -100,6 +100,7 @@ export const get = [
       res.json({ total, used, percent, previous });
     } catch (error) {
       console.error("Error in GET /events/:eventId/dash/coupons:", error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

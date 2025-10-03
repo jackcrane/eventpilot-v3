@@ -31,6 +31,7 @@ export const get = [
       });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -54,6 +55,7 @@ export const put = [
       res.json({ instance });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -73,6 +75,7 @@ export const del = [
       res.json({ message: "Instance deleted successfully" });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

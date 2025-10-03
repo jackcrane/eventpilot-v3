@@ -58,6 +58,7 @@ export const get = [
       });
     } catch (e) {
       console.error("[TODOS][GET] Error:", e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },
@@ -140,6 +141,7 @@ export const post = [
       res.json({ todo });
     } catch (e) {
       console.error("[TODOS][POST] Error:", e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },

@@ -62,6 +62,7 @@ export const post = [
       return res.status(201).json({ message: "Location created", location });
     } catch (error) {
       console.log(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

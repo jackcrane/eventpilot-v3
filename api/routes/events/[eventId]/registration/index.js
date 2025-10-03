@@ -197,6 +197,7 @@ export const get = [
       return res.json({ registrations, fields });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

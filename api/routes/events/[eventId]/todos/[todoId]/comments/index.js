@@ -37,6 +37,7 @@ export const get = [
       res.json({ comments });
     } catch (e) {
       console.error("[TODO][COMMENTS][GET] Error:", e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },
@@ -91,6 +92,7 @@ export const post = [
       res.json({ comment: full });
     } catch (e) {
       console.error("[TODO][COMMENTS][POST] Error:", e);
+      reportApiError(e, req);
       res.status(500).json({ message: "Error" });
     }
   },

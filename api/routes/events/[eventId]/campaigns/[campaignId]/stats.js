@@ -68,6 +68,7 @@ export const get = [
         `Failed to load stats for campaign ${campaignId} on event ${eventId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Failed to load campaign stats" });
     }
   },

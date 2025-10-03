@@ -29,6 +29,7 @@ export const get = [
         `Error fetching campaign ${campaignId} for event ${eventId}:`,
         error
       );
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -130,6 +131,7 @@ export const put = [
       return res.json({ campaign: formatCampaign(updated) });
     } catch (error) {
       console.error(`Error updating campaign ${campaignId} for event ${eventId}:`, error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -152,6 +154,7 @@ export const del = [
       return res.status(204).send();
     } catch (error) {
       console.error(`Error deleting campaign ${campaignId} for event ${eventId}:`, error);
+      reportApiError(error, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

@@ -108,6 +108,7 @@ export const put = [
           .status(400)
           .json({ message: { code: { _errors: ["Code must be unique"] } } });
       }
+      reportApiError(e, req);
       return res.status(500).json({ message: e.message });
     }
   },

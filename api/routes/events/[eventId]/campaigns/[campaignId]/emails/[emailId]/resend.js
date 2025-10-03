@@ -184,6 +184,7 @@ export const post = [
             error
           );
           return res
+            reportApiError(error, req);
             .status(500)
             .json({ message: "Failed to dispatch the resend" });
         }
@@ -225,6 +226,7 @@ export const post = [
         error
       );
       return res
+        reportApiError(error, req);
         .status(500)
         .json({ message: "Unexpected error while resending email" });
     }

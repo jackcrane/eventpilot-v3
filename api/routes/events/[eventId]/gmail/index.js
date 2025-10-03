@@ -19,6 +19,7 @@ export const get = [
       return res.status(200).json({ gmailConnection: conn });
     } catch (e) {
       console.error(e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -35,6 +36,7 @@ export const del = [
       return res.status(200).json({ success: true });
     } catch (e) {
       console.error(e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

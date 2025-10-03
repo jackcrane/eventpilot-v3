@@ -90,6 +90,7 @@ export const get = [
       });
     } catch (err) {
       console.error("Stripe error:", err.message);
+      reportApiError(err, req);
       return res.status(500).json({ error: err.message });
     }
   },
@@ -124,6 +125,7 @@ export const del = [
       return res.json({ event: updated });
     } catch (err) {
       console.error("Error deleting Stripe account:", err.message);
+      reportApiError(err, req);
       return res.status(500).json({ error: err.message });
     }
   },

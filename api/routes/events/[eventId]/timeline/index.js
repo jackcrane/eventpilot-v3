@@ -64,6 +64,7 @@ export const get = [
       res.json({ events });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       res.status(500).json({ error });
     }
   },

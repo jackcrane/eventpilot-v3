@@ -72,6 +72,7 @@ export const post = [
           .json({ message: "Gmail connection expired; please reconnect" });
       }
       console.error("[conversations v2 load-older]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

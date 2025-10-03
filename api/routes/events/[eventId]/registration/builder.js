@@ -89,6 +89,7 @@ export const get = [
       return res.status(200).json({ tiers: tiersOut, periods: periodsOut });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ error });
     }
   },
@@ -159,6 +160,7 @@ export const put = [
       return res.status(200).json({ success: true });
     } catch (error) {
       console.error(error);
+      reportApiError(error, req);
       return res.status(500).json({ error });
     }
   },

@@ -95,6 +95,7 @@ export const post = [
       res.json({ ok: true, fileId: uploaded.id });
     } catch (err) {
       console.error("Upload/Finalize session error:", err);
+      reportApiError(err, req);
       res.status(500).json({ message: "Failed to persist session chunk" });
     }
   },
@@ -136,6 +137,7 @@ export const get = [
       res.json(session);
     } catch (err) {
       console.error("Get session error:", err);
+      reportApiError(err, req);
       res.status(500).json({ message: "Failed to get session" });
     }
   },

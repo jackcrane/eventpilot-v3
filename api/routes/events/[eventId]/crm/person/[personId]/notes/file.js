@@ -107,6 +107,7 @@ export const post = [
       });
     } catch (e) {
       console.error("[NOTES][FILE][POST] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

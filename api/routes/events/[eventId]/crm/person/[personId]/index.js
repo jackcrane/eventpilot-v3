@@ -77,6 +77,7 @@ export const get = [
       });
     } catch (error) {
       console.error("Error in GET /event/:eventId/crm/:personId:", error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -223,6 +224,7 @@ export const put = [
       });
     } catch (error) {
       console.error(`Error in PUT /event/${eventId}/crm/${personId}:`, error);
+      reportApiError(error, req);
       return res.status(500).json({ error: `Internal server error` });
     }
   },
@@ -258,6 +260,7 @@ export const del = [
       });
     } catch (error) {
       console.error("Error in DELETE /event/:eventId/crm/:personId:", error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

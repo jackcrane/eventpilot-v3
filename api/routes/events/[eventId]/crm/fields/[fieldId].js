@@ -83,6 +83,7 @@ export const put = [
       });
     } catch (error) {
       console.error("Error in PUT /event/:eventId/crm/:fieldId:", error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

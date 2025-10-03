@@ -107,6 +107,7 @@ export const get = [
       });
     } catch (error) {
       console.error("Error in GET /event/:eventId:", error);
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

@@ -285,6 +285,7 @@ export const get = [
         "Error in GET /events/:eventId/dash/volunteer-capacity:",
         error
       );
+      reportApiError(error, req);
       res.status(500).json({ error: "Internal server error" });
     }
   },

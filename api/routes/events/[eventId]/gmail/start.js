@@ -40,6 +40,7 @@ export const get = [
       return res.status(200).json({ url });
     } catch (e) {
       console.error(e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

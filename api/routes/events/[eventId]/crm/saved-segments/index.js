@@ -24,6 +24,7 @@ export const get = [
       return res.json({ savedSegments: rows });
     } catch (e) {
       console.error("[CRM SAVED SEGMENTS][GET] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -52,6 +53,7 @@ export const post = [
       return res.status(201).json({ savedSegment: saved });
     } catch (e) {
       console.error("[CRM SAVED SEGMENTS][POST] Error:", e);
+      reportApiError(e, req);
       return res.status(500).json({ error: "Internal server error" });
     }
   },

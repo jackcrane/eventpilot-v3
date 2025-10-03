@@ -247,6 +247,7 @@ export const get = [
         .json({ thread, messages: all, responseRecipient, participants });
     } catch (e) {
       console.error("[conversations v2 thread get]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -631,6 +632,7 @@ export const post = [
           .json({ message: "Gmail connection expired; please reconnect" });
       }
       console.error("[conversations v2 thread post]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -670,6 +672,7 @@ export const del = [
           .json({ message: "Gmail connection expired; please reconnect" });
       }
       console.error("[conversations v2 thread delete]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -723,6 +726,7 @@ export const patch = [
           .json({ message: "Gmail connection expired; please reconnect" });
       }
       console.error("[conversations v2 thread options]", e);
+      reportApiError(e, req);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

@@ -163,6 +163,7 @@ export const get = [
         error
       );
       return res
+        reportApiError(error, req);
         .status(500)
         .json({ message: "Failed to load campaign recipients" });
     }

@@ -313,6 +313,7 @@ export const post = [
       response.json({ received: true });
     } catch (error) {
       console.error("[STRIPE] Webhook error:", error);
+      reportApiError(error, request);
       response.status(500).send("Webhook handler failed");
     }
   },

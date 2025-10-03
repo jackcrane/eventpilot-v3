@@ -184,6 +184,7 @@ export const post = async (req, res) => {
     res.json({ id: formResponse.id });
   } catch (error) {
     console.log(error);
+    reportApiError(error, req);
     res.status(500).json({ message: error.message });
   }
 };
@@ -248,6 +249,7 @@ export const get = [
       });
     } catch (error) {
       console.log(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },

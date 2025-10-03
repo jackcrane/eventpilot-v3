@@ -52,6 +52,7 @@ export const get = [
         job,
       });
     } catch (error) {
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },
@@ -82,6 +83,7 @@ export const del = [
 
       return res.status(204).end();
     } catch (error) {
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },
@@ -196,6 +198,7 @@ export const put = [
       return res.json({ job });
     } catch (error) {
       console.log(error);
+      reportApiError(error, req);
       return res.status(500).json({ message: error.message });
     }
   },
