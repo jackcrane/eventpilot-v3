@@ -1,0 +1,56 @@
+.accordion {
+  width: 100%;
+  overflow: hidden; /* keeps borders tidy */
+  background: #fff;
+  min-height: 300px;
+}
+
+.item + .item {
+  border-top: 1px solid var(--tblr-border-color);
+  &:last-of-type {
+    border-bottom: 1px solid var(--tblr-border-color);
+  }
+}
+
+.header {
+  width: 100%;
+  appearance: none;
+  border: 0;
+  background: #fff;
+  cursor: pointer;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.header:hover {
+  background: #f8fafc;
+}
+
+.title {
+  text-align: left;
+}
+
+.chevron {
+  display: inline-flex;
+  transition: transform 200ms ease;
+  color: #64748b;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.contentWrapper {
+  overflow: hidden;
+  height: 0; /* animated */
+}
+
+.contentInner {
+  padding: 0 16px 16px 16px;
+  font-size: 14px;
+  font-weight: 400;
+}

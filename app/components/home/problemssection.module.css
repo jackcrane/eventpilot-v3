@@ -1,0 +1,26 @@
+.accordion {
+  border: 1px solid var(--tblr-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+}
+
+.accordionInteractable {
+  min-width: 50%;
+  border-right: 1px solid var(--tblr-border-color);
+}
+
+.arg {
+  width: 100%;
+  padding: 16px;
+  overflow: visible;
+  max-height: 200px;
+}
+
+.argImage {
+  width: 80%;
+  transform: translateX(100px);
+  line-height: 0;
+}
