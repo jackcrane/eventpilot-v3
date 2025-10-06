@@ -33,7 +33,7 @@ export const FieldItemPreview = ({
               >
                 <Icon i="asterisk" size={12} />
                 <Typography.Text className="mb-0">
-                  This field must be present in your form
+                  Must be present
                 </Typography.Text>
               </Row>
             )}
