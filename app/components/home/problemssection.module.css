@@ -5,11 +5,18 @@
   display: flex;
   flex-direction: row;
   gap: 0;
+  @media screen and (max-width: 700px) {
+    flex-direction: column;
+    gap: 16px;
+  }
 }
 
 .accordionInteractable {
   min-width: 50%;
-  border-right: 1px solid var(--tblr-border-color);
+  border-bottom-width: 0px;
+  @media screen and (min-width: 700px) {
+    border-right: 1px solid var(--tblr-border-color);
+  }
 }
 
 .arg {
@@ -17,6 +24,24 @@
   padding: 16px;
   overflow: visible;
   max-height: 200px;
+  @media screen and (max-width: 700px) {
+    display: none;
+  }
+}
+
+.arg.mobile {
+  display: none;
+  @media screen and (max-width: 700px) {
+    display: block;
+    min-height: 400px;
+    overflow: hidden;
+    padding: 0px;
+    margin: -16px;
+    margin-top: 0;
+    width: calc(100% + 32px);
+    padding: 16px;
+    background-color: var(--tblr-body-bg);
+  }
 }
 
 .argImage {
@@ -25,4 +50,5 @@
   line-height: 0;
   border: 1px solid var(--tblr-border-color);
   border-radius: 8px;
+  max-width: 400px;
 }

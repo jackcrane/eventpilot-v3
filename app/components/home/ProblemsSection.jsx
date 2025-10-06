@@ -7,10 +7,11 @@ import inviteAFriendEmail from "../../assets/invite-a-friend-email.png";
 import createAiSegment from "../../assets/create-ai-segment.png";
 import upsells from "../../assets/upsells.png";
 import { Typography } from "tabler-react-2";
+import classNames from "classnames";
 
-const TurnoverArg = () => {
+const TurnoverArg = ({ className }) => {
   return (
-    <div className={styles.arg}>
+    <div className={classNames(styles.arg, className)}>
       <Typography.H3>Keep your participants engaged</Typography.H3>
       <Typography.Text>
         Keeping your participants engaged is the key to growing your event. Use
@@ -22,9 +23,9 @@ const TurnoverArg = () => {
   );
 };
 
-const LateArg = () => {
+const LateArg = ({ className }) => {
   return (
-    <div className={styles.arg}>
+    <div className={classNames(styles.arg, className)}>
       <Typography.H3>Don't stress the late registrations</Typography.H3>
       <Typography.Text>
         Every event will have late registrations. Participants wait for
@@ -41,9 +42,9 @@ const LateArg = () => {
   );
 };
 
-const CpaArg = () => {
+const CpaArg = ({ className }) => {
   return (
-    <div className={styles.arg}>
+    <div className={classNames(styles.arg, className)}>
       <Typography.H3>Leverage your existing relationships</Typography.H3>
       <Typography.Text>
         Leverage your existing contacts to grow your participant base by sending
@@ -54,9 +55,9 @@ const CpaArg = () => {
   );
 };
 
-const TargetedCampaignsArg = () => {
+const TargetedCampaignsArg = ({ className }) => {
   return (
-    <div className={styles.arg}>
+    <div className={classNames(styles.arg, className)}>
       <Typography.H3>Create personalized marketing</Typography.H3>
       <Typography.Text>
         Use EventPilot's tools to create personalized marketing to tailor your
@@ -76,9 +77,9 @@ const TargetedCampaignsArg = () => {
   );
 };
 
-const NoUpsellsArg = () => {
+const NoUpsellsArg = ({ className }) => {
   return (
-    <div className={styles.arg}>
+    <div className={classNames(styles.arg, className)}>
       <Typography.H3>Build your upsell storefront</Typography.H3>
       <Typography.Text>
         EventPilot automatically bakes upsells into your registration flow, so
@@ -89,6 +90,24 @@ const NoUpsellsArg = () => {
     </div>
   );
 };
+
+const Details = ({ open, isMobile = true }) => (
+  <>
+    {open === "turnover" && (
+      <TurnoverArg className={isMobile ? styles.mobile : ""} />
+    )}
+    {open === "late-reg" && (
+      <LateArg className={isMobile ? styles.mobile : ""} />
+    )}
+    {open === "cpa" && <CpaArg className={isMobile ? styles.mobile : ""} />}
+    {open === "targeted-campaigns" && (
+      <TargetedCampaignsArg className={isMobile ? styles.mobile : ""} />
+    )}
+    {open === "no-upsells" && (
+      <NoUpsellsArg className={isMobile ? styles.mobile : ""} />
+    )}
+  </>
+);
 
 export const ProblemsSection = () => {
   const [open, setOpen] = useState("turnover");
@@ -109,6 +128,7 @@ export const ProblemsSection = () => {
                 <p>
                   It is tough to find participants, don't just let them drop!
                 </p>
+                <Details open={open} isMobile={true} />
               </>
             ),
           },
@@ -130,6 +150,7 @@ export const ProblemsSection = () => {
                   And when it is time for next year, EventPilot has tools to
                   encourage your participants to register earlier.
                 </p>
+                <Details open={open} isMobile={true} />
               </>
             ),
           },
@@ -147,6 +168,7 @@ export const ProblemsSection = () => {
                   tailor your outreach to <b>reach</b>, <b>engage</b>, and{" "}
                   <b>covert</b> your target audience.
                 </p>
+                <Details open={open} isMobile={true} />
               </>
             ),
           },
@@ -168,6 +190,7 @@ export const ProblemsSection = () => {
                   </b>
                   , your email lists are driven by your data.
                 </p>
+                <Details open={open} isMobile={true} />
               </>
             ),
           },
@@ -185,6 +208,7 @@ export const ProblemsSection = () => {
                   into registration, include them in your email blasts, and get
                   detailed analytics on it all.
                 </p>
+                <Details open={open} isMobile={true} />
               </>
             ),
           },
@@ -193,11 +217,7 @@ export const ProblemsSection = () => {
         onChange={(nextId) => setOpen(nextId ?? "turnover")}
         className={styles.accordionInteractable}
       />
-      {open === "turnover" && <TurnoverArg />}
-      {open === "late-reg" && <LateArg />}
-      {open === "cpa" && <CpaArg />}
-      {open === "targeted-campaigns" && <TargetedCampaignsArg />}
-      {open === "no-upsells" && <NoUpsellsArg />}
+      <Details open={open} isMobile={false} />
     </div>
   );
 };
