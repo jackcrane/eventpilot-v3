@@ -46,6 +46,12 @@ export const KanbanBoard = ({ initialColumns, onChange, onMove, onAdd, onItemCli
           ...prev,
           [srcId]: { ...srcColumn, items },
         };
+        if (typeof onMove === "function") {
+          onMove(moved, srcId, dstId, {
+            sourceIndex: source.index,
+            destinationIndex: destination.index,
+          });
+        }
         if (typeof onChange === "function") onChange(next);
         return next;
       }
@@ -63,7 +69,12 @@ export const KanbanBoard = ({ initialColumns, onChange, onMove, onAdd, onItemCli
         [srcId]: { ...srcColumn, items: srcItems },
         [dstId]: { ...dstColumn, items: dstItems },
       };
-      if (typeof onMove === "function") onMove(movedItem, srcId, dstId);
+      if (typeof onMove === "function") {
+        onMove(movedItem, srcId, dstId, {
+          sourceIndex: source.index,
+          destinationIndex: destination.index,
+        });
+      }
       if (typeof onChange === "function") onChange(next);
       return next;
     });

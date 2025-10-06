@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { EventPage } from "../../../../components/eventPage/EventPage";
 import { KanbanBoard } from "../../../../components/KanbanBoard/KanbanBoard";
 import { useParams } from "react-router-dom";
@@ -23,6 +23,76 @@ const TITLE_MAP = {
   cancelled: "Cancelled",
 };
 
+const buildColumnsFromTodos = (todos) => {
+  const base = {
+    not_started: {
+      id: "not_started",
+      title: TITLE_MAP.not_started,
+      items: [],
+    },
+    in_progress: {
+      id: "in_progress",
+      title: TITLE_MAP.in_progress,
+      items: [],
+    },
+    completed: { id: "completed", title: TITLE_MAP.completed, items: [] },
+    cancelled: { id: "cancelled", title: TITLE_MAP.cancelled, items: [] },
+  };
+
+  for (const t of todos || []) {
+    const statusKey = (t.status || "NOT_STARTED").toLowerCase();
+    const key = base[statusKey] ? statusKey : "not_started";
+    const commentCount = Array.isArray(t?.comments) ? t.comments.length : 0;
+    const volunteerCount = Array.isArray(t?.VolunteerRegistration)
+      ? t.VolunteerRegistration.length
+      : 0;
+    const crmCount = Array.isArray(t?.CrmPerson) ? t.CrmPerson.length : 0;
+    const registrationCount = Array.isArray(t?.Registration)
+      ? t.Registration.length
+      : 0;
+
+    const badges = [];
+    if (commentCount > 0)
+      badges.push(
+        <Badge key="comments" soft color="blue">
+          <Icon i="message-circle" /> {commentCount}
+        </Badge>
+      );
+    if (volunteerCount > 0)
+      badges.push(
+        <Badge key="volunteers" soft color="red">
+          <Icon i="heart" /> {volunteerCount}
+        </Badge>
+      );
+    if (crmCount > 0)
+      badges.push(
+        <Badge key="crm" soft color="purple">
+          <Icon i="user" /> {crmCount}
+        </Badge>
+      );
+    if (registrationCount > 0)
+      badges.push(
+        <Badge key="registrations" soft color="orange">
+          <Icon i="ticket" /> {registrationCount}
+        </Badge>
+      );
+
+    base[key].items.push({
+      id: t.id,
+      title: t.title,
+      subtitle:
+        badges.length > 0 ? (
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            {badges}
+          </div>
+        ) : undefined,
+      status: key,
+    });
+  }
+
+  return base;
+};
+
 export const EventTodosPage = () => {
   const { eventId } = useParams();
   const { todos, loading, updateTodo, createTodo } = useTodos({ eventId });
@@ -30,73 +100,48 @@ export const EventTodosPage = () => {
     offcanvasProps: { position: "end", size: 470, zIndex: 1051 },
   });
 
-  const columns = useMemo(() => {
-    const base = {
-      not_started: {
-        id: "not_started",
-        title: TITLE_MAP.not_started,
-        items: [],
-      },
-      in_progress: {
-        id: "in_progress",
-        title: TITLE_MAP.in_progress,
-        items: [],
-      },
-      completed: { id: "completed", title: TITLE_MAP.completed, items: [] },
-      cancelled: { id: "cancelled", title: TITLE_MAP.cancelled, items: [] },
-    };
-    for (const t of todos || []) {
-      const statusKey = (t.status || "NOT_STARTED").toLowerCase();
-      const key = base[statusKey] ? statusKey : "not_started";
-      const commentCount = Array.isArray(t?.comments) ? t.comments.length : 0;
-      const volunteerCount = Array.isArray(t?.VolunteerRegistration)
-        ? t.VolunteerRegistration.length
-        : 0;
-      const crmCount = Array.isArray(t?.CrmPerson) ? t.CrmPerson.length : 0;
-      const registrationCount = Array.isArray(t?.Registration)
-        ? t.Registration.length
-        : 0;
+  const baseColumns = useMemo(
+    () => buildColumnsFromTodos(todos),
+    [todos]
+  );
+  const [kanbanColumns, setKanbanColumns] = useState(baseColumns);
 
-      const badges = [];
-      if (commentCount > 0)
-        badges.push(
-          <Badge key="comments" soft color="blue">
-            <Icon i="message-circle" /> {commentCount}
-          </Badge>
+  useEffect(() => {
+    setKanbanColumns((prev) => {
+      if (!prev) return baseColumns;
+      const merged = {};
+      for (const key of Object.keys(baseColumns)) {
+        const incoming = baseColumns[key] || { id: key, items: [] };
+        const prevColumn = prev[key] || incoming;
+        const nextItemsMap = new Map(
+          (incoming.items || []).map((item) => [item.id, item])
         );
-      if (volunteerCount > 0)
-        badges.push(
-          <Badge key="volunteers" soft color="red">
-            <Icon i="heart" /> {volunteerCount}
-          </Badge>
-        );
-      if (crmCount > 0)
-        badges.push(
-          <Badge key="crm" soft color="purple">
-            <Icon i="user" /> {crmCount}
-          </Badge>
-        );
-      if (registrationCount > 0)
-        badges.push(
-          <Badge key="registrations" soft color="orange">
-            <Icon i="ticket" /> {registrationCount}
-          </Badge>
-        );
+        const ordered = [];
 
-      base[key].items.push({
-        id: t.id,
-        title: t.title,
-        subtitle:
-          badges.length > 0 ? (
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {badges}
-            </div>
-          ) : undefined,
-        status: key,
-      });
-    }
-    return base;
-  }, [todos]);
+        for (const item of prevColumn.items || []) {
+          const nextItem = nextItemsMap.get(item.id);
+          if (nextItem) {
+            ordered.push(nextItem);
+            nextItemsMap.delete(item.id);
+          }
+        }
+
+        for (const item of incoming.items || []) {
+          if (nextItemsMap.has(item.id)) {
+            ordered.push(item);
+            nextItemsMap.delete(item.id);
+          }
+        }
+
+        merged[key] = { ...incoming, items: ordered };
+      }
+      return merged;
+    });
+  }, [baseColumns]);
+
+  useEffect(() => {
+    if (!kanbanColumns) setKanbanColumns(baseColumns);
+  }, [baseColumns, kanbanColumns]);
 
   const handleMove = async (item, fromId, toId) => {
     if (!item?.id || fromId === toId) return;
@@ -128,8 +173,9 @@ export const EventTodosPage = () => {
         ) : (
           <KanbanBoard
             key={eventId}
-            initialColumns={columns}
+            initialColumns={kanbanColumns || baseColumns}
             onMove={handleMove}
+            onChange={setKanbanColumns}
             onAdd={(colId) => openCreate(colId)}
             onItemClick={(item) =>
               offcanvas({
