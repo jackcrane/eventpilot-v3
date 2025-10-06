@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Accordion } from "../accordion/accordion.jsx";
+import { Accordion } from "../accordion/Accordion.jsx";
 import styles from "./problemssection.module.css";
 import participantRegistrationsCount from "../../assets/participant-registrations-count.png";
 import participantRegistrationsChange from "../../assets/participant-registrations-change.png";
