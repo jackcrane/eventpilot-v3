@@ -274,21 +274,21 @@ export const post = async (req, res) => {
       for (const event of events) {
         const newFormResponses = await prisma.volunteerRegistration.count({
           where: {
-            createdAt: { gt: new Date(Date.now() - 3600000) },
+            createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
             eventId: event.id,
             deleted: false,
           },
         });
         const newCrmPersons = await prisma.crmPerson.count({
           where: {
-            createdAt: { gt: new Date(Date.now() - 3600000) },
+            createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
             eventId: event.id,
             deleted: false,
           },
         });
         const newEmails = await prisma.inboundEmail.count({
           where: {
-            createdAt: { gt: new Date(Date.now() - 3600000) },
+            createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
             // read: false,
             eventId: event.id,
             conversation: {
