@@ -103,7 +103,7 @@ export const AiSegmentPromptPanel = ({
     }
 
     onApply?.({
-      results: res.results,
+      results: null,
       savedSegmentId: savedId,
       ast: res.segment,
       title: savedTitle || title || "",

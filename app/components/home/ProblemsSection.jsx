@@ -4,6 +4,8 @@ import styles from "./problemssection.module.css";
 import participantRegistrationsCount from "../../assets/participant-registrations-count.png";
 import participantRegistrationsChange from "../../assets/participant-registrations-change.png";
 import inviteAFriendEmail from "../../assets/invite-a-friend-email.png";
+import createAiSegment from "../../assets/create-ai-segment.png";
+import upsells from "../../assets/upsells.png";
 import { Typography } from "tabler-react-2";
 
 const TurnoverArg = () => {
@@ -48,6 +50,42 @@ const CpaArg = () => {
         customized emails, coupon campaigns, and "invite-a-friend" links.
       </Typography.Text>
       <img src={inviteAFriendEmail} className={styles.argImage} />
+    </div>
+  );
+};
+
+const TargetedCampaignsArg = () => {
+  return (
+    <div className={styles.arg}>
+      <Typography.H3>Create personalized marketing</Typography.H3>
+      <Typography.Text>
+        Use EventPilot's tools to create personalized marketing to tailor your
+        outreach to <b>reach</b>, <b>engage</b>, and <b>covert</b> your target
+        audience.
+      </Typography.Text>
+      <Typography.Text>
+        Using manual tools or AI, EventPilot helps you create the perfect email
+        list to reach your target audience.
+      </Typography.Text>
+      <Typography.Text>
+        Query for <b>anything</b> from your event data and build advanced
+        segments to send the perfect email blast to your target audience.
+      </Typography.Text>
+      <img src={createAiSegment} className={styles.argImage} />
+    </div>
+  );
+};
+
+const NoUpsellsArg = () => {
+  return (
+    <div className={styles.arg}>
+      <Typography.H3>Build your upsell storefront</Typography.H3>
+      <Typography.Text>
+        EventPilot automatically bakes upsells into your registration flow, so
+        all you have to do is tell people about them. Keep track of stock,
+        availability, sales, segmentation, and more, all right in the dashboard.
+      </Typography.Text>
+      <img src={upsells} className={styles.argImage} />
     </div>
   );
 };
@@ -122,10 +160,6 @@ export const ProblemsSection = () => {
                   with their email blasts.
                 </p>
                 <p>
-                  Using manual tools or AI, EventPilot helps you create the
-                  perfect email list to reach your target audience.
-                </p>
-                <p>
                   Everything from emailing <b>everyone</b> to emailing{" "}
                   <b>
                     participants who participated in 2022 and 2023 but not 2024
@@ -162,6 +196,8 @@ export const ProblemsSection = () => {
       {open === "turnover" && <TurnoverArg />}
       {open === "late-reg" && <LateArg />}
       {open === "cpa" && <CpaArg />}
+      {open === "targeted-campaigns" && <TargetedCampaignsArg />}
+      {open === "no-upsells" && <NoUpsellsArg />}
     </div>
   );
 };

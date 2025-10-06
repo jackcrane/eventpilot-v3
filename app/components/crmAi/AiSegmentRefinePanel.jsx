@@ -110,7 +110,7 @@ export const AiSegmentRefinePanel = ({
         }
       }
       onApply?.({
-        results: res.results,
+        results: null,
         savedSegmentId: savedId,
         ast: res.segment,
         title: newTitle,

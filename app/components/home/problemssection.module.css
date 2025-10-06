@@ -23,4 +23,6 @@
   width: 80%;
   transform: translateX(100px);
   line-height: 0;
+  border: 1px solid var(--tblr-border-color);
+  border-radius: 8px;
 }

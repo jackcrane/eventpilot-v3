@@ -27,9 +27,14 @@ export const useCrmAiData = ({
   const persist = ({ savedSegmentId, ast, title }) => {
     setStoredFilters((prev) => {
       const prior = prev?.ai || EMPTY_AI;
-      const nextSaved = savedSegmentId ?? prior.savedSegmentId ?? null;
-      const nextAst = ast ?? prior.ast ?? null;
-      const nextTitle = title ?? prior.title ?? "";
+      const nextSaved =
+        savedSegmentId !== undefined
+          ? savedSegmentId
+          : prior.savedSegmentId ?? null;
+      const nextAst =
+        ast !== undefined ? ast : prior.ast ?? null;
+      const nextTitle =
+        title !== undefined ? title : prior.title ?? "";
       return {
         ...(prev || {}),
         ai: {
@@ -52,17 +57,21 @@ export const useCrmAiData = ({
   };
 
   const apply = ({ results, savedSegmentId, ast, title, prompt }) => {
-    if (results) setAiResults(results);
-    if (savedSegmentId) setCurrentSavedId(savedSegmentId);
+    setAiResults(results || null);
+    setCurrentSavedId(savedSegmentId ?? null);
     setSavedTitle(title || "");
     setLastAst(ast || null);
     setLastPrompt(prompt || "");
-    persist({ savedSegmentId, ast, title });
+    persist({
+      savedSegmentId: savedSegmentId ?? null,
+      ast,
+      title,
+    });
   };
 
   const updateResults = useCallback(
     (results) => {
-      if (results) setAiResults(results);
+      setAiResults(results || null);
     },
     [setAiResults]
   );
@@ -95,6 +104,6 @@ export const useCrmAiData = ({
     apply,
     updateResults,
     aiTitle: savedTitle || storedFilters?.ai?.title || lastPrompt || "AI Filter",
-    usingAi: !!aiResults,
+    usingAi: Boolean(aiResults || lastAst || currentSavedId),
   };
 };

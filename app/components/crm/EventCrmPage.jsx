@@ -125,6 +125,7 @@ export const EventCrmPage = ({ eventId }) => {
   const [selectedPersonIds, setSelectedPersonIds] = useState([]);
   const pageChangeReasonRef = useRef("initial");
   const lastAiResultsRef = useRef(null);
+  const lastAiAstRef = useRef(null);
 
   const logPagination = useCallback((message, payload = {}) => {
     console.debug("[CRM Pagination]", message, payload);
@@ -215,7 +216,9 @@ export const EventCrmPage = ({ eventId }) => {
     }
   }, [hasInitialLoaded, crm.loading, personsQuery.loading]);
 
-  const basePersons = aiState.aiResults?.crmPersons || personsQuery.crmPersons;
+  const basePersons = aiState.usingAi
+    ? aiState.aiResults?.crmPersons
+    : personsQuery.crmPersons;
 
   const participantFieldLabels = useMemo(() => {
     if (!Array.isArray(basePersons) || !basePersons.length) return [];
@@ -275,6 +278,26 @@ export const EventCrmPage = ({ eventId }) => {
         : basePersons,
     [basePersons, manualFilters.filters, manualFilters.search]
   );
+
+  useEffect(() => {
+    if (!aiState.usingAi) {
+      lastAiAstRef.current = null;
+      return;
+    }
+
+    const ast = aiState.lastAst;
+    if (!ast) return;
+    if (lastAiAstRef.current === ast) return;
+    lastAiAstRef.current = ast;
+
+    if (page !== 1) {
+      pageChangeReasonRef.current = "ai-segment-change";
+      logPagination("Resetting page due to AI segment change", {
+        nextPage: 1,
+      });
+      setPage(1);
+    }
+  }, [aiState.usingAi, aiState.lastAst, page, logPagination]);
 
   const handleSearchChange = (value) => {
     manualFilters.setSearch(value);
