@@ -26,7 +26,12 @@ const LogoRow = ({ logo, name, size = 24 }) => {
   return (
     <Row gap={1} align="center">
       {logo}
-      <Typography.Text className={"mb-0"}>{name}</Typography.Text>
+      <Typography.Text
+        className={"mb-0"}
+        style={{ fontSize: 15, fontWeight: 500 }}
+      >
+        {name}
+      </Typography.Text>
     </Row>
   );
 };
