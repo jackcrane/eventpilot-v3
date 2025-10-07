@@ -127,6 +127,22 @@ export default function NameEntryScreen() {
           />
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={handleUseDifferentPin}
+          >
+            <Text
+              style={[
+                styles.secondaryButtonText,
+                colorScheme === "dark"
+                  ? styles.secondaryButtonTextDark
+                  : undefined,
+              ]}
+            >
+              ← Use a different PIN
+            </Text>
+          </TouchableOpacity>
+          <View style={styles.spacer} />
+          <TouchableOpacity
             style={[
               styles.button,
               disabled ? styles.buttonDisabled : undefined,
@@ -139,21 +155,6 @@ export default function NameEntryScreen() {
             ) : (
               <Text style={styles.buttonText}>Save name</Text>
             )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={handleUseDifferentPin}
-          >
-            <Text
-              style={[
-                styles.secondaryButtonText,
-                colorScheme === "dark"
-                  ? styles.secondaryButtonTextDark
-                  : undefined,
-              ]}
-            >
-              Use a different PIN
-            </Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -176,23 +177,17 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 420,
     borderRadius: 12,
-    padding: 24,
-    backgroundColor: DayOfColors.common.surfaceOverlay,
-    shadowColor: DayOfColors.common.black,
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
     gap: 12,
+    height: "100%",
+    paddingTop: 24,
+    paddingBottom: 24,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "600",
-    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    textAlign: "center",
     color: DayOfColors.light.secondary,
   },
   input: {
@@ -226,8 +221,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   secondaryButton: {
-    paddingVertical: 10,
-    alignItems: "center",
+    paddingVertical: 0,
   },
   secondaryButtonText: {
     color: DayOfColors.light.secondary,
@@ -246,4 +240,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  spacer: { flex: 1 },
 });

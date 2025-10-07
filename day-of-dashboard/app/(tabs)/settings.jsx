@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo } from "react";
 import {
   Alert,
   ScrollView,
@@ -6,13 +6,13 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { DAY_OF_PERMISSION_TABS } from '../../constants/dayOfPermissions';
-import { useDayOfSessionContext } from '../../contexts/DayOfSessionContext';
-import { DayOfColors } from '../../constants/theme';
+import { DAY_OF_PERMISSION_TABS } from "../../constants/dayOfPermissions";
+import { useDayOfSessionContext } from "../../contexts/DayOfSessionContext";
+import { DayOfColors } from "../../constants/theme";
 
 const SettingsScreen = () => {
   const { account, permissions, logout } = useDayOfSessionContext();
@@ -31,48 +31,75 @@ const SettingsScreen = () => {
 
   const handleLogout = async () => {
     await logout();
-    router.replace('/login');
+    router.replace("/login");
   };
 
   const handleConfirmLogout = () => {
-    Alert.alert('Log out?', 'You will return to the PIN screen.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log out', style: 'destructive', onPress: handleLogout },
+    Alert.alert("Log out?", "You will return to the PIN screen.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Log out", style: "destructive", onPress: handleLogout },
     ]);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Station name</Text>
-          <Text style={styles.sectionValue}>
-            {account?.name || 'No name set'}
+      <ScrollView
+        contentContainerStyle={styles.contentContainer}
+        alwaysBounceVertical
+        overScrollMode="always"
+        style={styles.scroll}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>Settings</Text>
+          <Text style={styles.subtitle}>
+            Manage this station, view account details, and update access if
+            needed.
           </Text>
         </View>
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Account ID</Text>
-          <Text style={styles.sectionValue}>{account?.id}</Text>
+
+        <View style={styles.panel}>
+          <Text style={styles.panelLabel}>Station</Text>
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Station name</Text>
+            <Text style={styles.rowValue}>
+              {account?.name || "No name set"}
+            </Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Account ID</Text>
+            <Text style={styles.rowValue}>{account?.id}</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Event</Text>
+            <Text style={styles.rowValue}>{account?.eventId}</Text>
+          </View>
         </View>
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Event</Text>
-          <Text style={styles.sectionValue}>{account?.eventId}</Text>
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Permissions</Text>
+
+        <View style={styles.panel}>
+          <Text style={styles.panelLabel}>Permissions</Text>
           {permissionDetails.length ? (
-            permissionDetails.map((permission) => (
-              <Text style={styles.badge} key={permission.value}>
-                {permission.label}
-              </Text>
-            ))
+            <View style={styles.chipGroup}>
+              {permissionDetails.map((permission) => (
+                <Text key={permission.value} style={styles.chip}>
+                  {permission.label}
+                </Text>
+              ))}
+            </View>
           ) : (
-            <Text style={styles.sectionValue}>No permissions assigned</Text>
+            <Text style={styles.emptyText}>No permissions assigned</Text>
           )}
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleConfirmLogout}>
-          <Text style={styles.logoutButtonText}>Log out</Text>
-        </TouchableOpacity>
+
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleConfirmLogout}
+          >
+            <Text style={styles.logoutButtonText}>Log out</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -84,54 +111,97 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: DayOfColors.light.bodyBg,
+    backgroundColor: "green",
   },
-  container: {
-    padding: 24,
-    gap: 16,
+  contentContainer: {
+    backgroundColor: "red",
+    gap: 20,
+    flexGrow: 1,
   },
-  section: {
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: DayOfColors.common.white,
-    shadowColor: DayOfColors.common.shadow,
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-    gap: 6,
+  scroll: {
+    flex: 1,
   },
-  sectionLabel: {
-    fontSize: 12,
-    letterSpacing: 0.8,
-    color: DayOfColors.light.secondary,
-    textTransform: 'uppercase',
-    fontWeight: '600',
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 12,
+    gap: 8,
   },
-  sectionValue: {
-    fontSize: 16,
-    fontWeight: '500',
+  title: {
+    fontSize: 24,
+    fontWeight: "600",
     color: DayOfColors.light.text,
   },
-  badge: {
-    marginTop: 4,
+  subtitle: {
+    fontSize: 15,
+    color: DayOfColors.light.secondary,
+  },
+  panel: {
+    marginHorizontal: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: DayOfColors.common.white,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: DayOfColors.light.border,
+    gap: 16,
+  },
+  panelLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: DayOfColors.light.secondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  row: {
+    gap: 4,
+  },
+  rowLabel: {
+    fontSize: 13,
+    color: DayOfColors.light.secondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  rowValue: {
+    fontSize: 17,
+    fontWeight: "500",
+    color: DayOfColors.light.text,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: DayOfColors.light.border,
+  },
+  chipGroup: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
     backgroundColor: DayOfColors.light.primaryLt,
     color: DayOfColors.light.primary,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
+  },
+  emptyText: {
+    fontSize: 15,
+    color: DayOfColors.light.secondary,
+  },
+  actions: {
+    marginHorizontal: 24,
   },
   logoutButton: {
-    marginTop: 12,
+    marginTop: 4,
     paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
+    borderRadius: 14,
+    alignItems: "center",
     backgroundColor: DayOfColors.light.primary,
   },
   logoutButtonText: {
     color: DayOfColors.common.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
