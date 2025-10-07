@@ -14,7 +14,7 @@ import { DAY_OF_PERMISSION_TABS } from "../../constants/dayOfPermissions";
 import { useDayOfSessionContext } from "../../contexts/DayOfSessionContext";
 import { DayOfColors } from "../../constants/theme";
 
-const SettingsScreen = () => {
+export const SettingsScreen = () => {
   const { account, permissions, logout } = useDayOfSessionContext();
 
   const permissionDetails = useMemo(() => {
@@ -42,12 +42,11 @@ const SettingsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <ScrollView
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={styles.container}
         alwaysBounceVertical
         overScrollMode="always"
-        style={styles.scroll}
       >
         <View style={styles.header}>
           <Text style={styles.title}>Settings</Text>
@@ -59,21 +58,26 @@ const SettingsScreen = () => {
 
         <View style={styles.panel}>
           <Text style={styles.panelLabel}>Station</Text>
+
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Station name</Text>
             <Text style={styles.rowValue}>
               {account?.name || "No name set"}
             </Text>
           </View>
+
           <View style={styles.divider} />
+
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Account ID</Text>
-            <Text style={styles.rowValue}>{account?.id}</Text>
+            <Text style={styles.rowValue}>{account?.id ?? "—"}</Text>
           </View>
+
           <View style={styles.divider} />
+
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Event</Text>
-            <Text style={styles.rowValue}>{account?.eventId}</Text>
+            <Text style={styles.rowValue}>{account?.eventId ?? "—"}</Text>
           </View>
         </View>
 
@@ -100,31 +104,31 @@ const SettingsScreen = () => {
             <Text style={styles.logoutButtonText}>Log out</Text>
           </TouchableOpacity>
         </View>
+
+        {/* bottom padding to match spacing feel under scrollable content */}
+        <View style={{ height: 24 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default SettingsScreen;
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: DayOfColors.light.bodyBg,
-    backgroundColor: "green",
-  },
-  contentContainer: {
-    backgroundColor: "red",
+  // Mirrors the Volunteer screen spacing & background (safe area is inherited from rosterListStyles.safeArea)
+  container: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
     gap: 20,
     flexGrow: 1,
   },
-  scroll: {
+  safeArea: {
     flex: 1,
+    backgroundColor: DayOfColors.light.bodyBg,
   },
+
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 12,
     gap: 8,
   },
   title: {
@@ -136,8 +140,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: DayOfColors.light.secondary,
   },
+
   panel: {
-    marginHorizontal: 24,
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderRadius: 14,
@@ -153,6 +157,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
+
   row: {
     gap: 4,
   },
@@ -171,6 +176,7 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: DayOfColors.light.border,
   },
+
   chipGroup: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -189,8 +195,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: DayOfColors.light.secondary,
   },
+
   actions: {
-    marginHorizontal: 24,
+    // aligns with panel edges since container has horizontal padding
   },
   logoutButton: {
     marginTop: 4,
