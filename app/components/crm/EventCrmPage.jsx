@@ -17,7 +17,10 @@ import { CrmPersonsTable } from "./CrmPersonsTable";
 import { useCrm } from "../../hooks/useCrm";
 import { useCrmFields } from "../../hooks/useCrmFields";
 import { useCrmSavedSegments } from "../../hooks/useCrmSavedSegments";
-import { useCrmSegment } from "../../hooks/useCrmSegment";
+import {
+  useCrmSegment,
+  DEFAULT_SEGMENT_PAGINATION,
+} from "../../hooks/useCrmSegment";
 import { useCrmStoredFilters } from "../../hooks/useCrmStoredFilters";
 import { useCrmManualFilters } from "../../hooks/useCrmManualFilters";
 import { useCrmColumnConfig } from "../../hooks/useCrmColumnConfig";
@@ -131,6 +134,27 @@ export const EventCrmPage = ({ eventId }) => {
     console.debug("[CRM Pagination]", message, payload);
   }, []);
 
+  const paginationState = useMemo(() => {
+    const nextPage =
+      Number.isFinite(page) && page > 0 ? page : DEFAULT_SEGMENT_PAGINATION.page;
+    const nextSize =
+      Number.isFinite(size) && size > 0 ? size : DEFAULT_SEGMENT_PAGINATION.size;
+    const nextOrderBy =
+      orderBy && typeof orderBy === "string" && orderBy.trim()
+        ? orderBy
+        : DEFAULT_SEGMENT_PAGINATION.orderBy;
+    const nextOrder = order === "asc" ? "asc" : DEFAULT_SEGMENT_PAGINATION.order;
+    return {
+      page: nextPage,
+      size: nextSize,
+      orderBy: nextOrderBy,
+      order: nextOrder,
+    };
+  }, [page, size, orderBy, order]);
+
+  const lastManualPaginationRef = useRef({ ...paginationState });
+  const wasUsingAiRef = useRef(false);
+
   const aiState = useCrmAiState({
     eventId,
     storedFilters,
@@ -141,7 +165,7 @@ export const EventCrmPage = ({ eventId }) => {
     runSavedSegment: runSegment,
     offcanvas: offcanvasState.offcanvas,
     close: offcanvasState.close,
-    pagination: { page, size, orderBy, order },
+    pagination: paginationState,
   });
 
   const handleCreateAiMailingList = useCallback(() => {
@@ -189,10 +213,10 @@ export const EventCrmPage = ({ eventId }) => {
 
   const personsQuery = useCrmPersons({
     eventId,
-    page: aiState.usingAi ? undefined : page,
-    size: aiState.usingAi ? undefined : size,
-    orderBy: aiState.usingAi ? undefined : orderBy,
-    order: aiState.usingAi ? undefined : order,
+    page: aiState.usingAi ? undefined : paginationState.page,
+    size: aiState.usingAi ? undefined : paginationState.size,
+    orderBy: aiState.usingAi ? undefined : paginationState.orderBy,
+    order: aiState.usingAi ? undefined : paginationState.order,
     q: aiState.usingAi ? undefined : manualFilters.search,
     filters: aiState.usingAi ? undefined : manualFilters.serverFilters,
   });
@@ -263,8 +287,8 @@ export const EventCrmPage = ({ eventId }) => {
     search: manualFilters.search,
     serverFilters: manualFilters.serverFilters,
     clientFilters: manualFilters.filters,
-    orderBy,
-    order,
+    orderBy: paginationState.orderBy,
+    order: paginationState.order,
     aiState,
   });
   const filteredPersons = useMemo(
@@ -361,10 +385,10 @@ export const EventCrmPage = ({ eventId }) => {
       current &&
       Number.isFinite(current.page) &&
       Number.isFinite(current.size) &&
-      current.page === page &&
-      current.size === size &&
-      (current.orderBy || "") === (orderBy || "") &&
-      (current.order || "") === (order || "");
+      current.page === paginationState.page &&
+      current.size === paginationState.size &&
+      (current.orderBy || "") === (paginationState.orderBy || "") &&
+      (current.order || "") === (paginationState.order || "");
     if (matches && !segmentLoading) return;
 
     let cancelled = false;
@@ -372,7 +396,7 @@ export const EventCrmPage = ({ eventId }) => {
       const res = await runSegment({
         filter,
         debug: !!aiState.lastAst?.debug,
-        pagination: { page, size, orderBy, order },
+        pagination: paginationState,
       });
       if (!cancelled && res?.ok) {
         aiState.updateResults(res);
@@ -392,6 +416,41 @@ export const EventCrmPage = ({ eventId }) => {
     aiState.updateResults,
     runSegment,
     segmentLoading,
+    paginationState.page,
+    paginationState.size,
+    paginationState.orderBy,
+    paginationState.order,
+  ]);
+
+  useEffect(() => {
+    const wasUsingAi = wasUsingAiRef.current;
+    if (!wasUsingAi && aiState.usingAi) {
+      lastManualPaginationRef.current = { ...paginationState };
+    } else if (wasUsingAi && !aiState.usingAi) {
+      const restored = lastManualPaginationRef.current || DEFAULT_SEGMENT_PAGINATION;
+      const nextPage =
+        Number.isFinite(restored?.page) && restored.page > 0
+          ? restored.page
+          : DEFAULT_SEGMENT_PAGINATION.page;
+      const nextSize =
+        Number.isFinite(restored?.size) && restored.size > 0
+          ? restored.size
+          : DEFAULT_SEGMENT_PAGINATION.size;
+      const nextOrderBy =
+        restored?.orderBy && typeof restored.orderBy === "string"
+          ? restored.orderBy
+          : DEFAULT_SEGMENT_PAGINATION.orderBy;
+      const nextOrder =
+        restored?.order === "asc" ? "asc" : DEFAULT_SEGMENT_PAGINATION.order;
+
+      if (page !== nextPage) setPage(nextPage);
+      if (size !== nextSize) setSize(nextSize);
+      if (orderBy !== nextOrderBy) setOrderBy(nextOrderBy);
+      if (order !== nextOrder) setOrder(nextOrder);
+    }
+    wasUsingAiRef.current = aiState.usingAi;
+  }, [
+    aiState.usingAi,
     page,
     size,
     orderBy,
@@ -457,7 +516,6 @@ export const EventCrmPage = ({ eventId }) => {
 
     const {
       page: metaPage,
-      size: metaSize,
       orderBy: metaOrderBy,
       order: metaOrder,
     } = paginationMeta;
@@ -467,10 +525,9 @@ export const EventCrmPage = ({ eventId }) => {
       logPagination("Syncing page from AI results", { metaPage });
       setPage(metaPage);
     }
-    if (Number.isFinite(metaSize) && metaSize !== size) setSize(metaSize);
     if (metaOrderBy && metaOrderBy !== orderBy) setOrderBy(metaOrderBy);
     if (metaOrder && metaOrder !== order) setOrder(metaOrder);
-  }, [aiState.usingAi, aiState.aiResults, page, size, orderBy, order, logPagination]);
+  }, [aiState.usingAi, aiState.aiResults, page, orderBy, order, logPagination]);
 
   const shouldShowEmpty =
     !aiState.usingAi &&
@@ -553,15 +610,15 @@ export const EventCrmPage = ({ eventId }) => {
       <CrmPersonsTable
         data={aiState.usingAi ? filteredPersons : personsQuery.crmPersons}
         columns={columnConfig.visibleColumns}
-        page={page}
-        size={size}
+        page={paginationState.page}
+        size={paginationState.size}
         totalRows={
           aiState.usingAi ? aiState.aiResults?.total : personsQuery.total
         }
         onSetPage={handlePageChange}
         onSetSize={handleSizeChange}
-        orderBy={orderBy}
-        order={order}
+        orderBy={paginationState.orderBy}
+        order={paginationState.order}
         onSetOrder={handleOrderChange}
         loading={hasInitialLoaded && busy}
         selectedIds={selectedPersonIds}
