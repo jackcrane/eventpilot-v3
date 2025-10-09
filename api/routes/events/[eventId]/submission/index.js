@@ -233,16 +233,20 @@ export const get = [
         formatFormResponse(resp, fields)
       );
 
-      const fieldsMeta = fields.map((f) => ({
-        ...f,
-        // Hide pagebreak and shiftpicker markers from roster columns
-        currentlyInForm:
-          !f.deleted &&
-          f.type !== "pagebreak" &&
-          f.eventpilotFieldType !== "pagebreak" &&
-          f.type !== "shiftpicker" &&
-          f.eventpilotFieldType !== "shiftpicker",
-      }));
+      const fieldsMeta = fields.map((f) => {
+        const isPageBreak =
+          f.type === "pagebreak" || f.eventpilotFieldType === "pagebreak";
+        const isShiftPicker =
+          f.type === "shiftpicker" || f.eventpilotFieldType === "shiftpicker";
+        const hiddenInAdmin = isPageBreak || isShiftPicker;
+
+        return {
+          ...f,
+          showInAdmin: !hiddenInAdmin,
+          // Hide pagebreak and shiftpicker markers from roster columns
+          currentlyInForm: !f.deleted && !hiddenInAdmin,
+        };
+      });
 
       return res.json({
         fields: fieldsMeta,

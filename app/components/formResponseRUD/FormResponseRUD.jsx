@@ -144,8 +144,10 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
   if (error) return <div>Error: {error.message}</div>;
   if (!response) return <div>Response not found</div>;
 
+  const adminVisibleFields = fields.filter((field) => field.showInAdmin !== false);
+
   // split & order active fields
-  const [existing, not] = fields.reduce(
+  const [existing, not] = adminVisibleFields.reduce(
     ([inForm, notInForm], f) =>
       f.currentlyInForm
         ? [[...inForm, f], notInForm]

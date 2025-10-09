@@ -161,10 +161,19 @@ export const findSubmission = async (eventId, submissionId) => {
   const name = nameField ? formattedResponse[nameField.id] : undefined;
   formattedResponse["flat"] = { email, name };
 
-  const fieldsMeta = fields.map((f) => ({
-    ...f,
-    currentlyInForm: !f.deleted,
-  }));
+  const fieldsMeta = fields.map((f) => {
+    const isPageBreak =
+      f.type === "pagebreak" || f.eventpilotFieldType === "pagebreak";
+    const isShiftPicker =
+      f.type === "shiftpicker" || f.eventpilotFieldType === "shiftpicker";
+    const hiddenInAdmin = isPageBreak || isShiftPicker;
+
+    return {
+      ...f,
+      showInAdmin: !hiddenInAdmin,
+      currentlyInForm: !f.deleted && !hiddenInAdmin,
+    };
+  });
 
   const otherResponsesWithSameFingerprint =
     await prisma.volunteerRegistration.findMany({
