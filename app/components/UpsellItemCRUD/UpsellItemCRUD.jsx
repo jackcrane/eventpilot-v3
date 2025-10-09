@@ -4,30 +4,75 @@ import { useEffect, useState } from "react";
 import { useRegistrationUpsells } from "../../hooks/useRegistrationUpsells";
 import { useParams } from "react-router-dom";
 import { useRegistrationUpsell } from "../../hooks/useRegistrationUpsell";
+import { useRegistrationFormRequirementPrompt } from "../../hooks/useRegistrationFormRequirementPrompt";
 import { Loading } from "../loading/Loading";
 
-export const UpsellItemCRUD = ({ upsellItem, onClose, ...props }) => {
+export const UpsellItemCRUD = ({
+  upsellItem,
+  onClose,
+  registerRequirementModal,
+  ...props
+}) => {
   if (upsellItem?.id) {
     return (
       <UpsellEdit upsellItemId={upsellItem.id} onClose={onClose} {...props} />
     );
   }
-  return <UpsellCreate onClose={onClose} {...props} />;
+  return (
+    <UpsellCreate
+      onClose={onClose}
+      registerRequirementModal={registerRequirementModal}
+      {...props}
+    />
+  );
 };
 
-const UpsellCreate = ({ onClose }) => {
+const UpsellCreate = ({ onClose, registerRequirementModal }) => {
   const { eventId } = useParams();
   const { mutationLoading, createUpsell, validationError } =
     useRegistrationUpsells({ eventId });
+  const {
+    ensureRequirement: ensureUpsellSection,
+    RequirementModalElement: UpsellSectionRequirementModal,
+  } = useRegistrationFormRequirementPrompt({
+    eventId,
+    fieldType: "upsells",
+    modalTitle: "Add upsells to the form",
+    modalText:
+      "Your upsell has been created. In order for participants to purchase it, you must add an upsells section to your registration form.",
+    todoTitle: "Add upsells section to registration form",
+    todoContent:
+      "Place the upsells section on the participant registration form so new upsells can be offered during sign up.",
+    newPageName: "Upsell Selection",
+    buildField: () => ({}),
+  });
+
+  useEffect(() => {
+    if (!registerRequirementModal) return undefined;
+    registerRequirementModal((prev) =>
+      prev === UpsellSectionRequirementModal ? prev : UpsellSectionRequirementModal
+    );
+    return () => registerRequirementModal(null);
+  }, [registerRequirementModal, UpsellSectionRequirementModal]);
 
   return (
-    <_UpsellItemCRUD
-      upsellItem={null}
-      onClose={onClose}
-      mutationLoading={mutationLoading}
-      validationError={validationError}
-      onFinish={createUpsell}
-    />
+    <>
+      {!registerRequirementModal && UpsellSectionRequirementModal}
+      <_UpsellItemCRUD
+        upsellItem={null}
+        onClose={onClose}
+        mutationLoading={mutationLoading}
+        validationError={validationError}
+        onFinish={createUpsell}
+        onSuccess={async () => {
+          const action = await ensureUpsellSection({
+            onBeforeNavigate: () => onClose?.(),
+          });
+          if (action === "goto") return false;
+          return true;
+        }}
+      />
+    </>
   );
 };
 
@@ -55,6 +100,7 @@ const _UpsellItemCRUD = ({
   mutationLoading,
   validationError,
   onFinish,
+  onSuccess,
 }) => {
   // Default new upsell items to unlimited inventory (-1)
   const [item, setItem] = useState(upsellItem || { inventory: -1 });
@@ -70,8 +116,10 @@ const _UpsellItemCRUD = ({
         price: parseFloat(item.price),
         inventory: parseInt(item.inventory, 10),
       })
-    )
-      onClose?.();
+    ) {
+      const shouldClose = (await onSuccess?.()) ?? true;
+      if (shouldClose) onClose?.();
+    }
   };
 
   return (

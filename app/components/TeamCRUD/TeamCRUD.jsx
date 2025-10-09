@@ -4,27 +4,71 @@ import { useParams } from "react-router-dom";
 import { Loading } from "../loading/Loading";
 import { useRegistrationTeams } from "../../hooks/useRegistrationTeams";
 import { useRegistrationTeam } from "../../hooks/useRegistrationTeam";
+import { useRegistrationFormRequirementPrompt } from "../../hooks/useRegistrationFormRequirementPrompt";
 
-export const TeamCRUD = ({ team, onClose, ...props }) => {
+export const TeamCRUD = ({ team, onClose, registerRequirementModal, ...props }) => {
   if (team?.id) {
     return <TeamEdit teamId={team.id} onClose={onClose} {...props} />;
   }
-  return <TeamCreate onClose={onClose} {...props} />;
+  return (
+    <TeamCreate
+      onClose={onClose}
+      registerRequirementModal={registerRequirementModal}
+      {...props}
+    />
+  );
 };
 
-const TeamCreate = ({ onClose }) => {
+const TeamCreate = ({ onClose, registerRequirementModal }) => {
   const { eventId } = useParams();
   const { mutationLoading, createTeam, validationError } =
     useRegistrationTeams({ eventId });
+  const {
+    ensureRequirement: ensureTeamPicker,
+    RequirementModalElement: TeamPickerRequirementModal,
+  } = useRegistrationFormRequirementPrompt({
+    eventId,
+    fieldType: "team",
+    modalTitle: "Add a team picker",
+    modalText:
+      "Your team has been created. In order for participants to join it, you must add a team picker to your registration form.",
+    todoTitle: "Add team picker to registration form",
+    todoContent:
+      "Create a team picker section in the participant registration form so newly created teams can be joined.",
+    newPageName: "Team Selection",
+    buildField: () => ({
+      label: "Team",
+      description: "Let participants pick or join a team.",
+      required: false,
+    }),
+  });
+
+  useEffect(() => {
+    if (!registerRequirementModal) return undefined;
+    registerRequirementModal((prev) =>
+      prev === TeamPickerRequirementModal ? prev : TeamPickerRequirementModal
+    );
+    return () => registerRequirementModal(null);
+  }, [registerRequirementModal, TeamPickerRequirementModal]);
 
   return (
-    <_TeamCRUD
-      value={null}
-      onClose={onClose}
-      mutationLoading={mutationLoading}
-      validationError={validationError}
-      onFinish={createTeam}
-    />
+    <>
+      {!registerRequirementModal && TeamPickerRequirementModal}
+      <_TeamCRUD
+        value={null}
+        onClose={onClose}
+        mutationLoading={mutationLoading}
+        validationError={validationError}
+        onFinish={createTeam}
+        onSuccess={async () => {
+          const action = await ensureTeamPicker({
+            onBeforeNavigate: () => onClose?.(),
+          });
+          if (action === "goto") return false;
+          return true;
+        }}
+      />
+    </>
   );
 };
 
@@ -46,7 +90,14 @@ const TeamEdit = ({ teamId, onClose }) => {
   );
 };
 
-const _TeamCRUD = ({ value, onClose, mutationLoading, validationError, onFinish }) => {
+const _TeamCRUD = ({
+  value,
+  onClose,
+  mutationLoading,
+  validationError,
+  onFinish,
+  onSuccess,
+}) => {
   const [team, setTeam] = useState(value || { maxSize: null });
   const [limitSize, setLimitSize] = useState(Boolean(value?.maxSize));
 
@@ -62,7 +113,10 @@ const _TeamCRUD = ({ value, onClose, mutationLoading, validationError, onFinish 
       maxSize: limitSize ? parseInt(team.maxSize ?? 1, 10) : null,
       public: Boolean(team.public),
     };
-    if (await onFinish(payload)) onClose?.();
+    if (await onFinish(payload)) {
+      const shouldClose = (await onSuccess?.()) ?? true;
+      if (shouldClose) onClose?.();
+    }
   };
 
   return (

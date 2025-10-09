@@ -32,20 +32,49 @@ export const KanbanBoard = ({ initialColumns, onChange, onMove, onAdd, onItemCli
     if (srcId === dstId && source.index === destination.index) return;
 
     setColumns((prev) => {
-      const next = JSON.parse(JSON.stringify(prev));
-      const srcItems = Array.from(next[srcId].items);
+      const srcColumn = prev[srcId];
+      const dstColumn = prev[dstId];
+      if (!srcColumn || !dstColumn) return prev;
+
+      if (srcId === dstId) {
+        const items = [...srcColumn.items];
+        const [moved] = items.splice(source.index, 1);
+        if (!moved) return prev;
+        items.splice(destination.index, 0, moved);
+
+        const next = {
+          ...prev,
+          [srcId]: { ...srcColumn, items },
+        };
+        if (typeof onMove === "function") {
+          onMove(moved, srcId, dstId, {
+            sourceIndex: source.index,
+            destinationIndex: destination.index,
+          });
+        }
+        if (typeof onChange === "function") onChange(next);
+        return next;
+      }
+
+      const srcItems = [...srcColumn.items];
       const [moved] = srcItems.splice(source.index, 1);
+      if (!moved) return prev;
+      const movedItem = { ...moved, status: dstId };
 
-      // update status on move across columns
-      if (srcId !== dstId) moved.status = dstId;
+      const dstItems = [...dstColumn.items];
+      dstItems.splice(destination.index, 0, movedItem);
 
-      const dstItems = srcId === dstId ? srcItems : Array.from(next[dstId].items);
-      dstItems.splice(destination.index, 0, moved);
-
-      next[srcId].items = srcId === dstId ? dstItems : srcItems;
-      if (srcId !== dstId) next[dstId].items = dstItems;
-      // external change hook for future wiring
-      if (typeof onMove === "function" && srcId !== dstId) onMove(moved, srcId, dstId);
+      const next = {
+        ...prev,
+        [srcId]: { ...srcColumn, items: srcItems },
+        [dstId]: { ...dstColumn, items: dstItems },
+      };
+      if (typeof onMove === "function") {
+        onMove(movedItem, srcId, dstId, {
+          sourceIndex: source.index,
+          destinationIndex: destination.index,
+        });
+      }
       if (typeof onChange === "function") onChange(next);
       return next;
     });
