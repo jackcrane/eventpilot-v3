@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { useAuth } from "../hooks";
@@ -8,6 +8,52 @@ import { Consumer } from "./consumer/Consumer";
 import { SelectedInstanceProvider } from "../contexts/SelectedInstanceContext";
 import { useReducedSubdomain } from "../hooks/useReducedSubdomain";
 import { AppSWRProvider } from "../contexts/AppSWRProvider";
+
+/** Background prefetchers for lazy-loaded route bundles */
+const routePrefetchers = [
+  () => import("../components/page/Page"),
+  () => import("./home"),
+  () => import("./routes/waitlist"),
+  () => import("./routes/unsubscribe"),
+  () => import("./routes/auth/login"),
+  () => import("./routes/auth/register"),
+  () => import("./routes/auth/forgot-password"),
+  () => import("./routes/auth/verify"),
+  () => import("./routes/auth/me"),
+  () => import("./routes/email/[emailId]"),
+  () => import("./routes/events/new"),
+  () => import("./routes/events/Events"),
+  () => import("./routes/events/[eventId]"),
+  () => import("./routes/events/[eventId]/todos"),
+  () => import("./routes/events/[eventId]/session/[sessionId]"),
+  () => import("./routes/events/[eventId]/financials"),
+  () => import("./routes/events/[eventId]/volunteers"),
+  () => import("./routes/events/[eventId]/builder"),
+  () => import("./routes/events/[eventId]/jobs"),
+  () => import("./routes/events/[eventId]/day-of/provisioners"),
+  () => import("./routes/events/[eventId]/registration/builder"),
+  () => import("./routes/events/[eventId]/registration/forms"),
+  () => import("./routes/events/[eventId]/registration/upsells"),
+  () => import("./routes/events/[eventId]/registration/coupons"),
+  () => import("./routes/events/[eventId]/registration/teams"),
+  () => import("./routes/events/[eventId]/registration/registrations"),
+  () => import("./routes/events/[eventId]/conversations"),
+  () => import("./routes/events/[eventId]/email/lists/index"),
+  () => import("./routes/events/[eventId]/email/lists/[mailingListId]"),
+  () => import("./routes/events/[eventId]/email/templates/index"),
+  () => import("./routes/events/[eventId]/email/templates/[templateId]"),
+  () => import("./routes/events/[eventId]/email/templates/new"),
+  () => import("./routes/events/[eventId]/email/campaigns/index"),
+  () => import("./routes/events/[eventId]/email/campaigns/[campaignId]"),
+  () => import("./routes/events/[eventId]/settings"),
+  () => import("./routes/events/[eventId]/settings/basics"),
+  () => import("./routes/events/[eventId]/settings/contact"),
+  () => import("./routes/events/[eventId]/settings/socials"),
+  () => import("./routes/events/[eventId]/settings/connections"),
+  () => import("./routes/events/[eventId]/settings/billing"),
+  () => import("./routes/events/[eventId]/crm"),
+  () => import("./routes/events/[eventId]/crm/[personId]"),
+];
 
 /** Route components — dynamically imported for route-level code splitting */
 const Page = React.lazy(() =>
@@ -216,6 +262,40 @@ export default () => {
   const location = useLocation(); // retained intentionally
   useFavicon(favicon);
   const subdomain = useReducedSubdomain();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let cancelled = false;
+
+    const triggerPrefetch = () => {
+      routePrefetchers.reduce(
+        (chain, loadModule) =>
+          chain.then(() =>
+            cancelled ? undefined : loadModule().catch(() => undefined)
+          ),
+        Promise.resolve()
+      );
+    };
+
+    const scheduleIdle =
+      typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback
+        : (cb) => window.setTimeout(cb, 250);
+    const cancelIdle =
+      typeof window.cancelIdleCallback === "function"
+        ? window.cancelIdleCallback
+        : (handle) => window.clearTimeout(handle);
+
+    const idleHandle = scheduleIdle(() => {
+      if (!cancelled) triggerPrefetch();
+    });
+
+    return () => {
+      cancelled = true;
+      cancelIdle(idleHandle);
+    };
+  }, []);
 
   if (loading) return null;
 
