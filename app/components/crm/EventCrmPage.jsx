@@ -136,14 +136,19 @@ export const EventCrmPage = ({ eventId }) => {
 
   const paginationState = useMemo(() => {
     const nextPage =
-      Number.isFinite(page) && page > 0 ? page : DEFAULT_SEGMENT_PAGINATION.page;
+      Number.isFinite(page) && page > 0
+        ? page
+        : DEFAULT_SEGMENT_PAGINATION.page;
     const nextSize =
-      Number.isFinite(size) && size > 0 ? size : DEFAULT_SEGMENT_PAGINATION.size;
+      Number.isFinite(size) && size > 0
+        ? size
+        : DEFAULT_SEGMENT_PAGINATION.size;
     const nextOrderBy =
       orderBy && typeof orderBy === "string" && orderBy.trim()
         ? orderBy
         : DEFAULT_SEGMENT_PAGINATION.orderBy;
-    const nextOrder = order === "asc" ? "asc" : DEFAULT_SEGMENT_PAGINATION.order;
+    const nextOrder =
+      order === "asc" ? "asc" : DEFAULT_SEGMENT_PAGINATION.order;
     return {
       page: nextPage,
       size: nextSize,
@@ -427,7 +432,8 @@ export const EventCrmPage = ({ eventId }) => {
     if (!wasUsingAi && aiState.usingAi) {
       lastManualPaginationRef.current = { ...paginationState };
     } else if (wasUsingAi && !aiState.usingAi) {
-      const restored = lastManualPaginationRef.current || DEFAULT_SEGMENT_PAGINATION;
+      const restored =
+        lastManualPaginationRef.current || DEFAULT_SEGMENT_PAGINATION;
       const nextPage =
         Number.isFinite(restored?.page) && restored.page > 0
           ? restored.page
@@ -449,13 +455,7 @@ export const EventCrmPage = ({ eventId }) => {
       if (order !== nextOrder) setOrder(nextOrder);
     }
     wasUsingAiRef.current = aiState.usingAi;
-  }, [
-    aiState.usingAi,
-    page,
-    size,
-    orderBy,
-    order,
-  ]);
+  }, [aiState.usingAi, page, size, orderBy, order]);
 
   useEffect(() => {
     if (aiState.usingAi) return;
@@ -543,11 +543,24 @@ export const EventCrmPage = ({ eventId }) => {
     pageChangeReasonRef.current = "unknown";
   }, [page, logPagination]);
 
-  const pageLoading =
-    !hasInitialLoaded &&
-    (crm.loading ||
-      personsQuery.loading ||
-      (aiState.usingAi && segmentLoading));
+  const hasCrmData =
+    typeof crm.crmFields !== "undefined" ||
+    typeof crm.crmPersons !== "undefined" ||
+    Boolean(crm.error);
+
+  const hasPersonsData = aiState.usingAi
+    ? typeof aiState.aiResults?.crmPersons !== "undefined" ||
+      Boolean(aiState.error)
+    : typeof personsQuery.crmPersons !== "undefined" ||
+      Boolean(personsQuery.error);
+
+  useEffect(() => {
+    if (!hasInitialLoaded && hasCrmData && hasPersonsData) {
+      setHasInitialLoaded(true);
+    }
+  }, [hasInitialLoaded, hasCrmData, hasPersonsData]);
+
+  const pageLoading = !hasCrmData || !hasPersonsData;
 
   const toggleAiCollapsed = () => setAiCollapsed((prev) => !prev);
   const showAiBadge = Boolean(storedFilters?.ai?.enabled || aiState.aiResults);

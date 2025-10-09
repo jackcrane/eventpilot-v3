@@ -128,7 +128,7 @@ export const useCrmPersons = ({ eventId, page, size, orderBy, order, q, filters 
     crmPersons: data?.crmPersons,
     total: data?.total ?? (Array.isArray(data?.crmPersons) ? data.crmPersons.length : 0),
     imports,
-    loading: isLoading,
+    loading: isLoading && typeof data === "undefined",
     validating: isValidating,
     mutationLoading,
     error,
