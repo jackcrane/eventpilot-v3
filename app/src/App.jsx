@@ -7,6 +7,7 @@ import favicon from "../assets/ico.png";
 import { Consumer } from "./consumer/Consumer";
 import { SelectedInstanceProvider } from "../contexts/SelectedInstanceContext";
 import { useReducedSubdomain } from "../hooks/useReducedSubdomain";
+import { AppSWRProvider } from "../contexts/AppSWRProvider";
 
 /** Route components — dynamically imported for route-level code splitting */
 const Page = React.lazy(() =>
@@ -242,184 +243,189 @@ export default () => {
     <div>
       <Toaster />
       <SelectedInstanceProvider>
-        <Router>
-          <Suspense fallback={<Loader />}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/waitlist" element={<WaitlistPage />} />
-              <Route path="/unsubscribe" element={<UnsubscribePage />} />
+        <AppSWRProvider>
+          <Router>
+            <Suspense fallback={<Loader />}>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/waitlist" element={<WaitlistPage />} />
+                <Route path="/unsubscribe" element={<UnsubscribePage />} />
 
-              {loggedIn ? (
-                <>
-                  <Route path="/me" element={<UserProfile />} />
-                </>
-              ) : (
-                <>
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                </>
-              )}
-              <Route path="/verify" element={<Verify />} />
+                {loggedIn ? (
+                  <>
+                    <Route path="/me" element={<UserProfile />} />
+                  </>
+                ) : (
+                  <>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route
+                      path="/forgot-password"
+                      element={<ForgotPassword />}
+                    />
+                  </>
+                )}
+                <Route path="/verify" element={<Verify />} />
 
-              <Route path="/email/:emailId" element={<EmailPage />} />
+                <Route path="/email/:emailId" element={<EmailPage />} />
 
-              <Route path="/events/new" element={<NewEventPage />} />
+                <Route path="/events/new" element={<NewEventPage />} />
 
-              <Route path="/events/:eventId" element={<Event />} />
-              <Route path="/events" element={<Events />} />
+                <Route path="/events/:eventId" element={<Event />} />
+                <Route path="/events" element={<Events />} />
 
-              <Route
-                path="/events/:eventId/todos"
-                element={<EventTodosPage />}
-              />
+                <Route
+                  path="/events/:eventId/todos"
+                  element={<EventTodosPage />}
+                />
 
-              <Route
-                path="/events/:eventId/session/:sessionId"
-                element={<EventSessionPage />}
-              />
+                <Route
+                  path="/events/:eventId/session/:sessionId"
+                  element={<EventSessionPage />}
+                />
 
-              <Route
-                path="/events/:eventId/financials"
-                element={<FinancialsPage />}
-              />
+                <Route
+                  path="/events/:eventId/financials"
+                  element={<FinancialsPage />}
+                />
 
-              <Route
-                path="/events/:eventId/volunteers"
-                element={<EventVolunteers />}
-              />
-              <Route
-                path="/events/:eventId/volunteers/builder"
-                element={<EventVolRegBuilder />}
-              />
-              <Route
-                path="/events/:eventId/volunteers/jobs"
-                element={<EventJobs />}
-              />
-              <Route
-                path="/events/:eventId/day-of/provisioners"
-                element={<EventProvisionersPage />}
-              />
+                <Route
+                  path="/events/:eventId/volunteers"
+                  element={<EventVolunteers />}
+                />
+                <Route
+                  path="/events/:eventId/volunteers/builder"
+                  element={<EventVolRegBuilder />}
+                />
+                <Route
+                  path="/events/:eventId/volunteers/jobs"
+                  element={<EventJobs />}
+                />
+                <Route
+                  path="/events/:eventId/day-of/provisioners"
+                  element={<EventProvisionersPage />}
+                />
 
-              <Route
-                path="/events/:eventId/registration/builder"
-                element={<RegistrationBuilder />}
-              />
-              <Route
-                path="/events/:eventId/registration/form-builder"
-                element={<RegistrationFormBuilderPage />}
-              />
-              <Route
-                path="/events/:eventId/registration/upsells"
-                element={<UpsellsPage />}
-              />
-              <Route
-                path="/events/:eventId/registration/coupons"
-                element={<CouponsPage />}
-              />
-              <Route
-                path="/events/:eventId/registration/teams"
-                element={<TeamsPage />}
-              />
-              <Route
-                path="/events/:eventId/registration/registrations"
-                element={<RegistrationsPage />}
-              />
+                <Route
+                  path="/events/:eventId/registration/builder"
+                  element={<RegistrationBuilder />}
+                />
+                <Route
+                  path="/events/:eventId/registration/form-builder"
+                  element={<RegistrationFormBuilderPage />}
+                />
+                <Route
+                  path="/events/:eventId/registration/upsells"
+                  element={<UpsellsPage />}
+                />
+                <Route
+                  path="/events/:eventId/registration/coupons"
+                  element={<CouponsPage />}
+                />
+                <Route
+                  path="/events/:eventId/registration/teams"
+                  element={<TeamsPage />}
+                />
+                <Route
+                  path="/events/:eventId/registration/registrations"
+                  element={<RegistrationsPage />}
+                />
 
-              <Route
-                path="/events/:eventId/conversations/:threadId"
-                element={<EventConversationsPage />}
-              />
-              <Route
-                path="/events/:eventId/conversations"
-                element={<EventConversationsPage />}
-              />
+                <Route
+                  path="/events/:eventId/conversations/:threadId"
+                  element={<EventConversationsPage />}
+                />
+                <Route
+                  path="/events/:eventId/conversations"
+                  element={<EventConversationsPage />}
+                />
 
-              <Route
-                path="/events/:eventId/email/lists"
-                element={<EventMailingListsPage />}
-              />
-              <Route
-                path="/events/:eventId/email/lists/:mailingListId"
-                element={<EventMailingListMembersPage />}
-              />
+                <Route
+                  path="/events/:eventId/email/lists"
+                  element={<EventMailingListsPage />}
+                />
+                <Route
+                  path="/events/:eventId/email/lists/:mailingListId"
+                  element={<EventMailingListMembersPage />}
+                />
 
-              <Route
-                path="/events/:eventId/email/templates"
-                element={<EventEmailTemplatesPage />}
-              />
-              <Route
-                path="/events/:eventId/email/templates/new"
-                element={<EventEmailTemplateCreatePage />}
-              />
-              <Route
-                path="/events/:eventId/email/templates/:templateId"
-                element={<EventEmailTemplateDetailPage />}
-              />
+                <Route
+                  path="/events/:eventId/email/templates"
+                  element={<EventEmailTemplatesPage />}
+                />
+                <Route
+                  path="/events/:eventId/email/templates/new"
+                  element={<EventEmailTemplateCreatePage />}
+                />
+                <Route
+                  path="/events/:eventId/email/templates/:templateId"
+                  element={<EventEmailTemplateDetailPage />}
+                />
 
-              <Route
-                path="/events/:eventId/email/campaigns"
-                element={<EventEmailCampaignsPage />}
-              />
-              <Route
-                path="/events/:eventId/email/campaigns/:campaignId"
-                element={<EventEmailCampaignDetailPage />}
-              />
+                <Route
+                  path="/events/:eventId/email/campaigns"
+                  element={<EventEmailCampaignsPage />}
+                />
+                <Route
+                  path="/events/:eventId/email/campaigns/:campaignId"
+                  element={<EventEmailCampaignDetailPage />}
+                />
 
-              <Route
-                path="/events/:eventId/settings"
-                element={<EventSettings />}
-              />
-              <Route
-                path="/events/:eventId/settings/basics"
-                element={<EventSettingsBasicsPage />}
-              />
-              <Route
-                path="/events/:eventId/settings/contact"
-                element={<EventSettingsContactPage />}
-              />
-              <Route
-                path="/events/:eventId/settings/socials"
-                element={<EventSettingsSocialsPage />}
-              />
-              <Route
-                path="/events/:eventId/settings/connections"
-                element={<EventSettingsConnectionsPage />}
-              />
-              <Route
-                path="/events/:eventId/settings/billing"
-                element={<EventSettingsBillingPage />}
-              />
+                <Route
+                  path="/events/:eventId/settings"
+                  element={<EventSettings />}
+                />
+                <Route
+                  path="/events/:eventId/settings/basics"
+                  element={<EventSettingsBasicsPage />}
+                />
+                <Route
+                  path="/events/:eventId/settings/contact"
+                  element={<EventSettingsContactPage />}
+                />
+                <Route
+                  path="/events/:eventId/settings/socials"
+                  element={<EventSettingsSocialsPage />}
+                />
+                <Route
+                  path="/events/:eventId/settings/connections"
+                  element={<EventSettingsConnectionsPage />}
+                />
+                <Route
+                  path="/events/:eventId/settings/billing"
+                  element={<EventSettingsBillingPage />}
+                />
 
-              <Route path="/events/:eventId/crm" element={<EventCrm />} />
-              <Route
-                path="/events/:eventId/crm/:personId"
-                element={<CrmPersonPage />}
-              />
+                <Route path="/events/:eventId/crm" element={<EventCrm />} />
+                <Route
+                  path="/events/:eventId/crm/:personId"
+                  element={<CrmPersonPage />}
+                />
 
-              {/* 404 */}
-              <Route
-                path="*"
-                element={
-                  <Page>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        height: "70vh",
-                      }}
-                    >
-                      <h1>Error 404</h1>
-                      <p>Page not found</p>
-                    </div>
-                  </Page>
-                }
-              />
-            </Routes>
-          </Suspense>
-        </Router>
+                {/* 404 */}
+                <Route
+                  path="*"
+                  element={
+                    <Page>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          height: "70vh",
+                        }}
+                      >
+                        <h1>Error 404</h1>
+                        <p>Page not found</p>
+                      </div>
+                    </Page>
+                  }
+                />
+              </Routes>
+            </Suspense>
+          </Router>
+        </AppSWRProvider>
       </SelectedInstanceProvider>
     </div>
   );
