@@ -1,4 +1,4 @@
-.website-editor__fullscreen-backdrop {
+.fullscreenBackdrop {
   position: fixed;
   inset: 0;
   z-index: 1040;
@@ -8,12 +8,12 @@
   transition: opacity 0.28s ease;
 }
 
-.website-editor__fullscreen-backdrop.is-visible {
+.fullscreenBackdropVisible {
   opacity: 1;
   pointer-events: auto;
 }
 
-.website-editor__puck-shell {
+.puckShell {
   position: relative;
   background: var(--tblr-card-bg, #fff);
   border-radius: 12px;
@@ -23,12 +23,12 @@
   overflow: hidden;
 }
 
-.website-editor__puck-shell.is-fullscreen {
+.puckShellFullscreen {
   position: fixed;
-  top: 1.25rem;
-  left: 1.25rem;
-  right: 1.25rem;
-  bottom: 1.25rem;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
   z-index: 1050;
   width: auto;
   height: auto;
@@ -39,7 +39,7 @@
   background: #fff;
 }
 
-.website-editor__puck-container {
+.puckContainer {
   display: flex;
   flex-direction: column;
   min-height: 480px;
@@ -47,20 +47,20 @@
   overflow: hidden;
 }
 
-.website-editor__puck-shell.is-fullscreen .website-editor__puck-container {
+.puckShellFullscreen .puckContainer {
   height: 100%;
 }
 
-.website-editor__puck-shell.is-fullscreen .puck {
+.puckShellFullscreen :global(.puck) {
   flex: 1;
   min-height: 0;
 }
 
-.website-editor__puck-shell.is-fullscreen .puck > div {
+.puckShellFullscreen :global(.puck > div) {
   height: 100%;
 }
 
-.website-editor__menu-actions {
+.menuActions {
   display: flex;
   align-items: center;
   gap: 0.5rem;

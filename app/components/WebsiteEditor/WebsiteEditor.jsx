@@ -5,15 +5,17 @@ import React, {
   useState,
   useTransition,
 } from "react";
-import { Alert, Typography } from "tabler-react-2";
+import { Alert, Button, Typography } from "tabler-react-2";
 import {
   DEFAULT_WEBSITE_DATA,
   createWebsiteEditorConfig,
 } from "./websiteConfig";
 import { createId } from "@paralleldrive/cuid2";
-import "./WebsiteEditor.css";
+import styles from "./WebsiteEditor.module.css";
 import { IconButton } from "@measured/puck";
 import { TbArrowsMaximize, TbArrowsMinimize } from "react-icons/tb";
+import { useParams } from "react-router-dom";
+import { useEventWebsite } from "../../hooks/useEventWebsite";
 
 const normalizeBlock = (block) => {
   if (!block) return block;
@@ -72,42 +74,102 @@ const usePuckModule = () => {
   return { moduleRef, error };
 };
 
+const cloneJson = (value) => {
+  if (value == null) return null;
+  if (typeof structuredClone === "function") {
+    try {
+      return structuredClone(value);
+    } catch {
+      // Fall through to JSON clone
+    }
+  }
+  return JSON.parse(JSON.stringify(value));
+};
+
+const isPlainObject = (value) =>
+  !!value && typeof value === "object" && !Array.isArray(value);
+
+const normalizeEditorData = (data) => {
+  const source = isPlainObject(data) ? cloneJson(data) : {};
+  const fallbackContent = Array.isArray(DEFAULT_WEBSITE_DATA.content)
+    ? DEFAULT_WEBSITE_DATA.content
+    : [];
+  const fallbackRoot = isPlainObject(DEFAULT_WEBSITE_DATA.root)
+    ? DEFAULT_WEBSITE_DATA.root
+    : {};
+  const fallbackZones = isPlainObject(DEFAULT_WEBSITE_DATA.zones)
+    ? DEFAULT_WEBSITE_DATA.zones
+    : {};
+
+  return {
+    ...source,
+    content: withStableIds(
+      Array.isArray(source.content) ? source.content : fallbackContent
+    ),
+    root:
+      cloneJson(isPlainObject(source.root) ? source.root : fallbackRoot) || {},
+    zones: normalizeZones(
+      isPlainObject(source.zones) ? source.zones : fallbackZones
+    ),
+  };
+};
+
 export const WebsiteEditor = () => {
   const { moduleRef, error } = usePuckModule();
   const Puck = moduleRef?.Puck;
-  const [draftData, setDraftData] = useState(() => ({
-    ...DEFAULT_WEBSITE_DATA,
-    content: withStableIds(DEFAULT_WEBSITE_DATA.content),
-    root: DEFAULT_WEBSITE_DATA.root ?? {},
-    zones: normalizeZones(DEFAULT_WEBSITE_DATA.zones),
-  }));
+  const defaultEditorData = useMemo(
+    () => normalizeEditorData(DEFAULT_WEBSITE_DATA),
+    []
+  );
+  const [draftData, setDraftData] = useState(() => defaultEditorData);
   const [, startTransition] = useTransition();
   const config = useMemo(() => createWebsiteEditorConfig(), []);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const { eventId } = useParams();
+  const routeKey = "home";
+
+  const {
+    websitePage,
+    loading: websiteLoading,
+    error: websiteError,
+    saveWebsite,
+    saving,
+  } = useEventWebsite({ eventId, routeKey });
+
+  const resolveNormalizedDraft = useCallback((payload) => {
+    if (!payload) return null;
+    const nextData = payload?.data ?? payload;
+    if (nextData == null) return null;
+    return normalizeEditorData(nextData);
+  }, []);
 
   const handleDraftUpdate = useCallback(
     (payload) => {
-      if (!payload) return;
-      const nextData = payload?.data ?? payload;
-      if (nextData == null) return;
-      const cloned =
-        typeof structuredClone === "function"
-          ? structuredClone(nextData)
-          : JSON.parse(JSON.stringify(nextData));
-
-      const normalized = {
-        ...cloned,
-        content: withStableIds(cloned.content),
-        root: cloned.root ?? {},
-        zones: normalizeZones(cloned.zones),
-      };
-
+      const normalized = resolveNormalizedDraft(payload);
+      if (!normalized) return;
       startTransition(() => {
         setDraftData(normalized);
       });
     },
-    [startTransition]
+    [resolveNormalizedDraft, startTransition]
   );
+
+  const handlePublish = useCallback(
+    async (payload) => {
+      const normalized = resolveNormalizedDraft(payload);
+      if (!normalized) return;
+      startTransition(() => {
+        setDraftData(normalized);
+      });
+      await saveWebsite(normalized);
+    },
+    [resolveNormalizedDraft, saveWebsite, startTransition]
+  );
+
+  const handleManualSave = useCallback(() => {
+    if (!draftData) return;
+    void saveWebsite(draftData);
+  }, [draftData, saveWebsite]);
 
   const exitFullscreen = useCallback(() => {
     setIsFullscreen(false);
@@ -140,9 +202,26 @@ export const WebsiteEditor = () => {
     };
   }, [isFullscreen]);
 
+  useEffect(() => {
+    if (!websitePage) return;
+    const remoteData = websitePage.data;
+    if (remoteData) {
+      const normalized = normalizeEditorData(remoteData);
+      startTransition(() => {
+        setDraftData(normalized);
+      });
+      return;
+    }
+    if (!websiteLoading) {
+      startTransition(() => {
+        setDraftData(defaultEditorData);
+      });
+    }
+  }, [defaultEditorData, websiteLoading, websitePage, startTransition]);
+
   const HeaderActionsOverride = useCallback(
     ({ children }) => (
-      <div className="website-editor__menu-actions">
+      <div className={styles.menuActions}>
         <IconButton
           type="button"
           title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
@@ -173,9 +252,18 @@ export const WebsiteEditor = () => {
     <div>
       <Typography.H3 className="mb-2">Visual editor</Typography.H3>
       <Typography.Text className="mb-3 d-block">
-        The editor below is fully client-side for now. Changes persist only
-        while this page is open.
+        Design your hosted website and publish whenever you are ready. Saving
+        stores the current page layout for this event.
       </Typography.Text>
+      {websiteError ? (
+        <Alert
+          variant="danger"
+          title="Unable to load saved website"
+          className="mb-3"
+        >
+          {websiteError.message}
+        </Alert>
+      ) : null}
       {error ? (
         <Alert
           variant="danger"
@@ -186,27 +274,29 @@ export const WebsiteEditor = () => {
         </Alert>
       ) : null}
       {!Puck && !error ? (
-        <Typography.Text className="d-block">Loading editor…</Typography.Text>
+        <Typography.Text className="d-block">
+          {websiteLoading ? "Loading website…" : "Loading editor…"}
+        </Typography.Text>
       ) : null}
       {Puck ? (
         <React.Fragment>
           <div
-            className={`website-editor__fullscreen-backdrop${
-              isFullscreen ? " is-visible" : ""
+            className={`${styles.fullscreenBackdrop}${
+              isFullscreen ? ` ${styles.fullscreenBackdropVisible}` : ""
             }`}
             aria-hidden={!isFullscreen}
             onClick={exitFullscreen}
           />
           <div
-            className={`website-editor__puck-shell${
-              isFullscreen ? " is-fullscreen" : ""
+            className={`${styles.puckShell}${
+              isFullscreen ? ` ${styles.puckShellFullscreen}` : ""
             }`}
           >
-            <div className="website-editor__puck-container">
+            <div className={styles.puckContainer}>
               <Puck
                 config={config}
                 data={draftData}
-                onPublish={handleDraftUpdate}
+                onPublish={handlePublish}
                 onChange={handleDraftUpdate}
                 overrides={puckOverrides}
               />
