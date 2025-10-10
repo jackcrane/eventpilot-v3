@@ -122,8 +122,6 @@ export const WebsiteEditor = () => {
       {Puck ? (
         <div
           style={{
-            border: "1px solid var(--tblr-border-color)",
-            borderRadius: 12,
             overflow: "hidden",
             minHeight: 480,
           }}

@@ -1,9 +1,90 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Row } from "../../util/Flex";
 import { MarkdownRender } from "../markdown/MarkdownRenderer";
 import { RichTextField } from "./RichTextField";
 
+const toCamelCase = (prop) =>
+  prop
+    .trim()
+    .replace(/-([a-z0-9])/gi, (_, letter) => letter.toUpperCase())
+    .replace(/^\w/, (char) => char.toLowerCase());
+
+const parseInlineStyles = (customCss) => {
+  if (typeof customCss !== "string") return null;
+  const declarations = customCss
+    .split(";")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (declarations.length === 0) return null;
+
+  return declarations.reduce((acc, declaration) => {
+    const [property, ...valueParts] = declaration.split(":");
+    if (!property || valueParts.length === 0) return acc;
+    const value = valueParts.join(":").trim();
+    if (!value) return acc;
+    const key = toCamelCase(property);
+    acc[key] = value;
+    return acc;
+  }, {});
+};
+
+const prefixSelectors = (css, scopeId) => {
+  if (!scopeId) return css;
+  return css.replace(/(^|\})\s*([^{@}][^{]*)\{/g, (match, close, selector) => {
+    const normalized = selector.trim();
+    if (!normalized) return match;
+
+    const startsWithScope =
+      normalized.startsWith(`#${scopeId}`) ||
+      normalized.startsWith(`.${scopeId}`) ||
+      normalized.startsWith(":") ||
+      normalized.startsWith("&");
+
+    if (startsWithScope) {
+      return `${close} ${normalized.replace(/^&/, `#${scopeId}`)} {`;
+    }
+
+    return `${close} #${scopeId} ${normalized} {`;
+  });
+};
+
+const resolveCustomCss = (customCss, scopeId) => {
+  const trimmed = typeof customCss === "string" ? customCss.trim() : "";
+  if (!trimmed) {
+    return { inlineStyle: null, styleTag: null };
+  }
+
+  const hasBlockSyntax = trimmed.includes("{");
+
+  if (!hasBlockSyntax) {
+    return {
+      inlineStyle: parseInlineStyles(trimmed),
+      styleTag: null,
+    };
+  }
+
+  const scopedCss = prefixSelectors(trimmed, scopeId);
+
+  return {
+    inlineStyle: null,
+    styleTag: scopedCss,
+  };
+};
+
+const applyInlineStyles = (baseStyles, inlineStyle) =>
+  inlineStyle ? { ...baseStyles, ...inlineStyle } : baseStyles;
+
 const TOPNAV_STYLES = `
+.website-editor-topnav__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  width: 100%;
+  flex: 1;
+}
+
 .website-editor-topnav__brand {
   font-weight: 600;
   font-size: 1.125rem;
@@ -82,12 +163,12 @@ const TOPNAV_STYLES = `
   background: var(--tblr-primary);
 }
 
-@media (max-width: 768px) {
-  .website-editor-topnav {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.website-editor-topnav__links,
+.website-editor-topnav__toggle {
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
 
+@media (max-width: 768px) {
   .website-editor-topnav__toggle {
     display: inline-flex;
   }
@@ -112,60 +193,71 @@ const TOPNAV_STYLES = `
 }
 `;
 
-const TopNavBlock = ({ brandLabel = "", menuItems = [], id }) => {
+const renderCustomStyles = (customCss) =>
+  typeof customCss === "string" && customCss.trim().length > 0 ? (
+    <style>{customCss}</style>
+  ) : null;
+
+const TopNavBlock = ({ brandLabel = "", menuItems = [], id, customCss }) => {
   const [open, setOpen] = useState(false);
   const navItems = Array.isArray(menuItems) ? menuItems : [];
+  const { inlineStyle, styleTag } = resolveCustomCss(customCss, id);
 
   return (
-    <nav
-      id={id}
-      className="website-editor-topnav"
-      style={{
-        border: "1px solid var(--tblr-border-color)",
-        borderRadius: 12,
-        padding: "0.75rem 1.25rem",
-        background: "var(--tblr-body-bg, #fff)",
-        marginBottom: "1.5rem",
-        boxShadow: "0 10px 30px rgba(15, 23, 42, 0.07)",
-        display: "flex",
-        alignItems: "center",
-        gap: "1rem",
-        position: "relative",
-        flexWrap: "wrap",
-      }}
-    >
+    <Fragment>
       <style>{TOPNAV_STYLES}</style>
-      {brandLabel ? (
-        <div className="website-editor-topnav__brand">{brandLabel}</div>
-      ) : null}
-      <button
-        type="button"
-        className="website-editor-topnav__toggle"
-        aria-expanded={open}
-        aria-label="Toggle navigation"
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        <span className="website-editor-topnav__toggle-line" />
-      </button>
-      <div
-        className={`website-editor-topnav__links${open ? " is-open" : ""}`}
-      >
-        {navItems.map((item, idx) =>
-          item?.label ? (
-            <a
-              key={`${item.label}-${idx}`}
-              href={item.href || "#"}
-              className="website-editor-topnav__link"
-              onClick={() => {
-                if (open) setOpen(false);
-              }}
-            >
-              {item.label}
-            </a>
-          ) : null
+      {renderCustomStyles(styleTag)}
+      <nav
+        id={id}
+        className="website-editor-topnav"
+        style={applyInlineStyles(
+          {
+            padding: "0.75rem 0",
+            marginBottom: "1.5rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            width: "100%",
+          },
+          inlineStyle
         )}
-      </div>
-    </nav>
+      >
+        <div className="website-editor-topnav__header">
+          {brandLabel ? (
+            <div className="website-editor-topnav__brand">{brandLabel}</div>
+          ) : null}
+          <button
+            type="button"
+            className="website-editor-topnav__toggle"
+            aria-expanded={open}
+            aria-label="Toggle navigation"
+            onClick={() => setOpen((prev) => !prev)}
+          >
+            <span className="website-editor-topnav__toggle-line" />
+          </button>
+        </div>
+        <div
+          className={`website-editor-topnav__links${open ? " is-open" : ""}`}
+        >
+          {navItems.map((item, idx) =>
+            item?.label ? (
+              <a
+                key={`${item.label}-${idx}`}
+                href={item.href || "#"}
+                className="website-editor-topnav__link"
+                onClick={() => {
+                  if (open) setOpen(false);
+                }}
+              >
+                {item.label}
+              </a>
+            ) : null
+          )}
+        </div>
+      </nav>
+    </Fragment>
   );
 };
 
@@ -218,19 +310,29 @@ export const createWebsiteEditorConfig = () => ({
           label: "Body",
           placeholder: "Share more details about your event.",
           render: ({ value, onChange, field }) => (
-            <RichTextField
-              field={field}
-              value={value}
-              onChange={onChange}
-            />
+            <RichTextField field={field} value={value} onChange={onChange} />
           ),
         },
+        customCss: {
+          type: "textarea",
+          label: "Custom CSS",
+          placeholder: "/* Optional component-specific styles */",
+        },
       },
-      render: ({ body }) => (
-        <div style={{ marginBottom: "1.5rem" }}>
-          <MarkdownRender markdown={body || ""} />
-        </div>
-      ),
+      render: ({ body, id, customCss }) => {
+        const { inlineStyle, styleTag } = resolveCustomCss(customCss, id);
+        return (
+          <Fragment>
+            {renderCustomStyles(styleTag)}
+            <div
+              id={id}
+              style={applyInlineStyles({ marginBottom: "1.5rem" }, inlineStyle)}
+            >
+              <MarkdownRender markdown={body || ""} />
+            </div>
+          </Fragment>
+        );
+      },
     },
     TopNav: {
       label: "Top navigation",
@@ -257,6 +359,11 @@ export const createWebsiteEditorConfig = () => ({
             },
           },
           defaultItem: { label: "Volunteer", href: "#volunteer" },
+        },
+        customCss: {
+          type: "textarea",
+          label: "Custom CSS",
+          placeholder: "/* Optional component-specific styles */",
         },
       },
       render: (props) => <TopNavBlock {...props} />,
@@ -292,30 +399,44 @@ export const createWebsiteEditorConfig = () => ({
           ],
           defaultValue: "center",
         },
+        customCss: {
+          type: "textarea",
+          label: "Custom CSS",
+          placeholder: "/* Optional component-specific styles */",
+        },
       },
-      render: ({ buttons = [], alignment = "center" }) => (
-        <Row
-          gap={0.75}
-          style={{ justifyContent: alignment, flexWrap: "wrap" }}
-        >
-          {buttons.map((button, idx) => (
-            <a
-              key={`${button.label}-${idx}`}
-              href={button.href}
-              style={{
-                padding: "0.625rem 1.25rem",
-                borderRadius: 999,
-                background: "var(--tblr-primary)",
-                color: "#fff",
-                fontWeight: 600,
-                textDecoration: "none",
-              }}
+      render: ({ buttons = [], alignment = "center", customCss, id }) => {
+        const { inlineStyle, styleTag } = resolveCustomCss(customCss, id);
+        return (
+          <Fragment>
+            {renderCustomStyles(styleTag)}
+            <Row
+              id={id}
+              gap={0.75}
+              style={applyInlineStyles(
+                { justifyContent: alignment, flexWrap: "wrap" },
+                inlineStyle
+              )}
             >
-              {button.label}
-            </a>
-          ))}
-        </Row>
-      ),
+              {buttons.map((button, idx) => (
+                <a
+                  key={`${button.label}-${idx}`}
+                  href={button.href}
+                  style={{
+                    padding: "0.625rem 1.25rem",
+                    background: "var(--tblr-primary)",
+                    color: "#fff",
+                    fontWeight: 600,
+                    textDecoration: "none",
+                  }}
+                >
+                  {button.label}
+                </a>
+              ))}
+            </Row>
+          </Fragment>
+        );
+      },
     },
     ImageBanner: {
       label: "Image banner",
@@ -340,28 +461,50 @@ export const createWebsiteEditorConfig = () => ({
           label: "Height (px)",
           defaultValue: 320,
         },
+        customCss: {
+          type: "textarea",
+          label: "Custom CSS",
+          placeholder: "/* Optional component-specific styles */",
+        },
       },
-      render: ({ imageUrl, altText, height = 320 }) =>
-        imageUrl ? (
-          <div
-            style={{
-              marginBottom: "1.5rem",
-              borderRadius: 16,
-              overflow: "hidden",
-            }}
-          >
-            <img
-              src={imageUrl}
-              alt={altText}
-              style={{
-                display: "block",
-                width: "100%",
-                height,
-                objectFit: "cover",
-              }}
-            />
-          </div>
-        ) : null,
+      render: ({ imageUrl, altText, height = 320, customCss, id }) => {
+        const { inlineStyle, styleTag } = resolveCustomCss(customCss, id);
+        return (
+          <Fragment>
+            {renderCustomStyles(styleTag)}
+            <div
+              id={id}
+              style={applyInlineStyles({ marginBottom: "1.5rem" }, inlineStyle)}
+              data-imageUrl={imageUrl}
+            >
+              {imageUrl && imageUrl.length > 0 ? (
+                <img
+                  src={imageUrl}
+                  alt={altText}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height,
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    background: "#f1f1f1",
+                    height,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <span>No image provided</span>
+                </div>
+              )}
+            </div>
+          </Fragment>
+        );
+      },
     },
   },
 });
