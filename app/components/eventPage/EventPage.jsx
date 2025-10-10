@@ -73,6 +73,13 @@ export const EventPage = ({
       icon: <Icon i="briefcase-2" size={18} color="var(--tblr-purple)" />,
     },
     {
+      type: "item",
+      href: `${base}/website`,
+      text: "Website",
+      active: isActive(`${base}/website`),
+      icon: <Icon i="layout-board" size={18} color="var(--tblr-blue)" />,
+    },
+    {
       type: "dropdown",
       text: "Emails",
       icon: <Icon i="mail" size={18} color="var(--tblr-green)" />,
