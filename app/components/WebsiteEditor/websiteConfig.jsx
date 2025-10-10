@@ -2,6 +2,7 @@ import { Fragment, useState } from "react";
 import { Row } from "../../util/Flex";
 import { MarkdownRender } from "../markdown/MarkdownRenderer";
 import { RichTextField } from "./RichTextField";
+import { ImageUrlField } from "./ImageUrlField";
 
 const toCamelCase = (prop) =>
   prop
@@ -447,9 +448,12 @@ export const createWebsiteEditorConfig = () => ({
           placeholder: "image-banner",
         },
         imageUrl: {
-          type: "text",
-          label: "Image URL",
+          type: "custom",
+          label: "Image",
           placeholder: "https://…",
+          render: ({ value, onChange, field }) => (
+            <ImageUrlField field={field} value={value} onChange={onChange} />
+          ),
         },
         altText: {
           type: "text",
