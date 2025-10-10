@@ -11,6 +11,9 @@ import {
   createWebsiteEditorConfig,
 } from "./websiteConfig";
 import { createId } from "@paralleldrive/cuid2";
+import "./WebsiteEditor.css";
+import { IconButton } from "@measured/puck";
+import { TbArrowsMaximize, TbArrowsMinimize } from "react-icons/tb";
 
 const normalizeBlock = (block) => {
   if (!block) return block;
@@ -20,7 +23,8 @@ const normalizeBlock = (block) => {
     typeof props.id === "string" && props.id.trim().length > 0
       ? props.id.trim()
       : props.id;
-  const propId = (propIdValue && propIdValue.toString()) || `section-${blockId}`;
+  const propId =
+    (propIdValue && propIdValue.toString()) || `section-${blockId}`;
   return {
     ...block,
     id: blockId,
@@ -79,6 +83,7 @@ export const WebsiteEditor = () => {
   }));
   const [, startTransition] = useTransition();
   const config = useMemo(() => createWebsiteEditorConfig(), []);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleDraftUpdate = useCallback(
     (payload) => {
@@ -104,6 +109,66 @@ export const WebsiteEditor = () => {
     [startTransition]
   );
 
+  const exitFullscreen = useCallback(() => {
+    setIsFullscreen(false);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => !prev);
+  }, []);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        exitFullscreen();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [exitFullscreen, isFullscreen]);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isFullscreen]);
+
+  const HeaderActionsOverride = useCallback(
+    ({ children }) => (
+      <div className="website-editor__menu-actions">
+        <IconButton
+          type="button"
+          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          onClick={toggleFullscreen}
+          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          aria-pressed={isFullscreen}
+        >
+          {isFullscreen ? (
+            <TbArrowsMinimize size={18} aria-hidden="true" />
+          ) : (
+            <TbArrowsMaximize size={18} aria-hidden="true" />
+          )}
+        </IconButton>
+        {children}
+      </div>
+    ),
+    [isFullscreen, toggleFullscreen]
+  );
+
+  const puckOverrides = useMemo(
+    () => ({
+      headerActions: HeaderActionsOverride,
+    }),
+    [HeaderActionsOverride]
+  );
+
   return (
     <div>
       <Typography.H3 className="mb-2">Visual editor</Typography.H3>
@@ -112,7 +177,11 @@ export const WebsiteEditor = () => {
         while this page is open.
       </Typography.Text>
       {error ? (
-        <Alert variant="danger" title="Unable to load the editor" className="mb-3">
+        <Alert
+          variant="danger"
+          title="Unable to load the editor"
+          className="mb-3"
+        >
           {error.message}
         </Alert>
       ) : null}
@@ -120,19 +189,30 @@ export const WebsiteEditor = () => {
         <Typography.Text className="d-block">Loading editor…</Typography.Text>
       ) : null}
       {Puck ? (
-        <div
-          style={{
-            overflow: "hidden",
-            minHeight: 480,
-          }}
-        >
-          <Puck
-            config={config}
-            data={draftData}
-            onPublish={handleDraftUpdate}
-            onChange={handleDraftUpdate}
+        <React.Fragment>
+          <div
+            className={`website-editor__fullscreen-backdrop${
+              isFullscreen ? " is-visible" : ""
+            }`}
+            aria-hidden={!isFullscreen}
+            onClick={exitFullscreen}
           />
-        </div>
+          <div
+            className={`website-editor__puck-shell${
+              isFullscreen ? " is-fullscreen" : ""
+            }`}
+          >
+            <div className="website-editor__puck-container">
+              <Puck
+                config={config}
+                data={draftData}
+                onPublish={handleDraftUpdate}
+                onChange={handleDraftUpdate}
+                overrides={puckOverrides}
+              />
+            </div>
+          </div>
+        </React.Fragment>
       ) : null}
     </div>
   );

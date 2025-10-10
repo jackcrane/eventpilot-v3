@@ -214,7 +214,6 @@ const TopNavBlock = ({ brandLabel = "", menuItems = [], id, customCss }) => {
         style={applyInlineStyles(
           {
             padding: "0.75rem 0",
-            marginBottom: "1.5rem",
             display: "flex",
             alignItems: "center",
             gap: "1rem",
@@ -325,10 +324,7 @@ export const createWebsiteEditorConfig = () => ({
         return (
           <Fragment>
             {renderCustomStyles(styleTag)}
-            <div
-              id={id}
-              style={applyInlineStyles({ marginBottom: "1.5rem" }, inlineStyle)}
-            >
+            <div id={id} style={applyInlineStyles(inlineStyle)}>
               <MarkdownRender markdown={body || ""} />
             </div>
           </Fragment>
@@ -478,7 +474,7 @@ export const createWebsiteEditorConfig = () => ({
             {renderCustomStyles(styleTag)}
             <div
               id={id}
-              style={applyInlineStyles({ marginBottom: "1.5rem" }, inlineStyle)}
+              style={applyInlineStyles(inlineStyle)}
               data-imageUrl={imageUrl}
             >
               {imageUrl && imageUrl.length > 0 ? (
