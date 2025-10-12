@@ -66,3 +66,26 @@
   gap: 0.5rem;
   margin-right: 0.5rem;
 }
+
+.pageToolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.pageLabel {
+  font-weight: 600;
+  color: var(--tblr-body-color, #0f172a);
+}
+
+.pageSelect {
+  min-width: 200px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--tblr-border-color, rgba(148, 163, 184, 0.35));
+  background: #fff;
+  color: var(--tblr-body-color, #0f172a);
+  line-height: 1.4;
+}

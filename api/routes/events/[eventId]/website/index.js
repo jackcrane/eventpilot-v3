@@ -2,8 +2,14 @@ import { z } from "zod";
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
 import { serializeError } from "#serializeError";
+import {
+  extractWebsitePage,
+  listAvailableRouteKeys,
+  normalizeRouteKeyInput,
+  upsertWebsitePage,
+} from "#util/websitePages.js";
 
-const routeKeySchema = z.string().min(1).max(100);
+const routeKeySchema = z.string().trim().min(1).max(100);
 
 const websitePageSchema = z.object({
   routeKey: routeKeySchema,
@@ -25,18 +31,8 @@ const getRequestedRouteKey = (req) => {
       : Array.isArray(routeKey)
         ? routeKey[0]
         : null;
-  const parsed = routeKeySchema.safeParse(candidate ?? "home");
-  return parsed.success ? parsed.data : "home";
+  return normalizeRouteKeyInput(candidate);
 };
-
-const coerceWebsitePages = (value) => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return {};
-  }
-  return value;
-};
-
-const sanitizeForJson = (value) => JSON.parse(JSON.stringify(value ?? {}));
 
 const fetchEventForRequest = async (req) => {
   return prisma.event.findFirst({
@@ -54,21 +50,44 @@ const fetchEventForRequest = async (req) => {
 export const get = [
   verifyAuth(["manager"], true),
   async (req, res) => {
-    const routeKey = getRequestedRouteKey(req);
+    const requestedRouteKey = getRequestedRouteKey(req);
     const event = await fetchEventForRequest(req);
 
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    const pages = coerceWebsitePages(event.websitePages);
-    const pageData = pages[routeKey] ?? null;
+    console.log("[website#get] raw event websitePages", {
+      eventId: event.id,
+      requestedRouteKey,
+      type: event.websitePages == null ? "null" : typeof event.websitePages,
+      keys:
+        event.websitePages && typeof event.websitePages === "object"
+          ? Object.keys(event.websitePages)
+          : null,
+      value: event.websitePages,
+    });
+
+    const { pages, routeKey, pageData } = extractWebsitePage(
+      event.websitePages,
+      requestedRouteKey
+    );
+    const availableRouteKeys = listAvailableRouteKeys(pages, routeKey);
+
+    console.log("[website#get] normalized websitePages result", {
+      eventId: event.id,
+      routeKey,
+      availableRouteKeys,
+      pageKeys: Object.keys(pages || {}),
+      pageData,
+    });
 
     return res.json({
       websitePage: {
         routeKey,
         data: pageData,
       },
+      availableRouteKeys,
     });
   },
 ];
@@ -88,13 +107,15 @@ export const put = [
     }
 
     const { routeKey, data } = parsed.data;
-    const sanitizedData = sanitizeForJson(data);
-    const pages = coerceWebsitePages(event.websitePages);
-
-    const updatedPages = {
-      ...pages,
-      [routeKey]: sanitizedData,
-    };
+    const {
+      pages: updatedPages,
+      routeKey: sanitizedRouteKey,
+      draft: sanitizedData,
+    } = upsertWebsitePage(event.websitePages, routeKey, data);
+    const availableRouteKeys = listAvailableRouteKeys(
+      updatedPages,
+      sanitizedRouteKey
+    );
 
     await prisma.event.update({
       where: { id: event.id },
@@ -105,9 +126,10 @@ export const put = [
 
     return res.json({
       websitePage: {
-        routeKey,
+        routeKey: sanitizedRouteKey,
         data: sanitizedData,
       },
+      availableRouteKeys,
     });
   },
 ];

@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useTransition,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Typography } from "tabler-react-2";
 import {
   DEFAULT_WEBSITE_DATA,
@@ -16,6 +10,7 @@ import { IconButton } from "@measured/puck";
 import { TbArrowsMaximize, TbArrowsMinimize } from "react-icons/tb";
 import { useParams } from "react-router-dom";
 import { useEventWebsite } from "../../hooks/useEventWebsite";
+import toast from "react-hot-toast";
 
 const normalizeBlock = (block) => {
   if (!block) return block;
@@ -90,7 +85,6 @@ const isPlainObject = (value) =>
   !!value && typeof value === "object" && !Array.isArray(value);
 
 const normalizeEditorData = (data) => {
-  const source = isPlainObject(data) ? cloneJson(data) : {};
   const fallbackContent = Array.isArray(DEFAULT_WEBSITE_DATA.content)
     ? DEFAULT_WEBSITE_DATA.content
     : [];
@@ -101,17 +95,54 @@ const normalizeEditorData = (data) => {
     ? DEFAULT_WEBSITE_DATA.zones
     : {};
 
+  const base = Array.isArray(data)
+    ? { content: cloneJson(data) }
+    : isPlainObject(data)
+      ? cloneJson(data)
+      : {};
+
+  const rawContent = Array.isArray(base.content)
+    ? base.content
+    : Array.isArray(base.blocks)
+      ? base.blocks
+      : fallbackContent;
+
+  const rawRoot = isPlainObject(base.root) ? base.root : fallbackRoot;
+  const rawZones = isPlainObject(base.zones) ? base.zones : fallbackZones;
+
   return {
-    ...source,
-    content: withStableIds(
-      Array.isArray(source.content) ? source.content : fallbackContent
-    ),
-    root:
-      cloneJson(isPlainObject(source.root) ? source.root : fallbackRoot) || {},
-    zones: normalizeZones(
-      isPlainObject(source.zones) ? source.zones : fallbackZones
-    ),
+    ...base,
+    content: withStableIds(rawContent),
+    root: cloneJson(rawRoot) || {},
+    zones: normalizeZones(rawZones),
   };
+};
+
+const areDraftsEqual = (left, right) => {
+  if (left === right) return true;
+  if (!left || !right) return false;
+  try {
+    return JSON.stringify(left) === JSON.stringify(right);
+  } catch {
+    return false;
+  }
+};
+
+const slugifyRouteKey = (value) => {
+  if (typeof value !== "string") return "";
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-")
+    .slice(0, 100);
+  return slug;
+};
+
+const formatRouteLabel = (key) => {
+  if (key === "home") return "Home";
+  return `/${key}`;
 };
 
 export const WebsiteEditor = () => {
@@ -121,12 +152,11 @@ export const WebsiteEditor = () => {
     () => normalizeEditorData(DEFAULT_WEBSITE_DATA),
     []
   );
-  const [draftData, setDraftData] = useState(() => defaultEditorData);
-  const [, startTransition] = useTransition();
+  const [draftsByRoute, setDraftsByRoute] = useState(() => ({}));
   const config = useMemo(() => createWebsiteEditorConfig(), []);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const { eventId } = useParams();
-  const routeKey = "home";
+  const [routeKey, setRouteKey] = useState("home");
 
   const {
     websitePage,
@@ -134,7 +164,34 @@ export const WebsiteEditor = () => {
     error: websiteError,
     saveWebsite,
     saving,
+    availableRouteKeys,
   } = useEventWebsite({ eventId, routeKey });
+
+  const normalizedRemoteData = useMemo(() => {
+    if (!websitePage?.data) return null;
+    return normalizeEditorData(websitePage.data);
+  }, [websitePage?.data]);
+
+  const currentDraft = useMemo(() => {
+    return draftsByRoute[routeKey] ?? normalizedRemoteData ?? defaultEditorData;
+  }, [draftsByRoute, routeKey, normalizedRemoteData, defaultEditorData]);
+
+  const routeOptions = useMemo(() => {
+    const normalized = Array.isArray(availableRouteKeys)
+      ? availableRouteKeys.filter(
+          (key) => typeof key === "string" && key.trim().length > 0
+        )
+      : [];
+    const draftKeys = Object.keys(draftsByRoute);
+    const merged = Array.from(
+      new Set([...normalized, ...draftKeys, routeKey])
+    );
+    return merged.sort((a, b) => {
+      if (a === "home") return -1;
+      if (b === "home") return 1;
+      return a.localeCompare(b);
+    });
+  }, [availableRouteKeys, draftsByRoute, routeKey]);
 
   const resolveNormalizedDraft = useCallback((payload) => {
     if (!payload) return null;
@@ -143,33 +200,68 @@ export const WebsiteEditor = () => {
     return normalizeEditorData(nextData);
   }, []);
 
+  useEffect(() => {
+    setRouteKey("home");
+    setDraftsByRoute({});
+  }, [eventId]);
+
   const handleDraftUpdate = useCallback(
     (payload) => {
       const normalized = resolveNormalizedDraft(payload);
       if (!normalized) return;
-      startTransition(() => {
-        setDraftData(normalized);
-      });
+      setDraftsByRoute((previous) => ({
+        ...previous,
+        [routeKey]: normalized,
+      }));
     },
-    [resolveNormalizedDraft, startTransition]
+    [resolveNormalizedDraft, routeKey]
   );
 
   const handlePublish = useCallback(
     async (payload) => {
       const normalized = resolveNormalizedDraft(payload);
       if (!normalized) return;
-      startTransition(() => {
-        setDraftData(normalized);
-      });
-      await saveWebsite(normalized);
+      setDraftsByRoute((previous) => ({
+        ...previous,
+        [routeKey]: normalized,
+      }));
+      await saveWebsite(normalized, routeKey);
     },
-    [resolveNormalizedDraft, saveWebsite, startTransition]
+    [resolveNormalizedDraft, routeKey, saveWebsite]
   );
 
   const handleManualSave = useCallback(() => {
-    if (!draftData) return;
-    void saveWebsite(draftData);
-  }, [draftData, saveWebsite]);
+    const draft = draftsByRoute[routeKey] ?? currentDraft;
+    if (!draft) return;
+    void saveWebsite(draft, routeKey);
+  }, [currentDraft, draftsByRoute, routeKey, saveWebsite]);
+
+  const handleRouteChange = useCallback(
+    (event) => {
+      const nextKey = (event?.target?.value || "").trim();
+      if (!nextKey || nextKey === routeKey) return;
+      setRouteKey(nextKey);
+    },
+    [routeKey]
+  );
+
+  const handleCreatePage = useCallback(() => {
+    const input =
+      typeof window !== "undefined"
+        ? window.prompt("Enter a URL slug for the new page (e.g. schedule)")
+        : null;
+    if (input == null) return;
+    const slug = slugifyRouteKey(input);
+    if (!slug) {
+      toast.error("Page key must include letters or numbers.");
+      return;
+    }
+    if (routeOptions.includes(slug)) {
+      toast.error("That page already exists.");
+      return;
+    }
+    setRouteKey(slug);
+  }, [routeOptions]);
 
   const exitFullscreen = useCallback(() => {
     setIsFullscreen(false);
@@ -204,20 +296,56 @@ export const WebsiteEditor = () => {
 
   useEffect(() => {
     if (!websitePage) return;
-    const remoteData = websitePage.data;
-    if (remoteData) {
-      const normalized = normalizeEditorData(remoteData);
-      startTransition(() => {
-        setDraftData(normalized);
+    if (websitePage.routeKey && websitePage.routeKey !== routeKey) {
+      setRouteKey(websitePage.routeKey);
+      return;
+    }
+    if (normalizedRemoteData) {
+      setDraftsByRoute((previous) => {
+        const existing = previous[routeKey];
+        if (
+          existing &&
+          existing !== defaultEditorData &&
+          areDraftsEqual(existing, normalizedRemoteData)
+        ) {
+          return previous;
+        }
+        return {
+          ...previous,
+          [routeKey]: normalizedRemoteData,
+        };
       });
       return;
     }
     if (!websiteLoading) {
-      startTransition(() => {
-        setDraftData(defaultEditorData);
+      setDraftsByRoute((previous) => {
+        if (previous[routeKey]) return previous;
+        return {
+          ...previous,
+          [routeKey]: defaultEditorData,
+        };
       });
     }
-  }, [defaultEditorData, websiteLoading, websitePage, startTransition]);
+  }, [
+    defaultEditorData,
+    normalizedRemoteData,
+    routeKey,
+    websiteLoading,
+    websitePage,
+  ]);
+
+  useEffect(() => {
+    if (!routeKey) return;
+    setDraftsByRoute((previous) => {
+      if (previous[routeKey]) {
+        return previous;
+      }
+      return {
+        ...previous,
+        [routeKey]: defaultEditorData,
+      };
+    });
+  }, [defaultEditorData, routeKey]);
 
   const HeaderActionsOverride = useCallback(
     ({ children }) => (
@@ -255,6 +383,32 @@ export const WebsiteEditor = () => {
         Design your hosted website and publish whenever you are ready. Saving
         stores the current page layout for this event.
       </Typography.Text>
+      <div className={styles.pageToolbar}>
+        <label className={styles.pageLabel} htmlFor="website-editor-route-key">
+          Page
+        </label>
+        <select
+          id="website-editor-route-key"
+          className={styles.pageSelect}
+          value={routeKey}
+          onChange={handleRouteChange}
+          disabled={websiteLoading && !websitePage}
+        >
+          {routeOptions.map((key) => (
+            <option key={key} value={key}>
+              {formatRouteLabel(key)}
+            </option>
+          ))}
+        </select>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleCreatePage}
+          disabled={saving}
+        >
+          Create page
+        </Button>
+      </div>
       {websiteError ? (
         <Alert
           variant="danger"
@@ -275,7 +429,7 @@ export const WebsiteEditor = () => {
       ) : null}
       {!Puck && !error ? (
         <Typography.Text className="d-block">
-          {websiteLoading ? "Loading website…" : "Loading editor…"}
+          {websiteLoading ? "Loading page…" : "Loading editor…"}
         </Typography.Text>
       ) : null}
       {Puck ? (
@@ -294,8 +448,9 @@ export const WebsiteEditor = () => {
           >
             <div className={styles.puckContainer}>
               <Puck
+                key={routeKey}
                 config={config}
-                data={draftData}
+                data={currentDraft}
                 onPublish={handlePublish}
                 onChange={handleDraftUpdate}
                 overrides={puckOverrides}
