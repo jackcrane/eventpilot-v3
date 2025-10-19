@@ -16,7 +16,7 @@ export const Consumer = ({ subdomain }) => {
             path="/"
             element={<ConsumerWebsiteRoute defaultRouteKey="home" />}
           />
-          <Route path="/:routeKey" element={<ConsumerWebsiteRoute />} />
+          <Route path="/*" element={<ConsumerWebsiteRoute />} />
         </Routes>
       </Router>
     </div>

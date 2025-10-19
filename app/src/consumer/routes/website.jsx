@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Alert, Typography } from "tabler-react-2";
-import { useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useTitle } from "react-use";
 import { Loading } from "../../../components/loading/Loading";
 import { WebsiteRenderer } from "../../../components/WebsiteRenderer/WebsiteRenderer";
@@ -9,25 +9,33 @@ import { useConsumerWebsite } from "../../../hooks/useConsumerWebsite";
 
 const formatRouteLabel = (key) => {
   if (!key || key === "home") return "Home";
-  return key
+  const segments = key.split("/").filter((segment) => segment.length > 0);
+  const lastSegment = segments.length > 0 ? segments[segments.length - 1] : key;
+  return lastSegment
     .split("-")
-    .map((segment) =>
-      segment.length > 0
-        ? segment.charAt(0).toUpperCase() + segment.slice(1)
-        : segment
-    )
+    .filter((segment) => segment.length > 0)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(" ");
 };
 
 const normalizeRouteParam = (value, fallback = "home") => {
   if (!value || typeof value !== "string") return fallback;
-  const trimmed = value.trim().replace(/^\/+/, "");
-  return trimmed.length > 0 ? trimmed.toLowerCase() : fallback;
+  const trimmed = value.trim().replace(/^\/+/, "").replace(/\/+$/, "");
+  if (!trimmed) return fallback;
+  const normalized = trimmed
+    .split("/")
+    .filter((segment) => segment.length > 0)
+    .map((segment) => segment.toLowerCase())
+    .join("/");
+  return normalized.length > 0 ? normalized.slice(0, 100) : fallback;
 };
 
 export const ConsumerWebsiteRoute = ({ defaultRouteKey = "home" } = {}) => {
-  const { routeKey: routeParam } = useParams();
-  const routeKey = normalizeRouteParam(routeParam, defaultRouteKey);
+  const location = useLocation();
+  const pathname = location?.pathname ?? "/";
+  const routeKey = useMemo(() => {
+    return normalizeRouteParam(pathname, defaultRouteKey);
+  }, [defaultRouteKey, pathname]);
   const eventSlug = useReducedSubdomain();
 
   const {

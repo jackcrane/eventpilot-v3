@@ -1,4 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  memo,
+  useRef,
+  useState,
+} from "react";
 import { Alert, Button, Typography } from "tabler-react-2";
 import {
   DEFAULT_WEBSITE_DATA,
@@ -128,22 +136,240 @@ const areDraftsEqual = (left, right) => {
   }
 };
 
-const slugifyRouteKey = (value) => {
-  if (typeof value !== "string") return "";
-  const slug = value
+const normalizeRouteSegment = (segment) => {
+  if (typeof segment !== "string") return "";
+  return segment
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .replace(/-{2,}/g, "-")
-    .slice(0, 100);
-  return slug;
+    .replace(/-{2,}/g, "-");
+};
+
+const slugifyRouteKey = (value) => {
+  if (typeof value !== "string") return "";
+  const segments = value
+    .split("/")
+    .map((segment) => normalizeRouteSegment(segment))
+    .filter((segment) => segment.length > 0);
+  const slug = segments.join("/");
+  return slug.slice(0, 100);
 };
 
 const formatRouteLabel = (key) => {
   if (key === "home") return "Home";
+  const segments = typeof key === "string" ? key.split("/").filter(Boolean) : [];
+  const lastSegment = segments.at(-1);
+  if (!lastSegment) {
+    return `/${key}`;
+  }
+  const words = lastSegment.replace(/[-_]+/g, " ").trim();
+  if (!words) {
+    return `/${key}`;
+  }
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+const formatRoutePath = (key) => {
+  if (!key || key === "home") return "/";
   return `/${key}`;
 };
+
+const buildRouteTree = (routeKeys) => {
+  if (!Array.isArray(routeKeys)) return [];
+
+  const uniqueKeys = Array.from(
+    new Set(
+      routeKeys
+        .map((value) => (typeof value === "string" ? value.trim() : ""))
+        .filter((value) => value.length > 0)
+    )
+  );
+
+  const hasHomeRoute = uniqueKeys.includes("home");
+  const filteredKeys = uniqueKeys.filter((key) => key !== "home");
+
+  const rootMap = new Map();
+
+  filteredKeys.forEach((key) => {
+    const segments = key.split("/").filter(Boolean);
+    if (segments.length === 0) return;
+    let parentMap = rootMap;
+    let accumulated = "";
+
+    segments.forEach((segment, index) => {
+      accumulated = accumulated ? `${accumulated}/${segment}` : segment;
+      const existing = parentMap.get(segment);
+      if (existing) {
+        if (index === segments.length - 1) {
+          existing.isRoute = true;
+        }
+        parentMap = existing.children;
+        return;
+      }
+      const node = {
+        segment,
+        fullKey: accumulated,
+        label: formatRouteLabel(accumulated),
+        isRoute: index === segments.length - 1,
+        children: new Map(),
+      };
+      parentMap.set(segment, node);
+      parentMap = node.children;
+    });
+  });
+
+  const convertNodes = (nodeMap) =>
+    Array.from(nodeMap.values())
+      .sort((a, b) => a.segment.localeCompare(b.segment))
+      .map((node) => ({
+        fullKey: node.fullKey,
+        label: node.label,
+        isRoute: node.isRoute,
+        children: convertNodes(node.children),
+      }));
+
+  const tree = convertNodes(rootMap);
+
+  if (hasHomeRoute) {
+    tree.unshift({
+      fullKey: "home",
+      label: formatRouteLabel("home"),
+      isRoute: true,
+      children: [],
+    });
+  }
+
+  return tree;
+};
+
+const arraysShallowEqual = (left, right) => {
+  if (left === right) return true;
+  if (!Array.isArray(left) || !Array.isArray(right)) return false;
+  if (left.length !== right.length) return false;
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) return false;
+  }
+  return true;
+};
+
+const useStableArray = (array) => {
+  const ref = useRef(array);
+  return useMemo(() => {
+    if (arraysShallowEqual(ref.current, array)) {
+      return ref.current;
+    }
+    ref.current = array;
+    return array;
+  }, [array]);
+};
+
+const RouteTreeNodeComponent = ({
+  node,
+  activeRoute,
+  onSelectRoute,
+  routesDisabled,
+}) => {
+  const isActive = node.fullKey === activeRoute;
+  const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+
+  return (
+    <li
+      key={node.fullKey}
+      className={styles.routeItem}
+      role="treeitem"
+      aria-selected={isActive || undefined}
+      aria-expanded={hasChildren ? "true" : undefined}
+    >
+      {node.isRoute ? (
+        <button
+          type="button"
+          className={
+            isActive
+              ? `${styles.routeButton} ${styles.routeButtonActive}`
+              : styles.routeButton
+          }
+          disabled={routesDisabled}
+          onClick={() => onSelectRoute(node.fullKey)}
+          aria-current={isActive ? "true" : undefined}
+          title={formatRoutePath(node.fullKey)}
+        >
+          {node.label}
+        </button>
+      ) : (
+        <div
+          className={styles.routeBranchLabel}
+          title={formatRoutePath(node.fullKey)}
+        >
+          {node.label}
+        </div>
+      )}
+      {hasChildren ? (
+        <ul className={styles.routesChildren} role="group">
+          {node.children.map((child) => (
+            <RouteTreeNode
+              key={child.fullKey}
+              node={child}
+              activeRoute={activeRoute}
+              onSelectRoute={onSelectRoute}
+              routesDisabled={routesDisabled}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  );
+};
+
+const RouteTreeNode = memo(RouteTreeNodeComponent);
+
+const RouteTreePanelComponent = ({
+  routeTree,
+  activeRoute,
+  onSelectRoute,
+  onCreateRoute,
+  createDisabled,
+  routesDisabled,
+}) => {
+  return (
+    <section className={styles.routesSection} aria-labelledby="website-editor-routes">
+      <header className={styles.routesHeader}>
+        <span id="website-editor-routes" className={styles.routesTitle}>
+          Routes
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCreateRoute}
+          disabled={createDisabled}
+          className={styles.routesCreateButton}
+        >
+          Create page
+        </Button>
+      </header>
+      <nav className={styles.routesTreeWrapper} aria-label="Website routes">
+        <ul className={styles.routesTree} role="tree">
+          <li className={styles.routesRoot} role="treeitem" aria-expanded="true">
+            <div className={styles.routesRootLabel}>Website</div>
+            <ul className={styles.routesChildren} role="group">
+              {routeTree.map((node) => (
+                <RouteTreeNode
+                  key={node.fullKey}
+                  node={node}
+                  activeRoute={activeRoute}
+                  onSelectRoute={onSelectRoute}
+                  routesDisabled={routesDisabled}
+                />
+              ))}
+            </ul>
+          </li>
+        </ul>
+      </nav>
+    </section>
+  );
+};
+
+const RouteTreePanel = memo(RouteTreePanelComponent);
 
 export const WebsiteEditor = () => {
   const { moduleRef, error } = usePuckModule();
@@ -193,6 +419,13 @@ export const WebsiteEditor = () => {
     });
   }, [availableRouteKeys, draftsByRoute, routeKey]);
 
+  const stableRouteOptions = useStableArray(routeOptions);
+
+  const routeTree = useMemo(
+    () => buildRouteTree(stableRouteOptions),
+    [stableRouteOptions]
+  );
+
   const resolveNormalizedDraft = useCallback((payload) => {
     if (!payload) return null;
     const nextData = payload?.data ?? payload;
@@ -207,24 +440,27 @@ export const WebsiteEditor = () => {
 
   const handleDraftUpdate = useCallback(
     (payload) => {
-      const normalized = resolveNormalizedDraft(payload);
-      if (!normalized) return;
+      const draft = payload?.data ?? payload;
+      if (!draft) return;
       setDraftsByRoute((previous) => ({
         ...previous,
-        [routeKey]: normalized,
+        [routeKey]: draft,
       }));
     },
-    [resolveNormalizedDraft, routeKey]
+    [routeKey]
   );
 
   const handlePublish = useCallback(
     async (payload) => {
       const normalized = resolveNormalizedDraft(payload);
       if (!normalized) return;
-      setDraftsByRoute((previous) => ({
-        ...previous,
-        [routeKey]: normalized,
-      }));
+      setDraftsByRoute((previous) => {
+        const draft = payload?.data ?? payload ?? normalized;
+        return {
+          ...previous,
+          [routeKey]: draft,
+        };
+      });
       await saveWebsite(normalized, routeKey);
     },
     [resolveNormalizedDraft, routeKey, saveWebsite]
@@ -236,11 +472,12 @@ export const WebsiteEditor = () => {
     void saveWebsite(draft, routeKey);
   }, [currentDraft, draftsByRoute, routeKey, saveWebsite]);
 
-  const handleRouteChange = useCallback(
-    (event) => {
-      const nextKey = (event?.target?.value || "").trim();
-      if (!nextKey || nextKey === routeKey) return;
-      setRouteKey(nextKey);
+  const handleRouteSelect = useCallback(
+    (nextKey) => {
+      const normalized =
+        typeof nextKey === "string" ? nextKey.trim() : "";
+      if (!normalized || normalized === routeKey) return;
+      setRouteKey(normalized);
     },
     [routeKey]
   );
@@ -248,7 +485,9 @@ export const WebsiteEditor = () => {
   const handleCreatePage = useCallback(() => {
     const input =
       typeof window !== "undefined"
-        ? window.prompt("Enter a URL slug for the new page (e.g. schedule)")
+        ? window.prompt(
+            "Enter a URL slug for the new page (e.g. schedule or schedule/sessions)"
+          )
         : null;
     if (input == null) return;
     const slug = slugifyRouteKey(input);
@@ -256,12 +495,12 @@ export const WebsiteEditor = () => {
       toast.error("Page key must include letters or numbers.");
       return;
     }
-    if (routeOptions.includes(slug)) {
+    if (stableRouteOptions.includes(slug)) {
       toast.error("That page already exists.");
       return;
     }
-    setRouteKey(slug);
-  }, [routeOptions]);
+    handleRouteSelect(slug);
+  }, [handleRouteSelect, stableRouteOptions]);
 
   const exitFullscreen = useCallback(() => {
     setIsFullscreen(false);
@@ -369,11 +608,34 @@ export const WebsiteEditor = () => {
     [isFullscreen, toggleFullscreen]
   );
 
+  const routesDisabled = websiteLoading && !websitePage;
+
   const puckOverrides = useMemo(
     () => ({
       headerActions: HeaderActionsOverride,
+      fields: ({ children }) => (
+        <Fragment>
+          {children}
+          <RouteTreePanel
+            routeTree={routeTree}
+            activeRoute={routeKey}
+            onSelectRoute={handleRouteSelect}
+            onCreateRoute={handleCreatePage}
+            createDisabled={saving}
+            routesDisabled={routesDisabled}
+          />
+        </Fragment>
+      ),
     }),
-    [HeaderActionsOverride]
+    [
+      HeaderActionsOverride,
+      routeTree,
+      routeKey,
+      handleRouteSelect,
+      handleCreatePage,
+      saving,
+      routesDisabled,
+    ]
   );
 
   return (
@@ -383,32 +645,6 @@ export const WebsiteEditor = () => {
         Design your hosted website and publish whenever you are ready. Saving
         stores the current page layout for this event.
       </Typography.Text>
-      <div className={styles.pageToolbar}>
-        <label className={styles.pageLabel} htmlFor="website-editor-route-key">
-          Page
-        </label>
-        <select
-          id="website-editor-route-key"
-          className={styles.pageSelect}
-          value={routeKey}
-          onChange={handleRouteChange}
-          disabled={websiteLoading && !websitePage}
-        >
-          {routeOptions.map((key) => (
-            <option key={key} value={key}>
-              {formatRouteLabel(key)}
-            </option>
-          ))}
-        </select>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleCreatePage}
-          disabled={saving}
-        >
-          Create page
-        </Button>
-      </div>
       {websiteError ? (
         <Alert
           variant="danger"
