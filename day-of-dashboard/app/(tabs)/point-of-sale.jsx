@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Redirect, useFocusEffect } from "expo-router";
@@ -17,20 +13,22 @@ import { DayOfColors } from "../../constants/theme";
 import { useDayOfSessionContext } from "../../contexts/DayOfSessionContext";
 import { useTapToPay } from "../../hooks/useTapToPay";
 
-const Button = ({ label, onPress, disabled }) => (
+const PrimaryButton = ({ label, onPress, disabled }) => (
   <Pressable
     onPress={onPress}
     disabled={disabled}
     style={({ pressed }) => [
-      styles.button,
-      disabled ? styles.buttonDisabled : styles.buttonEnabled,
-      pressed && !disabled ? styles.buttonPressed : null,
+      styles.primaryButton,
+      disabled ? styles.primaryButtonDisabled : styles.primaryButtonEnabled,
+      pressed && !disabled ? styles.primaryButtonPressed : null,
     ]}
   >
     <Text
       style={[
-        styles.buttonLabel,
-        disabled ? styles.buttonLabelDisabled : styles.buttonLabelEnabled,
+        styles.primaryButtonLabel,
+        disabled
+          ? styles.primaryButtonLabelDisabled
+          : styles.primaryButtonLabelEnabled,
       ]}
     >
       {label}
@@ -38,13 +36,8 @@ const Button = ({ label, onPress, disabled }) => (
   </Pressable>
 );
 
-const formatCurrency = (amount, currency) => {
-  const dollars = (amount / 100).toFixed(2);
-  return `${currency?.toUpperCase() ?? "USD"} ${dollars}`;
-};
-
 const PointOfSaleScreen = () => {
-  const [amountInput, setAmountInput] = useState("5.00");
+  const [amountDigits, setAmountDigits] = useState("0");
   const [localMessage, setLocalMessage] = useState(null);
 
   const { account, permissions, hydrated } = useDayOfSessionContext();
@@ -60,10 +53,8 @@ const PointOfSaleScreen = () => {
     processingPayment,
     connectedReader,
     connectionStatus,
-    paymentStatus,
     lastError,
     resetError,
-    lastPaymentIntent,
     tapToPaySupported,
     merchantDisplayName,
     loading,
@@ -73,34 +64,51 @@ const PointOfSaleScreen = () => {
   const hasPermission = permissions.includes("POINT_OF_SALE");
 
   const amountInCents = useMemo(() => {
-    const normalized = amountInput.replace(/[^0-9.]/g, "");
-    const parsed = Number.parseFloat(normalized);
-    if (Number.isNaN(parsed)) {
-      return null;
+    const numeric = Number.parseInt(amountDigits, 10);
+    if (Number.isNaN(numeric) || numeric < 0) {
+      return 0;
     }
-    return Math.round(parsed * 100);
-  }, [amountInput]);
+    return numeric;
+  }, [amountDigits]);
+
+  const formattedAmount = useMemo(() => {
+    return (amountInCents / 100).toFixed(2);
+  }, [amountInCents]);
 
   const handleInitialize = useCallback(
     async ({ auto = false } = {}) => {
+      console.log("[POS][view] handleInitialize invoked", { auto });
       const result = await initializeTerminal();
       if (result.success) {
         setLocalMessage(auto ? null : "Stripe Terminal is initialized.");
+        console.log("[POS][view] handleInitialize success", { auto });
       } else if (result.error?.message) {
         setLocalMessage(null);
+        console.log("[POS][view] handleInitialize failed", {
+          auto,
+          error: result.error?.message ?? null,
+        });
       }
+      return result;
     },
     [initializeTerminal]
   );
 
   const handleStartTapToPay = useCallback(
     async ({ auto = false } = {}) => {
+      console.log("[POS][view] handleStartTapToPay invoked", { auto });
       const result = await startTapToPay();
       if (result.success) {
         setLocalMessage(auto ? null : "Tap to Pay is ready on this device.");
+        console.log("[POS][view] handleStartTapToPay success", { auto });
       } else if (result.error?.message) {
         setLocalMessage(null);
+        console.log("[POS][view] handleStartTapToPay failed", {
+          auto,
+          error: result.error?.message ?? null,
+        });
       }
+      return result;
     },
     [startTapToPay]
   );
@@ -108,32 +116,128 @@ const PointOfSaleScreen = () => {
   const handleCollectPayment = useCallback(async () => {
     if (!amountInCents || amountInCents <= 0) {
       setLocalMessage("Enter a payment amount greater than zero.");
+       console.log("[POS][view] handleCollectPayment blocked: invalid amount", {
+         amountInCents,
+       });
       return;
     }
     resetError();
+    console.log("[POS][view] handleCollectPayment start", {
+      amountInCents,
+      merchantDisplayName,
+    });
     const result = await takePayment({
       amount: amountInCents,
       currency: "usd",
-      description: `Tap to Pay test charge - ${merchantDisplayName}`,
+      description: `Tap to Pay charge - ${merchantDisplayName}`,
     });
     if (result.success) {
       setLocalMessage("Payment completed successfully.");
+      setAmountDigits("0");
+      console.log("[POS][view] handleCollectPayment success");
     } else if (result.error?.message) {
       setLocalMessage(null);
+      console.log("[POS][view] handleCollectPayment failed", {
+        error: result.error?.message ?? null,
+      });
     }
-  }, [amountInCents, merchantDisplayName, resetError, takePayment]);
+  }, [
+    amountInCents,
+    merchantDisplayName,
+    resetError,
+    takePayment,
+  ]);
 
   const autoInitializeAttemptedRef = useRef(false);
   const autoStartAttemptedRef = useRef(false);
   const previousReaderRef = useRef(null);
 
+  const handleKeyPress = useCallback((key) => {
+    setAmountDigits((prev) => {
+      if (key === "clear") {
+        return "0";
+      }
+      if (key === "del") {
+        if (prev.length <= 1) {
+          return "0";
+        }
+        return prev.slice(0, -1);
+      }
+      if (!/^\d$/.test(key)) {
+        return prev;
+      }
+      if (prev.length >= 9) {
+        return prev;
+      }
+      if (prev === "0") {
+        return key;
+      }
+      return `${prev}${key}`;
+    });
+  }, []);
+
+  const readyToCollect =
+    Boolean(connectedReader) && amountInCents > 0 && !processingPayment;
+
+  const collectLabel = useMemo(() => {
+    if (processingPayment) {
+      return "Processing…";
+    }
+    if (amountInCents > 0) {
+      return `Collect $${formattedAmount}`;
+    }
+    return "Collect Payment";
+  }, [amountInCents, formattedAmount, processingPayment]);
+
+  const connectionSummary = useMemo(() => {
+    if (!tapToPaySupported) {
+      return "Tap to Pay is not supported on this device.";
+    }
+    if (connectedReader) {
+      const label =
+        connectedReader.label ||
+        connectedReader.serialNumber ||
+        "Tap to Pay reader";
+      return `Reader ready: ${label}`;
+    }
+    if (initializing) {
+      return "Initializing Stripe Terminal…";
+    }
+    if (discovering || connecting) {
+      return "Activating Tap to Pay…";
+    }
+    if (connectionStatus && connectionStatus !== "notConnected") {
+      return `Status: ${connectionStatus}`;
+    }
+    return "Waiting for Tap to Pay reader…";
+  }, [
+    connectedReader,
+    connecting,
+    connectionStatus,
+    discovering,
+    initializing,
+    tapToPaySupported,
+  ]);
+
+  const keypadRows = useMemo(
+    () => [
+      ["1", "2", "3"],
+      ["4", "5", "6"],
+      ["7", "8", "9"],
+      ["clear", "0", "del"],
+    ],
+    []
+  );
+
   useFocusEffect(
     useCallback(() => {
       if (!initialized) {
         autoInitializeAttemptedRef.current = false;
+        console.log("[POS][focus] reset auto initialization flag");
       }
       if (!connectedReader) {
         autoStartAttemptedRef.current = false;
+        console.log("[POS][focus] reset auto start flag (no reader)");
       }
     }, [connectedReader, initialized])
   );
@@ -150,7 +254,16 @@ const PointOfSaleScreen = () => {
     }
 
     autoInitializeAttemptedRef.current = true;
-    handleInitialize({ auto: true });
+    console.log("[POS][autoInit] attempting");
+    (async () => {
+      const result = await handleInitialize({ auto: true });
+      if (!result?.success) {
+        console.log("[POS][autoInit] will retry", {
+          error: result?.error?.message ?? null,
+        });
+        autoInitializeAttemptedRef.current = false;
+      }
+    })();
   }, [
     handleInitialize,
     hydrated,
@@ -165,12 +278,31 @@ const PointOfSaleScreen = () => {
     const hasReader = Boolean(connectedReader);
     if (hadReader && !hasReader) {
       autoStartAttemptedRef.current = false;
+      console.log("[POS][autoStart] reader disconnected, reset attempt flag");
     }
     if (hasReader) {
       autoStartAttemptedRef.current = false;
+      console.log("[POS][autoStart] reader connected, reset attempt flag");
     }
     previousReaderRef.current = connectedReader;
   }, [connectedReader]);
+
+  useEffect(() => {
+    if (!defaultLocationId) {
+      return;
+    }
+    if (!connectedReader) {
+      autoStartAttemptedRef.current = false;
+      console.log("[POS][autoStart] location available, reset attempt flag");
+    }
+    if (
+      lastError &&
+      `${lastError}`.toLowerCase().includes("stripe terminal address")
+    ) {
+      console.log("[POS][autoStart] clearing stale location error");
+      resetError();
+    }
+  }, [connectedReader, defaultLocationId, lastError, resetError]);
 
   useEffect(() => {
     if (
@@ -181,13 +313,23 @@ const PointOfSaleScreen = () => {
       connecting ||
       processingPayment ||
       !tapToPaySupported ||
-      connectedReader
+      connectedReader ||
+      !defaultLocationId
     ) {
       return;
     }
 
     autoStartAttemptedRef.current = true;
-    handleStartTapToPay({ auto: true });
+    console.log("[POS][autoStart] attempting");
+    (async () => {
+      const result = await handleStartTapToPay({ auto: true });
+      if (!result?.success) {
+        console.log("[POS][autoStart] will retry", {
+          error: result?.error?.message ?? null,
+        });
+        autoStartAttemptedRef.current = false;
+      }
+    })();
   }, [
     connectedReader,
     connecting,
@@ -196,6 +338,7 @@ const PointOfSaleScreen = () => {
     hydrated,
     initialized,
     processingPayment,
+    defaultLocationId,
     tapToPaySupported,
   ]);
 
@@ -214,179 +357,82 @@ const PointOfSaleScreen = () => {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.safeArea}
-    >
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-        overScrollMode="always"
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>Tap to Pay (Stripe Terminal)</Text>
-          <Text style={styles.subtitle}>
-            Logged in as {account?.name || "Unnamed Station"}
-          </Text>
-        </View>
-
-        {!defaultLocationId && (
-          <View style={styles.bannerWarning}>
-            <Text style={styles.bannerWarningTitle}>
-              Stripe location not configured
+    <View style={styles.safeArea}>
+      <View style={styles.content}>
+        <View style={styles.topSection}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Pay {merchantDisplayName}</Text>
+            <Text style={styles.subtitle}>
+              {account?.name
+                ? `Station: ${account.name}`
+                : "Tap to Pay station"}
             </Text>
-            <Text style={styles.bannerWarningBody}>
-              Create a Stripe Terminal location for this event and retry to sync
-              the default location.
-            </Text>
-          </View>
-        )}
-
-        {!tapToPaySupported && (
-          <View style={styles.bannerWarning}>
-            <Text style={styles.bannerWarningTitle}>Device not supported</Text>
-            <Text style={styles.bannerWarningBody}>
-              Tap to Pay on iPhone requires iOS 16.4 or later.
-            </Text>
-          </View>
-        )}
-
-        {(lastError || localMessage) && (
-          <View
-            style={[
-              styles.banner,
-              lastError ? styles.bannerError : styles.bannerInfo,
-            ]}
-          >
-            <Text style={styles.bannerTitle}>
-              {lastError ? "Action needed" : "Status"}
-            </Text>
-            <Text style={styles.bannerBody}>
-              {lastError?.message || lastError || localMessage}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.panel}>
-          <Text style={styles.panelLabel}>Setup</Text>
-
-          <View style={styles.panelSection}>
-            <Text style={styles.sectionTitle}>Initialize Stripe Terminal</Text>
-            <Text style={styles.sectionDescription}>
-              Requests a Stripe Terminal connection token and prepares the SDK.
-            </Text>
-            <Button
-              label={
-                initializing
-                  ? "Initializing…"
-                  : initialized
-                  ? "Terminal Ready"
-                  : "Initialize Stripe Terminal"
-              }
-              disabled={initializing || initialized}
-              onPress={handleInitialize}
-            />
+            {connectionSummary ? (
+              <Text style={styles.statusText}>{connectionSummary}</Text>
+            ) : null}
+            {defaultLocationId ? null : (
+              <Text style={styles.statusText}>
+                Stripe location not configured.
+              </Text>
+            )}
           </View>
 
-          <View style={styles.divider} />
-
-          <View style={styles.panelSection}>
-            <Text style={styles.sectionTitle}>Enable Tap to Pay</Text>
-            <Text style={styles.sectionDescription}>
-              Discovers the on-device reader and activates Tap to Pay.
+          {lastError ? (
+            <Text style={styles.errorText}>
+              {lastError?.message || lastError}
             </Text>
-            <Button
-              label={
-                connecting
-                  ? "Connecting…"
-                  : discovering
-                  ? "Discovering…"
-                  : connectedReader
-                  ? "Tap to Pay Ready"
-                  : "Enable Tap to Pay"
-              }
-              disabled={
-                !initialized || discovering || connecting || !tapToPaySupported
-              }
-              onPress={handleStartTapToPay}
-            />
-
-            <View style={styles.statusGrid}>
-              <View style={styles.statusItem}>
-                <Text style={styles.statusLabel}>Connection</Text>
-                <Text style={styles.statusValue}>{connectionStatus}</Text>
-              </View>
-              <View style={styles.statusItem}>
-                <Text style={styles.statusLabel}>Reader</Text>
-                <Text style={styles.statusValue}>
-                  {connectedReader?.label ||
-                    connectedReader?.serialNumber ||
-                    "Not connected"}
-                </Text>
-              </View>
-              <View style={styles.statusItem}>
-                <Text style={styles.statusLabel}>Payment state</Text>
-                <Text style={styles.statusValue}>{paymentStatus}</Text>
-              </View>
-              <View style={styles.statusItem}>
-                <Text style={styles.statusLabel}>Default location</Text>
-                <Text style={styles.statusValue}>
-                  {defaultLocationId || "Not set"}
-                </Text>
-              </View>
-            </View>
+          ) : localMessage ? (
+            <Text style={styles.infoText}>{localMessage}</Text>
+          ) : null}
+          <View style={styles.amountContainer}>
+            <Text style={styles.amountSymbol}>$</Text>
+            <Text style={styles.amountValue}>{formattedAmount}</Text>
           </View>
         </View>
-
-        <View style={styles.panel}>
-          <Text style={styles.panelLabel}>Collect payment</Text>
-
-          <View style={styles.panelSection}>
-            <Text style={styles.sectionTitle}>Amount</Text>
-            <Text style={styles.sectionDescription}>
-              Enter an amount and collect a tap-to-pay payment.
-            </Text>
-            <TextInput
-              value={amountInput}
-              onChangeText={setAmountInput}
-              keyboardType="decimal-pad"
-              placeholder="Amount (e.g. 5.00)"
-              style={styles.input}
-            />
-            <Button
-              label={
-                processingPayment ? "Processing…" : "Collect Payment via Tap"
-              }
-              disabled={!connectedReader || processingPayment || !amountInCents}
-              onPress={handleCollectPayment}
-            />
+        <View style={styles.bottomSection}>
+          <View style={styles.keypad}>
+            {keypadRows.map((row, rowIndex) => (
+              <View style={styles.keypadRow} key={`row-${rowIndex}`}>
+                {row.map((key) => {
+                  const label =
+                    key === "del" ? "⌫" : key === "clear" ? "CLR" : key;
+                  const isSecondary = key === "clear" || key === "del";
+                  return (
+                    <Pressable
+                      key={key}
+                      onPress={() => handleKeyPress(key)}
+                      style={({ pressed }) => [
+                        styles.keypadButton,
+                        isSecondary
+                          ? styles.keypadButtonSecondary
+                          : styles.keypadButtonPrimary,
+                        pressed ? styles.keypadButtonPressed : null,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.keypadButtonLabel,
+                          isSecondary
+                            ? styles.keypadButtonLabelSecondary
+                            : styles.keypadButtonLabelPrimary,
+                        ]}
+                      >
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
           </View>
+          <PrimaryButton
+            label={collectLabel}
+            disabled={!readyToCollect}
+            onPress={handleCollectPayment}
+          />
         </View>
-
-        {lastPaymentIntent && (
-          <View style={styles.panel}>
-            <Text style={styles.panelLabel}>Recent payment</Text>
-            <View style={styles.panelSection}>
-              <Text style={styles.sectionDetail}>
-                ID · {lastPaymentIntent.id}
-              </Text>
-              <Text style={styles.sectionDetail}>
-                Amount ·{" "}
-                {formatCurrency(
-                  lastPaymentIntent.amount,
-                  lastPaymentIntent.currency
-                )}
-              </Text>
-              <Text style={styles.sectionDetail}>
-                Status · {lastPaymentIntent.status}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        <View style={{ height: 24 }} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+    </View>
   );
 };
 
@@ -402,155 +448,125 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  container: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 16,
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    justifyContent: "space-between",
+    gap: 32,
+  },
+  topSection: {
     gap: 20,
-    flexGrow: 1,
   },
   header: {
-    gap: 8,
+    gap: 4,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "600",
+    fontSize: 28,
+    fontWeight: "700",
     color: DayOfColors.light.text,
   },
   subtitle: {
     fontSize: 15,
     color: DayOfColors.light.secondary,
   },
-  panel: {
-    paddingHorizontal: 20,
+  statusText: {
+    fontSize: 14,
+    color: DayOfColors.light.secondary,
+  },
+  errorText: {
+    fontSize: 16,
+    color: DayOfColors.light.danger,
+  },
+  infoText: {
+    fontSize: 16,
+    color: DayOfColors.light.success,
+  },
+  amountContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
     paddingVertical: 16,
-    borderRadius: 14,
+    paddingHorizontal: 18,
+    borderRadius: 20,
     backgroundColor: DayOfColors.common.white,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: DayOfColors.light.border,
-    gap: 16,
+    alignSelf: "stretch",
   },
-  panelLabel: {
-    fontSize: 14,
+  amountSymbol: {
+    fontSize: 28,
     fontWeight: "600",
     color: DayOfColors.light.secondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
   },
-  panelSection: {
+  amountValue: {
+    fontSize: 56,
+    fontWeight: "700",
+    color: DayOfColors.light.text,
+    letterSpacing: 1,
+  },
+  bottomSection: {
+    gap: 24,
+  },
+  keypad: {
     gap: 12,
   },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: DayOfColors.light.text,
+  keypadRow: {
+    flexDirection: "row",
+    gap: 12,
   },
-  sectionDescription: {
-    fontSize: 15,
-    color: DayOfColors.light.secondary,
-    lineHeight: 20,
+  keypadButton: {
+    flex: 1,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 18,
   },
-  sectionDetail: {
-    fontSize: 15,
-    color: DayOfColors.light.secondary,
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: DayOfColors.light.border,
-  },
-  input: {
+  keypadButtonPrimary: {
+    backgroundColor: DayOfColors.common.white,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: DayOfColors.light.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: DayOfColors.common.white,
   },
-  button: {
-    paddingVertical: 14,
-    borderRadius: 12,
+  keypadButtonSecondary: {
+    backgroundColor: DayOfColors.light.primaryLt,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: DayOfColors.light.primary,
+  },
+  keypadButtonPressed: {
+    opacity: 0.9,
+  },
+  keypadButtonLabel: {
+    fontSize: 24,
+    fontWeight: "600",
+  },
+  keypadButtonLabelPrimary: {
+    color: DayOfColors.light.text,
+  },
+  keypadButtonLabelSecondary: {
+    color: DayOfColors.light.primary,
+  },
+  primaryButton: {
+    borderRadius: 18,
+    paddingVertical: 18,
     alignItems: "center",
   },
-  buttonEnabled: {
+  primaryButtonEnabled: {
     backgroundColor: DayOfColors.light.primary,
   },
-  buttonDisabled: {
+  primaryButtonDisabled: {
     backgroundColor: DayOfColors.light.border,
   },
-  buttonPressed: {
+  primaryButtonPressed: {
     opacity: 0.92,
   },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: "600",
+  primaryButtonLabel: {
+    fontSize: 20,
+    fontWeight: "700",
   },
-  buttonLabelEnabled: {
+  primaryButtonLabelEnabled: {
     color: DayOfColors.common.white,
   },
-  buttonLabelDisabled: {
+  primaryButtonLabelDisabled: {
     color: DayOfColors.light.tertiary,
-  },
-  statusGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-  },
-  statusItem: {
-    flexBasis: "48%",
-    gap: 4,
-  },
-  statusLabel: {
-    fontSize: 13,
-    color: DayOfColors.light.secondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
-  statusValue: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: DayOfColors.light.text,
-  },
-  banner: {
-    borderRadius: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: DayOfColors.light.border,
-    backgroundColor: DayOfColors.common.white,
-  },
-  bannerInfo: {
-    backgroundColor: DayOfColors.light.primaryLt,
-  },
-  bannerError: {
-    backgroundColor: DayOfColors.light.dangerLt,
-    borderColor: DayOfColors.light.danger,
-  },
-  bannerWarning: {
-    backgroundColor: DayOfColors.light.warningLt,
-    borderRadius: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: DayOfColors.light.warning,
-  },
-  bannerWarningTitle: {
-    fontWeight: "600",
-    color: DayOfColors.light.warning,
-  },
-  bannerWarningBody: {
-    color: DayOfColors.light.text,
-    fontSize: 15,
-  },
-  bannerTitle: {
-    fontWeight: "600",
-    fontSize: 16,
-    color: DayOfColors.light.text,
-  },
-  bannerBody: {
-    fontSize: 15,
-    color: DayOfColors.light.text,
   },
 });
