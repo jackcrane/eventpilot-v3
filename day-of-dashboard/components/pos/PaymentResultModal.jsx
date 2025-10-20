@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -12,12 +11,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 
 import { DayOfColors } from "../../constants/theme";
-import PosKeypad from "./PosKeypad";
 
 const SUCCESS_ICON = require("../../assets/icons/check.svg");
 const ERROR_ICON = require("../../assets/icons/x.svg");
-
-const MAX_PIN_LENGTH = 6;
 
 const ActionButton = ({ label, onPress, tone = "primary", disabled }) => {
   return (
@@ -73,39 +69,20 @@ const PaymentResultModal = ({
   declineReason,
   onClose,
   onRetry,
-  onSubmitPin,
-  submittingPin = false,
+  processing = false,
 }) => {
-  const [pin, setPin] = useState("");
-
-  useEffect(() => {
-    if (!visible || status !== "pin") {
-      setPin("");
-    }
-  }, [status, visible]);
-
-  const maskedPin = useMemo(() => {
-    if (!pin.length) {
-      return "_ _ _ _";
-    }
-    return pin
-      .split("")
-      .map(() => "\u2022")
-      .join(" ");
-  }, [pin]);
-
   const icon = getIconForStatus(status);
   const amount = formatAmount(amountInCents);
 
   const handleClose = () => {
-    if (submittingPin) {
+    if (processing) {
       return;
     }
     onClose?.();
   };
 
   const handleRetry = () => {
-    if (submittingPin) {
+    if (processing) {
       return;
     }
     if (onRetry) {
@@ -115,48 +92,9 @@ const PaymentResultModal = ({
     }
   };
 
-  const handlePinKeyPress = (key) => {
-    if (submittingPin) {
-      return;
-    }
-    if (key === "clear") {
-      setPin("");
-      return;
-    }
-    if (key === "del") {
-      setPin((prev) => prev.slice(0, -1));
-      return;
-    }
-    if (!/^\d$/.test(key)) {
-      return;
-    }
-    setPin((prev) => {
-      if (prev.length >= MAX_PIN_LENGTH) {
-        return prev;
-      }
-      if (prev === "0") {
-        return key;
-      }
-      return `${prev}${key}`;
-    });
-  };
-
-  const handleSubmitPin = () => {
-    if (submittingPin) {
-      return;
-    }
-    if (pin.length < 4) {
-      return;
-    }
-    onSubmitPin?.(pin);
-  };
-
   const renderHeaderTitle = () => {
     if (status === "success") {
       return "Payment Successful";
-    }
-    if (status === "pin") {
-      return "PIN Required";
     }
     return "Payment Declined";
   };
@@ -164,9 +102,6 @@ const PaymentResultModal = ({
   const renderHeaderSubtitle = () => {
     if (status === "success") {
       return "The charge completed without issues.";
-    }
-    if (status === "pin") {
-      return "Hand the device to the cardholder to enter their PIN.";
     }
     return "Please review the decline reason and try again.";
   };
@@ -189,11 +124,11 @@ const PaymentResultModal = ({
           </View>
           <Pressable
             onPress={handleClose}
-            disabled={submittingPin}
+            disabled={processing}
             style={({ pressed }) => [
               styles.closeButton,
-              pressed && !submittingPin ? styles.closeButtonPressed : null,
-              submittingPin ? styles.closeButtonDisabled : null,
+              pressed && !processing ? styles.closeButtonPressed : null,
+              processing ? styles.closeButtonDisabled : null,
             ]}
           >
             <Text style={styles.closeButtonText}>Close</Text>
@@ -212,56 +147,33 @@ const PaymentResultModal = ({
           {status === "decline" && declineReason ? (
             <Text style={styles.declineReason}>{declineReason}</Text>
           ) : null}
-          {status === "pin" ? (
-            <View style={styles.pinContainer}>
-              <Text style={styles.pinIndicator}>{maskedPin}</Text>
-              <PosKeypad
-                onKeyPress={handlePinKeyPress}
-                disabled={submittingPin}
-              />
-            </View>
-          ) : null}
-          {submittingPin ? (
+          {processing ? (
             <View style={styles.spinnerRow}>
               <ActivityIndicator />
-              <Text style={styles.spinnerText}>Submitting PIN…</Text>
+              <Text style={styles.spinnerText}>Processing…</Text>
             </View>
           ) : null}
         </ScrollView>
         <View style={styles.sheetActions}>
-          {status === "pin" ? (
-            <>
-              <ActionButton
-                tone="secondary"
-                label="Cancel"
-                onPress={handleClose}
-                disabled={submittingPin}
-              />
-              <ActionButton
-                label="Submit PIN"
-                onPress={handleSubmitPin}
-                disabled={submittingPin || pin.length < 4}
-              />
-            </>
-          ) : status === "decline" ? (
+          {status === "decline" ? (
             <>
               <ActionButton
                 tone="secondary"
                 label="Dismiss"
                 onPress={handleClose}
-                disabled={submittingPin}
+                disabled={processing}
               />
               <ActionButton
                 label="Try Again"
                 onPress={handleRetry}
-                disabled={submittingPin}
+                disabled={processing}
               />
             </>
           ) : (
             <ActionButton
               label="Done"
               onPress={handleClose}
-              disabled={submittingPin}
+              disabled={processing}
             />
           )}
         </View>
@@ -324,16 +236,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: DayOfColors.light.danger,
     textAlign: "center",
-  },
-  pinContainer: {
-    gap: 18,
-  },
-  pinIndicator: {
-    fontSize: 32,
-    fontWeight: "600",
-    textAlign: "center",
-    letterSpacing: 8,
-    color: DayOfColors.light.text,
   },
   spinnerRow: {
     flexDirection: "row",

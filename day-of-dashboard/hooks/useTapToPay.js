@@ -69,39 +69,6 @@ const extractDeclineReason = (error, intent, fallbackError) => {
   return null;
 };
 
-const containsPinKeyword = (value) => {
-  const message = normalizeMessage(value);
-  if (!message) {
-    return false;
-  }
-  return message.toLowerCase().includes("pin");
-};
-
-const isPinRequiredError = (error, intent) => {
-  if (containsPinKeyword(error?.message)) {
-    return true;
-  }
-  const charges = Array.isArray(intent?.charges) ? intent.charges : [];
-  const mostRecentCharge =
-    charges.length > 0 ? charges[charges.length - 1] : undefined;
-  if (
-    containsPinKeyword(
-      mostRecentCharge?.paymentMethodDetails?.cardPresentDetails?.receipt
-        ?.cardholderVerificationMethod
-    )
-  ) {
-    return true;
-  }
-  const outcome = mostRecentCharge?.outcome;
-  if (containsPinKeyword(outcome?.sellerMessage)) {
-    return true;
-  }
-  if (containsPinKeyword(outcome?.type)) {
-    return true;
-  }
-  return false;
-};
-
 export const useTapToPay = () => {
   const { account, token } = useDayOfSessionContext();
   const [connectionStatus, setConnectionStatus] = useState("notConnected");
@@ -408,7 +375,6 @@ export const useTapToPay = () => {
           error,
           paymentIntent: null,
           summary: null,
-          requiresPin: false,
           declineReason: error.message,
         };
       }
@@ -441,7 +407,6 @@ export const useTapToPay = () => {
           error: normalizedError,
           paymentIntent: intentAfterCollect,
           summary: summaryAfterCollect,
-          requiresPin: isPinRequiredError(collected.error, intentAfterCollect),
           declineReason: extractDeclineReason(
             collected.error,
             intentAfterCollect,
@@ -478,7 +443,6 @@ export const useTapToPay = () => {
           error: normalizedError,
           paymentIntent: intentAfterConfirm,
           summary: summaryAfterConfirm,
-          requiresPin: isPinRequiredError(confirmed.error, intentAfterConfirm),
           declineReason: extractDeclineReason(
             confirmed.error,
             intentAfterConfirm,
@@ -564,7 +528,6 @@ export const useTapToPay = () => {
         if (!processResult.success) {
           console.log("[POS][useTapToPay] takePayment:processError", {
             message: processResult.error?.message ?? null,
-            requiresPin: processResult.requiresPin,
           });
           if (processResult.error) {
             setLastError(processResult.error.message);
@@ -580,7 +543,6 @@ export const useTapToPay = () => {
         return {
           success: false,
           error,
-          requiresPin: containsPinKeyword(error?.message),
           paymentIntent: null,
           summary: null,
           declineReason: extractDeclineReason(error, null, error),
@@ -598,83 +560,12 @@ export const useTapToPay = () => {
     ]
   );
 
-  const resumePayment = useCallback(
-    async ({ clientSecret, pin: _pin }) => {
-      if (!clientSecret) {
-        const error = new Error("Payment intent client secret is required to resume");
-        setLastError(error.message);
-        return {
-          success: false,
-          error,
-          requiresPin: false,
-          paymentIntent: null,
-          summary: null,
-          declineReason: error.message,
-        };
-      }
-
-      setProcessingPayment(true);
-      setLastError(null);
-      console.log("[POS][useTapToPay] resumePayment:start", { clientSecret });
-
-      try {
-        const retrieved = await retrievePaymentIntent(clientSecret);
-        if (retrieved.error || !retrieved.paymentIntent) {
-          console.log("[POS][useTapToPay] resumePayment:retrieveError", retrieved.error);
-          const retrieveError =
-            retrieved.error ||
-            new Error("Failed to retrieve payment intent for retry");
-          setLastError(retrieveError.message);
-          return {
-            success: false,
-            error: retrieveError,
-            requiresPin: false,
-            paymentIntent: null,
-            summary: null,
-            declineReason: retrieveError.message,
-          };
-        }
-
-        const processResult = await processPaymentIntent({
-          paymentIntent: retrieved.paymentIntent,
-          clientSecret,
-        });
-
-        if (!processResult.success && processResult.error) {
-          setLastError(processResult.error.message);
-        }
-
-        console.log("[POS][useTapToPay] resumePayment:result", {
-          success: processResult.success,
-          requiresPin: processResult.requiresPin,
-        });
-        return processResult;
-      } catch (error) {
-        console.log("[POS][useTapToPay] resumePayment:exception", error);
-        setLastError(error?.message || "Failed to resume Tap to Pay");
-        return {
-          success: false,
-          error,
-          requiresPin: containsPinKeyword(error?.message),
-          paymentIntent: null,
-          summary: null,
-          declineReason: extractDeclineReason(error, null, error),
-        };
-      } finally {
-        setProcessingPayment(false);
-        console.log("[POS][useTapToPay] resumePayment:finished");
-      }
-    },
-    [processPaymentIntent, retrievePaymentIntent]
-  );
-
   const resetError = useCallback(() => setLastError(null), []);
 
   return {
     initializeTerminal,
     startTapToPay,
     takePayment,
-    resumePayment,
     resetError,
     initialized,
     initializing,

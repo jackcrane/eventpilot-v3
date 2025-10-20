@@ -42,7 +42,6 @@ const PointOfSaleScreen = () => {
   const [amountDigits, setAmountDigits] = useState("0");
   const [localMessage, setLocalMessage] = useState(null);
   const [transactionModal, setTransactionModal] = useState(null);
-  const [submittingPin, setSubmittingPin] = useState(false);
 
   const { account, permissions, hydrated } = useDayOfSessionContext();
 
@@ -50,7 +49,6 @@ const PointOfSaleScreen = () => {
     initializeTerminal,
     startTapToPay,
     takePayment,
-    resumePayment,
     initialized,
     initializing,
     discovering,
@@ -62,7 +60,6 @@ const PointOfSaleScreen = () => {
     resetError,
     tapToPaySupported,
     merchantDisplayName,
-    loading,
     defaultLocationId,
   } = useTapToPay();
 
@@ -160,18 +157,6 @@ const PointOfSaleScreen = () => {
     const amountForResult = result.summary?.amount ?? amountInCents;
     const clientSecret = result.summary?.clientSecret ?? null;
 
-    if (result.requiresPin && clientSecret) {
-      setTransactionModal({
-        status: "pin",
-        amountInCents: amountForResult,
-        clientSecret,
-        declineReason,
-      });
-      resetError();
-      console.log("[POS][view] handleCollectPayment pin required");
-      return;
-    }
-
     setTransactionModal({
       status: "decline",
       amountInCents: amountForResult,
@@ -190,88 +175,8 @@ const PointOfSaleScreen = () => {
   ]);
 
   const handleDismissTransactionModal = useCallback(() => {
-    if (submittingPin) {
-      return;
-    }
     setTransactionModal(null);
-  }, [submittingPin]);
-
-  const handleSubmitPin = useCallback(
-    async (pin) => {
-      if (!transactionModal?.clientSecret) {
-        return;
-      }
-      console.log("[POS][view] handleSubmitPin start");
-      setSubmittingPin(true);
-      try {
-        const result = await resumePayment({
-          clientSecret: transactionModal.clientSecret,
-          pin,
-        });
-
-        if (result.success) {
-          setAmountDigits("0");
-          setTransactionModal({
-            status: "success",
-            amountInCents:
-              result.summary?.amount ?? transactionModal.amountInCents,
-            clientSecret:
-              result.summary?.clientSecret ?? transactionModal.clientSecret,
-          });
-          resetError();
-          console.log("[POS][view] handleSubmitPin success");
-          return;
-        }
-
-        const declineReason =
-          result.declineReason ||
-          result.error?.message ||
-          "Unable to process payment.";
-        const amountForResult =
-          result.summary?.amount ??
-          transactionModal.amountInCents ??
-          amountInCents;
-        const clientSecret =
-          result.summary?.clientSecret ?? transactionModal.clientSecret ?? null;
-
-        if (result.requiresPin && clientSecret) {
-          setTransactionModal({
-            status: "pin",
-            amountInCents: amountForResult,
-            clientSecret,
-            declineReason,
-          });
-          resetError();
-          console.log("[POS][view] handleSubmitPin pin still required");
-        } else {
-          setTransactionModal({
-            status: "decline",
-            amountInCents: amountForResult,
-            clientSecret,
-            declineReason,
-          });
-          resetError();
-          console.log("[POS][view] handleSubmitPin declined", {
-            declineReason,
-          });
-        }
-      } catch (error) {
-        console.log("[POS][view] handleSubmitPin exception", error);
-        const fallbackReason =
-          error?.message || "Unable to process payment. Please try again.";
-        setTransactionModal((prev) => ({
-          status: "decline",
-          amountInCents: prev?.amountInCents ?? amountInCents,
-          clientSecret: prev?.clientSecret ?? null,
-          declineReason: fallbackReason,
-        }));
-        resetError();
-      } finally {
-        setSubmittingPin(false);
-      }
-    },
-    [amountInCents, resumePayment, resetError, transactionModal]
-  );
+  }, []);
 
   const autoInitializeAttemptedRef = useRef(false);
   const autoStartAttemptedRef = useRef(false);
@@ -536,8 +441,7 @@ const PointOfSaleScreen = () => {
         declineReason={transactionModal?.declineReason ?? null}
         onClose={handleDismissTransactionModal}
         onRetry={handleDismissTransactionModal}
-        onSubmitPin={handleSubmitPin}
-        submittingPin={submittingPin || processingPayment}
+        processing={processingPayment}
       />
     </View>
   );
