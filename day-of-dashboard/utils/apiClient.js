@@ -9,7 +9,7 @@ export class DayOfApiError extends Error {
   }
 }
 
-const DEFAULT_DEV_BASE_URL = "https://geteventpilot.com";
+const DEFAULT_DEV_BASE_URL = "http://192.168.1.117:3000";
 
 const resolveBaseUrl = () => {
   const explicit =
@@ -17,13 +17,7 @@ const resolveBaseUrl = () => {
     process.env.EXPO_PUBLIC_API_URL ||
     process.env.EXPO_PUBLIC_BASE_URL;
 
-  if (explicit) return explicit;
-
-  const debuggerHost = Constants.expoGoConfig?.debuggerHost;
-  if (!debuggerHost) return DEFAULT_DEV_BASE_URL;
-
-  const host = debuggerHost.split(":")[0];
-  return `http://${host}:3000`;
+  return explicit || DEFAULT_DEV_BASE_URL;
 };
 
 const API_BASE_URL = resolveBaseUrl();
