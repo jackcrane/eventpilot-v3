@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,7 +11,6 @@ import {
   View,
 } from "react-native";
 import { Redirect } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getDefaultRouteForPermissions } from "../../constants/dayOfPermissions";
 import { DayOfColors } from "../../constants/theme";
@@ -67,6 +66,7 @@ const PointOfSaleScreen = () => {
     lastPaymentIntent,
     tapToPaySupported,
     merchantDisplayName,
+    loading,
   } = useTapToPay();
 
   const hasPermission = permissions.includes("POINT_OF_SALE");
@@ -116,13 +116,65 @@ const PointOfSaleScreen = () => {
     }
   };
 
+  const autoInitializeAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (
+      autoInitializeAttemptedRef.current ||
+      !hydrated ||
+      initializing ||
+      initialized ||
+      loading ||
+      !tapToPaySupported
+    ) {
+      return;
+    }
+
+    autoInitializeAttemptedRef.current = true;
+    handleInitialize();
+  }, [
+    handleInitialize,
+    hydrated,
+    initializing,
+    initialized,
+    loading,
+    tapToPaySupported,
+  ]);
+
+  const autoStartAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (
+      autoStartAttemptedRef.current ||
+      !hydrated ||
+      !initialized ||
+      discovering ||
+      connecting ||
+      processingPayment ||
+      !tapToPaySupported ||
+      connectedReader
+    ) {
+      return;
+    }
+
+    autoStartAttemptedRef.current = true;
+    handleStartTapToPay();
+  }, [
+    connectedReader,
+    connecting,
+    discovering,
+    handleStartTapToPay,
+    hydrated,
+    initialized,
+    processingPayment,
+    tapToPaySupported,
+  ]);
+
   if (!hydrated) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <View style={styles.safeArea}>
         <View style={styles.centerContent}>
           <ActivityIndicator />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -131,31 +183,52 @@ const PointOfSaleScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.safeArea}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.safeArea}
+    >
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        overScrollMode="always"
       >
-        <ScrollView
-          contentContainerStyle={styles.container}
-          keyboardShouldPersistTaps="handled"
-        >
+        <View style={styles.header}>
           <Text style={styles.title}>Tap to Pay (Stripe Terminal)</Text>
           <Text style={styles.subtitle}>
             Logged in as {account?.name || "Unnamed Station"}
           </Text>
+        </View>
 
-          {!tapToPaySupported && (
-            <View style={styles.bannerWarning}>
-              <Text style={styles.bannerWarningTitle}>Device not supported</Text>
-              <Text style={styles.bannerWarningBody}>
-                Tap to Pay on iPhone requires iOS 16.4 or later.
-              </Text>
-            </View>
-          )}
+        {!tapToPaySupported && (
+          <View style={styles.bannerWarning}>
+            <Text style={styles.bannerWarningTitle}>Device not supported</Text>
+            <Text style={styles.bannerWarningBody}>
+              Tap to Pay on iPhone requires iOS 16.4 or later.
+            </Text>
+          </View>
+        )}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>1. Initialize</Text>
+        {(lastError || localMessage) && (
+          <View
+            style={[
+              styles.banner,
+              lastError ? styles.bannerError : styles.bannerInfo,
+            ]}
+          >
+            <Text style={styles.bannerTitle}>
+              {lastError ? "Action needed" : "Status"}
+            </Text>
+            <Text style={styles.bannerBody}>
+              {lastError?.message || lastError || localMessage}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.panel}>
+          <Text style={styles.panelLabel}>Setup</Text>
+
+          <View style={styles.panelSection}>
+            <Text style={styles.sectionTitle}>Initialize Stripe Terminal</Text>
             <Text style={styles.sectionDescription}>
               Requests a Stripe Terminal connection token and prepares the SDK.
             </Text>
@@ -172,8 +245,10 @@ const PointOfSaleScreen = () => {
             />
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>2. Start Tap to Pay</Text>
+          <View style={styles.divider} />
+
+          <View style={styles.panelSection}>
+            <Text style={styles.sectionTitle}>Enable Tap to Pay</Text>
             <Text style={styles.sectionDescription}>
               Discovers the on-device reader and activates Tap to Pay.
             </Text>
@@ -195,26 +270,33 @@ const PointOfSaleScreen = () => {
               }
               onPress={handleStartTapToPay}
             />
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Connection:</Text>
-              <Text style={styles.statusValue}>{connectionStatus}</Text>
-            </View>
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Reader:</Text>
-              <Text style={styles.statusValue}>
-                {connectedReader?.label ||
-                  connectedReader?.serialNumber ||
-                  "Not connected"}
-              </Text>
-            </View>
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Payment state:</Text>
-              <Text style={styles.statusValue}>{paymentStatus}</Text>
+
+            <View style={styles.statusGrid}>
+              <View style={styles.statusItem}>
+                <Text style={styles.statusLabel}>Connection</Text>
+                <Text style={styles.statusValue}>{connectionStatus}</Text>
+              </View>
+              <View style={styles.statusItem}>
+                <Text style={styles.statusLabel}>Reader</Text>
+                <Text style={styles.statusValue}>
+                  {connectedReader?.label ||
+                    connectedReader?.serialNumber ||
+                    "Not connected"}
+                </Text>
+              </View>
+              <View style={styles.statusItem}>
+                <Text style={styles.statusLabel}>Payment state</Text>
+                <Text style={styles.statusValue}>{paymentStatus}</Text>
+              </View>
             </View>
           </View>
+        </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>3. Accept Payment</Text>
+        <View style={styles.panel}>
+          <Text style={styles.panelLabel}>Collect payment</Text>
+
+          <View style={styles.panelSection}>
+            <Text style={styles.sectionTitle}>Amount</Text>
             <Text style={styles.sectionDescription}>
               Enter an amount and collect a tap-to-pay payment.
             </Text>
@@ -235,44 +317,32 @@ const PointOfSaleScreen = () => {
               onPress={handleCollectPayment}
             />
           </View>
+        </View>
 
-          {(lastError || localMessage) && (
-            <View
-              style={[
-                styles.banner,
-                lastError ? styles.bannerError : styles.bannerInfo,
-              ]}
-            >
-              <Text style={styles.bannerTitle}>
-                {lastError ? "Action needed" : "Status"}
-              </Text>
-              <Text style={styles.bannerBody}>
-                {lastError?.message || lastError || localMessage}
-              </Text>
-            </View>
-          )}
-
-          {lastPaymentIntent && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Last Payment</Text>
+        {lastPaymentIntent && (
+          <View style={styles.panel}>
+            <Text style={styles.panelLabel}>Recent payment</Text>
+            <View style={styles.panelSection}>
               <Text style={styles.sectionDetail}>
-                ID: {lastPaymentIntent.id}
+                ID · {lastPaymentIntent.id}
               </Text>
               <Text style={styles.sectionDetail}>
-                Amount:{" "}
+                Amount ·{" "}
                 {formatCurrency(
                   lastPaymentIntent.amount,
                   lastPaymentIntent.currency
                 )}
               </Text>
               <Text style={styles.sectionDetail}>
-                Status: {lastPaymentIntent.status}
+                Status · {lastPaymentIntent.status}
               </Text>
             </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          </View>
+        )}
+
+        <View style={{ height: 24 }} />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -291,115 +361,152 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
     paddingTop: 24,
-    paddingBottom: 40,
-    gap: 24,
+    paddingBottom: 16,
+    gap: 20,
+    flexGrow: 1,
+  },
+  header: {
+    gap: 8,
   },
   title: {
     fontSize: 24,
     fontWeight: "600",
+    color: DayOfColors.light.text,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: DayOfColors.light.secondary,
   },
-  section: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
+  panel: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: DayOfColors.common.white,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: DayOfColors.light.border,
+    gap: 16,
+  },
+  panelLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: DayOfColors.light.secondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  panelSection: {
     gap: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600",
+    color: DayOfColors.light.text,
   },
   sectionDescription: {
-    fontSize: 14,
+    fontSize: 15,
     color: DayOfColors.light.secondary,
+    lineHeight: 20,
   },
   sectionDetail: {
-    fontSize: 14,
+    fontSize: 15,
     color: DayOfColors.light.secondary,
   },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: DayOfColors.light.border,
+  },
   input: {
-    borderWidth: 1,
-    borderColor: DayOfColors.light.separator,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: DayOfColors.light.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 16,
-    backgroundColor: "#fff",
+    backgroundColor: DayOfColors.common.white,
   },
   button: {
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: "center",
-    paddingHorizontal: 12,
   },
   buttonEnabled: {
     backgroundColor: DayOfColors.light.primary,
   },
   buttonDisabled: {
-    backgroundColor: DayOfColors.light.separator,
+    backgroundColor: DayOfColors.light.border,
   },
   buttonPressed: {
-    opacity: 0.85,
+    opacity: 0.92,
   },
   buttonLabel: {
     fontSize: 16,
     fontWeight: "600",
   },
   buttonLabelEnabled: {
-    color: "#fff",
+    color: DayOfColors.common.white,
   },
   buttonLabelDisabled: {
     color: DayOfColors.light.tertiary,
   },
-  statusRow: {
+  statusGrid: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  statusItem: {
+    flexBasis: "48%",
+    gap: 4,
   },
   statusLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: DayOfColors.light.secondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
   },
   statusValue: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "500",
+    color: DayOfColors.light.text,
   },
   banner: {
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     gap: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: DayOfColors.light.border,
+    backgroundColor: DayOfColors.common.white,
   },
   bannerInfo: {
-    backgroundColor: "#E6F4FF",
+    backgroundColor: DayOfColors.light.primaryLt,
   },
   bannerError: {
-    backgroundColor: "#FFE6E6",
+    backgroundColor: DayOfColors.light.dangerLt,
+    borderColor: DayOfColors.light.danger,
   },
   bannerWarning: {
-    backgroundColor: "#FFF4E5",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: DayOfColors.light.warningLt,
+    borderRadius: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     gap: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: DayOfColors.light.warning,
   },
   bannerWarningTitle: {
     fontWeight: "600",
-    color: "#7A3E00",
+    color: DayOfColors.light.warning,
   },
   bannerWarningBody: {
-    color: "#7A3E00",
-    fontSize: 14,
+    color: DayOfColors.light.text,
+    fontSize: 15,
   },
   bannerTitle: {
     fontWeight: "600",
+    fontSize: 16,
+    color: DayOfColors.light.text,
   },
   bannerBody: {
-    fontSize: 14,
+    fontSize: 15,
+    color: DayOfColors.light.text,
   },
 });
