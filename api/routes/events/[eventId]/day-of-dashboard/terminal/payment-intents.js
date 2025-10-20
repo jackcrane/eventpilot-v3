@@ -50,7 +50,14 @@ const resolveEventAccess = async (req) => {
     if (req.dayOfDashboardAccount?.eventId !== req.params.eventId) {
       return null;
     }
-    return { id: req.dayOfDashboardAccount.eventId };
+    return prisma.event.findUnique({
+      where: { id: req.params.eventId },
+      select: {
+        id: true,
+        name: true,
+        stripeTerminalDefaultLocationId: true,
+      },
+    });
   }
 
   if (!req.user?.id) {
@@ -59,7 +66,11 @@ const resolveEventAccess = async (req) => {
 
   return prisma.event.findFirst({
     where: { id: req.params.eventId, userId: req.user.id },
-    select: { id: true, name: true },
+    select: {
+      id: true,
+      name: true,
+      stripeTerminalDefaultLocationId: true,
+    },
   });
 };
 
@@ -82,6 +93,10 @@ export const post = [
       parseResult.data;
 
     const currency = (currencyInput || "usd").toLowerCase();
+    const eventDefaultLocationId =
+      event.stripeTerminalDefaultLocationId?.trim() || null;
+    const resolvedLocationId =
+      locationId?.trim() || eventDefaultLocationId || null;
 
     try {
       const intentPayload = {
@@ -101,8 +116,8 @@ export const post = [
         },
       };
 
-      if (locationId) {
-        intentPayload.metadata.terminalLocationId = locationId;
+      if (resolvedLocationId) {
+        intentPayload.metadata.terminalLocationId = resolvedLocationId;
       }
 
       const intent = await stripe.paymentIntents.create(intentPayload);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -10,7 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Redirect } from "expo-router";
+import { Redirect, useFocusEffect } from "expo-router";
 
 import { getDefaultRouteForPermissions } from "../../constants/dayOfPermissions";
 import { DayOfColors } from "../../constants/theme";
@@ -67,6 +67,7 @@ const PointOfSaleScreen = () => {
     tapToPaySupported,
     merchantDisplayName,
     loading,
+    defaultLocationId,
   } = useTapToPay();
 
   const hasPermission = permissions.includes("POINT_OF_SALE");
@@ -80,25 +81,31 @@ const PointOfSaleScreen = () => {
     return Math.round(parsed * 100);
   }, [amountInput]);
 
-  const handleInitialize = async () => {
-    const result = await initializeTerminal();
-    if (result.success) {
-      setLocalMessage("Stripe Terminal is initialized.");
-    } else if (result.error?.message) {
-      setLocalMessage(null);
-    }
-  };
+  const handleInitialize = useCallback(
+    async ({ auto = false } = {}) => {
+      const result = await initializeTerminal();
+      if (result.success) {
+        setLocalMessage(auto ? null : "Stripe Terminal is initialized.");
+      } else if (result.error?.message) {
+        setLocalMessage(null);
+      }
+    },
+    [initializeTerminal]
+  );
 
-  const handleStartTapToPay = async () => {
-    const result = await startTapToPay();
-    if (result.success) {
-      setLocalMessage("Tap to Pay is ready on this device.");
-    } else if (result.error?.message) {
-      setLocalMessage(null);
-    }
-  };
+  const handleStartTapToPay = useCallback(
+    async ({ auto = false } = {}) => {
+      const result = await startTapToPay();
+      if (result.success) {
+        setLocalMessage(auto ? null : "Tap to Pay is ready on this device.");
+      } else if (result.error?.message) {
+        setLocalMessage(null);
+      }
+    },
+    [startTapToPay]
+  );
 
-  const handleCollectPayment = async () => {
+  const handleCollectPayment = useCallback(async () => {
     if (!amountInCents || amountInCents <= 0) {
       setLocalMessage("Enter a payment amount greater than zero.");
       return;
@@ -114,9 +121,22 @@ const PointOfSaleScreen = () => {
     } else if (result.error?.message) {
       setLocalMessage(null);
     }
-  };
+  }, [amountInCents, merchantDisplayName, resetError, takePayment]);
 
   const autoInitializeAttemptedRef = useRef(false);
+  const autoStartAttemptedRef = useRef(false);
+  const previousReaderRef = useRef(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!initialized) {
+        autoInitializeAttemptedRef.current = false;
+      }
+      if (!connectedReader) {
+        autoStartAttemptedRef.current = false;
+      }
+    }, [connectedReader, initialized])
+  );
   useEffect(() => {
     if (
       autoInitializeAttemptedRef.current ||
@@ -130,7 +150,7 @@ const PointOfSaleScreen = () => {
     }
 
     autoInitializeAttemptedRef.current = true;
-    handleInitialize();
+    handleInitialize({ auto: true });
   }, [
     handleInitialize,
     hydrated,
@@ -140,7 +160,18 @@ const PointOfSaleScreen = () => {
     tapToPaySupported,
   ]);
 
-  const autoStartAttemptedRef = useRef(false);
+  useEffect(() => {
+    const hadReader = Boolean(previousReaderRef.current);
+    const hasReader = Boolean(connectedReader);
+    if (hadReader && !hasReader) {
+      autoStartAttemptedRef.current = false;
+    }
+    if (hasReader) {
+      autoStartAttemptedRef.current = false;
+    }
+    previousReaderRef.current = connectedReader;
+  }, [connectedReader]);
+
   useEffect(() => {
     if (
       autoStartAttemptedRef.current ||
@@ -156,7 +187,7 @@ const PointOfSaleScreen = () => {
     }
 
     autoStartAttemptedRef.current = true;
-    handleStartTapToPay();
+    handleStartTapToPay({ auto: true });
   }, [
     connectedReader,
     connecting,
@@ -198,6 +229,18 @@ const PointOfSaleScreen = () => {
             Logged in as {account?.name || "Unnamed Station"}
           </Text>
         </View>
+
+        {!defaultLocationId && (
+          <View style={styles.bannerWarning}>
+            <Text style={styles.bannerWarningTitle}>
+              Stripe location not configured
+            </Text>
+            <Text style={styles.bannerWarningBody}>
+              Create a Stripe Terminal location for this event and retry to sync
+              the default location.
+            </Text>
+          </View>
+        )}
 
         {!tapToPaySupported && (
           <View style={styles.bannerWarning}>
@@ -287,6 +330,12 @@ const PointOfSaleScreen = () => {
               <View style={styles.statusItem}>
                 <Text style={styles.statusLabel}>Payment state</Text>
                 <Text style={styles.statusValue}>{paymentStatus}</Text>
+              </View>
+              <View style={styles.statusItem}>
+                <Text style={styles.statusLabel}>Default location</Text>
+                <Text style={styles.statusValue}>
+                  {defaultLocationId || "Not set"}
+                </Text>
               </View>
             </View>
           </View>

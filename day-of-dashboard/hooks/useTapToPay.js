@@ -28,6 +28,8 @@ export const useTapToPay = () => {
     }
     return DEFAULT_MERCHANT_NAME;
   }, [account?.name]);
+  const defaultTerminalLocationId =
+    account?.defaultTerminalLocationId ?? null;
 
   const {
     initialize,
@@ -196,16 +198,20 @@ export const useTapToPay = () => {
   const createPaymentIntentOnServer = useCallback(
     async ({ amount, currency = "usd", description }) => {
       ensureSessionReady();
+      const payload = {
+        amount,
+        currency,
+        description,
+      };
+      if (defaultTerminalLocationId) {
+        payload.locationId = defaultTerminalLocationId;
+      }
       const response = await dayOfAuthFetch(
         `/api/events/${account.eventId}/day-of-dashboard/terminal/payment-intents`,
         { token, instanceId: account.instanceId ?? null },
         {
           method: "POST",
-          body: JSON.stringify({
-            amount,
-            currency,
-            description,
-          }),
+          body: JSON.stringify(payload),
         }
       );
       const data = await dayOfJson(response);
@@ -214,7 +220,13 @@ export const useTapToPay = () => {
       }
       return data.paymentIntent;
     },
-    [account?.eventId, account?.instanceId, ensureSessionReady, token]
+    [
+      account?.eventId,
+      account?.instanceId,
+      defaultTerminalLocationId,
+      ensureSessionReady,
+      token,
+    ]
   );
 
   const takePayment = useCallback(
@@ -326,6 +338,7 @@ export const useTapToPay = () => {
     lastError,
     lastPaymentIntent,
     merchantDisplayName,
+    defaultLocationId: defaultTerminalLocationId,
     tapToPaySupported: isTapToPaySupported,
   };
 };
