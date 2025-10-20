@@ -12,6 +12,8 @@ import { getDefaultRouteForPermissions } from "../../constants/dayOfPermissions"
 import { DayOfColors } from "../../constants/theme";
 import { useDayOfSessionContext } from "../../contexts/DayOfSessionContext";
 import { useTapToPay } from "../../hooks/useTapToPay";
+import PaymentResultModal from "../../components/pos/PaymentResultModal";
+import PosKeypad from "../../components/pos/PosKeypad";
 
 const PrimaryButton = ({ label, onPress, disabled }) => (
   <Pressable
@@ -39,6 +41,8 @@ const PrimaryButton = ({ label, onPress, disabled }) => (
 const PointOfSaleScreen = () => {
   const [amountDigits, setAmountDigits] = useState("0");
   const [localMessage, setLocalMessage] = useState(null);
+  const [transactionModal, setTransactionModal] = useState(null);
+  const [submittingPin, setSubmittingPin] = useState(false);
 
   const { account, permissions, hydrated } = useDayOfSessionContext();
 
@@ -46,6 +50,7 @@ const PointOfSaleScreen = () => {
     initializeTerminal,
     startTapToPay,
     takePayment,
+    resumePayment,
     initialized,
     initializing,
     discovering,
@@ -116,37 +121,157 @@ const PointOfSaleScreen = () => {
   const handleCollectPayment = useCallback(async () => {
     if (!amountInCents || amountInCents <= 0) {
       setLocalMessage("Enter a payment amount greater than zero.");
-       console.log("[POS][view] handleCollectPayment blocked: invalid amount", {
-         amountInCents,
-       });
+      console.log("[POS][view] handleCollectPayment blocked: invalid amount", {
+        amountInCents,
+      });
       return;
     }
+
     resetError();
+    setLocalMessage(null);
+    setTransactionModal(null);
     console.log("[POS][view] handleCollectPayment start", {
       amountInCents,
       merchantDisplayName,
     });
+
     const result = await takePayment({
       amount: amountInCents,
       currency: "usd",
       description: `Tap to Pay charge - ${merchantDisplayName}`,
     });
+
     if (result.success) {
-      setLocalMessage("Payment completed successfully.");
       setAmountDigits("0");
-      console.log("[POS][view] handleCollectPayment success");
-    } else if (result.error?.message) {
-      setLocalMessage(null);
-      console.log("[POS][view] handleCollectPayment failed", {
-        error: result.error?.message ?? null,
+      setTransactionModal({
+        status: "success",
+        amountInCents: result.summary?.amount ?? amountInCents,
+        clientSecret: result.summary?.clientSecret ?? null,
       });
+      resetError();
+      console.log("[POS][view] handleCollectPayment success");
+      return;
     }
+
+    const declineReason =
+      result.declineReason ||
+      result.error?.message ||
+      "Unable to process payment.";
+    const amountForResult = result.summary?.amount ?? amountInCents;
+    const clientSecret = result.summary?.clientSecret ?? null;
+
+    if (result.requiresPin && clientSecret) {
+      setTransactionModal({
+        status: "pin",
+        amountInCents: amountForResult,
+        clientSecret,
+        declineReason,
+      });
+      resetError();
+      console.log("[POS][view] handleCollectPayment pin required");
+      return;
+    }
+
+    setTransactionModal({
+      status: "decline",
+      amountInCents: amountForResult,
+      clientSecret,
+      declineReason,
+    });
+    resetError();
+    console.log("[POS][view] handleCollectPayment declined", {
+      declineReason,
+    });
   }, [
     amountInCents,
     merchantDisplayName,
     resetError,
     takePayment,
   ]);
+
+  const handleDismissTransactionModal = useCallback(() => {
+    if (submittingPin) {
+      return;
+    }
+    setTransactionModal(null);
+  }, [submittingPin]);
+
+  const handleSubmitPin = useCallback(
+    async (pin) => {
+      if (!transactionModal?.clientSecret) {
+        return;
+      }
+      console.log("[POS][view] handleSubmitPin start");
+      setSubmittingPin(true);
+      try {
+        const result = await resumePayment({
+          clientSecret: transactionModal.clientSecret,
+          pin,
+        });
+
+        if (result.success) {
+          setAmountDigits("0");
+          setTransactionModal({
+            status: "success",
+            amountInCents:
+              result.summary?.amount ?? transactionModal.amountInCents,
+            clientSecret:
+              result.summary?.clientSecret ?? transactionModal.clientSecret,
+          });
+          resetError();
+          console.log("[POS][view] handleSubmitPin success");
+          return;
+        }
+
+        const declineReason =
+          result.declineReason ||
+          result.error?.message ||
+          "Unable to process payment.";
+        const amountForResult =
+          result.summary?.amount ??
+          transactionModal.amountInCents ??
+          amountInCents;
+        const clientSecret =
+          result.summary?.clientSecret ?? transactionModal.clientSecret ?? null;
+
+        if (result.requiresPin && clientSecret) {
+          setTransactionModal({
+            status: "pin",
+            amountInCents: amountForResult,
+            clientSecret,
+            declineReason,
+          });
+          resetError();
+          console.log("[POS][view] handleSubmitPin pin still required");
+        } else {
+          setTransactionModal({
+            status: "decline",
+            amountInCents: amountForResult,
+            clientSecret,
+            declineReason,
+          });
+          resetError();
+          console.log("[POS][view] handleSubmitPin declined", {
+            declineReason,
+          });
+        }
+      } catch (error) {
+        console.log("[POS][view] handleSubmitPin exception", error);
+        const fallbackReason =
+          error?.message || "Unable to process payment. Please try again.";
+        setTransactionModal((prev) => ({
+          status: "decline",
+          amountInCents: prev?.amountInCents ?? amountInCents,
+          clientSecret: prev?.clientSecret ?? null,
+          declineReason: fallbackReason,
+        }));
+        resetError();
+      } finally {
+        setSubmittingPin(false);
+      }
+    },
+    [amountInCents, resumePayment, resetError, transactionModal]
+  );
 
   const autoInitializeAttemptedRef = useRef(false);
   const autoStartAttemptedRef = useRef(false);
@@ -218,16 +343,6 @@ const PointOfSaleScreen = () => {
     initializing,
     tapToPaySupported,
   ]);
-
-  const keypadRows = useMemo(
-    () => [
-      ["1", "2", "3"],
-      ["4", "5", "6"],
-      ["7", "8", "9"],
-      ["clear", "0", "del"],
-    ],
-    []
-  );
 
   useFocusEffect(
     useCallback(() => {
@@ -406,41 +521,7 @@ const PointOfSaleScreen = () => {
           </View>
         </View>
         <View style={styles.bottomSection}>
-          <View style={styles.keypad}>
-            {keypadRows.map((row, rowIndex) => (
-              <View style={styles.keypadRow} key={`row-${rowIndex}`}>
-                {row.map((key) => {
-                  const label =
-                    key === "del" ? "⌫" : key === "clear" ? "CLR" : key;
-                  const isSecondary = key === "clear" || key === "del";
-                  return (
-                    <Pressable
-                      key={key}
-                      onPress={() => handleKeyPress(key)}
-                      style={({ pressed }) => [
-                        styles.keypadButton,
-                        isSecondary
-                          ? styles.keypadButtonSecondary
-                          : styles.keypadButtonPrimary,
-                        pressed ? styles.keypadButtonPressed : null,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.keypadButtonLabel,
-                          isSecondary
-                            ? styles.keypadButtonLabelSecondary
-                            : styles.keypadButtonLabelPrimary,
-                        ]}
-                      >
-                        {label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ))}
-          </View>
+          <PosKeypad onKeyPress={handleKeyPress} />
           <PrimaryButton
             label={collectLabel}
             disabled={!readyToCollect}
@@ -448,6 +529,16 @@ const PointOfSaleScreen = () => {
           />
         </View>
       </View>
+      <PaymentResultModal
+        visible={Boolean(transactionModal)}
+        status={transactionModal?.status ?? null}
+        amountInCents={transactionModal?.amountInCents ?? amountInCents}
+        declineReason={transactionModal?.declineReason ?? null}
+        onClose={handleDismissTransactionModal}
+        onRetry={handleDismissTransactionModal}
+        onSubmitPin={handleSubmitPin}
+        submittingPin={submittingPin || processingPayment}
+      />
     </View>
   );
 };
@@ -523,43 +614,6 @@ const styles = StyleSheet.create({
   },
   bottomSection: {
     gap: 24,
-  },
-  keypad: {
-    gap: 12,
-  },
-  keypadRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  keypadButton: {
-    flex: 1,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 18,
-  },
-  keypadButtonPrimary: {
-    backgroundColor: DayOfColors.common.white,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: DayOfColors.light.border,
-  },
-  keypadButtonSecondary: {
-    backgroundColor: DayOfColors.light.primaryLt,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: DayOfColors.light.primary,
-  },
-  keypadButtonPressed: {
-    opacity: 0.9,
-  },
-  keypadButtonLabel: {
-    fontSize: 24,
-    fontWeight: "600",
-  },
-  keypadButtonLabelPrimary: {
-    color: DayOfColors.light.text,
-  },
-  keypadButtonLabelSecondary: {
-    color: DayOfColors.light.primary,
   },
   primaryButton: {
     borderRadius: 18,
