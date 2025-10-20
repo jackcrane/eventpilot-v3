@@ -141,12 +141,26 @@ export const useTapToPay = () => {
         return { success: false, error };
       }
 
+      const trimmedLocationId =
+        typeof defaultTerminalLocationId === "string"
+          ? defaultTerminalLocationId.trim()
+          : null;
+
+      if (!trimmedLocationId) {
+        const error = new Error(
+          "Assign a Stripe Terminal address before starting Tap to Pay"
+        );
+        setLastError(error.message);
+        return { success: false, error };
+      }
+
       setDiscovering(true);
       setLastError(null);
 
       try {
         const { error } = await discoverReaders({
           discoveryMethod: "tapToPay",
+          locationId: trimmedLocationId,
           simulated,
         });
 
@@ -173,6 +187,7 @@ export const useTapToPay = () => {
             merchantDisplayName,
             tosAcceptancePermitted: true,
             autoReconnectOnUnexpectedDisconnect: true,
+            locationId: trimmedLocationId,
           },
           "tapToPay"
         );
@@ -192,7 +207,15 @@ export const useTapToPay = () => {
         await cancelDiscovering().catch(() => {});
       }
     },
-    [cancelDiscovering, connectReader, discoverReaders, initialized, isTapToPaySupported, merchantDisplayName]
+    [
+      cancelDiscovering,
+      connectReader,
+      defaultTerminalLocationId,
+      discoverReaders,
+      initialized,
+      isTapToPaySupported,
+      merchantDisplayName,
+    ]
   );
 
   const createPaymentIntentOnServer = useCallback(

@@ -24,10 +24,17 @@ const StripeTerminalBoundary = ({ children }) => {
     if (!token || !account?.eventId) {
       throw new Error('Session is not ready to request a connection token');
     }
+    const payload = {};
+    if (account?.defaultTerminalLocationId) {
+      payload.locationId = account.defaultTerminalLocationId;
+    }
     const response = await dayOfAuthFetch(
       `/api/events/${account.eventId}/day-of-dashboard/terminal/connection-token`,
       { token, instanceId: account.instanceId ?? null },
-      { method: 'POST' }
+      {
+        method: 'POST',
+        body: Object.keys(payload).length ? JSON.stringify(payload) : undefined,
+      }
     );
     const data = await dayOfJson(response);
     if (!data?.secret) {
