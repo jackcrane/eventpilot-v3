@@ -12,6 +12,7 @@ export const accountSelect = {
   updatedAt: true,
   event: {
     select: {
+      name: true,
       stripeTerminalDefaultLocationId: true,
     },
   },
@@ -33,5 +34,6 @@ export const formatAccount = (record) => {
     lastIssuedAt: rest.lastIssuedAt ?? null,
     defaultTerminalLocationId:
       event?.stripeTerminalDefaultLocationId ?? null,
+    eventName: event?.name ?? null,
   };
 };

@@ -28,6 +28,11 @@ const StripeTerminalBoundary = ({ children }) => {
     if (account?.defaultTerminalLocationId) {
       payload.locationId = account.defaultTerminalLocationId;
     }
+    console.log("[POS][tokenProvider] requesting connection token", {
+      eventId: account.eventId,
+      instanceId: account.instanceId ?? null,
+      locationId: payload.locationId ?? null,
+    });
     const response = await dayOfAuthFetch(
       `/api/events/${account.eventId}/day-of-dashboard/terminal/connection-token`,
       { token, instanceId: account.instanceId ?? null },
@@ -40,6 +45,11 @@ const StripeTerminalBoundary = ({ children }) => {
     if (!data?.secret) {
       throw new Error('Stripe Terminal connection token missing secret');
     }
+    console.log("[POS][tokenProvider] received connection token", {
+      hasSecret: Boolean(data?.secret),
+      expiresAt: data?.expiresAt ?? null,
+      locationId: data?.locationId ?? null,
+    });
     return data.secret;
   }, [account?.eventId, account?.instanceId, token]);
 

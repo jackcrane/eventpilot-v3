@@ -23,11 +23,16 @@ export const useTapToPay = () => {
   const discoveredReadersRef = useRef([]);
 
   const merchantDisplayName = useMemo(() => {
+    const eventName =
+      typeof account?.eventName === "string" ? account.eventName.trim() : "";
+    if (eventName.length > 0) {
+      return eventName;
+    }
     if (account?.name && account.name.trim().length > 0) {
       return account.name.trim();
     }
     return DEFAULT_MERCHANT_NAME;
-  }, [account?.name]);
+  }, [account?.eventName, account?.name]);
   const defaultTerminalLocationId =
     account?.defaultTerminalLocationId ?? null;
 
@@ -45,12 +50,17 @@ export const useTapToPay = () => {
     setTapToPayUxConfiguration,
   } = useStripeTerminal({
     onUpdateDiscoveredReaders: (readers) => {
+      console.log("[POS][useTapToPay] onUpdateDiscoveredReaders", {
+        count: readers?.length ?? 0,
+      });
       discoveredReadersRef.current = readers || [];
     },
     onDidChangeConnectionStatus: (status) => {
+      console.log("[POS][useTapToPay] onDidChangeConnectionStatus", status);
       setConnectionStatus(status);
     },
     onDidChangePaymentStatus: (status) => {
+      console.log("[POS][useTapToPay] onDidChangePaymentStatus", status);
       setPaymentStatus(status);
     },
   });
@@ -60,6 +70,15 @@ export const useTapToPay = () => {
       discoveredReadersRef.current = discoveredReaders;
     }
   }, [discoveredReaders]);
+
+  useEffect(() => {
+    console.log("[POS][useTapToPay] context snapshot", {
+      eventId: account?.eventId ?? null,
+      defaultLocationId: defaultTerminalLocationId ?? null,
+      merchantDisplayName,
+      hasToken: Boolean(token),
+    });
+  }, [account?.eventId, defaultTerminalLocationId, merchantDisplayName, token]);
 
   const ensureSessionReady = useCallback(() => {
     if (!account?.eventId || !token) {
@@ -97,6 +116,7 @@ export const useTapToPay = () => {
     try {
       ensureSessionReady();
     } catch (error) {
+      console.log("[POS][useTapToPay] initializeTerminal:sessionError", error);
       setLastError(error.message || "Unable to initialize Stripe Terminal");
       return { success: false, error };
     }
@@ -105,8 +125,13 @@ export const useTapToPay = () => {
     setLastError(null);
 
     try {
+      console.log("[POS][useTapToPay] initializeTerminal:start", {
+        eventId: account?.eventId ?? null,
+        merchantDisplayName,
+      });
       const result = await initialize({});
       if (result?.error) {
+        console.log("[POS][useTapToPay] initializeTerminal:error", result.error);
         setLastError(result.error.message || "Failed to initialize Stripe Terminal");
         return { success: false, error: result.error };
       }
@@ -118,24 +143,34 @@ export const useTapToPay = () => {
       }
 
       setInitialized(true);
+      console.log("[POS][useTapToPay] initializeTerminal:success");
       return { success: true };
     } catch (error) {
+      console.log("[POS][useTapToPay] initializeTerminal:exception", error);
       setLastError(error?.message || "Failed to initialize Stripe Terminal");
       return { success: false, error };
     } finally {
       setInitializing(false);
     }
-  }, [ensureSessionReady, initialize, merchantDisplayName, setTapToPayUxConfiguration]);
+  }, [
+    ensureSessionReady,
+    initialize,
+    merchantDisplayName,
+    setTapToPayUxConfiguration,
+    account?.eventId,
+  ]);
 
   const startTapToPay = useCallback(
     async ({ simulated = false } = {}) => {
       if (!initialized) {
+        console.log("[POS][useTapToPay] startTapToPay:blocked:notInitialized");
         const error = new Error("Initialize Stripe Terminal before starting Tap to Pay");
         setLastError(error.message);
         return { success: false, error };
       }
 
       if (!isTapToPaySupported) {
+        console.log("[POS][useTapToPay] startTapToPay:blocked:notSupported");
         const error = new Error("Tap to Pay requires iOS 16.4 or later");
         setLastError(error.message);
         return { success: false, error };
@@ -147,6 +182,7 @@ export const useTapToPay = () => {
           : null;
 
       if (!trimmedLocationId) {
+        console.log("[POS][useTapToPay] startTapToPay:blocked:noLocation");
         const error = new Error(
           "Assign a Stripe Terminal address before starting Tap to Pay"
         );
@@ -154,25 +190,35 @@ export const useTapToPay = () => {
         return { success: false, error };
       }
 
+      console.log("[POS][useTapToPay] startTapToPay:begin", {
+        locationId: trimmedLocationId,
+        simulated,
+      });
       setDiscovering(true);
       setLastError(null);
 
       try {
+        const discoveryMethod = "tapToPay";
         const { error } = await discoverReaders({
-          discoveryMethod: "tapToPay",
+          discoveryMethod,
           locationId: trimmedLocationId,
           simulated,
         });
 
         if (error) {
+          console.log("[POS][useTapToPay] startTapToPay:discoverError", error);
           setLastError(error.message);
           return { success: false, error };
         }
 
         const readers = discoveredReadersRef.current || [];
+        console.log("[POS][useTapToPay] startTapToPay:readers", {
+          count: readers.length,
+        });
         const reader = readers[0];
 
         if (!reader) {
+          console.log("[POS][useTapToPay] startTapToPay:noReader");
           const noReaderError = new Error(
             "No Tap to Pay reader is available on this device"
           );
@@ -180,6 +226,9 @@ export const useTapToPay = () => {
           return { success: false, error: noReaderError };
         }
 
+        console.log("[POS][useTapToPay] startTapToPay:connect", {
+          readerLabel: reader.label ?? reader.serialNumber ?? null,
+        });
         setConnecting(true);
         const { error: connectError, reader: connected } = await connectReader(
           {
@@ -189,16 +238,21 @@ export const useTapToPay = () => {
             autoReconnectOnUnexpectedDisconnect: true,
             locationId: trimmedLocationId,
           },
-          "tapToPay"
+          discoveryMethod
         );
 
         if (connectError) {
+          console.log("[POS][useTapToPay] startTapToPay:connectError", connectError);
           setLastError(connectError.message);
           return { success: false, error: connectError };
         }
 
+        console.log("[POS][useTapToPay] startTapToPay:success", {
+          readerLabel: connected?.label ?? connected?.serialNumber ?? null,
+        });
         return { success: true, reader: connected };
       } catch (error) {
+        console.log("[POS][useTapToPay] startTapToPay:exception", error);
         setLastError(error?.message || "Failed to start Tap to Pay");
         return { success: false, error };
       } finally {
@@ -255,12 +309,16 @@ export const useTapToPay = () => {
   const takePayment = useCallback(
     async ({ amount, currency = "usd", description } = {}) => {
       if (!connectedReader) {
+        console.log("[POS][useTapToPay] takePayment:blocked:noReader");
         const error = new Error("Connect Tap to Pay before taking a payment");
         setLastError(error.message);
         return { success: false, error };
       }
 
       if (amount === undefined || amount === null || Number.isNaN(amount)) {
+        console.log("[POS][useTapToPay] takePayment:blocked:invalidAmount", {
+          amount,
+        });
         const error = new Error("Amount is required for tap-to-pay transactions");
         setLastError(error.message);
         return { success: false, error };
@@ -268,6 +326,11 @@ export const useTapToPay = () => {
 
       setProcessingPayment(true);
       setLastError(null);
+      console.log("[POS][useTapToPay] takePayment:start", {
+        amount,
+        currency,
+        description,
+      });
 
       try {
         const paymentIntentSummary = await createPaymentIntentOnServer({
@@ -277,12 +340,16 @@ export const useTapToPay = () => {
         });
 
         setLastPaymentIntent(paymentIntentSummary);
+        console.log("[POS][useTapToPay] takePayment:paymentIntentCreated", {
+          id: paymentIntentSummary.id,
+        });
 
         const retrieved = await retrievePaymentIntent(
           paymentIntentSummary.clientSecret
         );
 
         if (retrieved.error || !retrieved.paymentIntent) {
+          console.log("[POS][useTapToPay] takePayment:retrieveError", retrieved.error);
           const intentError =
             retrieved.error ||
             new Error("Failed to retrieve the payment intent for processing");
@@ -290,11 +357,13 @@ export const useTapToPay = () => {
           return { success: false, error: intentError };
         }
 
+        console.log("[POS][useTapToPay] takePayment:collectPaymentMethod");
         const collected = await collectPaymentMethod({
           paymentIntent: retrieved.paymentIntent,
         });
 
         if (collected.error) {
+          console.log("[POS][useTapToPay] takePayment:collectError", collected.error);
           setLastError(collected.error.message);
           return { success: false, error: collected.error };
         }
@@ -302,11 +371,13 @@ export const useTapToPay = () => {
         const intentForConfirmation =
           collected.paymentIntent || retrieved.paymentIntent;
 
+        console.log("[POS][useTapToPay] takePayment:confirmPaymentIntent");
         const confirmed = await confirmPaymentIntent({
           paymentIntent: intentForConfirmation,
         });
 
         if (confirmed.error || !confirmed.paymentIntent) {
+          console.log("[POS][useTapToPay] takePayment:confirmError", confirmed.error);
           const confirmError =
             confirmed.error ||
             new Error("Payment confirmation failed unexpectedly");
@@ -325,12 +396,15 @@ export const useTapToPay = () => {
         };
 
         setLastPaymentIntent(summary);
+        console.log("[POS][useTapToPay] takePayment:success", summary);
         return { success: true, paymentIntent: confirmed.paymentIntent };
       } catch (error) {
+        console.log("[POS][useTapToPay] takePayment:exception", error);
         setLastError(error?.message || "Tap to Pay transaction failed");
         return { success: false, error };
       } finally {
         setProcessingPayment(false);
+        console.log("[POS][useTapToPay] takePayment:finished");
       }
     },
     [

@@ -221,6 +221,7 @@ export const useDayOfSession = () => {
           name: data.account.name ?? null,
           defaultTerminalLocationId:
             data.account.defaultTerminalLocationId ?? null,
+          eventName: data.account.eventName ?? null,
           expiresAt: data.expiresAt,
         };
         await saveSession(storedSession);
@@ -272,6 +273,10 @@ export const useDayOfSession = () => {
           defaultTerminalLocationId:
             result.account.defaultTerminalLocationId ??
             session.defaultTerminalLocationId ??
+            null,
+          eventName:
+            result.account.eventName ??
+            session.eventName ??
             null,
         };
         await saveSession(updatedSession);
@@ -339,6 +344,7 @@ export const useDayOfSession = () => {
             updatedAt: "",
             defaultTerminalLocationId:
               session.defaultTerminalLocationId ?? null,
+            eventName: session.eventName ?? null,
           }
         : null),
     token,

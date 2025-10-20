@@ -242,14 +242,20 @@ const PointOfSaleScreen = () => {
     }, [connectedReader, initialized])
   );
   useEffect(() => {
-    if (
+    const shouldSkipAutoInit =
       autoInitializeAttemptedRef.current ||
       !hydrated ||
       initializing ||
       initialized ||
-      loading ||
-      !tapToPaySupported
-    ) {
+      !tapToPaySupported;
+    if (shouldSkipAutoInit) {
+      console.log("[POS][autoInit] skipped", {
+        attempted: autoInitializeAttemptedRef.current,
+        hydrated,
+        initializing,
+        initialized,
+        tapToPaySupported,
+      });
       return;
     }
 
@@ -269,7 +275,6 @@ const PointOfSaleScreen = () => {
     hydrated,
     initializing,
     initialized,
-    loading,
     tapToPaySupported,
   ]);
 
@@ -305,7 +310,7 @@ const PointOfSaleScreen = () => {
   }, [connectedReader, defaultLocationId, lastError, resetError]);
 
   useEffect(() => {
-    if (
+    const shouldSkipAutoStart =
       autoStartAttemptedRef.current ||
       !hydrated ||
       !initialized ||
@@ -314,8 +319,19 @@ const PointOfSaleScreen = () => {
       processingPayment ||
       !tapToPaySupported ||
       connectedReader ||
-      !defaultLocationId
-    ) {
+      !defaultLocationId;
+    if (shouldSkipAutoStart) {
+      console.log("[POS][autoStart] skipped", {
+        attempted: autoStartAttemptedRef.current,
+        hydrated,
+        initialized,
+        discovering,
+        connecting,
+        processingPayment,
+        tapToPaySupported,
+        hasReader: Boolean(connectedReader),
+        hasLocation: Boolean(defaultLocationId),
+      });
       return;
     }
 
