@@ -36,6 +36,7 @@ export const ProvisionerFormLayout = ({
   onEndSessions,
   endSessionsDisabled,
   endSessionsLoading,
+  children,
 }) => (
   <>
     <form
@@ -61,6 +62,7 @@ export const ProvisionerFormLayout = ({
         multiple
         direction="column"
       />
+      {children}
       <div className="mb-3" />
       <div style={{ position: "relative" }}>
         <TzDateTime

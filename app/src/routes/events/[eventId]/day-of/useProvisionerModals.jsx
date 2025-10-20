@@ -5,6 +5,8 @@ import { useConfirm } from "tabler-react-2";
 
 export const useProvisionerModals = ({
   defaultTz,
+  eventId,
+  defaultStripeLocationId,
   createProvisioner,
   updateProvisioner,
   endProvisionerSessions,
@@ -42,12 +44,15 @@ export const useProvisionerModals = ({
         <ProvisionerForm
           mode="create"
           defaultTz={defaultTz}
+          eventId={eventId}
+          defaultStripeLocationId={defaultStripeLocationId}
           onClose={close}
-          onSubmit={async ({ name, permissions, expiryIso, expiryTz }) => {
+          onSubmit={async ({ name, permissions, expiryIso, expiryTz, stripeLocationId }) => {
             const result = await createProvisioner({
               name,
               permissions,
               expiryIso,
+              stripeLocationId,
             });
             if (!result?.success) return;
 
@@ -83,18 +88,21 @@ export const useProvisionerModals = ({
     (record) => {
       offcanvas({
         content: (
-          <ProvisionerForm
-            mode="edit"
-            provisioner={record}
-            defaultTz={defaultTz}
-            onClose={close}
-            onSubmit={async ({ name, permissions }) => {
-              const success = await updateProvisioner(record.id, {
-                name,
-                permissions,
-              });
-              if (success) close();
-            }}
+        <ProvisionerForm
+          mode="edit"
+          provisioner={record}
+          defaultTz={defaultTz}
+          eventId={eventId}
+          defaultStripeLocationId={defaultStripeLocationId}
+          onClose={close}
+          onSubmit={async ({ name, permissions, stripeLocationId }) => {
+            const success = await updateProvisioner(record.id, {
+              name,
+              permissions,
+              stripeLocationId,
+            });
+            if (success) close();
+          }}
             onEndSessions={async () => {
               if (!confirmEndSessions) return;
               const confirmed = await confirmEndSessions({

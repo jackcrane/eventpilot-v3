@@ -32,6 +32,7 @@ const baseProvisionerSchema = z.object({
     .min(60, "Expiration must be at least 60 seconds")
     .max(60 * 60 * 24 * 7, "Expiration cannot exceed 7 days")
     .optional(),
+  stripeLocationId: z.string().cuid().optional().nullable(),
 });
 
 export const get = [
@@ -74,6 +75,7 @@ export const post = [
       instanceId,
       permissions: rawPermissions,
       jwtExpiresInSeconds,
+      stripeLocationId,
     } = parseResult.data;
 
     const permissions = normalizePermissions(rawPermissions);
@@ -95,6 +97,34 @@ export const post = [
     }
 
     const expiresIn = jwtExpiresInSeconds ?? 3600;
+    const pointOfSaleSelected = permissions.includes("POINT_OF_SALE");
+    let resolvedStripeLocation = null;
+
+    if (pointOfSaleSelected) {
+      if (!stripeLocationId) {
+        return res.status(400).json({
+          message: "Select a Stripe Terminal address before enabling point of sale",
+        });
+      }
+
+      const location = await prisma.stripeLocation.findFirst({
+        where: {
+          id: stripeLocationId,
+          eventId,
+          deleted: false,
+        },
+        select: {
+          id: true,
+          stripeLocationId: true,
+        },
+      });
+
+      if (!location) {
+        return res.status(400).json({ message: "Selected address is no longer available" });
+      }
+
+      resolvedStripeLocation = location;
+    }
 
     let pin;
     let pinLookupKey;
@@ -120,19 +150,31 @@ export const post = [
     }
 
     try {
-      const provisioner = await prisma.dayOfDashboardProvisioner.create({
-        data: {
-          eventId,
-          instanceId: resolvedInstanceId,
-          name: name?.trim() || null,
-          permissions,
-          jwtExpiresInSeconds: expiresIn,
-          pin,
-          pinLookupKey,
-          pinHash,
-          lastPinGeneratedAt: new Date(),
-        },
-        select: provisionerSelect,
+      const provisioner = await prisma.$transaction(async (tx) => {
+        const created = await tx.dayOfDashboardProvisioner.create({
+          data: {
+            eventId,
+            instanceId: resolvedInstanceId,
+            name: name?.trim() || null,
+            permissions,
+            jwtExpiresInSeconds: expiresIn,
+            pin,
+            pinLookupKey,
+            pinHash,
+            lastPinGeneratedAt: new Date(),
+            stripeLocationId: resolvedStripeLocation?.id || null,
+          },
+          select: provisionerSelect,
+        });
+
+        if (resolvedStripeLocation?.stripeLocationId) {
+          await tx.event.update({
+            where: { id: eventId },
+            data: { stripeTerminalDefaultLocationId: resolvedStripeLocation.stripeLocationId },
+          });
+        }
+
+        return created;
       });
 
       return res.status(201).json({

@@ -470,6 +470,7 @@ model Event {
 
   dayOfDashboardProvisioners DayOfDashboardProvisioner[]
   dayOfDashboardAccounts     DayOfDashboardAccount[]
+  stripeLocations            StripeLocation[]
 
   emailTemplates EmailTemplate[]
 
@@ -533,6 +534,8 @@ model DayOfDashboardProvisioner {
   tokenVersion        Int      @default(0)
   deleted             Boolean  @default(false)
   lastPinGeneratedAt  DateTime @default(now())
+  stripeLocationId    String?  @map("stripe_location_id")
+  stripeLocation      StripeLocation? @relation(fields: [stripeLocationId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -541,6 +544,7 @@ model DayOfDashboardProvisioner {
 
   @@index([eventId])
   @@index([instanceId])
+  @@index([stripeLocationId])
 }
 
 model DayOfDashboardAccount {
@@ -807,6 +811,27 @@ model Location {
   jobs   Job[]
   shifts Shift[]
   logs   Logs[]
+}
+
+model StripeLocation {
+  id                String   @id @default(cuid())
+  eventId           String   @map("event_id")
+  event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  nickname          String?  @map("nickname")
+  addressLine1      String   @map("address_line1")
+  addressLine2      String?  @map("address_line2")
+  city              String   @map("city")
+  state             String   @map("state")
+  postalCode        String   @map("postal_code")
+  country           String   @map("country") @default("US")
+  stripeLocationId  String   @map("stripe_location_id") @unique
+  deleted           Boolean  @map("deleted") @default(false)
+  createdAt         DateTime @map("created_at") @default(now())
+  updatedAt         DateTime @map("updated_at") @updatedAt
+  dayOfProvisioners DayOfDashboardProvisioner[]
+
+  @@index([eventId, deleted])
+  @@map("stripe_locations")
 }
 
 model Job {

@@ -67,7 +67,7 @@ export const useDayOfProvisioners = ({ eventId }) => {
   }, [eventId]);
 
   const createProvisioner = useCallback(
-    async ({ name, permissions, expiryIso }) => {
+    async ({ name, permissions, expiryIso, stripeLocationId }) => {
       if (!eventId) return { success: false };
       const expiresIn = computeExpirySeconds(expiryIso);
 
@@ -82,6 +82,7 @@ export const useDayOfProvisioners = ({ eventId }) => {
               permissions: permissions || [],
               jwtExpiresInSeconds: expiresIn,
               instanceId: selectedInstanceId,
+              stripeLocationId: stripeLocationId || null,
             }),
           }
         ).then(async (response) => {
@@ -121,6 +122,9 @@ export const useDayOfProvisioners = ({ eventId }) => {
       }
       if (Object.prototype.hasOwnProperty.call(updates, "permissions")) {
         payload.permissions = updates.permissions || [];
+      }
+      if (Object.prototype.hasOwnProperty.call(updates, "stripeLocationId")) {
+        payload.stripeLocationId = updates.stripeLocationId || null;
       }
 
       setMutationLoading(true);

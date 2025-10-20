@@ -1,1 +1,3 @@
--- placeholder: already applied in DB; column exists
+-- Add stripeTerminalDefaultLocationId to Event
+ALTER TABLE "Event"
+ADD COLUMN "stripeTerminalDefaultLocationId" TEXT;
