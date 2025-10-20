@@ -306,10 +306,7 @@ const PointOfSaleScreen = () => {
                   : "Enable Tap to Pay"
               }
               disabled={
-                !initialized ||
-                discovering ||
-                connecting ||
-                !tapToPaySupported
+                !initialized || discovering || connecting || !tapToPaySupported
               }
               onPress={handleStartTapToPay}
             />
@@ -360,9 +357,7 @@ const PointOfSaleScreen = () => {
               label={
                 processingPayment ? "Processing…" : "Collect Payment via Tap"
               }
-              disabled={
-                !connectedReader || processingPayment || !amountInCents
-              }
+              disabled={!connectedReader || processingPayment || !amountInCents}
               onPress={handleCollectPayment}
             />
           </View>

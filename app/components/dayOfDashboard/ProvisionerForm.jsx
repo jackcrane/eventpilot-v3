@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Button, DropdownInput, Typography, useOffcanvas } from "tabler-react-2";
+import {
+  Alert,
+  Button,
+  DropdownInput,
+  Typography,
+  useOffcanvas,
+} from "tabler-react-2";
 import { PROVISIONER_PERMISSION_OPTIONS } from "../../hooks/useDayOfProvisioners";
 import { ProvisionerFormLayout } from "./ProvisionerFormLayout";
 import { useStripeLocations } from "../../hooks/useStripeLocations";
@@ -31,7 +37,10 @@ const computeInitialExpiryIso = (mode, provisioner) => {
   if (mode === "edit") {
     return (
       provisioner?.expiresAt ||
-      buildExpiryIso(provisioner?.lastPinGeneratedAt, provisioner?.jwtExpiresInSeconds)
+      buildExpiryIso(
+        provisioner?.lastPinGeneratedAt,
+        provisioner?.jwtExpiresInSeconds
+      )
     );
   }
   // default to 24 hours from now for new provisioners
@@ -72,19 +81,25 @@ export const ProvisionerForm = ({
     setExpiryTz(computeInitialExpiryTz(provisioner, defaultTz));
   }, [mode, provisioner, defaultTz]);
 
-  const { locations, loading: locationsLoading, createLocation } =
-    useStripeLocations({ eventId });
+  const {
+    locations,
+    loading: locationsLoading,
+    createLocation,
+  } = useStripeLocations({ eventId });
 
-  const { offcanvas: locationOffcanvas, close: closeLocationOffcanvas, OffcanvasElement: LocationOffcanvasElement } =
-    useOffcanvas({
-      offcanvasProps: { position: "end", size: 420, zIndex: 1051 },
-    });
+  const {
+    offcanvas: locationOffcanvas,
+    close: closeLocationOffcanvas,
+    OffcanvasElement: LocationOffcanvasElement,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 420, zIndex: 1051 },
+  });
 
   const [selectedLocationId, setSelectedLocationId] = useState(
     () => provisioner?.stripeLocation?.id ?? null
   );
-  const [locationTouched, setLocationTouched] = useState(
-    () => Boolean(provisioner?.stripeLocation?.id)
+  const [locationTouched, setLocationTouched] = useState(() =>
+    Boolean(provisioner?.stripeLocation?.id)
   );
 
   useEffect(() => {
@@ -112,8 +127,7 @@ export const ProvisionerForm = ({
     () => permissions.some((item) => item.value === "POINT_OF_SALE"),
     [permissions]
   );
-  const hasValidLocation =
-    !pointOfSaleSelected || Boolean(selectedLocationId);
+  const hasValidLocation = !pointOfSaleSelected || Boolean(selectedLocationId);
 
   const submitDisabled =
     saving ||
@@ -174,7 +188,10 @@ export const ProvisionerForm = ({
     }
     if (locations.length === 0) {
       return (
-        <div className="mb-3">
+        <div className="mb-3 mt-3">
+          <Typography.Text className="form-label required">
+            Tap to pay address
+          </Typography.Text>
           <Typography.Text className="d-block mb-2">
             Add a Stripe Terminal address to use Tap to Pay.
           </Typography.Text>
@@ -186,8 +203,8 @@ export const ProvisionerForm = ({
     }
 
     return (
-      <div className="mb-3">
-        <label className="form-label">Stripe address</label>
+      <div className="mb-3 mt-3">
+        <label className="form-label">Tap to pay address</label>
         <DropdownInput
           items={locationOptions}
           value={selectedLocationId}
@@ -195,20 +212,23 @@ export const ProvisionerForm = ({
             setSelectedLocationId(item.value);
             setLocationTouched(true);
           }}
-          placeholder="Select a Stripe address"
+          prompt="Select an address"
           required
           aprops={{ style: { width: "100%", justifyContent: "space-between" } }}
         />
-        <Row gap={0.5} className="mt-2">
-          <Button variant="subtle" type="button" onClick={handleOpenLocationForm}>
-            Add new address
-          </Button>
-          {!hasValidLocation && (
-            <Typography.Text className="text-danger">
-              Select an address to finish enabling point of sale.
-            </Typography.Text>
-          )}
-        </Row>
+        <Button
+          variant="subtle"
+          type="button"
+          className="mt-2"
+          onClick={handleOpenLocationForm}
+        >
+          Add new address
+        </Button>
+        {!hasValidLocation && (
+          <Typography.Text className="text-danger">
+            Select an address to finish enabling point of sale.
+          </Typography.Text>
+        )}
       </div>
     );
   }, [
