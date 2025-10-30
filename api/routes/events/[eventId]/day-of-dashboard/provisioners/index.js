@@ -22,7 +22,7 @@ const baseProvisionerSchema = z.object({
     .max(160, "Name must be 160 characters or fewer")
     .optional()
     .nullable(),
-  instanceId: z.string().cuid().optional().nullable(),
+  instanceId: z.string().cuid("Invalid instance selected"),
   permissions: z
     .array(z.string().min(1, "Permission must be a non-empty string"))
     .min(1, "At least one permission is required"),
@@ -83,17 +83,13 @@ export const post = [
       return res.status(400).json({ message: "At least one permission required" });
     }
 
-    let resolvedInstanceId = null;
-    if (instanceId) {
-      const instance = await prisma.eventInstance.findFirst({
-        where: { id: instanceId, eventId },
-        select: { id: true },
-      });
+    const instance = await prisma.eventInstance.findFirst({
+      where: { id: instanceId, eventId },
+      select: { id: true },
+    });
 
-      if (!instance) {
-        return res.status(400).json({ message: "Invalid instance" });
-      }
-      resolvedInstanceId = instance.id;
+    if (!instance) {
+      return res.status(400).json({ message: "Invalid instance" });
     }
 
     const expiresIn = jwtExpiresInSeconds ?? 3600;
@@ -154,7 +150,7 @@ export const post = [
         const created = await tx.dayOfDashboardProvisioner.create({
           data: {
             eventId,
-            instanceId: resolvedInstanceId,
+            instanceId: instance.id,
             name: name?.trim() || null,
             permissions,
             jwtExpiresInSeconds: expiresIn,

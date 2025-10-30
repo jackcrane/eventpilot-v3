@@ -15,7 +15,7 @@ const updateSchema = z
       .max(160, "Name must be 160 characters or fewer")
       .optional()
       .nullable(),
-    instanceId: z.string().cuid().optional().nullable(),
+    instanceId: z.string().cuid("Invalid instance selected").optional(),
     permissions: z
       .array(z.string().min(1, "Permission must be a non-empty string"))
       .min(1, "At least one permission is required")
@@ -83,18 +83,14 @@ export const put = [
 
     let resolvedInstanceId = undefined;
     if (Object.prototype.hasOwnProperty.call(data, "instanceId")) {
-      if (data.instanceId === null) {
-        resolvedInstanceId = null;
-      } else if (data.instanceId) {
-        const instance = await prisma.eventInstance.findFirst({
-          where: { id: data.instanceId, eventId },
-          select: { id: true },
-        });
-        if (!instance) {
-          return res.status(400).json({ message: "Invalid instance" });
-        }
-        resolvedInstanceId = instance.id;
+      const instance = await prisma.eventInstance.findFirst({
+        where: { id: data.instanceId, eventId },
+        select: { id: true },
+      });
+      if (!instance) {
+        return res.status(400).json({ message: "Invalid instance" });
       }
+      resolvedInstanceId = instance.id;
     }
 
     const normalizedPermissions = data.permissions

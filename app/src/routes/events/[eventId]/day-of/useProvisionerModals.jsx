@@ -47,12 +47,20 @@ export const useProvisionerModals = ({
           eventId={eventId}
           defaultStripeLocationId={defaultStripeLocationId}
           onClose={close}
-          onSubmit={async ({ name, permissions, expiryIso, expiryTz, stripeLocationId }) => {
+          onSubmit={async ({
+            name,
+            permissions,
+            expiryIso,
+            expiryTz,
+            stripeLocationId,
+            instanceId,
+          }) => {
             const result = await createProvisioner({
               name,
               permissions,
               expiryIso,
               stripeLocationId,
+              instanceId,
             });
             if (!result?.success) return;
 
@@ -95,11 +103,12 @@ export const useProvisionerModals = ({
           eventId={eventId}
           defaultStripeLocationId={defaultStripeLocationId}
           onClose={close}
-          onSubmit={async ({ name, permissions, stripeLocationId }) => {
+          onSubmit={async ({ name, permissions, stripeLocationId, instanceId }) => {
             const success = await updateProvisioner(record.id, {
               name,
               permissions,
               stripeLocationId,
+              instanceId,
             });
             if (success) close();
           }}

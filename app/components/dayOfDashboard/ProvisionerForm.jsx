@@ -10,7 +10,8 @@ import { PROVISIONER_PERMISSION_OPTIONS } from "../../hooks/useDayOfProvisioners
 import { ProvisionerFormLayout } from "./ProvisionerFormLayout";
 import { useStripeLocations } from "../../hooks/useStripeLocations";
 import { StripeLocationForm } from "./StripeLocationForm";
-import { Row } from "../../util/Flex";
+import { InstancePicker } from "../InstancePicker/InstancePicker";
+import { useSelectedInstance } from "../../contexts/SelectedInstanceContext";
 
 const DEFAULT_TZ = "UTC";
 
@@ -51,6 +52,16 @@ const computeInitialExpiryTz = (provisioner, fallbackTz) =>
   provisioner?.startTimeTz ||
   fallbackTz ||
   DEFAULT_TZ;
+const computeInitialInstanceId = (
+  provisioner,
+  contextInstance,
+  contextDropdownValue
+) =>
+  provisioner?.instance?.id ||
+  provisioner?.instanceId ||
+  contextInstance?.id ||
+  contextDropdownValue?.id ||
+  null;
 
 export const ProvisionerForm = ({
   mode = "create",
@@ -73,6 +84,22 @@ export const ProvisionerForm = ({
   const [expiryTz, setExpiryTz] = useState(() =>
     computeInitialExpiryTz(provisioner, defaultTz)
   );
+  const {
+    instance: contextInstance,
+    instanceDropdownValue,
+    eventId: contextEventId,
+  } = useSelectedInstance();
+  const effectiveEventId = eventId || contextEventId;
+  const [instanceId, setInstanceId] = useState(() =>
+    computeInitialInstanceId(
+      provisioner,
+      contextInstance,
+      instanceDropdownValue
+    )
+  );
+  const [instanceTouched, setInstanceTouched] = useState(
+    Boolean(provisioner?.instanceId)
+  );
 
   useEffect(() => {
     setName(computeInitialName(provisioner));
@@ -85,7 +112,7 @@ export const ProvisionerForm = ({
     locations,
     loading: locationsLoading,
     createLocation,
-  } = useStripeLocations({ eventId });
+  } = useStripeLocations({ eventId: effectiveEventId });
 
   const {
     offcanvas: locationOffcanvas,
@@ -106,6 +133,32 @@ export const ProvisionerForm = ({
     setSelectedLocationId(provisioner?.stripeLocation?.id ?? null);
     setLocationTouched(Boolean(provisioner?.stripeLocation?.id));
   }, [provisioner?.stripeLocation?.id, provisioner?.id]);
+
+  useEffect(() => {
+    if (mode !== "edit") return;
+    const provisionerInstanceId =
+      provisioner?.instance?.id || provisioner?.instanceId || null;
+    setInstanceId(provisionerInstanceId);
+    setInstanceTouched(Boolean(provisionerInstanceId));
+  }, [mode, provisioner?.instance?.id, provisioner?.instanceId]);
+
+  useEffect(() => {
+    if (mode === "edit") return;
+    if (instanceTouched) return;
+    setInstanceId(
+      computeInitialInstanceId(
+        provisioner,
+        contextInstance,
+        instanceDropdownValue
+      )
+    );
+  }, [
+    mode,
+    provisioner,
+    contextInstance,
+    instanceDropdownValue,
+    instanceTouched,
+  ]);
 
   useEffect(() => {
     if (locationTouched || !defaultStripeLocationId || !locations?.length) {
@@ -134,6 +187,7 @@ export const ProvisionerForm = ({
     !name.trim().length ||
     !permissions?.length ||
     (mode === "create" && !expiryIso) ||
+    !instanceId ||
     !hasValidLocation;
 
   const title =
@@ -152,7 +206,7 @@ export const ProvisionerForm = ({
   }, [locations]);
 
   const handleOpenLocationForm = useCallback(() => {
-    if (!eventId) return;
+    if (!effectiveEventId) return;
     locationOffcanvas({
       content: (
         <StripeLocationForm
@@ -168,11 +222,16 @@ export const ProvisionerForm = ({
         />
       ),
     });
-  }, [closeLocationOffcanvas, createLocation, eventId, locationOffcanvas]);
+  }, [
+    closeLocationOffcanvas,
+    createLocation,
+    effectiveEventId,
+    locationOffcanvas,
+  ]);
 
   const pointOfSaleFields = useMemo(() => {
     if (!pointOfSaleSelected) return null;
-    if (!eventId) {
+    if (!effectiveEventId) {
       return (
         <Alert variant="danger" title="Event required">
           Unable to configure Stripe addresses without an event context.
@@ -232,7 +291,7 @@ export const ProvisionerForm = ({
       </div>
     );
   }, [
-    eventId,
+    effectiveEventId,
     handleOpenLocationForm,
     hasValidLocation,
     locations,
@@ -270,6 +329,7 @@ export const ProvisionerForm = ({
             permissions: permissions.map((item) => item.value),
             expiryIso,
             expiryTz,
+            instanceId,
             stripeLocationId: pointOfSaleSelected ? selectedLocationId : null,
           };
           Promise.resolve(onSubmit?.(payload)).finally(() => setSaving(false));
@@ -290,6 +350,26 @@ export const ProvisionerForm = ({
         endSessionsDisabled={endingSessions || saving}
         endSessionsLoading={endingSessions}
       >
+        <div className="my-3">
+          <Typography.Text className="form-label required">
+            Event instance
+          </Typography.Text>
+          <InstancePicker
+            eventId={effectiveEventId}
+            selectedInstanceId={instanceId}
+            onChange={(selected) => {
+              setInstanceId(selected.id);
+              setInstanceTouched(true);
+            }}
+            setGlobalInstance={false}
+            showCreate={Boolean(effectiveEventId)}
+          />
+          {!instanceId && (
+            <Typography.Text className="text-danger">
+              Select an instance to continue.
+            </Typography.Text>
+          )}
+        </div>
         {pointOfSaleFields}
       </ProvisionerFormLayout>
       {LocationOffcanvasElement}

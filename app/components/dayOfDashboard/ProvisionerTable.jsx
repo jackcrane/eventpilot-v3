@@ -19,6 +19,11 @@ export const ProvisionerTable = ({
         render: (value) => value || "—",
       },
       {
+        label: "Instance",
+        accessor: "instance",
+        render: (_, row) => row.instance?.name || "—",
+      },
+      {
         label: "Permissions",
         accessor: "permissions",
         render: (values = []) => (

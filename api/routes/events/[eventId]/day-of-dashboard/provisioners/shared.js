@@ -11,6 +11,16 @@ export const provisionerSelect = {
   lastPinGeneratedAt: true,
   createdAt: true,
   updatedAt: true,
+  instance: {
+    select: {
+      id: true,
+      name: true,
+      startTime: true,
+      endTime: true,
+      startTimeTz: true,
+      endTimeTz: true,
+    },
+  },
   stripeLocation: {
     select: {
       id: true,
@@ -36,10 +46,20 @@ export const provisionerSelect = {
 };
 
 export const formatProvisioner = (record) => {
-  const { _count, stripeLocation, ...rest } = record;
+  const { _count, stripeLocation, instance, ...rest } = record;
   return {
     ...rest,
-    instanceId: rest.instanceId ?? null,
+    instanceId: rest.instanceId,
+    instance: instance
+      ? {
+          id: instance.id,
+          name: instance.name,
+          startTime: instance.startTime?.toISOString() ?? null,
+          endTime: instance.endTime?.toISOString() ?? null,
+          startTimeTz: instance.startTimeTz ?? null,
+          endTimeTz: instance.endTimeTz ?? null,
+        }
+      : null,
     name: rest.name ?? null,
     pin: rest.pin ?? null,
     deleted: Boolean(rest.deleted),
