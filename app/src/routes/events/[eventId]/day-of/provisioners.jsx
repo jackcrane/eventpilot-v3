@@ -54,7 +54,6 @@ export const EventProvisionersPage = () => {
     useProvisionerModals({
       defaultTz,
       eventId,
-      defaultStripeLocationId: event?.stripeTerminalDefaultLocationId ?? null,
       createProvisioner,
       updateProvisioner,
       endProvisionerSessions,

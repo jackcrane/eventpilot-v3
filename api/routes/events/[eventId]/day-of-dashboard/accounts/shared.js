@@ -13,13 +13,21 @@ export const accountSelect = {
   event: {
     select: {
       name: true,
-      stripeTerminalDefaultLocationId: true,
+    },
+  },
+  provisioner: {
+    select: {
+      stripeLocation: {
+        select: {
+          stripeLocationId: true,
+        },
+      },
     },
   },
 };
 
 export const formatAccount = (record) => {
-  const { event, ...rest } = record;
+  const { event, provisioner, ...rest } = record;
 
   return {
     ...rest,
@@ -33,7 +41,7 @@ export const formatAccount = (record) => {
     deleted: Boolean(rest.deleted),
     lastIssuedAt: rest.lastIssuedAt ?? null,
     defaultTerminalLocationId:
-      event?.stripeTerminalDefaultLocationId ?? null,
+      provisioner?.stripeLocation?.stripeLocationId ?? null,
     eventName: event?.name ?? null,
   };
 };

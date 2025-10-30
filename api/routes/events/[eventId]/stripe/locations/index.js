@@ -64,7 +64,7 @@ const resolveEvent = async (eventId, userId) => {
       id: true,
       name: true,
       slug: true,
-      stripeTerminalDefaultLocationId: true,
+      stripeConnectedAccountId: true,
     },
   });
 };
@@ -85,8 +85,6 @@ export const get = [
 
       return res.json({
         locations: locations.map(formatLocationRecord),
-        defaultStripeTerminalLocationId:
-          event.stripeTerminalDefaultLocationId ?? null,
       });
     } catch (error) {
       console.error("Failed to fetch Stripe terminal locations", error);
@@ -103,6 +101,11 @@ export const post = [
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
+    if (!event.stripeConnectedAccountId) {
+      return res
+        .status(400)
+        .json({ message: "Event is not connected to Stripe" });
+    }
 
     const parseResult = createSchema.safeParse(req.body ?? {});
     if (!parseResult.success) {
@@ -117,42 +120,38 @@ export const post = [
         0,
         80
       );
-      const stripeLocation = await stripe.terminal.locations.create({
-        display_name: displayName,
-        address: {
-          line1: addressLine1,
-          line2: addressLine2 || undefined,
-          city,
-          state,
-          postal_code: postalCode,
-          country: "US",
-        },
-        metadata: {
-          eventId: event.id,
-          eventSlug: event.slug || "",
-        },
-      });
-
-      const created = await prisma.$transaction(async (tx) => {
-        const record = await tx.stripeLocation.create({
-          data: {
-            eventId: event.id,
-            nickname: nickname?.trim() || null,
-            addressLine1,
-            addressLine2: addressLine2?.trim() || null,
+      const stripeLocation = await stripe.terminal.locations.create(
+        {
+          display_name: displayName,
+          address: {
+            line1: addressLine1,
+            line2: addressLine2 || undefined,
             city,
             state,
-            postalCode,
-            stripeLocationId: stripeLocation.id,
+            postal_code: postalCode,
+            country: "US",
           },
-        });
+          metadata: {
+            eventId: event.id,
+            eventSlug: event.slug || "",
+          },
+        },
+        {
+          stripeAccount: event.stripeConnectedAccountId,
+        }
+      );
 
-        await tx.event.update({
-          where: { id: event.id },
-          data: { stripeTerminalDefaultLocationId: stripeLocation.id },
-        });
-
-        return record;
+      const created = await prisma.stripeLocation.create({
+        data: {
+          eventId: event.id,
+          nickname: nickname?.trim() || null,
+          addressLine1,
+          addressLine2: addressLine2?.trim() || null,
+          city,
+          state,
+          postalCode,
+          stripeLocationId: stripeLocation.id,
+        },
       });
 
       return res.status(201).json({

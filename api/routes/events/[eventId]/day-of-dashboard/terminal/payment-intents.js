@@ -50,30 +50,71 @@ const resolveEventAccess = async (req) => {
     if (req.dayOfDashboardAccount?.eventId !== req.params.eventId) {
       return null;
     }
-    return prisma.event.findUnique({
-      where: { id: req.params.eventId },
+    const account = await prisma.dayOfDashboardAccount.findUnique({
+      where: { id: req.dayOfDashboardAccount.id },
       select: {
         id: true,
-        name: true,
-        stripeTerminalDefaultLocationId: true,
-        stripeConnectedAccountId: true,
+        eventId: true,
+        event: {
+          select: {
+            id: true,
+            name: true,
+            stripeConnectedAccountId: true,
+          },
+        },
+        provisioner: {
+          select: {
+            stripeLocation: {
+              select: {
+                id: true,
+                stripeLocationId: true,
+                deleted: true,
+              },
+            },
+          },
+        },
       },
     });
+    if (!account || account.eventId !== req.params.eventId) {
+      return null;
+    }
+    return {
+      id: account.event.id,
+      eventId: account.event.id,
+      type: "dayOf",
+      name: account.event?.name ?? null,
+      stripeConnectedAccountId:
+        account.event?.stripeConnectedAccountId?.trim() || null,
+      assignedStripeLocationId:
+        account.provisioner?.stripeLocation?.stripeLocationId?.trim() || null,
+      assignedLocationDeleted: Boolean(
+        account.provisioner?.stripeLocation?.deleted
+      ),
+    };
   }
 
   if (!req.user?.id) {
     return null;
   }
 
-  return prisma.event.findFirst({
+  const event = await prisma.event.findFirst({
     where: { id: req.params.eventId, userId: req.user.id },
     select: {
       id: true,
       name: true,
-      stripeTerminalDefaultLocationId: true,
       stripeConnectedAccountId: true,
     },
   });
+  if (!event) {
+    return null;
+  }
+  return {
+    id: event.id,
+    eventId: event.id,
+    type: "manager",
+    name: event.name ?? null,
+    stripeConnectedAccountId: event.stripeConnectedAccountId?.trim() || null,
+  };
 };
 
 export const post = [
@@ -101,11 +142,54 @@ export const post = [
     } = parseResult.data;
 
     const currency = (currencyInput || "usd").toLowerCase();
-    const eventDefaultLocationId =
-      event.stripeTerminalDefaultLocationId?.trim() || null;
-    const resolvedLocationId =
-      locationId?.trim() || eventDefaultLocationId || null;
-    const connectedAccountId = event.stripeConnectedAccountId?.trim() || null;
+    const connectedAccountId =
+      event.stripeConnectedAccountId?.trim() || null;
+    const requestedLocationId = locationId?.trim() || null;
+    let terminalLocationId = null;
+
+    if (event.type === "dayOf") {
+      if (event.assignedLocationDeleted) {
+        return res.status(400).json({
+          message:
+            "The assigned Stripe Terminal address has been removed. Update the provisioner before charging a card.",
+        });
+      }
+      const assigned = event.assignedStripeLocationId;
+      if (!assigned) {
+        return res.status(400).json({
+          message:
+            "Assign a Stripe Terminal address to this provisioner before charging a card.",
+        });
+      }
+      if (requestedLocationId && requestedLocationId !== assigned) {
+        return res.status(400).json({
+          message:
+            "Stripe Terminal location mismatch. Use the address assigned to your provisioner.",
+        });
+      }
+      terminalLocationId = assigned;
+    } else if (requestedLocationId) {
+      const locationRecord = await prisma.stripeLocation.findFirst({
+        where: {
+          eventId: event.id,
+          stripeLocationId: requestedLocationId,
+          deleted: false,
+        },
+        select: { stripeLocationId: true },
+      });
+      if (!locationRecord) {
+        return res.status(400).json({
+          message:
+            "The requested Stripe Terminal address is not available for this event.",
+        });
+      }
+      terminalLocationId = locationRecord.stripeLocationId;
+    } else {
+      return res.status(400).json({
+        message:
+          "Specify a Stripe Terminal address when creating a card-present payment.",
+      });
+    }
 
     if (!connectedAccountId) {
       return res
@@ -131,8 +215,8 @@ export const post = [
         },
       };
 
-      if (resolvedLocationId) {
-        intentPayload.metadata.terminalLocationId = resolvedLocationId;
+      if (terminalLocationId) {
+        intentPayload.metadata.terminalLocationId = terminalLocationId;
       }
 
       const intent = await stripe.paymentIntents.create(intentPayload, {

@@ -182,16 +182,6 @@ export const put = [
           });
         }
 
-        if (resolvedStripeLocation?.stripeLocationId) {
-          await tx.event.update({
-            where: { id: eventId },
-            data: {
-              stripeTerminalDefaultLocationId:
-                resolvedStripeLocation.stripeLocationId,
-            },
-          });
-        }
-
         return provisioner;
       });
 

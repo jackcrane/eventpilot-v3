@@ -163,13 +163,6 @@ export const post = [
           select: provisionerSelect,
         });
 
-        if (resolvedStripeLocation?.stripeLocationId) {
-          await tx.event.update({
-            where: { id: eventId },
-            data: { stripeTerminalDefaultLocationId: resolvedStripeLocation.stripeLocationId },
-          });
-        }
-
         return created;
       });
 

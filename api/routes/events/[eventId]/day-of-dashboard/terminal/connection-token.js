@@ -20,26 +20,64 @@ const resolveEventAccess = async (req) => {
     if (req.dayOfDashboardAccount?.eventId !== req.params.eventId) {
       return null;
     }
-    return prisma.event.findUnique({
-      where: { id: req.params.eventId },
+    const account = await prisma.dayOfDashboardAccount.findUnique({
+      where: { id: req.dayOfDashboardAccount.id },
       select: {
         id: true,
-        stripeTerminalDefaultLocationId: true,
+        eventId: true,
+        event: {
+          select: {
+            id: true,
+            stripeConnectedAccountId: true,
+          },
+        },
+        provisioner: {
+          select: {
+            stripeLocation: {
+              select: {
+                id: true,
+                stripeLocationId: true,
+                deleted: true,
+              },
+            },
+          },
+        },
       },
     });
+    if (!account || account.eventId !== req.params.eventId) {
+      return null;
+    }
+    return {
+      id: account.event.id,
+      type: "dayOf",
+      eventId: account.event.id,
+      stripeConnectedAccountId:
+        account.event?.stripeConnectedAccountId?.trim() || null,
+      assignedStripeLocationId:
+        account.provisioner?.stripeLocation?.stripeLocationId?.trim() || null,
+      assignedLocationDeleted: Boolean(
+        account.provisioner?.stripeLocation?.deleted
+      ),
+    };
   }
 
   if (!req.user?.id) {
     return null;
   }
 
-  return prisma.event.findFirst({
+  const event = await prisma.event.findFirst({
     where: { id: req.params.eventId, userId: req.user.id },
-    select: {
-      id: true,
-      stripeTerminalDefaultLocationId: true,
-    },
+    select: { id: true, stripeConnectedAccountId: true },
   });
+  if (!event) {
+    return null;
+  }
+  return {
+    id: event.id,
+    eventId: event.id,
+    type: "manager",
+    stripeConnectedAccountId: event.stripeConnectedAccountId?.trim() || null,
+  };
 };
 
 export const post = [
@@ -57,114 +95,71 @@ export const post = [
       return res.status(400).json({ message: serializeError(parseResult) });
     }
 
-    const requestedLocationId = parseResult.data?.locationId?.trim();
-    let currentDefaultLocationId =
-      event.stripeTerminalDefaultLocationId ?? null;
-    const envFallback = process.env.STRIPE_TERMINAL_DEFAULT_LOCATION;
+    const requestedLocationId = parseResult.data?.locationId?.trim() || null;
+    const connectedAccountId =
+      event.stripeConnectedAccountId?.trim() || null;
+    let locationIdToUse = null;
 
-    const persistDefaultLocationId = async (nextLocationId) => {
-      if (!nextLocationId || nextLocationId === currentDefaultLocationId) {
-        return;
-      }
-      try {
-        await prisma.event.update({
-          where: { id: event.id },
-          data: { stripeTerminalDefaultLocationId: nextLocationId },
-        });
-        currentDefaultLocationId = nextLocationId;
-      } catch (persistError) {
-        console.error(
-          "Failed to persist Stripe Terminal default location",
-          persistError
-        );
-      }
-    };
-
-    const resolveLocation = async (rawLocationId, { required = false } = {}) => {
-      if (!rawLocationId) {
-        return null;
-      }
-      const trimmed = rawLocationId.trim();
-      if (!trimmed) {
-        return null;
-      }
-      try {
-        const location = await stripe.terminal.locations.retrieve(trimmed);
-        return location?.id ?? null;
-      } catch (error) {
-        const isMissing =
-          error?.raw?.param === "location" ||
-          error?.raw?.code === "resource_missing" ||
-          error?.statusCode === 404;
-        if (isMissing) {
-          const message = `Stripe Terminal location '${trimmed}' was not found`;
-          if (required) {
-            return { errorMessage: message };
-          }
-          console.warn(message);
-          return null;
-        }
-        throw error;
-      }
-    };
-
-    const ensureFallbackLocation = async () => {
-      const { data } = await stripe.terminal.locations.list({ limit: 1 });
-      return data?.[0]?.id ?? null;
-    };
-
-    try {
-      if (requestedLocationId) {
-        const result = await resolveLocation(requestedLocationId, {
-          required: true,
-        });
-        if (result?.errorMessage) {
-          return res.status(400).json({ message: result.errorMessage });
-        }
-        if (!result) {
-          return res.status(400).json({
-            message: `Stripe Terminal location '${requestedLocationId}' could not be used`,
-          });
-        }
-        const token = await stripe.terminal.connectionTokens.create({
-          location: result,
-        });
-
-        await persistDefaultLocationId(result);
-
-        return res.json({
-          secret: token.secret,
-          expiresAt: token.expires_at ?? null,
-          locationId: result,
-        });
-      }
-
-      let resolvedLocationId =
-        (await resolveLocation(currentDefaultLocationId)) ?? null;
-
-      if (!resolvedLocationId) {
-        resolvedLocationId =
-          (await resolveLocation(envFallback)) ??
-          (await ensureFallbackLocation());
-      }
-
-      if (!resolvedLocationId) {
+    if (event.type === "dayOf") {
+      if (event.assignedLocationDeleted) {
         return res.status(400).json({
           message:
-            "No Stripe Terminal locations are available. Create a location in Stripe and assign it as the event default.",
+            "The assigned Stripe Terminal address has been removed. Update the provisioner before requesting a token.",
         });
       }
+      const assigned = event.assignedStripeLocationId;
+      if (!assigned) {
+        return res.status(400).json({
+          message:
+            "Assign a Stripe Terminal address to this provisioner before requesting a token.",
+        });
+      }
+      if (requestedLocationId && requestedLocationId !== assigned) {
+        return res.status(400).json({
+          message:
+            "Stripe Terminal location mismatch. Use the address assigned to your provisioner.",
+        });
+      }
+      locationIdToUse = assigned;
+    } else {
+      if (requestedLocationId) {
+        const managerLocation = await prisma.stripeLocation.findFirst({
+          where: {
+            eventId: event.id,
+            stripeLocationId: requestedLocationId,
+            deleted: false,
+          },
+          select: { stripeLocationId: true },
+        });
+        if (!managerLocation) {
+          return res.status(400).json({
+            message:
+              "The requested Stripe Terminal address is not available for this event.",
+          });
+        }
+        locationIdToUse = managerLocation.stripeLocationId;
+      } else {
+        return res.status(400).json({
+          message:
+            "Specify a Stripe Terminal address when generating a connection token.",
+        });
+      }
+    }
 
-      const token = await stripe.terminal.connectionTokens.create({
-        location: resolvedLocationId,
-      });
-
-      await persistDefaultLocationId(resolvedLocationId);
+    try {
+      const token = await stripe.terminal.connectionTokens.create(
+        {
+          location: locationIdToUse,
+        },
+        {
+          ...(connectedAccountId ? { stripeAccount: connectedAccountId } : {}),
+        }
+      );
 
       return res.json({
         secret: token.secret,
         expiresAt: token.expires_at ?? null,
-        locationId: resolvedLocationId ?? null,
+        locationId: locationIdToUse,
       });
     } catch (error) {
       console.error("Failed to create Stripe Terminal connection token", error);

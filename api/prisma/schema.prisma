@@ -479,7 +479,6 @@ model Event {
   stripe_subscriptionId     String?                     @unique
   stripe_customerId         String?                     @unique
   goodPaymentStanding       Boolean                     @default(false)
-  stripeTerminalDefaultLocationId String?
   RegistrationPeriodPricing RegistrationPeriodPricing[]
   RegistrationFieldResponse RegistrationFieldResponse[]
 

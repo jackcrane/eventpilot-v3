@@ -6,7 +6,6 @@ import { useConfirm } from "tabler-react-2";
 export const useProvisionerModals = ({
   defaultTz,
   eventId,
-  defaultStripeLocationId,
   createProvisioner,
   updateProvisioner,
   endProvisionerSessions,
@@ -45,7 +44,6 @@ export const useProvisionerModals = ({
           mode="create"
           defaultTz={defaultTz}
           eventId={eventId}
-          defaultStripeLocationId={defaultStripeLocationId}
           onClose={close}
           onSubmit={async ({
             name,
@@ -101,7 +99,6 @@ export const useProvisionerModals = ({
           provisioner={record}
           defaultTz={defaultTz}
           eventId={eventId}
-          defaultStripeLocationId={defaultStripeLocationId}
           onClose={close}
           onSubmit={async ({ name, permissions, stripeLocationId, instanceId }) => {
             const success = await updateProvisioner(record.id, {

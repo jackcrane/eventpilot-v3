@@ -50,8 +50,6 @@ export const useStripeLocations = ({ eventId }) => {
 
   return {
     locations: data?.locations ?? [],
-    defaultStripeTerminalLocationId:
-      data?.defaultStripeTerminalLocationId ?? null,
     loading: Boolean(key) && isLoading,
     error,
     createLocation,

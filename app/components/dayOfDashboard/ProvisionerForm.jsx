@@ -68,7 +68,6 @@ export const ProvisionerForm = ({
   provisioner,
   defaultTz = DEFAULT_TZ,
   eventId,
-  defaultStripeLocationId,
   onSubmit,
   onClose,
   onEndSessions,
@@ -159,19 +158,6 @@ export const ProvisionerForm = ({
     instanceDropdownValue,
     instanceTouched,
   ]);
-
-  useEffect(() => {
-    if (locationTouched || !defaultStripeLocationId || !locations?.length) {
-      return;
-    }
-    const match = locations.find(
-      (entry) => entry.stripeLocationId === defaultStripeLocationId
-    );
-    if (match) {
-      setSelectedLocationId(match.id);
-      setLocationTouched(true);
-    }
-  }, [locations, defaultStripeLocationId, locationTouched]);
 
   const [saving, setSaving] = useState(false);
   const [endingSessions, setEndingSessions] = useState(false);
