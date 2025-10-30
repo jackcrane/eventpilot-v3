@@ -144,6 +144,7 @@ const PointOfSaleScreen = () => {
         status: "success",
         amountInCents: result.summary?.amount ?? amountInCents,
         clientSecret: result.summary?.clientSecret ?? null,
+        paymentIntentId: result.summary?.id ?? null,
       });
       resetError();
       console.log("[POS][view] handleCollectPayment success");
@@ -162,6 +163,7 @@ const PointOfSaleScreen = () => {
       amountInCents: amountForResult,
       clientSecret,
       declineReason,
+      paymentIntentId: result.summary?.id ?? null,
     });
     resetError();
     console.log("[POS][view] handleCollectPayment declined", {
@@ -441,6 +443,7 @@ const PointOfSaleScreen = () => {
         declineReason={transactionModal?.declineReason ?? null}
         onClose={handleDismissTransactionModal}
         onRetry={handleDismissTransactionModal}
+        paymentIntentId={transactionModal?.paymentIntentId ?? null}
         processing={processingPayment}
       />
     </View>

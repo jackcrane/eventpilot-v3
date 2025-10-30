@@ -45,7 +45,7 @@ const createSchema = z.object({
     .optional(),
 });
 
-const resolveEventAccess = async (req) => {
+export const resolveEventAccess = async (req) => {
   if (req.isDayOfDashboardRequest) {
     if (req.dayOfDashboardAccount?.eventId !== req.params.eventId) {
       return null;
@@ -55,6 +55,7 @@ const resolveEventAccess = async (req) => {
       select: {
         id: true,
         eventId: true,
+        instanceId: true,
         event: {
           select: {
             id: true,
@@ -64,6 +65,7 @@ const resolveEventAccess = async (req) => {
         },
         provisioner: {
           select: {
+            instanceId: true,
             stripeLocation: {
               select: {
                 id: true,
@@ -78,6 +80,16 @@ const resolveEventAccess = async (req) => {
     if (!account || account.eventId !== req.params.eventId) {
       return null;
     }
+    const accountInstanceId =
+      typeof account.instanceId === "string"
+        ? account.instanceId.trim()
+        : null;
+    const provisionerInstanceId =
+      typeof account.provisioner?.instanceId === "string"
+        ? account.provisioner.instanceId.trim()
+        : null;
+    const assignedInstanceId =
+      accountInstanceId || provisionerInstanceId || null;
     return {
       id: account.event.id,
       eventId: account.event.id,
@@ -90,6 +102,7 @@ const resolveEventAccess = async (req) => {
       assignedLocationDeleted: Boolean(
         account.provisioner?.stripeLocation?.deleted
       ),
+      assignedInstanceId,
     };
   }
 
@@ -197,7 +210,35 @@ export const post = [
         .json({ message: "Event is not connected to Stripe" });
     }
 
+    if (event.type === "dayOf" && !event.assignedInstanceId) {
+      return res.status(400).json({
+        message:
+          "Assign an event instance to this provisioner before charging a card.",
+      });
+    }
+
     try {
+      const metadataPayload = {
+        eventId: event.id,
+        source: "day-of-dashboard",
+        ...(metadata || {}),
+      };
+
+      if (event.type === "dayOf") {
+        metadataPayload.scope = "EVENTPILOT:POINT_OF_SALE";
+        if (event.assignedInstanceId) {
+          metadataPayload.instanceId = event.assignedInstanceId;
+        }
+        if (req.isDayOfDashboardRequest && req.dayOfDashboardAccount?.id) {
+          metadataPayload.dayOfAccountId = req.dayOfDashboardAccount.id;
+        }
+      } else if (
+        req.isDayOfDashboardRequest &&
+        req.dayOfDashboardAccount?.id
+      ) {
+        metadataPayload.dayOfAccountId = req.dayOfDashboardAccount.id;
+      }
+
       const intentPayload = {
         amount,
         currency,
@@ -205,14 +246,7 @@ export const post = [
         receipt_email: receiptEmail,
         payment_method_types: ["card_present"],
         capture_method: "automatic",
-        metadata: {
-          eventId: event.id,
-          source: "day-of-dashboard",
-          ...(req.isDayOfDashboardRequest && req.dayOfDashboardAccount?.id
-            ? { dayOfAccountId: req.dayOfDashboardAccount.id }
-            : {}),
-          ...(metadata || {}),
-        },
+        metadata: metadataPayload,
       };
 
       if (terminalLocationId) {

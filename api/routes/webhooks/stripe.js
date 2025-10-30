@@ -4,7 +4,11 @@ import { prisma } from "#prisma";
 import { LogType } from "@prisma/client";
 import { finalizeRegistration } from "../../util/finalizeRegistration";
 import { getCrmPersonByEmail } from "../../util/getCrmPersonByEmail";
-import { createLedgerItemForRegistration } from "../../util/ledger";
+import {
+  createLedgerItemForRegistration,
+  ensureLedgerItemForPointOfSale,
+} from "../../util/ledger";
+import { ensureCrmPersonForPaymentIntent } from "../../util/crmPersonFromPaymentIntent.js";
 import { reportApiError } from "#util/reportApiError.js";
 
 const stripe = new Stripe(process.env.STRIPE_SK, {
@@ -590,11 +594,9 @@ export const post = [
           const { scope } = metadata;
 
           // Attach event/person when possible for the PI succeeded log
-          const {
-            eventId: piEventId,
-            crmPersonId: piCrmPersonId,
-            cardMatchInfo,
-          } = await resolveAffiliations(paymentIntent);
+          const affiliations = await resolveAffiliations(paymentIntent);
+          const { eventId: piEventId, cardMatchInfo } = affiliations;
+          let { crmPersonId: piCrmPersonId } = affiliations;
           await prisma.logs.create({
             data: {
               type: LogType.STRIPE_PAYMENT_INTENT_SUCCEEDED,
@@ -624,6 +626,49 @@ export const post = [
                   cardholderName:
                     cardMatchInfo?.context?.cardholderName || null,
                 }
+              );
+            }
+          }
+
+          if (!piCrmPersonId && cardMatchInfo?.attempted && piEventId) {
+            const eventRecord = await prisma.event.findUnique({
+              where: { id: piEventId },
+              select: { stripeConnectedAccountId: true },
+            });
+
+            const stripeAccountId =
+              eventRecord?.stripeConnectedAccountId?.trim() || null;
+
+            if (stripeAccountId) {
+              try {
+                const { crmPerson, created } =
+                  await ensureCrmPersonForPaymentIntent({
+                    paymentIntent,
+                    eventId: piEventId,
+                    stripeAccountId,
+                  });
+
+                if (crmPerson?.id) {
+                  piCrmPersonId = crmPerson.id;
+                  if (created) {
+                    console.log(
+                      `[STRIPE][CRM] Created CRM person ${crmPerson.id} for PaymentIntent ${paymentIntent.id}`
+                    );
+                  } else {
+                    console.log(
+                      `[STRIPE][CRM] Linked PaymentIntent ${paymentIntent.id} to CRM person ${crmPerson.id}`
+                    );
+                  }
+                }
+              } catch (creationError) {
+                console.error(
+                  `[STRIPE][CRM] Failed to ensure CRM person for PaymentIntent ${paymentIntent.id}`,
+                  creationError
+                );
+              }
+            } else {
+              console.warn(
+                `[STRIPE][CRM] Event ${piEventId} missing connected account; cannot ensure CRM person for PaymentIntent ${paymentIntent.id}`
               );
             }
           }
@@ -688,9 +733,81 @@ export const post = [
               stripe_paymentIntentId: paymentIntent.id,
               crmPersonId,
             });
+          } else if (scope === "EVENTPILOT:POINT_OF_SALE") {
+            const eventId = metadata.eventId || piEventId;
+            const instanceId = metadata.instanceId || null;
+            const dayOfAccountId =
+              typeof metadata.dayOfAccountId === "string"
+                ? metadata.dayOfAccountId
+                : null;
+
+            if (!eventId || !instanceId) {
+              console.warn(
+                `[STRIPE] PaymentIntent ${paymentIntent.id} missing event or instance metadata; skipping POS ledger item`
+              );
+              break;
+            }
+
+            if (!piCrmPersonId) {
+              console.warn(
+                `[STRIPE] PaymentIntent ${paymentIntent.id} succeeded without a CRM person; skipping POS ledger item`
+              );
+              break;
+            }
+
+            const instance = await prisma.eventInstance.findFirst({
+              where: { id: instanceId, eventId },
+              select: { id: true },
+            });
+
+            if (!instance) {
+              console.warn(
+                `[STRIPE] PaymentIntent ${paymentIntent.id} references unknown instance ${instanceId}; skipping POS ledger item`
+              );
+              break;
+            }
+
+            const charge = paymentIntent?.charges?.data?.[0] ?? null;
+            const originalAmount = paymentIntent.amount / 100;
+
+            let netAmount = originalAmount;
+            try {
+              const eventRecord = await prisma.event.findUnique({
+                where: { id: eventId },
+              });
+              const connectedAccount =
+                eventRecord?.stripeConnectedAccountId || undefined;
+              const balanceTxId = charge?.balance_transaction;
+              if (balanceTxId && connectedAccount) {
+                const bt = await stripe.balanceTransactions.retrieve(
+                  balanceTxId,
+                  {
+                    stripeAccount: connectedAccount,
+                  }
+                );
+                if (bt && typeof bt.net === "number") {
+                  netAmount = bt.net / 100;
+                }
+              }
+            } catch (e) {
+              console.warn(
+                "[STRIPE] Failed to retrieve balance transaction for POS net amount; using gross",
+                e
+              );
+            }
+
+            await ensureLedgerItemForPointOfSale({
+              eventId,
+              instanceId: instance.id,
+              crmPersonId: piCrmPersonId,
+              amount: netAmount,
+              stripe_paymentIntentId: paymentIntent.id,
+              originalAmount,
+              dayOfDashboardAccountId: dayOfAccountId,
+            });
           } else {
             console.warn(
-              `[STRIPE] PaymentIntent ${paymentIntent.id} succeeded but scope is not EVENTPILOT:REGISTRATION`
+              `[STRIPE] PaymentIntent ${paymentIntent.id} succeeded with unsupported scope ${scope || "undefined"}`
             );
             break;
           }
