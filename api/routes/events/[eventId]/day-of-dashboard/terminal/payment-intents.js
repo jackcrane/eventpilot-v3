@@ -56,6 +56,7 @@ const resolveEventAccess = async (req) => {
         id: true,
         name: true,
         stripeTerminalDefaultLocationId: true,
+        stripeConnectedAccountId: true,
       },
     });
   }
@@ -70,6 +71,7 @@ const resolveEventAccess = async (req) => {
       id: true,
       name: true,
       stripeTerminalDefaultLocationId: true,
+      stripeConnectedAccountId: true,
     },
   });
 };
@@ -89,14 +91,27 @@ export const post = [
       return res.status(400).json({ message: serializeError(parseResult) });
     }
 
-    const { amount, currency: currencyInput, description, metadata, receiptEmail, locationId } =
-      parseResult.data;
+    const {
+      amount,
+      currency: currencyInput,
+      description,
+      metadata,
+      receiptEmail,
+      locationId,
+    } = parseResult.data;
 
     const currency = (currencyInput || "usd").toLowerCase();
     const eventDefaultLocationId =
       event.stripeTerminalDefaultLocationId?.trim() || null;
     const resolvedLocationId =
       locationId?.trim() || eventDefaultLocationId || null;
+    const connectedAccountId = event.stripeConnectedAccountId?.trim() || null;
+
+    if (!connectedAccountId) {
+      return res
+        .status(400)
+        .json({ message: "Event is not connected to Stripe" });
+    }
 
     try {
       const intentPayload = {
@@ -120,7 +135,9 @@ export const post = [
         intentPayload.metadata.terminalLocationId = resolvedLocationId;
       }
 
-      const intent = await stripe.paymentIntents.create(intentPayload);
+      const intent = await stripe.paymentIntents.create(intentPayload, {
+        stripeAccount: connectedAccountId,
+      });
 
       return res.json({
         paymentIntent: {
