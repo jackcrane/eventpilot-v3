@@ -140,6 +140,39 @@ export const useTapToPay = () => {
     });
   }, [account?.eventId, defaultTerminalLocationId, merchantDisplayName, token]);
 
+  useEffect(() => {
+    console.log("[POS][useTapToPay] stripeTerminal:loadingStateChanged", {
+      loading,
+    });
+  }, [loading]);
+
+  useEffect(() => {
+    console.log("[POS][useTapToPay] lifecycle:initializationStateChanged", {
+      initializing,
+      initialized,
+    });
+  }, [initializing, initialized]);
+
+  useEffect(() => {
+    console.log("[POS][useTapToPay] lifecycle:readerDiscoveryStateChanged", {
+      discovering,
+      connecting,
+    });
+  }, [discovering, connecting]);
+
+  useEffect(() => {
+    if (!connectedReader) {
+      console.log("[POS][useTapToPay] connectedReader:cleared");
+      return;
+    }
+    console.log("[POS][useTapToPay] connectedReader:updated", {
+      label: connectedReader.label ?? null,
+      serialNumber: connectedReader.serialNumber ?? null,
+      deviceType: connectedReader.deviceType ?? null,
+      status: connectedReader.status ?? null,
+    });
+  }, [connectedReader]);
+
   const ensureSessionReady = useCallback(() => {
     if (!account?.eventId || !token) {
       throw new Error("POS session is not ready yet");
@@ -190,6 +223,17 @@ export const useTapToPay = () => {
         merchantDisplayName,
       });
       const result = await initialize({});
+      console.log("[POS][useTapToPay] initializeTerminal:result", {
+        hasResult: Boolean(result),
+        error: result?.error?.message ?? null,
+        reader: result?.reader
+          ? {
+              label: result.reader.label ?? null,
+              serialNumber: result.reader.serialNumber ?? null,
+              deviceType: result.reader.deviceType ?? null,
+            }
+          : null,
+      });
       if (result?.error) {
         console.log("[POS][useTapToPay] initializeTerminal:error", result.error);
         setLastError(result.error.message || "Failed to initialize Stripe Terminal");
@@ -210,6 +254,7 @@ export const useTapToPay = () => {
       setLastError(error?.message || "Failed to initialize Stripe Terminal");
       return { success: false, error };
     } finally {
+      console.log("[POS][useTapToPay] initializeTerminal:complete");
       setInitializing(false);
     }
   }, [

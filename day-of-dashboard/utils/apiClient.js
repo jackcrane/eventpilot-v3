@@ -9,7 +9,7 @@ export class DayOfApiError extends Error {
   }
 }
 
-const DEFAULT_DEV_BASE_URL = "http://192.168.1.117:3000";
+const DEFAULT_DEV_BASE_URL = "http://192.168.1.113:3000";
 
 const resolveBaseUrl = () => {
   const explicit =
@@ -65,6 +65,15 @@ const parseErrorResponse = async (response) => {
   }
 };
 
+const logFetchFailure = (url, status, error) => {
+  console.log("[POS][apiClient] request failed", {
+    url,
+    status,
+    message: error?.message ?? null,
+    name: error?.name ?? null,
+  });
+};
+
 export const dayOfPublicFetch = async (path, options) => {
   const url = buildUrl(path);
   const headers = {
@@ -73,12 +82,19 @@ export const dayOfPublicFetch = async (path, options) => {
     ...normalizeHeaders(options?.headers),
   };
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    logFetchFailure(url, null, error);
+    throw error;
+  }
 
   if (!response.ok) {
+    logFetchFailure(url, response.status, new Error(response.statusText || "Request failed"));
     await parseErrorResponse(response);
   }
 
@@ -95,12 +111,19 @@ export const dayOfAuthFetch = async (path, auth, options) => {
     ...normalizeHeaders(options?.headers),
   };
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    logFetchFailure(url, null, error);
+    throw error;
+  }
 
   if (!response.ok) {
+    logFetchFailure(url, response.status, new Error(response.statusText || "Request failed"));
     await parseErrorResponse(response);
   }
 
