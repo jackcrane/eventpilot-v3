@@ -2,6 +2,11 @@ import { prisma } from "#prisma";
 import { stripe } from "#stripe";
 import { LogType } from "@prisma/client";
 import { getCrmPersonByEmail } from "#util/getCrmPersonByEmail.js";
+import {
+  ensurePaymentMethodForCrmPerson,
+  resolvePaymentMethodDetails,
+  findCrmPersonByStoredPaymentMethod,
+} from "./paymentMethods.js";
 
 const TAP_TO_PAY_EMAIL_LABEL = "Tap to Pay";
 const MAX_NAME_LENGTH = 160;
@@ -124,12 +129,98 @@ export const ensureCrmPersonForPaymentIntent = async ({
     return { crmPerson: null, created: false };
   }
 
+  const logMatchStep = (step, data = {}, matched = false) => {
+    const context = {
+      paymentIntentId: paymentIntent?.id,
+      eventId,
+      matched,
+      ...data,
+    };
+    const message = `[CRM][PaymentIntent] ${matched ? "Matched" : "Trying"} via ${step}`;
+    console.info(message, context);
+  };
+
+  const paymentMethodDetails = await resolvePaymentMethodDetails({
+    paymentIntent,
+    stripeAccountId,
+  });
   const metadataPersonId = normalizeString(paymentIntent?.metadata?.crmPersonId);
+  logMatchStep("metadata", { metadataPersonId, result: "attempt" });
   const byMetadata = await loadCrmPersonById(metadataPersonId);
   if (byMetadata) {
+    logMatchStep("metadata", { metadataPersonId, crmPersonId: byMetadata.id, result: "matched" }, true);
     await ensurePaymentIntentMetadata(paymentIntent, stripeAccountId, byMetadata.id);
+    await ensurePaymentMethodForCrmPerson({
+      crmPersonId: byMetadata.id,
+      paymentMethodDetails,
+      paymentIntent,
+      stripeAccountId,
+    });
     return { crmPerson: byMetadata, created: false };
   }
+  logMatchStep("metadata", { metadataPersonId, result: "no_match" });
+
+  logMatchStep(
+    "stored_payment_method",
+    {
+      stripePaymentMethodId: paymentMethodDetails?.stripePaymentMethodId,
+      fingerprint: paymentMethodDetails?.fingerprint,
+      brand: paymentMethodDetails?.brand,
+      last4: paymentMethodDetails?.last4,
+      expMonth: paymentMethodDetails?.expMonth ?? null,
+      expYear: paymentMethodDetails?.expYear ?? null,
+      nameOnCard: paymentMethodDetails?.nameOnCard ?? null,
+      result: "attempt",
+    }
+  );
+  const viaPaymentMethod = await findCrmPersonByStoredPaymentMethod({
+    eventId,
+    paymentMethodDetails,
+  });
+
+  if (viaPaymentMethod?.crmPersonId) {
+    logMatchStep("stored_payment_method", {
+      stripePaymentMethodId: paymentMethodDetails?.stripePaymentMethodId,
+      fingerprint: paymentMethodDetails?.fingerprint,
+      brand: paymentMethodDetails?.brand,
+      last4: paymentMethodDetails?.last4,
+      expMonth: paymentMethodDetails?.expMonth ?? null,
+      expYear: paymentMethodDetails?.expYear ?? null,
+      nameOnCard: paymentMethodDetails?.nameOnCard ?? null,
+      matchType: viaPaymentMethod.matchType,
+      crmPersonId: viaPaymentMethod.crmPersonId,
+      result: "matched",
+    }, true);
+    const matchedPerson = await loadCrmPersonById(viaPaymentMethod.crmPersonId);
+    if (matchedPerson) {
+      await ensurePaymentIntentMetadata(
+        paymentIntent,
+        stripeAccountId,
+        matchedPerson.id
+      );
+      await ensurePaymentMethodForCrmPerson({
+        crmPersonId: matchedPerson.id,
+        paymentMethodDetails,
+        paymentIntent,
+        stripeAccountId,
+      });
+      return { crmPerson: matchedPerson, created: false };
+    }
+  }
+  logMatchStep(
+    "stored_payment_method",
+    {
+      stripePaymentMethodId: paymentMethodDetails?.stripePaymentMethodId,
+      fingerprint: paymentMethodDetails?.fingerprint,
+      brand: paymentMethodDetails?.brand,
+      last4: paymentMethodDetails?.last4,
+      expMonth: paymentMethodDetails?.expMonth ?? null,
+      expYear: paymentMethodDetails?.expYear ?? null,
+      nameOnCard: paymentMethodDetails?.nameOnCard ?? null,
+      result: "no_match",
+    },
+    false
+  );
 
   const {
     name: derivedName,
@@ -141,13 +232,27 @@ export const ensureCrmPersonForPaymentIntent = async ({
   const normalizedEmail = normalizedEmailRaw ? normalizedEmailRaw.toLowerCase() : null;
 
   if (normalizedEmail) {
+    logMatchStep("email", { email: normalizedEmail, result: "attempt" });
     const byEmail = await getCrmPersonByEmail(normalizedEmail, eventId);
     if (byEmail) {
+      logMatchStep(
+        "email",
+        { email: normalizedEmail, crmPersonId: byEmail.id, result: "matched" },
+        true
+      );
       await ensurePaymentIntentMetadata(paymentIntent, stripeAccountId, byEmail.id);
+      await ensurePaymentMethodForCrmPerson({
+        crmPersonId: byEmail.id,
+        paymentMethodDetails,
+        paymentIntent,
+        stripeAccountId,
+      });
       return { crmPerson: byEmail, created: false };
     }
+    logMatchStep("email", { email: normalizedEmail, result: "no_match" });
   }
 
+  logMatchStep("prior_creation_log", { paymentIntentId: paymentIntent.id, result: "attempt" });
   const priorCreationLog = await prisma.logs.findFirst({
     where: {
       type: LogType.CRM_PERSON_CREATED,
@@ -161,21 +266,33 @@ export const ensureCrmPersonForPaymentIntent = async ({
   });
 
   if (priorCreationLog?.crmPersonId) {
+    logMatchStep(
+      "prior_creation_log",
+      { crmPersonId: priorCreationLog.crmPersonId, result: "matched" },
+      true
+    );
     const existing = await loadCrmPersonById(priorCreationLog.crmPersonId);
     if (existing) {
       await ensurePaymentIntentMetadata(paymentIntent, stripeAccountId, existing.id);
+      await ensurePaymentMethodForCrmPerson({
+        crmPersonId: existing.id,
+        paymentMethodDetails,
+        paymentIntent,
+        stripeAccountId,
+      });
       return { crmPerson: existing, created: false };
     }
   }
+  logMatchStep(
+    "prior_creation_log",
+    { paymentIntentId: paymentIntent.id, result: "no_match" },
+    false
+  );
 
-  const normalizedDerivedName = normalizeString(derivedName);
-  const resolvedName = normalizedDerivedName
-    ? normalizedDerivedName.slice(0, MAX_NAME_LENGTH)
-    : null;
-
-  if (!resolvedName) {
-    throw new Error("Unable to determine cardholder name from payment intent");
-  }
+  const normalizedName = normalizeString(derivedName);
+  const resolvedName = normalizedName
+    ? normalizedName.slice(0, MAX_NAME_LENGTH)
+    : "";
 
   const created = await prisma.crmPerson.create({
     data: {
@@ -213,7 +330,30 @@ export const ensureCrmPersonForPaymentIntent = async ({
     },
   });
 
+  logMatchStep(
+    "created_new_person",
+    {
+      crmPersonId: created.id,
+      resolvedName: resolvedName || null,
+      stripePaymentMethodId: paymentMethodDetails?.stripePaymentMethodId,
+      fingerprint: paymentMethodDetails?.fingerprint,
+      brand: paymentMethodDetails?.brand,
+      last4: paymentMethodDetails?.last4,
+      expMonth: paymentMethodDetails?.expMonth ?? null,
+      expYear: paymentMethodDetails?.expYear ?? null,
+      nameOnCard: paymentMethodDetails?.nameOnCard ?? null,
+      result: "created",
+    },
+    true
+  );
+
   await ensurePaymentIntentMetadata(paymentIntent, stripeAccountId, created.id);
+  await ensurePaymentMethodForCrmPerson({
+    crmPersonId: created.id,
+    paymentMethodDetails,
+    paymentIntent,
+    stripeAccountId,
+  });
 
   return { crmPerson: created, created: true };
 };

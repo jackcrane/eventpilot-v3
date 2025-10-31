@@ -5,6 +5,7 @@ import { LogType } from "@prisma/client";
 import { getNameAndEmailFromRegistration } from "./getNameAndEmailFromRegistration";
 import { render } from "@react-email/render";
 import { getCrmPersonByEmail } from "./getCrmPersonByEmail";
+import { ensurePaymentMethodForCrmPerson } from "./paymentMethods.js";
 
 export const finalizeRegistration = async ({
   registrationId,
@@ -22,6 +23,7 @@ export const finalizeRegistration = async ({
       banner: true,
     },
   });
+  const stripeAccountId = event?.stripeConnectedAccountId?.trim() || null;
 
   const registration = await prisma.registration.update({
     where: {
@@ -122,5 +124,14 @@ export const finalizeRegistration = async ({
     });
     crmPersonId = created?.id || null;
   }
+
+  if (crmPersonId && paymentIntent) {
+    await ensurePaymentMethodForCrmPerson({
+      crmPersonId,
+      paymentIntent,
+      stripeAccountId,
+    });
+  }
+
   return { crmPersonId };
 };

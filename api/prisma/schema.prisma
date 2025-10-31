@@ -933,6 +933,8 @@ model CrmPerson {
   // Stripe customer associated with this person (on the event's connected account)
   stripe_customerId String? @unique
 
+  paymentMethods PaymentMethod[]
+
   logs          Logs[]
   sentEmails    Email[]
   inboundEmails InboundEmail[]
@@ -955,6 +957,26 @@ model CrmPerson {
   MailingListMember MailingListMember[]
 
   @@index([eventId, deleted, createdAt(sort: Desc)])
+}
+
+model PaymentMethod {
+  id String @id @default(cuid())
+
+  crmPersonId String
+  crmPerson   CrmPerson @relation(fields: [crmPersonId], references: [id], onDelete: Cascade)
+
+  stripePaymentMethodId String
+  fingerprint String?
+  brand String?
+  last4 String?
+  expMonth Int?
+  expYear Int?
+  nameOnCard String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([crmPersonId, stripePaymentMethodId])
 }
 
 model CrmPersonLink {

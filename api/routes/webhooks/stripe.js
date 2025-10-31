@@ -9,6 +9,7 @@ import {
   ensureLedgerItemForPointOfSale,
 } from "../../util/ledger";
 import { ensureCrmPersonForPaymentIntent } from "../../util/crmPersonFromPaymentIntent.js";
+import { findCrmPersonByStoredPaymentMethod } from "../../util/paymentMethods.js";
 import { reportApiError } from "#util/reportApiError.js";
 
 const stripe = new Stripe(process.env.STRIPE_SK, {
@@ -112,8 +113,26 @@ const findCrmPersonFromPayment = async ({
   last4,
   expMonth,
   expYear,
+  cardholderName,
 }) => {
   if (!eventId) return null;
+
+  const storedMatch = await findCrmPersonByStoredPaymentMethod({
+    eventId,
+    paymentMethodDetails: {
+      stripePaymentMethodId: paymentMethodId,
+      fingerprint,
+      brand,
+      last4,
+      expMonth,
+      expYear,
+      nameOnCard: cardholderName,
+    },
+  });
+
+  if (storedMatch?.crmPersonId) {
+    return storedMatch;
+  }
 
   const baseWhere = {
     eventId,
@@ -429,6 +448,7 @@ const resolveAffiliations = async (stripeObject) => {
           last4: cardContext.last4,
           expMonth: cardContext.expMonth,
           expYear: cardContext.expYear,
+          cardholderName: cardContext.cardholderName,
         });
         if (matched?.crmPersonId) {
           crmPersonId = matched.crmPersonId;

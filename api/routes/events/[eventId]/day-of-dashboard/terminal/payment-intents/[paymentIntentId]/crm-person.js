@@ -12,7 +12,10 @@ import { resolveEventAccess } from "../../payment-intents.js";
 import { serializeError } from "#serializeError";
 
 const TAP_TO_PAY_EMAIL_LABEL = "Tap to Pay";
-const PAYMENT_INTENT_EXPAND = ["charges.data.payment_method_details"];
+const PAYMENT_INTENT_EXPAND = [
+  "charges.data.payment_method_details",
+  "latest_charge.payment_method_details",
+];
 
 const emailOptions = z
   .union([
