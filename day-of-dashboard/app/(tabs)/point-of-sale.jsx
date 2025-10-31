@@ -394,6 +394,18 @@ const PointOfSaleScreen = () => {
     return <Redirect href={getDefaultRouteForPermissions(permissions)} />;
   }
 
+  if (!tapToPaySupported) {
+    return (
+      <View style={styles.safeArea}>
+        <View style={styles.centerContent}>
+          <Text style={styles.unsupportedText}>
+            Sorry, your device does not support Tap to Pay.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.safeArea}>
       <View style={styles.content}>
@@ -461,6 +473,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  unsupportedText: {
+    fontSize: 16,
+    color: DayOfColors.light.secondary,
+    textAlign: "center",
+    paddingHorizontal: 24,
   },
   content: {
     flex: 1,

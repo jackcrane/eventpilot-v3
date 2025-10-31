@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform } from "react-native";
+import * as Device from "expo-device";
 import { useStripeTerminal } from "@stripe/stripe-terminal-react-native";
 
 import { useDayOfSessionContext } from "../contexts/DayOfSessionContext";
@@ -8,6 +9,49 @@ import { dayOfAuthFetch, dayOfJson } from "../utils/apiClient";
 const DEFAULT_MERCHANT_NAME = "EventPilot POS";
 const MINIMUM_IOS_MAJOR = 16;
 const MINIMUM_IOS_MINOR = 4;
+const MINIMUM_IPHONE_MODEL_SERIES = 11;
+const SUPPORTED_MODEL_NAME_PREFIXES = [
+  "iPhone XS",
+  "iPhone XR",
+  "iPhone 11",
+  "iPhone 12",
+  "iPhone 13",
+  "iPhone 14",
+  "iPhone 15",
+  "iPhone 16",
+  "iPhone SE (2nd generation)",
+  "iPhone SE (3rd generation)",
+];
+
+const parseIphoneMajorFromModelId = (modelId) => {
+  if (typeof modelId !== "string") {
+    return null;
+  }
+  const match = /^iPhone(\d+),/i.exec(modelId.trim());
+  if (!match) {
+    return null;
+  }
+  const parsed = Number.parseInt(match[1], 10);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const parseIphoneMajorFromModelName = (modelName) => {
+  if (typeof modelName !== "string") {
+    return null;
+  }
+  const trimmed = modelName.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const numericMatch = /^iPhone\s+(\d+)/i.exec(trimmed);
+  if (numericMatch) {
+    const parsed = Number.parseInt(numericMatch[1], 10);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
+};
 
 const summarizePaymentIntent = (intent, fallbackClientSecret = null) => {
   if (!intent) {
@@ -179,7 +223,7 @@ export const useTapToPay = () => {
     }
   }, [account?.eventId, token]);
 
-  const isTapToPaySupported = useMemo(() => {
+  const isOsVersionSupported = useMemo(() => {
     if (Platform.OS !== "ios") {
       return true;
     }
@@ -204,6 +248,44 @@ export const useTapToPay = () => {
     }
     return false;
   }, []);
+
+  const hardwareSupportsTapToPay = useMemo(() => {
+    if (Platform.OS !== "ios") {
+      return true;
+    }
+    if (Device?.isDevice === false) {
+      // Allow simulators and emulators so development flows are not blocked.
+      return true;
+    }
+    const modelId = Device?.modelId ?? null;
+    const modelName = Device?.modelName ?? null;
+
+    const seriesFromModelId = parseIphoneMajorFromModelId(modelId);
+    if (seriesFromModelId !== null) {
+      return seriesFromModelId >= MINIMUM_IPHONE_MODEL_SERIES;
+    }
+
+    if (typeof modelName === "string") {
+      const trimmedName = modelName.trim();
+      if (trimmedName.length > 0) {
+        if (
+          SUPPORTED_MODEL_NAME_PREFIXES.some((prefix) =>
+            trimmedName.startsWith(prefix)
+          )
+        ) {
+          return true;
+        }
+        const seriesFromModelName = parseIphoneMajorFromModelName(trimmedName);
+        if (seriesFromModelName !== null) {
+          return seriesFromModelName >= MINIMUM_IPHONE_MODEL_SERIES;
+        }
+      }
+    }
+
+    return false;
+  }, []);
+
+  const tapToPaySupported = isOsVersionSupported && hardwareSupportsTapToPay;
 
   const initializeTerminal = useCallback(async () => {
     try {
@@ -274,9 +356,9 @@ export const useTapToPay = () => {
         return { success: false, error };
       }
 
-      if (!isTapToPaySupported) {
+      if (!tapToPaySupported) {
         console.log("[POS][useTapToPay] startTapToPay:blocked:notSupported");
-        const error = new Error("Tap to Pay requires iOS 16.4 or later");
+        const error = new Error("Tap to Pay is not available on this device");
         setLastError(error.message);
         return { success: false, error };
       }
@@ -372,7 +454,7 @@ export const useTapToPay = () => {
       defaultTerminalLocationId,
       discoverReaders,
       initialized,
-      isTapToPaySupported,
+      tapToPaySupported,
       merchantDisplayName,
     ]
   );
@@ -625,6 +707,6 @@ export const useTapToPay = () => {
     lastPaymentIntent,
     merchantDisplayName,
     defaultLocationId: defaultTerminalLocationId,
-    tapToPaySupported: isTapToPaySupported,
+    tapToPaySupported,
   };
 };
