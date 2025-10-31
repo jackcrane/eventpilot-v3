@@ -22,7 +22,7 @@ const baseProvisionerSchema = z.object({
     .max(160, "Name must be 160 characters or fewer")
     .optional()
     .nullable(),
-  instanceId: z.string().cuid().optional().nullable(),
+  instanceId: z.string().cuid("Invalid instance selected"),
   permissions: z
     .array(z.string().min(1, "Permission must be a non-empty string"))
     .min(1, "At least one permission is required"),
@@ -32,6 +32,7 @@ const baseProvisionerSchema = z.object({
     .min(60, "Expiration must be at least 60 seconds")
     .max(60 * 60 * 24 * 7, "Expiration cannot exceed 7 days")
     .optional(),
+  stripeLocationId: z.string().cuid().optional().nullable(),
 });
 
 export const get = [
@@ -74,6 +75,7 @@ export const post = [
       instanceId,
       permissions: rawPermissions,
       jwtExpiresInSeconds,
+      stripeLocationId,
     } = parseResult.data;
 
     const permissions = normalizePermissions(rawPermissions);
@@ -81,20 +83,44 @@ export const post = [
       return res.status(400).json({ message: "At least one permission required" });
     }
 
-    let resolvedInstanceId = null;
-    if (instanceId) {
-      const instance = await prisma.eventInstance.findFirst({
-        where: { id: instanceId, eventId },
-        select: { id: true },
-      });
+    const instance = await prisma.eventInstance.findFirst({
+      where: { id: instanceId, eventId },
+      select: { id: true },
+    });
 
-      if (!instance) {
-        return res.status(400).json({ message: "Invalid instance" });
-      }
-      resolvedInstanceId = instance.id;
+    if (!instance) {
+      return res.status(400).json({ message: "Invalid instance" });
     }
 
     const expiresIn = jwtExpiresInSeconds ?? 3600;
+    const pointOfSaleSelected = permissions.includes("POINT_OF_SALE");
+    let resolvedStripeLocation = null;
+
+    if (pointOfSaleSelected) {
+      if (!stripeLocationId) {
+        return res.status(400).json({
+          message: "Select a Stripe Terminal address before enabling point of sale",
+        });
+      }
+
+      const location = await prisma.stripeLocation.findFirst({
+        where: {
+          id: stripeLocationId,
+          eventId,
+          deleted: false,
+        },
+        select: {
+          id: true,
+          stripeLocationId: true,
+        },
+      });
+
+      if (!location) {
+        return res.status(400).json({ message: "Selected address is no longer available" });
+      }
+
+      resolvedStripeLocation = location;
+    }
 
     let pin;
     let pinLookupKey;
@@ -120,19 +146,24 @@ export const post = [
     }
 
     try {
-      const provisioner = await prisma.dayOfDashboardProvisioner.create({
-        data: {
-          eventId,
-          instanceId: resolvedInstanceId,
-          name: name?.trim() || null,
-          permissions,
-          jwtExpiresInSeconds: expiresIn,
-          pin,
-          pinLookupKey,
-          pinHash,
-          lastPinGeneratedAt: new Date(),
-        },
-        select: provisionerSelect,
+      const provisioner = await prisma.$transaction(async (tx) => {
+        const created = await tx.dayOfDashboardProvisioner.create({
+          data: {
+            eventId,
+            instanceId: instance.id,
+            name: name?.trim() || null,
+            permissions,
+            jwtExpiresInSeconds: expiresIn,
+            pin,
+            pinLookupKey,
+            pinHash,
+            lastPinGeneratedAt: new Date(),
+            stripeLocationId: resolvedStripeLocation?.id || null,
+          },
+          select: provisionerSelect,
+        });
+
+        return created;
       });
 
       return res.status(201).json({

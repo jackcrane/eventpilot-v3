@@ -25,6 +25,7 @@ import {
  * @property {string} provisionerId
  * @property {string|null} instanceId
  * @property {string|null} name
+ * @property {string|null} defaultTerminalLocationId
  * @property {DayOfDashboardPermission[]} permissions
  * @property {number} tokenVersion
  * @property {string|null} lastIssuedAt
@@ -218,6 +219,9 @@ export const useDayOfSession = () => {
           instanceId: data.account.instanceId ?? null,
           permissions: data.account.permissions || [],
           name: data.account.name ?? null,
+          defaultTerminalLocationId:
+            data.account.defaultTerminalLocationId ?? null,
+          eventName: data.account.eventName ?? null,
           expiresAt: data.expiresAt,
         };
         await saveSession(storedSession);
@@ -266,6 +270,14 @@ export const useDayOfSession = () => {
           ...session,
           name: result.account.name ?? trimmed,
           permissions: result.account.permissions || session.permissions,
+          defaultTerminalLocationId:
+            result.account.defaultTerminalLocationId ??
+            session.defaultTerminalLocationId ??
+            null,
+          eventName:
+            result.account.eventName ??
+            session.eventName ??
+            null,
         };
         await saveSession(updatedSession);
         await mutateAccount(() => ({ account: result.account }), {
@@ -276,6 +288,8 @@ export const useDayOfSession = () => {
           const updatedSession = {
             ...session,
             name: trimmed,
+            defaultTerminalLocationId:
+              session.defaultTerminalLocationId ?? null,
           };
           await saveSession(updatedSession);
           await mutateAccount(
@@ -328,6 +342,9 @@ export const useDayOfSession = () => {
             deleted: false,
             createdAt: "",
             updatedAt: "",
+            defaultTerminalLocationId:
+              session.defaultTerminalLocationId ?? null,
+            eventName: session.eventName ?? null,
           }
         : null),
     token,

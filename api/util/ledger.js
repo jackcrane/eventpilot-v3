@@ -72,3 +72,70 @@ export async function createLedgerItemForRegistration({
 
   return item;
 }
+
+export async function ensureLedgerItemForPointOfSale({
+  eventId,
+  instanceId,
+  crmPersonId,
+  amount,
+  stripe_paymentIntentId,
+  originalAmount,
+  dayOfDashboardAccountId = null,
+}) {
+  if (!eventId || !instanceId || !crmPersonId) return null;
+  const normalizedAmount = Number(amount);
+  if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+    return null;
+  }
+  if (!stripe_paymentIntentId) {
+    return null;
+  }
+
+  const existing = await prisma.ledgerItem.findFirst({
+    where: {
+      eventId,
+      stripe_paymentIntentId,
+    },
+  });
+
+  if (existing) {
+    if (!existing.crmPersonId || existing.crmPersonId !== crmPersonId) {
+      await prisma.ledgerItem.update({
+        where: { id: existing.id },
+        data: { crmPersonId },
+      });
+    }
+    return existing;
+  }
+
+  const effectiveOriginal =
+    originalAmount != null ? Number(originalAmount) : normalizedAmount;
+
+  const item = await prisma.ledgerItem.create({
+    data: {
+      eventId,
+      instanceId,
+      crmPersonId,
+      amount: normalizedAmount,
+      originalAmount: effectiveOriginal,
+      source: LedgerItemSource.PAYMENT,
+      stripe_paymentIntentId,
+      logs: {
+        create: {
+          type: LogType.LEDGER_ITEM_CREATED,
+          data: {
+            stripe_paymentIntentId,
+            amount: normalizedAmount,
+            originalAmount: effectiveOriginal,
+          },
+          eventId,
+          instanceId,
+          crmPersonId,
+          dayOfDashboardAccountId: dayOfDashboardAccountId ?? undefined,
+        },
+      },
+    },
+  });
+
+  return item;
+}

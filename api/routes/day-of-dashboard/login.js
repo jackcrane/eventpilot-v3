@@ -35,6 +35,20 @@ const accountSelect = {
   deleted: true,
   createdAt: true,
   updatedAt: true,
+  event: {
+    select: {
+      name: true,
+    },
+  },
+  provisioner: {
+    select: {
+      stripeLocation: {
+        select: {
+          stripeLocationId: true,
+        },
+      },
+    },
+  },
 };
 
 export const post = async (req, res) => {
@@ -116,6 +130,9 @@ export const post = async (req, res) => {
         lastIssuedAt: account.lastIssuedAt?.toISOString() ?? null,
         createdAt: account.createdAt.toISOString(),
         updatedAt: account.updatedAt.toISOString(),
+        defaultTerminalLocationId:
+          account.provisioner?.stripeLocation?.stripeLocationId ?? null,
+        eventName: account.event?.name ?? null,
       },
       provisioner: {
         id: provisioner.id,

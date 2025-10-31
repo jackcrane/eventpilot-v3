@@ -4,12 +4,365 @@ import { prisma } from "#prisma";
 import { LogType } from "@prisma/client";
 import { finalizeRegistration } from "../../util/finalizeRegistration";
 import { getCrmPersonByEmail } from "../../util/getCrmPersonByEmail";
-import { createLedgerItemForRegistration } from "../../util/ledger";
+import {
+  createLedgerItemForRegistration,
+  ensureLedgerItemForPointOfSale,
+} from "../../util/ledger";
+import { ensureCrmPersonForPaymentIntent } from "../../util/crmPersonFromPaymentIntent.js";
+import { findCrmPersonByStoredPaymentMethod } from "../../util/paymentMethods.js";
 import { reportApiError } from "#util/reportApiError.js";
 
 const stripe = new Stripe(process.env.STRIPE_SK, {
   apiVersion: "2024-04-10",
 });
+
+const CARD_LOG_TYPES = [
+  LogType.STRIPE_PAYMENT_METHOD_ATTACHED,
+  LogType.STRIPE_PAYMENT_INTENT_SUCCEEDED,
+];
+
+const numberOrNull = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+};
+
+const extractCardMatchContext = (stripeObject) => {
+  if (!stripeObject || stripeObject.object !== "payment_intent") return null;
+
+  const paymentMethodId =
+    typeof stripeObject.payment_method === "string"
+      ? stripeObject.payment_method
+      : typeof stripeObject?.charges?.data?.[0]?.payment_method === "string"
+      ? stripeObject.charges.data[0].payment_method
+      : null;
+
+  const chargesArray = Array.isArray(stripeObject?.charges?.data)
+    ? stripeObject.charges.data
+    : [];
+
+  const capturedCharge =
+    chargesArray.find((charge) => charge?.captured) || chargesArray[0] || null;
+
+  if (!capturedCharge) {
+    return {
+      paymentMethodId,
+      chargeCaptured: false,
+      fingerprint: null,
+      brand: null,
+      last4: null,
+      expMonth: null,
+      expYear: null,
+      cardholderName: null,
+      hasSearchableField: Boolean(paymentMethodId),
+    };
+  }
+
+  const paymentDetails = capturedCharge?.payment_method_details || {};
+  const cardDetails =
+    paymentDetails?.card_present ||
+    paymentDetails?.card ||
+    capturedCharge?.payment_method_details?.card ||
+    null;
+
+  const fingerprint = cardDetails?.fingerprint || null;
+  const brand = cardDetails?.brand || null;
+  const last4 = cardDetails?.last4 || null;
+  const expMonth =
+    numberOrNull(cardDetails?.exp_month ?? cardDetails?.expMonth) ?? null;
+  const expYear =
+    numberOrNull(cardDetails?.exp_year ?? cardDetails?.expYear) ?? null;
+
+  const cardholderName =
+    cardDetails?.cardholder_name ||
+    cardDetails?.cardholderName ||
+    capturedCharge?.billing_details?.name ||
+    null;
+
+  const hasSearchableField = Boolean(
+    paymentMethodId ||
+      fingerprint ||
+      (brand && last4 && expMonth != null && expYear != null)
+  );
+
+  return {
+    paymentMethodId,
+    fingerprint,
+    brand,
+    last4,
+    expMonth,
+    expYear,
+    chargeCaptured: Boolean(capturedCharge?.captured),
+    cardholderName,
+    hasSearchableField,
+  };
+};
+
+const buildJsonPathFilters = (paths, value) =>
+  paths.map((path) => ({
+    data: {
+      path,
+      equals: value,
+    },
+  }));
+
+const findCrmPersonFromPayment = async ({
+  eventId,
+  paymentMethodId,
+  fingerprint,
+  brand,
+  last4,
+  expMonth,
+  expYear,
+  cardholderName,
+}) => {
+  if (!eventId) return null;
+
+  const storedMatch = await findCrmPersonByStoredPaymentMethod({
+    eventId,
+    paymentMethodDetails: {
+      stripePaymentMethodId: paymentMethodId,
+      fingerprint,
+      brand,
+      last4,
+      expMonth,
+      expYear,
+      nameOnCard: cardholderName,
+    },
+  });
+
+  if (storedMatch?.crmPersonId) {
+    return storedMatch;
+  }
+
+  const baseWhere = {
+    eventId,
+    crmPersonId: { not: null },
+  };
+
+  if (paymentMethodId) {
+    const paymentMethodLog = await prisma.logs.findFirst({
+      where: {
+        ...baseWhere,
+        type: LogType.STRIPE_PAYMENT_METHOD_ATTACHED,
+        data: {
+          path: ["id"],
+          equals: paymentMethodId,
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (paymentMethodLog?.crmPersonId) {
+      return {
+        crmPersonId: paymentMethodLog.crmPersonId,
+        matchType: "payment_method_id",
+      };
+    }
+
+    const priorIntentLog = await prisma.logs.findFirst({
+      where: {
+        ...baseWhere,
+        type: LogType.STRIPE_PAYMENT_INTENT_SUCCEEDED,
+        data: {
+          path: ["payment_method"],
+          equals: paymentMethodId,
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (priorIntentLog?.crmPersonId) {
+      return {
+        crmPersonId: priorIntentLog.crmPersonId,
+        matchType: "payment_method_id",
+      };
+    }
+  }
+
+  if (fingerprint) {
+    const fingerprintPaths = [
+      ["card_present", "fingerprint"],
+      ["card", "fingerprint"],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card_present",
+        "fingerprint",
+      ],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card",
+        "fingerprint",
+      ],
+    ];
+
+    const fingerprintLog = await prisma.logs.findFirst({
+      where: {
+        ...baseWhere,
+        type: { in: CARD_LOG_TYPES },
+        OR: buildJsonPathFilters(fingerprintPaths, fingerprint),
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (fingerprintLog?.crmPersonId) {
+      return {
+        crmPersonId: fingerprintLog.crmPersonId,
+        matchType: "card_fingerprint",
+      };
+    }
+  }
+
+  if (
+    brand &&
+    last4 &&
+    expMonth != null &&
+    expYear != null
+  ) {
+    const brandPaths = [
+      ["card_present", "brand"],
+      ["card", "brand"],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card_present",
+        "brand",
+      ],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card",
+        "brand",
+      ],
+    ];
+    const last4Paths = [
+      ["card_present", "last4"],
+      ["card", "last4"],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card_present",
+        "last4",
+      ],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card",
+        "last4",
+      ],
+    ];
+    const expMonthPaths = [
+      ["card_present", "exp_month"],
+      ["card_present", "expMonth"],
+      ["card", "exp_month"],
+      ["card", "expMonth"],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card_present",
+        "exp_month",
+      ],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card_present",
+        "expMonth",
+      ],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card",
+        "exp_month",
+      ],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card",
+        "expMonth",
+      ],
+    ];
+    const expYearPaths = [
+      ["card_present", "exp_year"],
+      ["card_present", "expYear"],
+      ["card", "exp_year"],
+      ["card", "expYear"],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card_present",
+        "exp_year",
+      ],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card_present",
+        "expYear",
+      ],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card",
+        "exp_year",
+      ],
+      [
+        "charges",
+        "data",
+        "0",
+        "payment_method_details",
+        "card",
+        "expYear",
+      ],
+    ];
+
+    const cardDetailsLog = await prisma.logs.findFirst({
+      where: {
+        ...baseWhere,
+        type: { in: CARD_LOG_TYPES },
+        AND: [
+          { OR: buildJsonPathFilters(brandPaths, brand) },
+          { OR: buildJsonPathFilters(last4Paths, last4) },
+          { OR: buildJsonPathFilters(expMonthPaths, expMonth) },
+          { OR: buildJsonPathFilters(expYearPaths, expYear) },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (cardDetailsLog?.crmPersonId) {
+      return {
+        crmPersonId: cardDetailsLog.crmPersonId,
+        matchType: "card_brand_last4_exp",
+      };
+    }
+  }
+
+  return null;
+};
 
 // Best-effort affiliation of Stripe objects to Event and CRM Person
 const resolveAffiliations = async (stripeObject) => {
@@ -50,6 +403,7 @@ const resolveAffiliations = async (stripeObject) => {
     // 2) CRM person resolution
     // Prefer explicit metadata assignment
     let crmPersonId = stripeObject?.metadata?.crmPersonId || null;
+    let cardMatchInfo = null;
 
     if (!crmPersonId) {
       // Lookup via Stripe customer ID on the person
@@ -80,7 +434,41 @@ const resolveAffiliations = async (stripeObject) => {
       }
     }
 
-    return { eventId, crmPersonId };
+    if (!crmPersonId && stripeObject?.object === "payment_intent" && eventId) {
+      const cardContext = extractCardMatchContext(stripeObject);
+      if (
+        cardContext?.chargeCaptured &&
+        cardContext.hasSearchableField
+      ) {
+        const matched = await findCrmPersonFromPayment({
+          eventId,
+          paymentMethodId: cardContext.paymentMethodId,
+          fingerprint: cardContext.fingerprint,
+          brand: cardContext.brand,
+          last4: cardContext.last4,
+          expMonth: cardContext.expMonth,
+          expYear: cardContext.expYear,
+          cardholderName: cardContext.cardholderName,
+        });
+        if (matched?.crmPersonId) {
+          crmPersonId = matched.crmPersonId;
+          cardMatchInfo = {
+            attempted: true,
+            matched: true,
+            matchType: matched.matchType,
+            context: cardContext,
+          };
+        } else {
+          cardMatchInfo = {
+            attempted: true,
+            matched: false,
+            context: cardContext,
+          };
+        }
+      }
+    }
+
+    return { eventId, crmPersonId, cardMatchInfo };
   } catch (e) {
     console.warn("[STRIPE] resolveAffiliations error", e);
     return { eventId: null, crmPersonId: null };
@@ -226,8 +614,9 @@ export const post = [
           const { scope } = metadata;
 
           // Attach event/person when possible for the PI succeeded log
-          const { eventId: piEventId, crmPersonId: piCrmPersonId } =
-            await resolveAffiliations(paymentIntent);
+          const affiliations = await resolveAffiliations(paymentIntent);
+          const { eventId: piEventId, cardMatchInfo } = affiliations;
+          let { crmPersonId: piCrmPersonId } = affiliations;
           await prisma.logs.create({
             data: {
               type: LogType.STRIPE_PAYMENT_INTENT_SUCCEEDED,
@@ -236,6 +625,73 @@ export const post = [
               crmPersonId: piCrmPersonId,
             },
           });
+
+          if (cardMatchInfo?.attempted) {
+            if (cardMatchInfo.matched && piCrmPersonId) {
+              console.log(
+                `[STRIPE][CRM] PaymentIntent ${paymentIntent.id} linked to CRM person ${piCrmPersonId} via ${cardMatchInfo.matchType}`
+              );
+            } else {
+              console.warn(
+                `[STRIPE][CRM] PaymentIntent ${paymentIntent.id} captured without CRM person match`,
+                {
+                  eventId: piEventId,
+                  paymentMethodId:
+                    cardMatchInfo?.context?.paymentMethodId || null,
+                  fingerprint: cardMatchInfo?.context?.fingerprint || null,
+                  brand: cardMatchInfo?.context?.brand || null,
+                  last4: cardMatchInfo?.context?.last4 || null,
+                  expMonth: cardMatchInfo?.context?.expMonth ?? null,
+                  expYear: cardMatchInfo?.context?.expYear ?? null,
+                  cardholderName:
+                    cardMatchInfo?.context?.cardholderName || null,
+                }
+              );
+            }
+          }
+
+          if (!piCrmPersonId && cardMatchInfo?.attempted && piEventId) {
+            const eventRecord = await prisma.event.findUnique({
+              where: { id: piEventId },
+              select: { stripeConnectedAccountId: true },
+            });
+
+            const stripeAccountId =
+              eventRecord?.stripeConnectedAccountId?.trim() || null;
+
+            if (stripeAccountId) {
+              try {
+                const { crmPerson, created } =
+                  await ensureCrmPersonForPaymentIntent({
+                    paymentIntent,
+                    eventId: piEventId,
+                    stripeAccountId,
+                  });
+
+                if (crmPerson?.id) {
+                  piCrmPersonId = crmPerson.id;
+                  if (created) {
+                    console.log(
+                      `[STRIPE][CRM] Created CRM person ${crmPerson.id} for PaymentIntent ${paymentIntent.id}`
+                    );
+                  } else {
+                    console.log(
+                      `[STRIPE][CRM] Linked PaymentIntent ${paymentIntent.id} to CRM person ${crmPerson.id}`
+                    );
+                  }
+                }
+              } catch (creationError) {
+                console.error(
+                  `[STRIPE][CRM] Failed to ensure CRM person for PaymentIntent ${paymentIntent.id}`,
+                  creationError
+                );
+              }
+            } else {
+              console.warn(
+                `[STRIPE][CRM] Event ${piEventId} missing connected account; cannot ensure CRM person for PaymentIntent ${paymentIntent.id}`
+              );
+            }
+          }
 
           if (scope === "EVENTPILOT:REGISTRATION") {
             const { eventId, registrationId, instanceId } = metadata;
@@ -297,9 +753,81 @@ export const post = [
               stripe_paymentIntentId: paymentIntent.id,
               crmPersonId,
             });
+          } else if (scope === "EVENTPILOT:POINT_OF_SALE") {
+            const eventId = metadata.eventId || piEventId;
+            const instanceId = metadata.instanceId || null;
+            const dayOfAccountId =
+              typeof metadata.dayOfAccountId === "string"
+                ? metadata.dayOfAccountId
+                : null;
+
+            if (!eventId || !instanceId) {
+              console.warn(
+                `[STRIPE] PaymentIntent ${paymentIntent.id} missing event or instance metadata; skipping POS ledger item`
+              );
+              break;
+            }
+
+            if (!piCrmPersonId) {
+              console.warn(
+                `[STRIPE] PaymentIntent ${paymentIntent.id} succeeded without a CRM person; skipping POS ledger item`
+              );
+              break;
+            }
+
+            const instance = await prisma.eventInstance.findFirst({
+              where: { id: instanceId, eventId },
+              select: { id: true },
+            });
+
+            if (!instance) {
+              console.warn(
+                `[STRIPE] PaymentIntent ${paymentIntent.id} references unknown instance ${instanceId}; skipping POS ledger item`
+              );
+              break;
+            }
+
+            const charge = paymentIntent?.charges?.data?.[0] ?? null;
+            const originalAmount = paymentIntent.amount / 100;
+
+            let netAmount = originalAmount;
+            try {
+              const eventRecord = await prisma.event.findUnique({
+                where: { id: eventId },
+              });
+              const connectedAccount =
+                eventRecord?.stripeConnectedAccountId || undefined;
+              const balanceTxId = charge?.balance_transaction;
+              if (balanceTxId && connectedAccount) {
+                const bt = await stripe.balanceTransactions.retrieve(
+                  balanceTxId,
+                  {
+                    stripeAccount: connectedAccount,
+                  }
+                );
+                if (bt && typeof bt.net === "number") {
+                  netAmount = bt.net / 100;
+                }
+              }
+            } catch (e) {
+              console.warn(
+                "[STRIPE] Failed to retrieve balance transaction for POS net amount; using gross",
+                e
+              );
+            }
+
+            await ensureLedgerItemForPointOfSale({
+              eventId,
+              instanceId: instance.id,
+              crmPersonId: piCrmPersonId,
+              amount: netAmount,
+              stripe_paymentIntentId: paymentIntent.id,
+              originalAmount,
+              dayOfDashboardAccountId: dayOfAccountId,
+            });
           } else {
             console.warn(
-              `[STRIPE] PaymentIntent ${paymentIntent.id} succeeded but scope is not EVENTPILOT:REGISTRATION`
+              `[STRIPE] PaymentIntent ${paymentIntent.id} succeeded with unsupported scope ${scope || "undefined"}`
             );
             break;
           }

@@ -15,7 +15,7 @@ const updateSchema = z
       .max(160, "Name must be 160 characters or fewer")
       .optional()
       .nullable(),
-    instanceId: z.string().cuid().optional().nullable(),
+    instanceId: z.string().cuid("Invalid instance selected").optional(),
     permissions: z
       .array(z.string().min(1, "Permission must be a non-empty string"))
       .min(1, "At least one permission is required")
@@ -26,6 +26,7 @@ const updateSchema = z
       .min(60, "Expiration must be at least 60 seconds")
       .max(60 * 60 * 24 * 7, "Expiration cannot exceed 7 days")
       .optional(),
+    stripeLocationId: z.string().cuid().optional().nullable(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one field must be provided",
@@ -61,25 +62,84 @@ export const put = [
 
     const data = parseResult.data;
 
+    const provisioner = await prisma.dayOfDashboardProvisioner.findFirst({
+      where: { id: provisionerId, eventId },
+      select: {
+        id: true,
+        permissions: true,
+        stripeLocationId: true,
+        stripeLocation: {
+          select: {
+            id: true,
+            stripeLocationId: true,
+          },
+        },
+      },
+    });
+
+    if (!provisioner) {
+      return res.status(404).json({ message: "Provisioner not found" });
+    }
+
     let resolvedInstanceId = undefined;
     if (Object.prototype.hasOwnProperty.call(data, "instanceId")) {
-      if (data.instanceId === null) {
-        resolvedInstanceId = null;
-      } else if (data.instanceId) {
-        const instance = await prisma.eventInstance.findFirst({
-          where: { id: data.instanceId, eventId },
-          select: { id: true },
-        });
-        if (!instance) {
-          return res.status(400).json({ message: "Invalid instance" });
-        }
-        resolvedInstanceId = instance.id;
+      const instance = await prisma.eventInstance.findFirst({
+        where: { id: data.instanceId, eventId },
+        select: { id: true },
+      });
+      if (!instance) {
+        return res.status(400).json({ message: "Invalid instance" });
       }
+      resolvedInstanceId = instance.id;
     }
 
     const normalizedPermissions = data.permissions
       ? normalizePermissions(data.permissions)
       : undefined;
+
+    let resolvedStripeLocation = undefined;
+    if (Object.prototype.hasOwnProperty.call(data, "stripeLocationId")) {
+      if (data.stripeLocationId === null) {
+        resolvedStripeLocation = null;
+      } else if (data.stripeLocationId) {
+        const location = await prisma.stripeLocation.findFirst({
+          where: {
+            id: data.stripeLocationId,
+            eventId,
+            deleted: false,
+          },
+          select: {
+            id: true,
+            stripeLocationId: true,
+          },
+        });
+
+        if (!location) {
+          return res
+            .status(400)
+            .json({ message: "Selected address is no longer available" });
+        }
+
+        resolvedStripeLocation = location;
+      }
+    }
+
+    const existingPermissions = normalizePermissions(provisioner.permissions);
+    const nextPermissions = normalizedPermissions ?? existingPermissions;
+    const nextStripeLocation =
+      resolvedStripeLocation === undefined
+        ? provisioner.stripeLocation
+        : resolvedStripeLocation;
+
+    if (
+      nextPermissions.includes("POINT_OF_SALE") &&
+      (!nextStripeLocation || !nextStripeLocation.stripeLocationId)
+    ) {
+      return res.status(400).json({
+        message:
+          "Select a Stripe Terminal address before enabling point of sale",
+      });
+    }
 
     if (normalizedPermissions && !normalizedPermissions.length) {
       return res
@@ -89,16 +149,6 @@ export const put = [
 
     try {
       const updated = await prisma.$transaction(async (tx) => {
-        const existing = await tx.dayOfDashboardProvisioner.findFirst({
-          where: { id: provisionerId, eventId },
-          select: { id: true, permissions: true },
-        });
-
-        if (!existing) {
-          return null;
-        }
-
-        const existingPermissions = normalizePermissions(existing.permissions);
         const shouldSyncAccounts =
           normalizedPermissions !== undefined &&
           (normalizedPermissions.length !== existingPermissions.length ||
@@ -115,6 +165,10 @@ export const put = [
             instanceId: resolvedInstanceId,
             permissions: normalizedPermissions,
             jwtExpiresInSeconds: data.jwtExpiresInSeconds,
+            stripeLocationId:
+              resolvedStripeLocation === undefined
+                ? undefined
+                : resolvedStripeLocation?.id || null,
           },
           select: provisionerSelect,
         });
@@ -130,10 +184,6 @@ export const put = [
 
         return provisioner;
       });
-
-      if (!updated) {
-        return res.status(404).json({ message: "Provisioner not found" });
-      }
 
       return res.json({ provisioner: formatProvisioner(updated) });
     } catch (error) {

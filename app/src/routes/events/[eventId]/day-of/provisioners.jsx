@@ -53,6 +53,7 @@ export const EventProvisionersPage = () => {
   } =
     useProvisionerModals({
       defaultTz,
+      eventId,
       createProvisioner,
       updateProvisioner,
       endProvisionerSessions,

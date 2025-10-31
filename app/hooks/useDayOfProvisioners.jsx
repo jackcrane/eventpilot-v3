@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from "react";
 import useSWR, { mutate as mutateGlobal } from "swr";
 import toast from "react-hot-toast";
 import { authFetch } from "../util/url";
-import { useSelectedInstance } from "../contexts/SelectedInstanceContext";
 
 const MIN_EXPIRY_SECONDS = 60;
 const MAX_EXPIRY_SECONDS = 60 * 60 * 24 * 7;
@@ -42,9 +41,6 @@ export const PROVISIONER_PERMISSION_OPTIONS = [
 ];
 
 export const useDayOfProvisioners = ({ eventId }) => {
-  const { instance, instanceDropdownValue } = useSelectedInstance();
-  const selectedInstanceId = instance?.id || instanceDropdownValue?.id || null;
-
   const key = useMemo(() => {
     if (!eventId) return null;
     return `/api/events/${eventId}/day-of-dashboard/provisioners`;
@@ -67,8 +63,12 @@ export const useDayOfProvisioners = ({ eventId }) => {
   }, [eventId]);
 
   const createProvisioner = useCallback(
-    async ({ name, permissions, expiryIso }) => {
+    async ({ name, permissions, expiryIso, stripeLocationId, instanceId }) => {
       if (!eventId) return { success: false };
+      if (!instanceId) {
+        toast.error("Select an event instance before creating a provisioner");
+        return { success: false };
+      }
       const expiresIn = computeExpirySeconds(expiryIso);
 
       setMutationLoading(true);
@@ -81,7 +81,8 @@ export const useDayOfProvisioners = ({ eventId }) => {
               name: name?.trim() || null,
               permissions: permissions || [],
               jwtExpiresInSeconds: expiresIn,
-              instanceId: selectedInstanceId,
+              instanceId,
+              stripeLocationId: stripeLocationId || null,
             }),
           }
         ).then(async (response) => {
@@ -108,7 +109,7 @@ export const useDayOfProvisioners = ({ eventId }) => {
         setMutationLoading(false);
       }
     },
-    [eventId, invalidateAccountCaches, mutateProvisioners, selectedInstanceId]
+    [eventId, invalidateAccountCaches, mutateProvisioners]
   );
 
   const updateProvisioner = useCallback(
@@ -121,6 +122,12 @@ export const useDayOfProvisioners = ({ eventId }) => {
       }
       if (Object.prototype.hasOwnProperty.call(updates, "permissions")) {
         payload.permissions = updates.permissions || [];
+      }
+      if (Object.prototype.hasOwnProperty.call(updates, "stripeLocationId")) {
+        payload.stripeLocationId = updates.stripeLocationId || null;
+      }
+      if (Object.prototype.hasOwnProperty.call(updates, "instanceId")) {
+        payload.instanceId = updates.instanceId;
       }
 
       setMutationLoading(true);

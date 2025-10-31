@@ -63,9 +63,10 @@ Scaffolding: You can quickly scaffold hooks via `app/hooks/generateHook.js`. `ap
 - Return simple shapes from hooks: singular/plural resource, `loading`, `error`, `refetch`, and action functions.
 - For uploads, use `authFetchWithoutContentType` and FormData.
 - For real-time, use `useSWRSubscription` inside hooks; fan-out updates with `mutate(key)`.
-- Do not change database migrations when making product changes unless explicitly scoped to the task.
+- Do not change database migrations when making product changes.
 - Never EVER modify anything in the schema/migrations folder.
 - Never EVER put anything in the schema/migrations folder.
+- Do not EVER execute any prisma migrations. You may migrate the schema when explicitly requested or allowed, but you may never execute these changes.
 
 ## Pointers
 
