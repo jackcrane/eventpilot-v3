@@ -87,6 +87,60 @@ const normalizeMessage = (value) => {
   return trimmed.length ? trimmed : null;
 };
 
+const OS_VERSION_NOT_SUPPORTED_MESSAGE =
+  "Tap to Pay on iPhone requires iOS 17.6 or later. Update this device to continue.";
+
+const OS_VERSION_NOT_SUPPORTED_CODES = new Set([
+  "osVersionNotSupported",
+  "PaymentCardReaderError.osVersionNotSupported",
+  "PaymentCardReaderError_osVersionNotSupported",
+  "OSVersionNotSupported",
+]);
+
+const OS_VERSION_NOT_SUPPORTED_PATTERNS = [
+  /os[\s_-]*version[\s_-]*not[\s_-]*supported/i,
+  /PaymentCardReaderError\.?osVersionNotSupported/i,
+];
+
+const formatTapToPayErrorMessage = (error, fallbackMessage = null) => {
+  if (!error && !fallbackMessage) {
+    return null;
+  }
+
+  const normalizedFallback = normalizeMessage(fallbackMessage);
+  const code =
+    typeof error?.code === "string" ? normalizeMessage(error.code) : null;
+
+  if (code && OS_VERSION_NOT_SUPPORTED_CODES.has(code)) {
+    return OS_VERSION_NOT_SUPPORTED_MESSAGE;
+  }
+
+  const messageCandidate = normalizeMessage(
+    typeof error === "string"
+      ? error
+      : error?.message ?? normalizedFallback ?? null
+  );
+
+  if (
+    messageCandidate &&
+    OS_VERSION_NOT_SUPPORTED_PATTERNS.some((pattern) =>
+      pattern.test(messageCandidate)
+    )
+  ) {
+    return OS_VERSION_NOT_SUPPORTED_MESSAGE;
+  }
+
+  if (messageCandidate) {
+    return messageCandidate;
+  }
+
+  if (normalizedFallback) {
+    return normalizedFallback;
+  }
+
+  return "Tap to Pay encountered an unexpected error";
+};
+
 const extractDeclineReason = (error, intent, fallbackError) => {
   const directMessage = normalizeMessage(error?.message);
   if (directMessage) {
@@ -302,7 +356,9 @@ const useTapToPayState = () => {
       ensureSessionReady();
     } catch (error) {
       console.log("[POS][useTapToPay] initializeTerminal:sessionError", error);
-      setLastError(error.message || "Unable to initialize Stripe Terminal");
+      setLastError(
+        formatTapToPayErrorMessage(error, "Unable to initialize Stripe Terminal")
+      );
       return { success: false, error };
     }
 
@@ -328,7 +384,12 @@ const useTapToPayState = () => {
       });
       if (result?.error) {
         console.log("[POS][useTapToPay] initializeTerminal:error", result.error);
-        setLastError(result.error.message || "Failed to initialize Stripe Terminal");
+        setLastError(
+          formatTapToPayErrorMessage(
+            result.error,
+            "Failed to initialize Stripe Terminal"
+          )
+        );
         return { success: false, error: result.error };
       }
 
@@ -343,7 +404,12 @@ const useTapToPayState = () => {
       return { success: true };
     } catch (error) {
       console.log("[POS][useTapToPay] initializeTerminal:exception", error);
-      setLastError(error?.message || "Failed to initialize Stripe Terminal");
+      setLastError(
+        formatTapToPayErrorMessage(
+          error,
+          "Failed to initialize Stripe Terminal"
+        )
+      );
       return { success: false, error };
     } finally {
       console.log("[POS][useTapToPay] initializeTerminal:complete");
@@ -362,14 +428,14 @@ const useTapToPayState = () => {
       if (!initialized) {
         console.log("[POS][useTapToPay] startTapToPay:blocked:notInitialized");
         const error = new Error("Initialize Stripe Terminal before starting Tap to Pay");
-        setLastError(error.message);
+        setLastError(formatTapToPayErrorMessage(error));
         return { success: false, error };
       }
 
       if (!tapToPaySupported) {
         console.log("[POS][useTapToPay] startTapToPay:blocked:notSupported");
         const error = new Error("Tap to Pay is not available on this device");
-        setLastError(error.message);
+        setLastError(formatTapToPayErrorMessage(error));
         return { success: false, error };
       }
 
@@ -383,7 +449,7 @@ const useTapToPayState = () => {
         const error = new Error(
           "Assign a Stripe Terminal address before starting Tap to Pay"
         );
-        setLastError(error.message);
+        setLastError(formatTapToPayErrorMessage(error));
         return { success: false, error };
       }
 
@@ -404,7 +470,9 @@ const useTapToPayState = () => {
 
         if (error) {
           console.log("[POS][useTapToPay] startTapToPay:discoverError", error);
-          setLastError(error.message);
+          setLastError(
+            formatTapToPayErrorMessage(error, "Failed to discover Tap to Pay readers")
+          );
           return { success: false, error };
         }
 
@@ -419,7 +487,7 @@ const useTapToPayState = () => {
           const noReaderError = new Error(
             "No Tap to Pay reader is available on this device"
           );
-          setLastError(noReaderError.message);
+          setLastError(formatTapToPayErrorMessage(noReaderError));
           return { success: false, error: noReaderError };
         }
 
@@ -440,7 +508,12 @@ const useTapToPayState = () => {
 
         if (connectError) {
           console.log("[POS][useTapToPay] startTapToPay:connectError", connectError);
-          setLastError(connectError.message);
+          setLastError(
+            formatTapToPayErrorMessage(
+              connectError,
+              "Failed to connect to the Tap to Pay reader"
+            )
+          );
           return { success: false, error: connectError };
         }
 
@@ -450,7 +523,9 @@ const useTapToPayState = () => {
         return { success: true, reader: connected };
       } catch (error) {
         console.log("[POS][useTapToPay] startTapToPay:exception", error);
-        setLastError(error?.message || "Failed to start Tap to Pay");
+        setLastError(
+          formatTapToPayErrorMessage(error, "Failed to start Tap to Pay")
+        );
         return { success: false, error };
       } finally {
         setConnecting(false);
@@ -609,7 +684,7 @@ const useTapToPayState = () => {
       if (!connectedReader) {
         console.log("[POS][useTapToPay] takePayment:blocked:noReader");
         const error = new Error("Connect Tap to Pay before taking a payment");
-        setLastError(error.message);
+        setLastError(formatTapToPayErrorMessage(error));
         return { success: false, error };
       }
 
@@ -618,7 +693,7 @@ const useTapToPayState = () => {
           amount,
         });
         const error = new Error("Amount is required for tap-to-pay transactions");
-        setLastError(error.message);
+        setLastError(formatTapToPayErrorMessage(error));
         return { success: false, error };
       }
 
@@ -653,7 +728,12 @@ const useTapToPayState = () => {
           const intentError =
             retrieved.error ||
             new Error("Failed to retrieve the payment intent for processing");
-          setLastError(intentError.message);
+          setLastError(
+            formatTapToPayErrorMessage(
+              intentError,
+              "Failed to retrieve the payment intent for processing"
+            )
+          );
           return { success: false, error: intentError };
         }
 
@@ -667,7 +747,12 @@ const useTapToPayState = () => {
             message: processResult.error?.message ?? null,
           });
           if (processResult.error) {
-            setLastError(processResult.error.message);
+            setLastError(
+              formatTapToPayErrorMessage(
+                processResult.error,
+                processResult.declineReason ?? null
+              )
+            );
           }
           return processResult;
         }
@@ -676,7 +761,9 @@ const useTapToPayState = () => {
         return processResult;
       } catch (error) {
         console.log("[POS][useTapToPay] takePayment:exception", error);
-        setLastError(error?.message || "Tap to Pay transaction failed");
+        setLastError(
+          formatTapToPayErrorMessage(error, "Tap to Pay transaction failed")
+        );
         return {
           success: false,
           error,
