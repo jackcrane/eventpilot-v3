@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
@@ -17,6 +17,7 @@ const fetchSchema = async ([url]) => {
 
 export const useEmailPreferences = () => {
   const key = `/api/auth/me/email`;
+  const { mutate } = useSWRConfig();
 
   const { data, error, isLoading } = useSWR(key, fetcher);
   const { data: schema, loading: schemaLoading } = useSWR(

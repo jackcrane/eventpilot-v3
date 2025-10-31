@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
 import { authFetch } from "../util/url";
@@ -24,6 +24,7 @@ const parseResponse = async (res) => {
 
 export const useEmailTemplates = ({ eventId, includeDeleted } = {}) => {
   let key = null;
+  const { mutate: boundMutate } = useSWRConfig();
 
   if (eventId) {
     const params = new URLSearchParams();
@@ -69,7 +70,7 @@ export const useEmailTemplates = ({ eventId, includeDeleted } = {}) => {
 
       await refetch();
       if (template?.id) {
-        await mutate(`/api/events/${eventId}/templates/${template.id}`);
+        await boundMutate(`/api/events/${eventId}/templates/${template.id}`);
       }
 
       return template ?? null;
@@ -103,7 +104,7 @@ export const useEmailTemplates = ({ eventId, includeDeleted } = {}) => {
       });
 
       await refetch();
-      await mutate(templateUrl);
+      await boundMutate(templateUrl);
 
       return true;
     } catch (e) {
@@ -133,7 +134,7 @@ export const useEmailTemplates = ({ eventId, includeDeleted } = {}) => {
       });
 
       await refetch();
-      await mutate(templateUrl);
+      await boundMutate(templateUrl);
 
       return true;
     } catch (e) {

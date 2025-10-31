@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
@@ -17,6 +17,7 @@ const fetchSchema = async ([url]) => {
 
 export const useTodos = ({ eventId }) => {
   const key = eventId ? `/api/events/${eventId}/todos` : null;
+  const { mutate: boundMutate } = useSWRConfig();
 
   const { data, error, isLoading, mutate: refetch } = useSWR(key, fetcher);
   const { data: schema } = useSWR(key ? [key, "schema"] : null, fetchSchema);
@@ -47,7 +48,7 @@ export const useTodos = ({ eventId }) => {
       });
 
       await refetch();
-      if (todo?.id) await mutate(`/api/events/${eventId}/todos/${todo.id}`);
+      if (todo?.id) await boundMutate(`/api/events/${eventId}/todos/${todo.id}`);
       return true;
     } catch (e) {
       return false;
@@ -64,7 +65,7 @@ export const useTodos = ({ eventId }) => {
     const nextTodos = prevTodos.map((t) => (t.id === todoId ? { ...t, ..._data } : t));
 
     // Apply optimistic state
-    await mutate(listKey, { todos: nextTodos }, false);
+    await boundMutate(listKey, { todos: nextTodos }, false);
 
     try {
       const r = await authFetch(url, { method: "PUT", body: JSON.stringify(_data) });
@@ -72,14 +73,14 @@ export const useTodos = ({ eventId }) => {
       if (!r.ok) throw new Error(j?.message || "Request failed");
 
       // Update detail cache if requested elsewhere; succeed silently
-      if (j?.todo) await mutate(url, j, false);
+      if (j?.todo) await boundMutate(url, j, false);
 
       // Revalidate list to ensure consistency
-      await mutate(listKey);
+      await boundMutate(listKey);
       return true;
     } catch (e) {
       // Rollback on error
-      await mutate(listKey, { todos: prevTodos }, false);
+      await boundMutate(listKey, { todos: prevTodos }, false);
       toast.error(e?.message || "Update failed");
       return false;
     }
@@ -102,7 +103,7 @@ export const useTodos = ({ eventId }) => {
       });
 
       await refetch();
-      await mutate(url);
+      await boundMutate(url);
       return true;
     } catch (e) {
       return false;

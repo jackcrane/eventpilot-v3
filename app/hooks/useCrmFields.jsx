@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -14,6 +14,7 @@ const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useCrmFields = ({ eventId }) => {
   const key = `/api/events/${eventId}/crm/fields`;
+  const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(key, fetcher);
   const [mutationLoading, setMutationLoading] = useState(false);
 

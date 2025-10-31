@@ -23,7 +23,7 @@ export const generateHookFile = ({
   const useMutation = options.create || options.update || options.delete;
 
   const imports = [
-    `import useSWR, { mutate } from "swr";`,
+    `import useSWR, { useSWRConfig } from "swr";`,
     `import { authFetch } from "../util/url";`,
     useMutation ? `import { useState } from "react";` : null,
     useMutation ? `import toast from "react-hot-toast";` : null,
@@ -203,6 +203,8 @@ export const generateHookFile = ({
     ``,
     `export const ${hookExportName} = (${paramsStr}) => {`,
     `  const key = ${keyTemplate};`,
+    ``,
+    `  const { mutate } = useSWRConfig();`,
     ``,
     `  const { data, error, isLoading } = useSWR(key, fetcher);`,
     options.includeSchema ? `  ${schemaGetter}` : null,

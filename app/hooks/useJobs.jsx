@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
@@ -7,9 +7,10 @@ import { useLocation } from "./useLocation";
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useJobs = ({ eventId, locationId }) => {
+  const { mutate: boundMutate } = useSWRConfig();
   const invalidateLocationCache = () => {
-    mutate(`/api/events/${eventId}/locations/${locationId}?includeShifts=true`);
-    mutate(`/api/events/${eventId}/locations/${locationId}`);
+    boundMutate(`/api/events/${eventId}/locations/${locationId}?includeShifts=true`);
+    boundMutate(`/api/events/${eventId}/locations/${locationId}`);
   };
 
   const { refetch: refetchLocation } = useLocation({

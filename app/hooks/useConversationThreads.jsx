@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import useSWRMutation from "swr/mutation";
 import toast from "react-hot-toast";
 import { authFetch } from "../util/url";
@@ -14,6 +14,7 @@ export const useConversationThreads = ({
   pageToken,
   maxResults,
 } = {}) => {
+  const { mutate } = useSWRConfig();
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (labelIds && String(labelIds).length) params.set("labelIds", String(labelIds));

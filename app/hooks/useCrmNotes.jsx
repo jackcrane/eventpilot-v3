@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import useSWRMutation from "swr/mutation";
 import toast from "react-hot-toast";
 import { authFetch, authFetchWithoutContentType } from "../util/url";
@@ -9,6 +9,7 @@ export const useCrmNotes = ({ eventId, personId }) => {
   const key = personId
     ? `/api/events/${eventId}/crm/person/${personId}/notes`
     : null;
+  const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(key, fetcher);
 
   // Create text note

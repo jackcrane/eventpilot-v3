@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import { getPII, usePII } from "./usePII";
 
@@ -7,6 +7,7 @@ const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useFormBuilder = (eventId) => {
   const key = eventId ? `/api/events/${eventId}/builder` : null;
+  const { mutate } = useSWRConfig();
 
   const { data, error, isLoading } = useSWR(key, fetcher);
 

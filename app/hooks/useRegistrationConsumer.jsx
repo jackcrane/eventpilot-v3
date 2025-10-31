@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -7,6 +7,7 @@ const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useRegistrationConsumer = ({ eventId }) => {
   const key = `/api/events/${eventId}/registration/consumer`;
+  const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(key, fetcher);
   const [mutationLoading, setMutationLoading] = useState(false);
 

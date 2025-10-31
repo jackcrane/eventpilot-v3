@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import toast from "react-hot-toast";
 import { authFetch } from "../util/url";
 
@@ -6,6 +6,7 @@ const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useEventBilling = ({ eventId }) => {
   const key = eventId ? `/api/events/${eventId}/billing` : null;
+  const { mutate: boundMutate } = useSWRConfig();
   const { data, error, isLoading, mutate: refetch } = useSWR(key, fetcher);
 
   const setDefaultPaymentMethod = async (paymentMethodId) => {
@@ -16,7 +17,7 @@ export const useEventBilling = ({ eventId }) => {
         body: JSON.stringify({ defaultPaymentMethodId: paymentMethodId }),
       }).then(async (r) => {
         if (!r.ok) throw new Error(await r.text());
-        await mutate(key);
+        await boundMutate(key);
         return true;
       }),
       {
@@ -35,7 +36,7 @@ export const useEventBilling = ({ eventId }) => {
         body: JSON.stringify({ billingEmail }),
       }).then(async (r) => {
         if (!r.ok) throw new Error(await r.text());
-        await mutate(key);
+        await boundMutate(key);
         return true;
       }),
       {
@@ -52,7 +53,7 @@ export const useEventBilling = ({ eventId }) => {
         method: "DELETE",
       }).then(async (r) => {
         if (!r.ok) throw new Error(await r.text());
-        await mutate(key);
+        await boundMutate(key);
         return true;
       }),
       {
@@ -68,7 +69,7 @@ export const useEventBilling = ({ eventId }) => {
     return await toast.promise(
       authFetch(key, { method: "DELETE" }).then(async (r) => {
         if (!r.ok) throw new Error(await r.text());
-        await mutate(key);
+        await boundMutate(key);
         return true;
       }),
       {

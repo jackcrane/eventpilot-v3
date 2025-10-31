@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -21,6 +21,7 @@ const fetchSchema = async ([url]) => {
 
 export const useInstances = ({ eventId }) => {
   const key = `/api/events/${eventId}/instances`;
+  const { mutate: boundMutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(key, fetcher);
   const { data: schema, loading: schemaLoading } = useSWR(
     [key, "schema"],
@@ -71,9 +72,9 @@ export const useInstances = ({ eventId }) => {
         toast.success("A new instance has been created & selected");
       }
 
-      await mutate(key);
+      await boundMutate(key);
       // Invalidate all event-scoped keys to refresh dependent data
-      await mutate(
+      await boundMutate(
         (k) => typeof k === "string" && k.includes(`/api/events/${eventId}`),
         undefined,
         { revalidate: true }
@@ -140,9 +141,9 @@ export const useInstances = ({ eventId }) => {
         error: "Error deleting",
       });
 
-      await mutate(key);
+      await boundMutate(key);
       // Also refresh all event-scoped keys across the app
-      await mutate(
+      await boundMutate(
         (k) => typeof k === "string" && k.includes(`/api/events/${eventId}`),
         undefined,
         { revalidate: true }
@@ -169,7 +170,7 @@ export const useInstances = ({ eventId }) => {
     loading: isLoading,
     mutationLoading,
     error,
-    refetch: () => mutate(key),
+    refetch: () => boundMutate(key),
     schema,
     schemaLoading,
     validationError,
