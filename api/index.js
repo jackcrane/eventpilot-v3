@@ -37,14 +37,6 @@ app.use(
 );
 
 app.use((req, res, next) => {
-  if (req.method === "QUERY") {
-    req.realMethod = "QUERY";
-    req.method = "GET";
-  }
-  next();
-});
-
-app.use((req, res, next) => {
   const charSet =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   req.id = Array(12)
@@ -109,10 +101,8 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 let server;
-const shouldStartServer =
-  process.env.NODE_ENV !== "test" || process.env.E2E === "true";
 
-if (shouldStartServer) {
+if (process.env.NODE_ENV !== "test") {
   server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
