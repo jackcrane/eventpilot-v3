@@ -12,6 +12,9 @@ const SPEC_ROOT = path.resolve(process.cwd(), "cypress/e2e");
 const DUMP_ROOT = path.resolve(process.cwd(), "cypress/fixtures/db");
 
 const activeSpecs = new Map();
+const EXTERNAL_API_MANAGEMENT =
+  String(process.env.API_MANAGED_EXTERNALLY || "").toLowerCase() === "true";
+const EXTERNAL_DATABASE_NAME = process.env.API_DATABASE_NAME || "e2e_api";
 
 const sanitizeDbName = (input) =>
   input
@@ -53,6 +56,42 @@ const prepareDatabaseForSpec = async (spec) => {
   ensureDumpExists(dumpPath);
 
   const relative = path.relative(SPEC_ROOT, spec.absolute || spec.relative);
+
+  if (EXTERNAL_API_MANAGEMENT) {
+    const databaseName = EXTERNAL_DATABASE_NAME;
+
+    try {
+      await createDatabase(databaseName);
+    } catch (error) {
+      if (!/already exists/i.test(error.message || "")) {
+        throw new Error(
+          `Failed to ensure database ${databaseName} for ${relative}: ${
+            error.message || error
+          }`
+        );
+      }
+    }
+
+    try {
+      await restoreDatabase(databaseName, dumpPath);
+    } catch (error) {
+      throw new Error(
+        `Failed to seed database for ${relative}.\n${error.message}`
+      );
+    }
+
+    const databaseUrl = buildConnectionString(databaseName);
+    const context = {
+      key,
+      databaseName,
+      databaseUrl,
+      dumpPath,
+    };
+
+    activeSpecs.set(key, context);
+    return context;
+  }
+
   const baseName = sanitizeDbName(relative.replace(/\.[^.]+$/, ""));
   const suffix = crypto.randomBytes(4).toString("hex");
   const databaseName = `e2e_${(baseName || "spec").slice(0, 40)}_${suffix}`.slice(0, 62);
@@ -93,14 +132,18 @@ const teardownDatabaseForSpec = async (spec) => {
     return;
   }
 
-  await dropDatabase(context.databaseName);
+  if (!EXTERNAL_API_MANAGEMENT) {
+    await dropDatabase(context.databaseName);
+  }
   activeSpecs.delete(key);
 };
 
 const cleanupAll = async () => {
   const remaining = Array.from(activeSpecs.values());
   for (const context of remaining) {
-    await dropDatabase(context.databaseName);
+    if (!EXTERNAL_API_MANAGEMENT) {
+      await dropDatabase(context.databaseName);
+    }
   }
   activeSpecs.clear();
 };

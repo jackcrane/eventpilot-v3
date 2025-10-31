@@ -11,8 +11,12 @@ const { startApi, stopApi } = require("./serverManager");
 const createTestEnvironment = (on, config) => {
   let currentSpecKey = null;
 
-  on("before:spec", async (spec) => {
+  const bootSpec = async (spec) => {
     const key = specKey(spec);
+    if (currentSpecKey === key) {
+      return;
+    }
+
     const context = await prepareDatabaseForSpec(spec);
 
     try {
@@ -23,6 +27,19 @@ const createTestEnvironment = (on, config) => {
     }
 
     currentSpecKey = key;
+  };
+
+  on("before:run", async (details) => {
+    const firstSpec = details?.specs?.[0];
+    if (!firstSpec) {
+      return;
+    }
+
+    await bootSpec(firstSpec);
+  });
+
+  on("before:spec", async (spec) => {
+    await bootSpec(spec);
   });
 
   on("after:spec", async (spec) => {

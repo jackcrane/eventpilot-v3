@@ -9,6 +9,8 @@ const API_HOST = "127.0.0.1";
 const API_START_TIMEOUT_MS = Number(
   process.env.API_START_TIMEOUT_MS || 30000
 );
+const EXTERNAL_API_MANAGEMENT =
+  String(process.env.API_MANAGED_EXTERNALLY || "").toLowerCase() === "true";
 
 let apiProcess = null;
 
@@ -45,6 +47,10 @@ const waitForPort = (port, host, timeoutMs = 30000) =>
   });
 
 const startApi = async (databaseUrl) => {
+  if (EXTERNAL_API_MANAGEMENT) {
+    return waitForPort(API_PORT, API_HOST, API_START_TIMEOUT_MS);
+  }
+
   await stopApi();
   ensureFrontendBuild();
 
@@ -136,6 +142,10 @@ const startApi = async (databaseUrl) => {
 };
 
 const stopApi = async () => {
+  if (EXTERNAL_API_MANAGEMENT) {
+    return;
+  }
+
   if (!apiProcess) {
     return;
   }
