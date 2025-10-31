@@ -1,0 +1,12 @@
+{
+  "name": "eventpilot-e2e",
+  "private": true,
+  "scripts": {
+    "cypress": "cypress run",
+    "cypress:open": "cypress open",
+    "verify": "cypress verify"
+  },
+  "devDependencies": {
+    "cypress": "^13.13.1"
+  }
+}

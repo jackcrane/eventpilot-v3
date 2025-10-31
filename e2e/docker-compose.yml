@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
+  cypress:
+    build:
+      context: ..
+      dockerfile: e2e/Dockerfile
+    working_dir: /workspace
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      CYPRESS_BASE_URL: http://127.0.0.1:3000
+      API_PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ..:/workspace
+      - cypress-cache:/root/.cache
+      - api-node-modules:/workspace/api/node_modules
+      - app-node-modules:/workspace/app/node_modules
+      - e2e-node-modules:/workspace/e2e/node_modules
+    entrypoint: ["/bin/sh", "/workspace/e2e/bin/run.sh"]
+
+volumes:
+  pg-data:
+  cypress-cache:
+  api-node-modules:
+  app-node-modules:
+  e2e-node-modules:

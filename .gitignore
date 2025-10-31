@@ -7,3 +7,4 @@ react-email/node_modules
 out
 api/backup_2025-09-25_2345.dump
 app/.env.sentry-build-plugin
+e2e/node_modules

@@ -101,8 +101,10 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 let server;
+const shouldStartServer =
+  process.env.NODE_ENV !== "test" || process.env.E2E === "true";
 
-if (process.env.NODE_ENV !== "test") {
+if (shouldStartServer) {
   server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
