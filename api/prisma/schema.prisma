@@ -431,6 +431,7 @@ model Event {
 
   contactPhone String?
   website      String?
+  websitePages Json?
 
   organization String?
 

@@ -53,6 +53,7 @@ const routePrefetchers = [
   () => import("./routes/events/[eventId]/settings/billing"),
   () => import("./routes/events/[eventId]/crm"),
   () => import("./routes/events/[eventId]/crm/[personId]"),
+  () => import("./routes/events/[eventId]/website"),
 ];
 
 /** Route components — dynamically imported for route-level code splitting */
@@ -98,6 +99,11 @@ const Events = React.lazy(() =>
 );
 const Event = React.lazy(() =>
   import("./routes/events/[eventId]").then((m) => ({ default: m.Event }))
+);
+const EventWebsitePage = React.lazy(() =>
+  import("./routes/events/[eventId]/website").then((m) => ({
+    default: m.EventWebsitePage,
+  }))
 );
 
 const EventTodosPage = React.lazy(() =>
@@ -353,6 +359,11 @@ export default () => {
 
                 <Route path="/events/:eventId" element={<Event />} />
                 <Route path="/events" element={<Events />} />
+
+                <Route
+                  path="/events/:eventId/website"
+                  element={<EventWebsitePage />}
+                />
 
                 <Route
                   path="/events/:eventId/todos"
