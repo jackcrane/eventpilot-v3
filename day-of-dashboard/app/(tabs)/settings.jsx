@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   Alert,
   ScrollView,
@@ -8,14 +8,70 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { DAY_OF_PERMISSION_TABS } from "../../constants/dayOfPermissions";
 import { useDayOfSessionContext } from "../../contexts/DayOfSessionContext";
 import { DayOfColors } from "../../constants/theme";
+import { useTapToPay } from "../../hooks/useTapToPay";
 
 export const SettingsScreen = () => {
   const { account, permissions, logout } = useDayOfSessionContext();
+  const {
+    initializeTerminal,
+    initializing,
+    initialized,
+    discovering,
+    connecting,
+    connectedReader,
+    connectionStatus,
+    lastError,
+    tapToPaySupported,
+    defaultLocationId,
+  } = useTapToPay();
+
+  const tapToPayStatus = useMemo(() => {
+    if (!tapToPaySupported) {
+      return "Tap to Pay is not supported on this device.";
+    }
+    if (initializing) {
+      return "Initializing Stripe Terminal…";
+    }
+    if (discovering || connecting) {
+      return "Activating Tap to Pay…";
+    }
+    if (connectedReader) {
+      const label =
+        connectedReader.label ||
+        connectedReader.serialNumber ||
+        "Tap to Pay reader";
+      return `Reader ready: ${label}`;
+    }
+    if (initialized) {
+      return "Stripe Terminal is initialized on this device.";
+    }
+    return "Tap to Pay is not initialized yet.";
+  }, [
+    connecting,
+    connectedReader,
+    discovering,
+    initialized,
+    initializing,
+    tapToPaySupported,
+  ]);
+
+  const handleInitializeTapToPay = useCallback(async () => {
+    const result = await initializeTerminal();
+    if (result?.success) {
+      Alert.alert(
+        "Tap to Pay initialized",
+        "Stripe Terminal is ready to activate from the Point of Sale tab."
+      );
+      return;
+    }
+    const message = result?.error?.message ||
+      "Unable to initialize Tap to Pay. Try again.";
+    Alert.alert("Initialization failed", message);
+  }, [initializeTerminal]);
 
   const permissionDetails = useMemo(() => {
     return permissions.map((value) => {
@@ -79,6 +135,86 @@ export const SettingsScreen = () => {
             <Text style={styles.rowLabel}>Event</Text>
             <Text style={styles.rowValue}>{account?.eventId ?? "—"}</Text>
           </View>
+        </View>
+
+        <View style={styles.panel}>
+          <Text style={styles.panelLabel}>Tap to Pay</Text>
+
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Status</Text>
+            <Text style={styles.rowValue}>{tapToPayStatus}</Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Stripe location</Text>
+            <Text style={styles.rowValue}>
+              {defaultLocationId || "Not assigned"}
+            </Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Connection state</Text>
+            <Text style={styles.rowValue}>
+              {connectionStatus || "Not connected"}
+            </Text>
+          </View>
+
+          {connectedReader ? (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>Reader</Text>
+                <Text style={styles.rowValue}>
+                  {connectedReader.label ||
+                    connectedReader.serialNumber ||
+                    "Tap to Pay reader"}
+                </Text>
+              </View>
+            </>
+          ) : null}
+
+          {lastError ? (
+            <Text style={styles.errorText}>
+              {lastError?.message || lastError}
+            </Text>
+          ) : null}
+
+          <TouchableOpacity
+            onPress={handleInitializeTapToPay}
+            disabled={initializing || !tapToPaySupported}
+            style={[
+              styles.initializeButton,
+              (initializing || !tapToPaySupported) &&
+                styles.initializeButtonDisabled,
+            ]}
+          >
+            <Text
+              style={[
+                styles.initializeButtonText,
+                (initializing || !tapToPaySupported) &&
+                  styles.initializeButtonTextDisabled,
+              ]}
+            >
+              {initializing ? "Initializing…" : "Initialize Tap to Pay"}
+            </Text>
+          </TouchableOpacity>
+
+          {!tapToPaySupported ? (
+            <Text style={styles.helperText}>
+              Tap to Pay requires a compatible iPhone running iOS 16.4 or
+              later.
+            </Text>
+          ) : null}
+
+          {tapToPaySupported && !defaultLocationId ? (
+            <Text style={styles.helperText}>
+              Assign a Stripe Terminal location to finish setup.
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.panel}>
@@ -210,5 +346,32 @@ const styles = StyleSheet.create({
     color: DayOfColors.common.white,
     fontSize: 16,
     fontWeight: "600",
+  },
+  errorText: {
+    fontSize: 15,
+    color: DayOfColors.light.danger,
+  },
+  initializeButton: {
+    marginTop: 4,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    backgroundColor: DayOfColors.light.primary,
+  },
+  initializeButtonDisabled: {
+    backgroundColor: DayOfColors.light.border,
+  },
+  initializeButtonText: {
+    color: DayOfColors.common.white,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  initializeButtonTextDisabled: {
+    color: DayOfColors.light.tertiary,
+  },
+  helperText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: DayOfColors.light.secondary,
   },
 });

@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Platform } from "react-native";
 import * as Device from "expo-device";
 import { useStripeTerminal } from "@stripe/stripe-terminal-react-native";
@@ -52,6 +60,8 @@ const parseIphoneMajorFromModelName = (modelName) => {
   }
   return null;
 };
+
+const TapToPayContext = createContext(null);
 
 const summarizePaymentIntent = (intent, fallbackClientSecret = null) => {
   if (!intent) {
@@ -113,7 +123,7 @@ const extractDeclineReason = (error, intent, fallbackError) => {
   return null;
 };
 
-export const useTapToPay = () => {
+const useTapToPayState = () => {
   const { account, token } = useDayOfSessionContext();
   const [connectionStatus, setConnectionStatus] = useState("notConnected");
   const [paymentStatus, setPaymentStatus] = useState("notReady");
@@ -709,4 +719,21 @@ export const useTapToPay = () => {
     defaultLocationId: defaultTerminalLocationId,
     tapToPaySupported,
   };
+};
+
+export const TapToPayProvider = ({ children }) => {
+  const value = useTapToPayState();
+  return (
+    <TapToPayContext.Provider value={value}>
+      {children}
+    </TapToPayContext.Provider>
+  );
+};
+
+export const useTapToPay = () => {
+  const context = useContext(TapToPayContext);
+  if (!context) {
+    throw new Error("useTapToPay must be used within a TapToPayProvider");
+  }
+  return context;
 };

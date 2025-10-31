@@ -12,6 +12,7 @@ import {
   useDayOfSessionContext,
 } from '../contexts/DayOfSessionContext';
 import { dayOfAuthFetch, dayOfJson } from '../utils/apiClient';
+import { TapToPayProvider } from '../hooks/useTapToPay';
 
 export const unstable_settings = {
   initialRouteName: 'login',
@@ -73,20 +74,22 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <DayOfSessionProvider>
           <StripeTerminalBoundary>
-            <ThemeProvider value={DefaultTheme}>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="login" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="(tabs)"
-                  options={{ headerShown: false, gestureEnabled: false }}
-                />
-                <Stack.Screen
-                  name="modal"
-                  options={{ presentation: 'modal', title: 'Modal' }}
-                />
-              </Stack>
-              <StatusBar style="dark" />
-            </ThemeProvider>
+            <TapToPayProvider>
+              <ThemeProvider value={DefaultTheme}>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="login" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="(tabs)"
+                    options={{ headerShown: false, gestureEnabled: false }}
+                  />
+                  <Stack.Screen
+                    name="modal"
+                    options={{ presentation: 'modal', title: 'Modal' }}
+                  />
+                </Stack>
+                <StatusBar style="dark" />
+              </ThemeProvider>
+            </TapToPayProvider>
           </StripeTerminalBoundary>
         </DayOfSessionProvider>
       </SafeAreaProvider>

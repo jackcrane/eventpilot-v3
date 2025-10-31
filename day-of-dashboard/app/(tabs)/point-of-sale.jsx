@@ -183,6 +183,7 @@ const PointOfSaleScreen = () => {
   const autoInitializeAttemptedRef = useRef(false);
   const autoStartAttemptedRef = useRef(false);
   const previousReaderRef = useRef(null);
+  const [focusTick, setFocusTick] = useState(0);
 
   const handleKeyPress = useCallback((key) => {
     setAmountDigits((prev) => {
@@ -261,6 +262,7 @@ const PointOfSaleScreen = () => {
         autoStartAttemptedRef.current = false;
         console.log("[POS][focus] reset auto start flag (no reader)");
       }
+      setFocusTick((tick) => tick + 1);
     }, [connectedReader, initialized])
   );
   useEffect(() => {
@@ -293,6 +295,7 @@ const PointOfSaleScreen = () => {
       }
     })();
   }, [
+    focusTick,
     handleInitialize,
     hydrated,
     initializing,
@@ -372,6 +375,7 @@ const PointOfSaleScreen = () => {
     connectedReader,
     connecting,
     discovering,
+    focusTick,
     handleStartTapToPay,
     hydrated,
     initialized,
