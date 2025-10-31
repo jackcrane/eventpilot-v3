@@ -54,7 +54,8 @@ const formatPaymentIntentSummary = (paymentIntent) => {
   }
   return {
     id: paymentIntent.id,
-    amount: typeof paymentIntent.amount === "number" ? paymentIntent.amount : null,
+    amount:
+      typeof paymentIntent.amount === "number" ? paymentIntent.amount : null,
     currency: paymentIntent.currency ?? null,
     status: paymentIntent.status ?? null,
   };
@@ -99,9 +100,15 @@ export const get = [
 
       let paymentIntent;
       try {
-        paymentIntent = await retrievePaymentIntent(paymentIntentId, stripeAccountId);
+        paymentIntent = await retrievePaymentIntent(
+          paymentIntentId,
+          stripeAccountId
+        );
       } catch (error) {
-        console.error("Failed to retrieve payment intent for CRM attachment", error);
+        console.error(
+          "Failed to retrieve payment intent for CRM attachment",
+          error
+        );
         return res.status(404).json({ message: "Payment intent not found" });
       }
 
@@ -122,10 +129,7 @@ export const get = [
         created,
       });
     } catch (error) {
-      console.error(
-        "Failed to resolve CRM person for payment intent",
-        error
-      );
+      console.error("Failed to resolve CRM person for payment intent", error);
       reportApiError(error, req);
       return res
         .status(500)
@@ -161,9 +165,15 @@ export const put = [
 
       let paymentIntent;
       try {
-        paymentIntent = await retrievePaymentIntent(paymentIntentId, stripeAccountId);
+        paymentIntent = await retrievePaymentIntent(
+          paymentIntentId,
+          stripeAccountId
+        );
       } catch (error) {
-        console.error("Failed to retrieve payment intent for CRM update", error);
+        console.error(
+          "Failed to retrieve payment intent for CRM update",
+          error
+        );
         return res.status(404).json({ message: "Payment intent not found" });
       }
 
@@ -182,7 +192,9 @@ export const put = [
       if (!crmPerson) {
         return res
           .status(500)
-          .json({ message: "Unable to determine CRM person for payment intent" });
+          .json({
+            message: "Unable to determine CRM person for payment intent",
+          });
       }
 
       const { name, email } = parsed.data;

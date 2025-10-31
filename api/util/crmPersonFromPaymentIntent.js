@@ -98,7 +98,11 @@ const loadCrmPersonById = async (id) => {
   return person;
 };
 
-const ensurePaymentIntentMetadata = async (paymentIntent, stripeAccountId, crmPersonId) => {
+const ensurePaymentIntentMetadata = async (
+  paymentIntent,
+  stripeAccountId,
+  crmPersonId
+) => {
   if (!paymentIntent || !stripeAccountId || !crmPersonId) {
     return;
   }
@@ -144,12 +148,22 @@ export const ensureCrmPersonForPaymentIntent = async ({
     paymentIntent,
     stripeAccountId,
   });
-  const metadataPersonId = normalizeString(paymentIntent?.metadata?.crmPersonId);
+  const metadataPersonId = normalizeString(
+    paymentIntent?.metadata?.crmPersonId
+  );
   logMatchStep("metadata", { metadataPersonId, result: "attempt" });
   const byMetadata = await loadCrmPersonById(metadataPersonId);
   if (byMetadata) {
-    logMatchStep("metadata", { metadataPersonId, crmPersonId: byMetadata.id, result: "matched" }, true);
-    await ensurePaymentIntentMetadata(paymentIntent, stripeAccountId, byMetadata.id);
+    logMatchStep(
+      "metadata",
+      { metadataPersonId, crmPersonId: byMetadata.id, result: "matched" },
+      true
+    );
+    await ensurePaymentIntentMetadata(
+      paymentIntent,
+      stripeAccountId,
+      byMetadata.id
+    );
     await ensurePaymentMethodForCrmPerson({
       crmPersonId: byMetadata.id,
       paymentMethodDetails,
@@ -160,37 +174,38 @@ export const ensureCrmPersonForPaymentIntent = async ({
   }
   logMatchStep("metadata", { metadataPersonId, result: "no_match" });
 
-  logMatchStep(
-    "stored_payment_method",
-    {
-      stripePaymentMethodId: paymentMethodDetails?.stripePaymentMethodId,
-      fingerprint: paymentMethodDetails?.fingerprint,
-      brand: paymentMethodDetails?.brand,
-      last4: paymentMethodDetails?.last4,
-      expMonth: paymentMethodDetails?.expMonth ?? null,
-      expYear: paymentMethodDetails?.expYear ?? null,
-      nameOnCard: paymentMethodDetails?.nameOnCard ?? null,
-      result: "attempt",
-    }
-  );
+  logMatchStep("stored_payment_method", {
+    stripePaymentMethodId: paymentMethodDetails?.stripePaymentMethodId,
+    fingerprint: paymentMethodDetails?.fingerprint,
+    brand: paymentMethodDetails?.brand,
+    last4: paymentMethodDetails?.last4,
+    expMonth: paymentMethodDetails?.expMonth ?? null,
+    expYear: paymentMethodDetails?.expYear ?? null,
+    nameOnCard: paymentMethodDetails?.nameOnCard ?? null,
+    result: "attempt",
+  });
   const viaPaymentMethod = await findCrmPersonByStoredPaymentMethod({
     eventId,
     paymentMethodDetails,
   });
 
   if (viaPaymentMethod?.crmPersonId) {
-    logMatchStep("stored_payment_method", {
-      stripePaymentMethodId: paymentMethodDetails?.stripePaymentMethodId,
-      fingerprint: paymentMethodDetails?.fingerprint,
-      brand: paymentMethodDetails?.brand,
-      last4: paymentMethodDetails?.last4,
-      expMonth: paymentMethodDetails?.expMonth ?? null,
-      expYear: paymentMethodDetails?.expYear ?? null,
-      nameOnCard: paymentMethodDetails?.nameOnCard ?? null,
-      matchType: viaPaymentMethod.matchType,
-      crmPersonId: viaPaymentMethod.crmPersonId,
-      result: "matched",
-    }, true);
+    logMatchStep(
+      "stored_payment_method",
+      {
+        stripePaymentMethodId: paymentMethodDetails?.stripePaymentMethodId,
+        fingerprint: paymentMethodDetails?.fingerprint,
+        brand: paymentMethodDetails?.brand,
+        last4: paymentMethodDetails?.last4,
+        expMonth: paymentMethodDetails?.expMonth ?? null,
+        expYear: paymentMethodDetails?.expYear ?? null,
+        nameOnCard: paymentMethodDetails?.nameOnCard ?? null,
+        matchType: viaPaymentMethod.matchType,
+        crmPersonId: viaPaymentMethod.crmPersonId,
+        result: "matched",
+      },
+      true
+    );
     const matchedPerson = await loadCrmPersonById(viaPaymentMethod.crmPersonId);
     if (matchedPerson) {
       await ensurePaymentIntentMetadata(
@@ -222,14 +237,13 @@ export const ensureCrmPersonForPaymentIntent = async ({
     false
   );
 
-  const {
-    name: derivedName,
-    email: derivedEmail,
-  } =
+  const { name: derivedName, email: derivedEmail } =
     deriveContactDetails(paymentIntent);
 
   const normalizedEmailRaw = normalizeString(derivedEmail);
-  const normalizedEmail = normalizedEmailRaw ? normalizedEmailRaw.toLowerCase() : null;
+  const normalizedEmail = normalizedEmailRaw
+    ? normalizedEmailRaw.toLowerCase()
+    : null;
 
   if (normalizedEmail) {
     logMatchStep("email", { email: normalizedEmail, result: "attempt" });
@@ -240,7 +254,11 @@ export const ensureCrmPersonForPaymentIntent = async ({
         { email: normalizedEmail, crmPersonId: byEmail.id, result: "matched" },
         true
       );
-      await ensurePaymentIntentMetadata(paymentIntent, stripeAccountId, byEmail.id);
+      await ensurePaymentIntentMetadata(
+        paymentIntent,
+        stripeAccountId,
+        byEmail.id
+      );
       await ensurePaymentMethodForCrmPerson({
         crmPersonId: byEmail.id,
         paymentMethodDetails,
@@ -252,7 +270,10 @@ export const ensureCrmPersonForPaymentIntent = async ({
     logMatchStep("email", { email: normalizedEmail, result: "no_match" });
   }
 
-  logMatchStep("prior_creation_log", { paymentIntentId: paymentIntent.id, result: "attempt" });
+  logMatchStep("prior_creation_log", {
+    paymentIntentId: paymentIntent.id,
+    result: "attempt",
+  });
   const priorCreationLog = await prisma.logs.findFirst({
     where: {
       type: LogType.CRM_PERSON_CREATED,
@@ -273,7 +294,11 @@ export const ensureCrmPersonForPaymentIntent = async ({
     );
     const existing = await loadCrmPersonById(priorCreationLog.crmPersonId);
     if (existing) {
-      await ensurePaymentIntentMetadata(paymentIntent, stripeAccountId, existing.id);
+      await ensurePaymentIntentMetadata(
+        paymentIntent,
+        stripeAccountId,
+        existing.id
+      );
       await ensurePaymentMethodForCrmPerson({
         crmPersonId: existing.id,
         paymentMethodDetails,
