@@ -98,7 +98,14 @@ async function registerRoutes(app, routesDir) {
               const handlers = Array.isArray(routeModule[method])
                 ? routeModule[method]
                 : [routeModule[method]];
-              app[method](routePath, ...handlers);
+              const mappedMethod = method === "query" ? "get" : method;
+              const registrar = app[mappedMethod];
+              if (typeof registrar !== "function") {
+                throw new Error(
+                  `Unsupported HTTP method "${method}" for route ${routePath}`
+                );
+              }
+              registrar.call(app, routePath, ...handlers);
               // console.log(
               //   `Registered route ${method.toUpperCase()} ${routePath}`
               // );

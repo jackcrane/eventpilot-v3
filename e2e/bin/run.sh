@@ -80,4 +80,4 @@ start_api() {
 start_api
 
 log_step "Starting Cypress run"
-yarn --cwd /workspace/e2e cypress run "$@"
+yarn --cwd /workspace/e2e cypress run --browser chrome "$@"

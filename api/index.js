@@ -37,6 +37,14 @@ app.use(
 );
 
 app.use((req, res, next) => {
+  if (req.method === "QUERY") {
+    req.realMethod = "QUERY";
+    req.method = "GET";
+  }
+  next();
+});
+
+app.use((req, res, next) => {
   const charSet =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   req.id = Array(12)
