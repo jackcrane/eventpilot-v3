@@ -62,6 +62,24 @@ function getRoutePathFromFile(filePath, routesDir) {
 }
 
 /**
+ * Registers handlers for custom HTTP verbs that Express does not support natively.
+ * Currently used for our schema introspection `QUERY` method.
+ * @param {express.Application} app - The Express application instance.
+ * @param {string} routePath - The Express route path.
+ * @param {Array<express.RequestHandler>} handlers - The handlers to register.
+ */
+function registerCustomMethod(app, routePath, method, handlers) {
+  const upperMethod = method.toUpperCase();
+  const guard = (req, res, next) => {
+    if ((req.method || "").toUpperCase() === upperMethod) {
+      return next();
+    }
+    return next("route");
+  };
+  app.all(routePath, guard, ...handlers);
+}
+
+/**
  * Recursively traverses the routes directory and registers routes with Express.
  * @param {express.Application} app - The Express application instance.
  * @param {string} routesDir - The absolute path to the routes directory.
@@ -96,7 +114,13 @@ async function registerRoutes(app, routesDir) {
               const handlers = Array.isArray(routeModule[method])
                 ? routeModule[method]
                 : [routeModule[method]];
-              app[method](routePath, ...handlers);
+              if (typeof app[method] === "function") {
+                app[method](routePath, ...handlers);
+              } else if (method === "query") {
+                registerCustomMethod(app, routePath, method, handlers);
+              } else {
+                throw new Error(`Unsupported HTTP method: ${method}`);
+              }
               // console.log(
               //   `Registered route ${method.toUpperCase()} ${routePath}`
               // );
