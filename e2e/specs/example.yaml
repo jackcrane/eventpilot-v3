@@ -1,0 +1,11 @@
+name: Example Flow
+description: Basic navigation smoke test generated from YAML.
+seedFile: cypress/fixtures/db/example.sql
+steps:
+  - setViewport:
+      width: 1280
+      height: 720
+  - open: /
+  - assertVisible:
+      selector: "body"
+  - log: "Reached the home page"

@@ -12,8 +12,10 @@ e2e/
 ├── cypress.config.cjs        # Cypress configuration and hooks
 ├── cypress/
 │   ├── e2e/                  # Spec files (one dump per spec)
+│   │   └── generated/        # Auto-generated specs from YAML flows
 │   ├── fixtures/db/          # `pg_dump` snapshots for each spec
 │   └── support/              # Custom commands + Node lifecycle code
+├── specs/                    # Maestro-style YAML flows
 └── scripts/dump-db.js        # Helper to create new dumps
 ```
 
@@ -32,6 +34,7 @@ The Cypress runner boots the API inside the same container. Requests from the Re
 
 - Each spec file under `e2e/cypress/e2e/**` must have a matching dump under `e2e/cypress/fixtures/db/**`.
   - Example: `cypress/e2e/onboarding.cy.js` → `cypress/fixtures/db/onboarding.sql` (custom `.dump` files are also accepted).
+- Generated YAML specs can override this naming convention by declaring `seedFile`. Direct `.cy.js` files continue to rely on the default lookup.
 - Dumps should contain *data only* (the schema is already managed by the application). Use the plain-text SQL produced by `pg_dump -Fp` (recommended) or a custom-format `.dump` if you prefer a binary snapshot.
 - Before a spec runs we:
   1. Create a brand new Postgres database.
@@ -68,14 +71,39 @@ Options:
 
 Ensure the schema in the dump aligns with the application migrations; otherwise the restore step will fail during the run.
 
-## Creating New Specs
+## YAML-Driven Flows
 
-1. Create `e2e/cypress/e2e/<name>.cy.js`.
-2. Produce the database snapshot using the dumper utility and place it under `e2e/cypress/fixtures/db/<name>.sql` (custom `.dump` files also work).
-3. Implement your Cypress tests.
-4. Run the suite via Docker.
+If you prefer Maestro-style flows, drop a YAML file into `e2e/specs`. During `yarn cypress` the generator converts each YAML file into a Cypress spec under `cypress/e2e/generated` and records the chosen seed file in a manifest that the database lifecycle reads.
 
-You can keep multiple tests inside the same spec. Call `reSeedDb()` whenever you need a clean slate inside that spec.
+### Example
+
+```yaml
+name: Contact Form
+seedFile: cypress/fixtures/db/contact.sql
+steps:
+  - open: /contact
+  - typeText:
+      dataCy: contact-name
+      text: Ada Lovelace
+  - typeText:
+      dataCy: contact-email
+      text: ada@example.com
+  - tapOn:
+      dataCy: contact-submit
+  - expectUrl:
+      includes: thank-you
+```
+
+Supported actions include `open`, `tapOn`, `typeText`, `assertVisible`, `assertContains`, `assertText`, `waitFor`, `expectUrl`, `scrollIntoView`, `setViewport`, `log`, and `pause`. Any generator errors fail fast with a message so you can adjust the flow before Cypress starts.
+
+### Creating New Specs
+
+1. Add `e2e/specs/<name>.yaml` (or `.yml`) with top-level `name`, `description` (optional), `seedFile`, and `steps`.
+2. Point `seedFile` to the SQL dump you want restored for the run. Paths can be relative to `e2e/` (e.g. `cypress/fixtures/db/onboarding.sql`) or absolute.
+3. Produce the database snapshot using the dumper utility if it does not already exist.
+4. Run the suite via Docker—generated specs appear automatically and load the referenced seed.
+
+Direct `.cy.js` files remain supported; mix and match as needed. Call `reSeedDb()` inside a spec whenever you need a clean slate.
 
 ## Local Development Tips
 

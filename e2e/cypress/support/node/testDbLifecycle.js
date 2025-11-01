@@ -13,6 +13,11 @@ const {
 const SPEC_ROOT = path.resolve(process.cwd(), "cypress/e2e");
 const DUMP_ROOT = path.resolve(process.cwd(), "cypress/fixtures/db");
 const API_DIR = path.resolve(process.cwd(), "../api");
+const GENERATED_MANIFEST_PATH = path.join(
+  SPEC_ROOT,
+  "generated",
+  "yaml-manifest.json",
+);
 
 const activeSpecs = new Map();
 const EXTERNAL_API_MANAGEMENT =
@@ -28,9 +33,43 @@ const sanitizeDbName = (input) =>
 
 const specKey = (spec) => spec.relative || spec.name || spec.absolute;
 
+let manifestCache = null;
+
+const manifestForGeneratedSpecs = () => {
+  if (manifestCache !== null) {
+    return manifestCache;
+  }
+
+  if (!fs.existsSync(GENERATED_MANIFEST_PATH)) {
+    manifestCache = {};
+    return manifestCache;
+  }
+
+  try {
+    const contents = fs.readFileSync(GENERATED_MANIFEST_PATH, "utf8");
+    manifestCache = JSON.parse(contents);
+  } catch (error) {
+    throw new Error(
+      `Unable to parse YAML manifest at ${GENERATED_MANIFEST_PATH}: ${
+        error.message || error
+      }`,
+    );
+  }
+
+  return manifestCache;
+};
+
 const resolveDumpPath = (spec) => {
   const absolute = spec.absolute || path.resolve(process.cwd(), spec.relative);
   const relative = path.relative(SPEC_ROOT, absolute);
+  const normalizedRelative = relative.split(path.sep).join("/");
+
+  const manifest = manifestForGeneratedSpecs();
+  const manifestEntry = manifest[normalizedRelative];
+  if (manifestEntry) {
+    return path.resolve(process.cwd(), manifestEntry);
+  }
+
   const withoutExtension = relative.replace(/\.cy\.[^.]+$/, "");
   const sqlDump = path.join(DUMP_ROOT, `${withoutExtension}.sql`);
   if (fs.existsSync(sqlDump)) {
