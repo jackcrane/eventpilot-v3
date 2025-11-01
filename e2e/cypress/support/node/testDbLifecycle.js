@@ -1,3 +1,4 @@
+const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
@@ -6,10 +7,12 @@ const {
   dropDatabase,
   restoreDatabase,
   buildConnectionString,
+  resetDatabase,
 } = require("./dbManager");
 
 const SPEC_ROOT = path.resolve(process.cwd(), "cypress/e2e");
 const DUMP_ROOT = path.resolve(process.cwd(), "cypress/fixtures/db");
+const API_DIR = path.resolve(process.cwd(), "../api");
 
 const activeSpecs = new Map();
 const EXTERNAL_API_MANAGEMENT =
@@ -45,6 +48,52 @@ const ensureDumpExists = (dumpPath) => {
   }
 };
 
+const runPrismaMigrateDeploy = async (databaseUrl) =>
+  new Promise((resolve, reject) => {
+    const command = process.platform === "win32" ? "yarn.cmd" : "yarn";
+    const args = ["prisma", "migrate", "deploy"];
+
+    const child = spawn(command, args, {
+      cwd: API_DIR,
+      env: {
+        ...process.env,
+        DATABASE_URL: databaseUrl,
+        NODE_ENV: "test",
+        E2E: "true",
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stderr = "";
+
+    child.stdout.on("data", (data) => {
+      process.stdout.write(`[prisma migrate] ${data}`);
+    });
+
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+      process.stderr.write(`[prisma migrate] ${data}`);
+    });
+
+    child.on("error", (error) => {
+      reject(error);
+    });
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(
+          new Error(
+            `prisma migrate deploy exited with code ${code}${
+              stderr ? `\n${stderr}` : ""
+            }`
+          )
+        );
+      }
+    });
+  });
+
 const prepareDatabaseForSpec = async (spec) => {
   const key = specKey(spec);
 
@@ -72,6 +121,19 @@ const prepareDatabaseForSpec = async (spec) => {
       }
     }
 
+    const databaseUrl = buildConnectionString(databaseName);
+
+    try {
+      await resetDatabase(databaseName);
+      await runPrismaMigrateDeploy(databaseUrl);
+    } catch (error) {
+      throw new Error(
+        `Failed to reset database ${databaseName} for ${relative}.\n${
+          error.message || error
+        }`
+      );
+    }
+
     try {
       await restoreDatabase(databaseName, dumpPath);
     } catch (error) {
@@ -80,7 +142,6 @@ const prepareDatabaseForSpec = async (spec) => {
       );
     }
 
-    const databaseUrl = buildConnectionString(databaseName);
     const context = {
       key,
       databaseName,
@@ -165,6 +226,8 @@ const reseedCurrentDatabase = async (key) => {
   }
 
   try {
+    await resetDatabase(context.databaseName);
+    await runPrismaMigrateDeploy(context.databaseUrl);
     await restoreDatabase(context.databaseName, context.dumpPath);
     return { success: true };
   } catch (error) {

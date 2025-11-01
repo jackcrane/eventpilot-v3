@@ -60,15 +60,25 @@ const createDatabase = async (databaseName) => {
   await runPgCommand("psql", args);
 };
 
-const dropDatabase = async (databaseName) => {
-  const terminateConnections = [
+const terminateConnections = async (databaseName) => {
+  const args = [
     "-v",
     "ON_ERROR_STOP=1",
     "-d",
     DEFAULT_DB,
     "-c",
-    `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${databaseName}';`,
+    `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${databaseName}' AND pid <> pg_backend_pid();`,
   ];
+
+  try {
+    await runPgCommand("psql", args);
+  } catch (error) {
+    // Ignore failures when terminating sessions (database might not exist yet)
+  }
+};
+
+const dropDatabase = async (databaseName) => {
+  await terminateConnections(databaseName);
 
   const dropArgs = [
     "-v",
@@ -79,13 +89,31 @@ const dropDatabase = async (databaseName) => {
     `DROP DATABASE IF EXISTS "${databaseName}";`,
   ];
 
-  try {
-    await runPgCommand("psql", terminateConnections);
-  } catch (error) {
-    // Ignore failures when terminating sessions (database might not exist yet)
-  }
-
   await runPgCommand("psql", dropArgs);
+};
+
+const resetDatabase = async (databaseName) => {
+  await terminateConnections(databaseName);
+
+  const statements = [
+    "DROP SCHEMA IF EXISTS public CASCADE;",
+    `CREATE SCHEMA public AUTHORIZATION "${DEFAULT_USER}";`,
+    `GRANT ALL ON SCHEMA public TO "${DEFAULT_USER}";`,
+    "GRANT ALL ON SCHEMA public TO public;",
+  ];
+
+  for (const statement of statements) {
+    const args = [
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-d",
+      databaseName,
+      "-c",
+      statement,
+    ];
+
+    await runPgCommand("psql", args);
+  }
 };
 
 const restoreDatabase = async (databaseName, dumpFile) => {
@@ -149,4 +177,6 @@ module.exports = {
   restoreDatabase,
   runQuery,
   buildConnectionString,
+  resetDatabase,
+  terminateConnections,
 };
