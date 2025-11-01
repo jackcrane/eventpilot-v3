@@ -1,3 +1,4 @@
+const path = require("path");
 const {
   prepareDatabaseForSpec,
   teardownDatabaseForSpec,
@@ -42,11 +43,16 @@ const createTestEnvironment = (on, config) => {
     await bootSpec(spec);
   });
 
-  on("after:spec", async (spec) => {
+  on("after:spec", async (spec, results) => {
     await stopApi();
     await teardownDatabaseForSpec(spec);
     if (currentSpecKey === specKey(spec)) {
       currentSpecKey = null;
+    }
+
+    if (results?.video) {
+      const relativePath = path.relative(process.cwd(), results.video);
+      console.log(`Cypress recorded ${spec.name}: ${relativePath}`);
     }
   });
 

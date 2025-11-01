@@ -30,6 +30,12 @@ e2e/
 
 The Cypress runner boots the API inside the same container. Requests from the React app continue to use `http://127.0.0.1:3000`, so no application code changes are required.
 
+### Artifacts
+
+- Video replays for every spec are saved under `e2e/artifacts/videos`.
+- Failure screenshots (when present) are written to `e2e/artifacts/screenshots`.
+- The harness logs the relative path for each recording after the spec finishes so you can link it into CI artifacts.
+
 ## Database Seeding Workflow
 
 - Each spec file under `e2e/cypress/e2e/**` must have a matching dump under `e2e/cypress/fixtures/db/**`.
