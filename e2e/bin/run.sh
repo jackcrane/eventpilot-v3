@@ -12,12 +12,37 @@ log_step() {
 
 maybe_install() {
   workspace="$1"
+  install_state_file="$workspace/node_modules/.install-state"
+  lockfile_checksum=""
+  if [ -f "$workspace/yarn.lock" ]; then
+    lockfile_checksum="$(sha256sum "$workspace/yarn.lock" | awk '{ print $1 }')"
+  fi
+
+  if [ "${FORCE_DEP_INSTALL:-0}" != "1" ] && [ -d "$workspace/node_modules" ]; then
+    if [ -n "$lockfile_checksum" ] && [ -f "$install_state_file" ]; then
+      if [ "$(cat "$install_state_file")" = "$lockfile_checksum" ]; then
+        log_step "Skipping dependency install in $workspace (lockfile unchanged)"
+        return
+      fi
+    elif [ -z "$lockfile_checksum" ]; then
+      log_step "Skipping dependency install in $workspace (no lockfile detected, node_modules present)"
+      return
+    fi
+  fi
+
   if [ -f "$workspace/yarn.lock" ]; then
     log_step "Installing dependencies in $workspace"
     yarn install --cwd "$workspace" --frozen-lockfile --verbose
   else
     log_step "Installing dependencies in $workspace (no lockfile detected)"
     yarn install --cwd "$workspace" --verbose
+  fi
+
+  if [ -n "$lockfile_checksum" ]; then
+    mkdir -p "$workspace/node_modules"
+    printf "%s" "$lockfile_checksum" > "$install_state_file"
+  else
+    rm -f "$install_state_file" >/dev/null 2>&1 || true
   fi
 }
 
