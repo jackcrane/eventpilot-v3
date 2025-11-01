@@ -221,6 +221,11 @@ ci-info@^4.0.0:
   resolved "https://registry.npmjs.org/ci-info/-/ci-info-4.3.1.tgz#355ad571920810b5623e11d40232f443f16f1daa"
   integrity sha512-Wdy2Igu8OcBpI2pZePZ5oWjPC38tmDVx5WKUXKwlLYkA0ozo85sLsLvkBbBn/sZaSCMFOGZJ14fvW9t5/d7kdA==
 
+ci-info@^3.2.0:
+  version "3.8.0"
+  resolved "https://registry.npmjs.org/ci-info/-/ci-info-3.8.0.tgz"
+  integrity sha512-eXTggHWSooYhq49F2opQhuHWgzucfF2YgODK4e1566GQs5BIfP30B0oenwBJHfWxAs2fyPB1s7Mg949zLf61Yw==
+
 clean-stack@^2.0.0:
   version "2.2.0"
   resolved "https://registry.npmjs.org/clean-stack/-/clean-stack-2.2.0.tgz#ee8472dbb129e727b31e8a10a427dee9dfe4008b"
@@ -298,10 +303,10 @@ cross-spawn@^7.0.0:
     shebang-command "^2.0.0"
     which "^2.0.1"
 
-cypress@^13.13.1:
-  version "13.17.0"
-  resolved "https://registry.npmjs.org/cypress/-/cypress-13.17.0.tgz#34c3d68080c4497eace0f353bd1629587a5f600d"
-  integrity sha512-5xWkaPurwkIljojFidhw8lFScyxhtiFHl/i/3zov+1Z5CmY4t9tjIdvSXfu82Y3w7wt0uR9KkucbhkVvJZLQSA==
+cypress@13.13.1:
+  version "13.13.1"
+  resolved "https://registry.npmjs.org/cypress/-/cypress-13.13.1.tgz"
+  integrity sha512-8F9UjL5MDUdgC/S5hr8CGLHbS5gGht5UOV184qc2pFny43fnkoaKxlzH/U6//zmGu/xRTaKimNfjknLT8+UDFg==
   dependencies:
     "@cypress/request" "^3.0.6"
     "@cypress/xvfb" "^1.2.4"
@@ -659,6 +664,13 @@ ini@2.0.0:
   version "2.0.0"
   resolved "https://registry.npmjs.org/ini/-/ini-2.0.0.tgz#e5fd556ecdd5726be978fa1001862eacb0a94bc5"
   integrity sha512-7PnF4oN3CvZF23ADhA5wRaYEQpJ8qygSkbtTXWBeXWXmEVRXK+1ITciHWwHhsjv1TmW0MgacIv6hEi5pX5NQdA==
+
+is-ci@3.0.1:
+  version "3.0.1"
+  resolved "https://registry.npmjs.org/is-ci/-/is-ci-3.0.1.tgz"
+  integrity sha512-ZYvCgrefwqoQ6yTyYUbQu64HsITZ3NfKX1lzaEYdkTDcfKzzCI/wthRRYKkdjHKFVgNiXKAKm65Zo1pk2as/QQ==
+  dependencies:
+    ci-info "^3.2.0"
 
 is-fullwidth-code-point@^3.0.0:
   version "3.0.0"

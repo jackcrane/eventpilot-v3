@@ -25,6 +25,9 @@ maybe_install /workspace/app
 maybe_install /workspace/api
 maybe_install /workspace/e2e
 
+log_step "Rebuilding native modules (api)"
+yarn --cwd /workspace/api run rebuild:native
+
 log_step "Building frontend (app)"
 yarn --cwd /workspace/app build
 log_step "Generating Prisma client (api)"
@@ -70,6 +73,9 @@ start_api() {
   export E2E=true
   export DATABASE_URL="postgres://${API_DATABASE_USER}:${API_DATABASE_PASSWORD}@${API_DATABASE_HOST}:${API_DATABASE_PORT}/${API_DATABASE_NAME_VALUE}"
 
+  log_step "Applying Prisma migrations"
+  yarn --cwd /workspace/api prisma migrate deploy
+
   yarn --cwd /workspace/api start:e2e &
   API_PID=$!
 
@@ -80,4 +86,4 @@ start_api() {
 start_api
 
 log_step "Starting Cypress run"
-yarn --cwd /workspace/e2e cypress run --browser chrome "$@"
+yarn --cwd /workspace/e2e cypress --browser chrome "$@"
