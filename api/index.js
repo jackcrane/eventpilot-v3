@@ -1,4 +1,5 @@
 import "./otel/register.js";
+import fs from "fs";
 import express from "express";
 import cors from "cors";
 import path from "path";
@@ -14,7 +15,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 const sentryEnabled =
-  process.env.NODE_ENV !== "test" && Boolean(process.env.SENTRY_DSN);
+  process.env.NODE_ENV !== "test" &&
+  Boolean(process.env.SENTRY_DSN) &&
+  process.env.NODE_ENV !== "e2e";
 
 if (sentryEnabled) {
   Sentry.init({
@@ -74,13 +77,31 @@ app.use(
 );
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-await registerRoutes(app, path.join(process.cwd(), "routes"));
+await registerRoutes(app, path.join(__dirname, "routes"));
 
-app.use(express.static("../app/dist"));
+const appDistPath = path.resolve(__dirname, "../app/dist");
+
+if (!fs.existsSync(appDistPath)) {
+  console.warn(
+    `[static] app/dist not found at ${appDistPath}. Ensure the frontend build has been generated.`,
+  );
+} else {
+  console.log(`[static] Serving frontend from ${appDistPath}`);
+}
+
+app.use(express.static(appDistPath));
 app.use("/static", express.static(path.join(process.cwd(), "static")));
 
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../app/dist", "index.html"));
+  res.sendFile(path.join(appDistPath, "index.html"), (err) => {
+    if (err) {
+      console.error(
+        `[static] Failed to serve index.html from ${appDistPath}`,
+        err
+      );
+      res.status(500).send("Frontend bundle not found. Please run app build.");
+    }
+  });
 });
 
 if (sentryEnabled) {

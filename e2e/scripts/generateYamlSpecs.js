@@ -405,9 +405,46 @@ const generateSpecs = () => {
   );
 };
 
-try {
-  generateSpecs();
-} catch (error) {
-  console.error(`[generateYamlSpecs] ${error.message}`);
-  process.exitCode = 1;
+const args = process.argv.slice(2);
+const watchMode = args.includes("--watch");
+
+const runGeneration = () => {
+  try {
+    generateSpecs();
+  } catch (error) {
+    console.error(`[generateYamlSpecs] ${error.message}`);
+    process.exitCode = 1;
+  }
+};
+
+if (!watchMode) {
+  runGeneration();
+  process.exit(process.exitCode ?? 0);
 }
+
+ensureDirectories();
+runGeneration();
+console.log("[generateYamlSpecs] Watching YAML specs for changes...");
+
+let debounceTimer = null;
+const scheduleRegeneration = () => {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    runGeneration();
+  }, 100);
+};
+
+fs.watch(SPECS_DIR, { persistent: true }, (_eventType, filename) => {
+  if (!filename) {
+    scheduleRegeneration();
+    return;
+  }
+
+  const extension = path.extname(filename).toLowerCase();
+  if (SUPPORTED_EXTENSIONS.has(extension)) {
+    scheduleRegeneration();
+  }
+});

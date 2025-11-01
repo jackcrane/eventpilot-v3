@@ -29,6 +29,7 @@ services:
       POSTGRES_DB: postgres
       CYPRESS_BASE_URL: http://127.0.0.1:3000
       API_PORT: 3000
+      WATCH_MODE: ${WATCH_MODE:-0}
     depends_on:
       postgres:
         condition: service_healthy

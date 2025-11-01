@@ -7,5 +7,6 @@ steps:
       height: 720
   - open: /
   - assertVisible:
-      selector: "body"
+      text: "Simplifying event management for every organizer"
+      exact: false
   - log: "Reached the home page"
