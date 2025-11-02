@@ -100,7 +100,7 @@ steps:
       includes: thank-you
 ```
 
-Supported actions include `open`, `tapOn`, `typeText`, `assertVisible`, `assertContains`, `assertText`, `waitFor`, `expectUrl`, `scrollIntoView`, `setViewport`, `log`, and `pause`. Any generator errors fail fast with a message so you can adjust the flow before Cypress starts.
+Supported actions include `open`, `tapOn`, `typeText`, `assertVisible`, `assertContains`, `assertText`, `waitFor`, `expectUrl`, `scrollIntoView`, `setViewport`, `saveSnapshot`, `log`, and `pause`. Any generator errors fail fast with a message so you can adjust the flow before Cypress starts.
 
 ### Creating New Specs
 

@@ -6,6 +6,8 @@ steps:
       width: 1280
       height: 720
   - open: /
+  - saveSnapshot: home-page
+  - waitFor: 1000
   - assertVisible:
       text: "Simplifying event management for every organizer"
       exact: false

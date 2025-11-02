@@ -28,6 +28,7 @@ Most step handlers accept a target element described via:
 | `expectUrl` | Accepts a string (URL includes) or `{ equals | includes }` to validate location. |
 | `scrollIntoView` | Scrolls the target into the viewport. |
 | `waitFor` | Pauses explicitly. Use `number`, `{ ms }`, or `{ seconds }`. Favor assertions over manual waits when possible. |
+| `saveSnapshot` | Writes the current DOM plus computed styles to `artifacts/snapshots/<name>.html`. Accepts a string or `{ name }`. |
 | `log` | Writes to the Cypress log. Accepts a string or `{ message }`. |
 | `pause` | Triggers `cy.pause()` for interactive debugging (ignored in CI). |
 

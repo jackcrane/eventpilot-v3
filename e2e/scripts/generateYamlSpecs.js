@@ -245,6 +245,30 @@ const generateLog = (params) => {
 
 const generatePause = () => "cy.pause();";
 
+const generateSaveSnapshot = (params) => {
+  let name = "page";
+
+  if (typeof params === "string") {
+    name = params;
+  } else if (params && typeof params === "object") {
+    if ("name" in params) {
+      if (typeof params.name === "string" && params.name.trim().length > 0) {
+        name = params.name.trim();
+      } else {
+        throw new Error(
+          "The `saveSnapshot` step requires a non-empty string `name` value",
+        );
+      }
+    }
+  } else if (params !== undefined) {
+    throw new Error(
+      "The `saveSnapshot` step accepts a string or object with a `name` field",
+    );
+  }
+
+  return `cy.savePageSnapshot(${stringify(name)});`;
+};
+
 const STEP_GENERATORS = {
   open: generateOpen,
   tapOn: generateTapOn,
@@ -258,6 +282,7 @@ const STEP_GENERATORS = {
   setViewport: generateSetViewport,
   log: generateLog,
   pause: generatePause,
+  saveSnapshot: generateSaveSnapshot,
 };
 
 const normalizeStep = (rawStep, index, fileName) => {
