@@ -107,6 +107,9 @@ start_api() {
   export E2E=true
   export DATABASE_URL="postgres://${API_DATABASE_USER}:${API_DATABASE_PASSWORD}@${API_DATABASE_HOST}:${API_DATABASE_PORT}/${API_DATABASE_NAME_VALUE}"
 
+  log_step "Resetting Prisma database for e2e"
+  yarn --cwd /workspace/api prisma migrate reset --force --skip-seed
+
   log_step "Applying Prisma migrations"
   yarn --cwd /workspace/api prisma migrate deploy
 
