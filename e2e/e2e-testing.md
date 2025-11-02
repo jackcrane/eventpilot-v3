@@ -28,7 +28,7 @@ e2e/
    ```
    The Cypress container will install dependencies, build the frontend, generate Prisma clients, and then execute the specs.
 
-The Cypress runner boots the API inside the same container. Requests from the React app continue to use `http://127.0.0.1:3000`, so no application code changes are required.
+The Cypress runner boots the API inside the same container. Requests from the React app continue to use `http://geteventpilot.local:3000`, so no application code changes are required.
 
 ### Artifacts
 

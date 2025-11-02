@@ -1,7 +1,7 @@
 const path = require("path");
 const { createTestEnvironment } = require("./cypress/support/node/setup");
 
-const baseUrl = process.env.CYPRESS_BASE_URL || "http://127.0.0.1:3000";
+const baseUrl = process.env.CYPRESS_BASE_URL || "http://geteventpilot.local:3000";
 const artifactsRoot = path.join("artifacts");
 
 module.exports = {
