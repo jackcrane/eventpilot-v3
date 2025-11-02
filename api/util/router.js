@@ -91,16 +91,32 @@ async function registerRoutes(app, routesDir) {
         // Supported HTTP methods
         ["get", "post", "put", "patch", "head", "options", "query"].forEach(
           (method) => {
-            if (routeModule[method]) {
-              // If it's an array, use it as middleware chain
-              const handlers = Array.isArray(routeModule[method])
-                ? routeModule[method]
-                : [routeModule[method]];
-              app[method](routePath, ...handlers);
-              // console.log(
-              //   `Registered route ${method.toUpperCase()} ${routePath}`
-              // );
+            if (!routeModule[method]) {
+              return;
             }
+
+            // If it's an array, use it as middleware chain
+            const handlers = Array.isArray(routeModule[method])
+              ? routeModule[method]
+              : [routeModule[method]];
+
+            if (method === "query") {
+              const wrappedHandlers = handlers.map((handler) => {
+                return (req, res, next) => {
+                  if (req.method !== "QUERY") {
+                    return next();
+                  }
+                  return handler(req, res, next);
+                };
+              });
+              app.all(routePath, ...wrappedHandlers);
+              return;
+            }
+
+            app[method](routePath, ...handlers);
+            // console.log(
+            //   `Registered route ${method.toUpperCase()} ${routePath}`
+            // );
           }
         );
 
