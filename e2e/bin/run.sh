@@ -10,6 +10,23 @@ log_step() {
   echo ""
 }
 
+GROUP_OPEN=0
+
+start_group() {
+  if [ "${GROUP_OPEN}" = "1" ]; then
+    end_group
+  fi
+  echo "::group::$1"
+  GROUP_OPEN=1
+}
+
+end_group() {
+  if [ "${GROUP_OPEN}" = "1" ]; then
+    echo "::endgroup::"
+    GROUP_OPEN=0
+  fi
+}
+
 maybe_install() {
   workspace="$1"
   install_state_file="$workspace/node_modules/.install-state"
@@ -46,12 +63,15 @@ maybe_install() {
   fi
 }
 
+start_group "Dependency installation"
 maybe_install /workspace/app
 maybe_install /workspace/api
 maybe_install /workspace/e2e
+end_group
 
 WATCH_MODE="${WATCH_MODE:-0}"
 
+start_group "Build & prepare"
 log_step "Rebuilding native modules (api)"
 yarn --cwd /workspace/api run rebuild:native
 
@@ -59,11 +79,13 @@ log_step "Building frontend (app)"
 yarn --cwd /workspace/app build
 log_step "Generating Prisma client (api)"
 yarn --cwd /workspace/api prisma generate
+end_group
 
 API_PID=""
 GENERATOR_PID=""
 
 cleanup() {
+  end_group
   if [ -n "${API_PID}" ]; then
     if kill -0 "${API_PID}" >/dev/null 2>&1; then
       kill "${API_PID}" >/dev/null 2>&1 || true
@@ -120,16 +142,22 @@ start_api() {
   wait_for_api
 }
 
+start_group "API startup"
 start_api
+end_group
 
 if [ "${WATCH_MODE}" = "1" ]; then
+  start_group "Cypress watch"
   log_step "Starting YAML spec watcher"
   yarn --cwd /workspace/e2e node scripts/generateYamlSpecs.js --watch &
   GENERATOR_PID=$!
 
   log_step "Starting Cypress watch runner"
   yarn --cwd /workspace/e2e node scripts/watchAndRunCypress.js "$@"
+  end_group
 else
+  start_group "Cypress run"
   log_step "Starting Cypress run"
   yarn --cwd /workspace/e2e cypress --browser chrome "$@"
+  end_group
 fi

@@ -91,7 +91,6 @@ jobs:
           TEST_OUTCOME: ${{ steps.run-e2e.outcome }}
         with:
           script: |
-            const core = require('@actions/core');
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const runId = context.runId;
