@@ -42,6 +42,7 @@ services:
       - app-node-modules:/workspace/app/node_modules
       - e2e-node-modules:/workspace/e2e/node_modules
     entrypoint: ["/bin/sh", "/workspace/e2e/bin/run.sh"]
+    shm_size: "2g"
 
 volumes:
   pg-data:

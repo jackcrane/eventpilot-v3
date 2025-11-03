@@ -29,6 +29,7 @@ Most step handlers accept a target element described via:
 | `scrollIntoView` | Scrolls the target into the viewport. |
 | `waitFor` | Pauses explicitly. Use `number`, `{ ms }`, or `{ seconds }`. Favor assertions over manual waits when possible. |
 | `saveSnapshot` | Writes the current DOM plus computed styles to `artifacts/snapshots/<name>.html`. Accepts a string or `{ name }`. |
+| `takeScreenshot` | Captures a Cypress screenshot. Use `takeScreenshot:` (no payload) for defaults, a string name, or `{ name, options }` to forward to `cy.screenshot`. Each spec also captures an automatic final screenshot after the last step. |
 | `log` | Writes to the Cypress log. Accepts a string or `{ message }`. |
 | `pause` | Triggers `cy.pause()` for interactive debugging (ignored in CI). |
 

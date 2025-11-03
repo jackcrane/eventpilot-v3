@@ -269,6 +269,55 @@ const generateSaveSnapshot = (params) => {
   return `cy.savePageSnapshot(${stringify(name)});`;
 };
 
+const generateTakeScreenshot = (params) => {
+  if (params === undefined || params === null) {
+    return "cy.screenshot();";
+  }
+
+  if (typeof params === "string") {
+    const trimmed = params.trim();
+    if (!trimmed) {
+      throw new Error(
+        "The `takeScreenshot` step requires a non-empty string when provided",
+      );
+    }
+    return `cy.screenshot(${stringify(trimmed)});`;
+  }
+
+  if (params && typeof params === "object") {
+    const { name, options } = params;
+    let call = "cy.screenshot(";
+    const parts = [];
+
+    if (name !== undefined) {
+      if (typeof name !== "string" || !name.trim()) {
+        throw new Error(
+          "The `takeScreenshot` step expects `name` to be a non-empty string",
+        );
+      }
+      parts.push(stringify(name.trim()));
+    } else if (options !== undefined) {
+      parts.push("undefined");
+    }
+
+    if (options !== undefined) {
+      if (typeof options !== "object" || options === null || Array.isArray(options)) {
+        throw new Error(
+          "The `takeScreenshot` step expects `options` to be an object when provided",
+        );
+      }
+      parts.push(stringify(options));
+    }
+
+    call += parts.join(", ");
+    return `${call});`;
+  }
+
+  throw new Error(
+    "The `takeScreenshot` step accepts no value, a string name, or an object with `name` and optional `options`",
+  );
+};
+
 const STEP_GENERATORS = {
   open: generateOpen,
   tapOn: generateTapOn,
@@ -283,6 +332,7 @@ const STEP_GENERATORS = {
   log: generateLog,
   pause: generatePause,
   saveSnapshot: generateSaveSnapshot,
+  takeScreenshot: generateTakeScreenshot,
 };
 
 const normalizeStep = (rawStep, index, fileName) => {
@@ -374,6 +424,8 @@ const generateTestContents = (spec, sourceName) => {
   const statements = spec.steps.map((step, index) =>
     normalizeStep(step, index, sourceName),
   );
+  const sanitizedScreenshotName = `${spec.name.replace(/\s+/g, "-")}-final`;
+  statements.push(`cy.screenshot(${stringify(sanitizedScreenshotName)});`);
 
   const testBody = statements.map((statement) => indent(statement)).join("\n");
 
