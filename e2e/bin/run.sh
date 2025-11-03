@@ -2,7 +2,7 @@
 set -eu
 
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-export YARN_LOG_LEVEL=verbose
+export YARN_LOG_LEVEL=info
 
 log_step() {
   echo ""
@@ -49,10 +49,10 @@ maybe_install() {
 
   if [ -f "$workspace/yarn.lock" ]; then
     log_step "Installing dependencies in $workspace"
-    yarn install --cwd "$workspace" --frozen-lockfile --verbose
+    yarn install --cwd "$workspace" --frozen-lockfile
   else
     log_step "Installing dependencies in $workspace (no lockfile detected)"
-    yarn install --cwd "$workspace" --verbose
+    yarn install --cwd "$workspace"
   fi
 
   if [ -n "$lockfile_checksum" ]; then
