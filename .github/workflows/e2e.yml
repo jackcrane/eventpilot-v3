@@ -62,7 +62,7 @@ jobs:
           mkdir -p e2e/cypress/screenshots
           mkdir -p e2e/cypress/videos
 
-      - name: Run E2E test suite
+      - name: 🏎️ Run E2E test suite
         id: run-e2e
         run: ./run-e2e.sh
         continue-on-error: true
