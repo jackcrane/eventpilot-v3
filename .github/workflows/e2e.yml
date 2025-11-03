@@ -13,9 +13,46 @@ jobs:
     env:
       DOCKER_BUILDKIT: 1
       COMPOSE_DOCKER_CLI_BUILD: 1
+      POSTMARK_API_TOKEN: ${{ secrets.POSTMARK_API_TOKEN }}
+      JWT_SECRET: e2e
+      AWS_ACCESS_KEY_ID: DO80176TUYT8GPJMLJLG
+      AWS_SECRET_ACCESS_KEY: hbimc104MTHD4he5bOaooFpez+vP+qvts3/NH5O7saA
+      AWS_REGION: nyc3
+      AWS_BUCKET: jack-general
+      AWS_ENDPOINT: http://host.docker.internal:9000
+      PROJECT_NAME: eventpilot-v3
+      OTEL_ENABLED: "false"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio \
+            -p 9000:9000 \
+            -p 9001:9001 \
+            -e MINIO_ROOT_USER="${AWS_ACCESS_KEY_ID}" \
+            -e MINIO_ROOT_PASSWORD="${AWS_SECRET_ACCESS_KEY}" \
+            minio/minio:RELEASE.2024-03-21T23-13-43Z \
+            server /data --console-address ":9001"
+
+      - name: Wait for MinIO readiness
+        run: |
+          for i in {1..30}; do
+            if curl -sSf http://127.0.0.1:9000/minio/health/ready >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MinIO failed to become ready" >&2
+          exit 1
+
+      - name: Create MinIO bucket
+        run: |
+          docker run --rm --network host \
+            -e MC_HOST_minio="http://${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}@127.0.0.1:9000" \
+            minio/mc:RELEASE.2024-03-30T09-41-56Z \
+            mb --ignore-existing minio/${AWS_BUCKET}
 
       - name: Prepare artifact directories
         run: |
@@ -31,6 +68,10 @@ jobs:
       - name: Teardown docker services
         if: always()
         run: docker compose -f e2e/docker-compose.yml down -v
+
+      - name: Stop MinIO
+        if: always()
+        run: docker rm -f minio
 
       - name: Upload E2E artifacts
         if: always()
