@@ -51,7 +51,7 @@ jobs:
         run: |
           docker run --rm --network host \
             -e MC_HOST_minio="http://${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}@127.0.0.1:9000" \
-            minio/mc:RELEASE.2024-03-30T09-41-56Z \
+            minio/mc:latest \
             mb --ignore-existing minio/${AWS_BUCKET}
 
       - name: Prepare artifact directories
