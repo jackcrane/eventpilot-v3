@@ -108,7 +108,7 @@ Supported actions include `open`, `tapOn`, `typeText`, `assertVisible`, `assertC
 
 ### Creating New Specs
 
-1. Add `e2e/specs/<name>.yaml` (or `.yml`) with top-level `name`, `description` (optional), `seedFile`, and `steps`.
+1. Add `e2e/specs/<name>.yaml` (or `.yml`) with top-level `name`, optional `description`, optional `skip`, `seedFile`, and `steps`. Use `skip: true` to temporarily exclude a flow from generation without deleting it.
 2. Point `seedFile` to the SQL dump you want restored for the run. Paths can be relative to `e2e/` (e.g. `cypress/fixtures/db/onboarding.sql`) or absolute.
 3. Produce the database snapshot using the dumper utility if it does not already exist.
 4. Run the suite via Docker—generated specs appear automatically and load the referenced seed.

@@ -518,7 +518,18 @@ const loadSpec = (filePath) => {
     );
   }
 
+  let skipValue = false;
+  if (spec.skip !== undefined) {
+    if (typeof spec.skip !== "boolean") {
+      throw new Error(
+        `${filePath} has an invalid skip value. Expected a boolean when provided.`,
+      );
+    }
+    skipValue = spec.skip;
+  }
+
   return {
+    skip: skipValue,
     seedFilePath,
     seedFileRelative: path
       .relative(ROOT, seedFilePath)
@@ -570,6 +581,12 @@ const generateSpecs = () => {
 
   for (const filePath of specFiles) {
     const spec = loadSpec(filePath);
+    if (spec.skip) {
+      console.log(
+        `[generateYamlSpecs] Skipping ${path.basename(filePath)} (skip: true)`,
+      );
+      continue;
+    }
     const outputName = `${path.basename(
       filePath,
       path.extname(filePath),
