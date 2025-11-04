@@ -13,6 +13,21 @@ const { PrismaInstrumentation } = prismaInstrumentationModule;
 
 const otelDebug = process.env.OTEL_DEBUG === "true";
 
+let runOtelShutdown = null;
+let otelShutdownPromise = null;
+
+export const shutdownOtel = () => {
+  if (!runOtelShutdown) {
+    return Promise.resolve();
+  }
+
+  if (!otelShutdownPromise) {
+    otelShutdownPromise = runOtelShutdown();
+  }
+
+  return otelShutdownPromise;
+};
+
 if (otelDebug) {
   diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 }
@@ -86,7 +101,7 @@ if (!otelEnabled) {
     console.error("[otel] failed to start SDK", error);
   }
 
-  const shutdown = async () => {
+  runOtelShutdown = async () => {
     try {
       await sdk.shutdown();
       if (otelDebug) {
@@ -97,6 +112,6 @@ if (!otelEnabled) {
     }
   };
 
-  process.once("SIGTERM", shutdown);
-  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdownOtel);
+  process.once("SIGINT", shutdownOtel);
 }

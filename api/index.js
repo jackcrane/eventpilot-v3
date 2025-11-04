@@ -1,4 +1,4 @@
-import "./otel/register.js";
+import { shutdownOtel } from "./otel/register.js";
 import express from "express";
 import cors from "cors";
 import path from "path";
@@ -105,6 +105,54 @@ let server;
 if (process.env.NODE_ENV !== "test" || process.env.E2E) {
   server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+  });
+
+  const shutdownServer = () =>
+    new Promise((resolve, reject) => {
+      if (!server) {
+        resolve();
+        return;
+      }
+
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      });
+    });
+
+  let isShuttingDown = false;
+  const handleSignal = async (signal) => {
+    if (isShuttingDown) {
+      return;
+    }
+    isShuttingDown = true;
+
+    console.log(`Received ${signal}; shutting down server gracefully.`);
+
+    try {
+      await shutdownOtel();
+    } catch (error) {
+      console.error("[shutdown] Failed to stop OpenTelemetry", error);
+    }
+
+    try {
+      await shutdownServer();
+      console.log("HTTP server closed.");
+      process.exit(0);
+    } catch (error) {
+      console.error("[shutdown] Failed to close HTTP server", error);
+      process.exit(1);
+    }
+  };
+
+  ["SIGINT", "SIGTERM"].forEach((signal) => {
+    process.on(signal, () => {
+      void handleSignal(signal);
+    });
   });
 }
 
