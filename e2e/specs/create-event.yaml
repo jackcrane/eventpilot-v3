@@ -1,0 +1,72 @@
+name: Login
+seedFile: cypress/fixtures/db/login.sql
+steps:
+  - setViewport:
+      width: 1280
+      height: 720
+  - open: /
+  - waitFor: 1000
+  - authenticateUser:
+      email: test@eventpilot-test.com
+      password: Password
+  - open: /events
+  - waitFor: 1000
+  # Create event
+  - tapOn:
+      selector: "[data-cy-id='create-event']"
+      exact: false
+  - typeText:
+      text: "Test Event"
+      selector: "[placeholder='Event Name']"
+  - typeText:
+      text: "Test Description"
+      selector: "[placeholder='Event Description']"
+  - typeText:
+      text: "test-event"
+      selector: "[placeholder='Enter slug']"
+  - tapOn:
+      text: "Select a default timezone"
+      exact: false
+  - typeText:
+      text: "eastern"
+      selector: "[placeholder='Search...']"
+  - tapOn:
+      text: "Eastern Time (US & Canada)"
+      exact: false
+  - tapOn:
+      text: "Next"
+      exact: false
+  - assertVisible:
+      text: "instance"
+      exact: false
+  - typeText:
+      text: "Test Instance"
+      placeholder: "Instance Name"
+  - typeText:
+      selector: "[data-cy-id='Start Date-date']"
+      text: "2028-10-10"
+  - typeText:
+      selector: "[data-cy-id='Start Date-time']"
+      text: "06:00"
+  - typeText:
+      selector: "[data-cy-id='End Date-date']"
+      text: "2028-10-11"
+  - typeText:
+      selector: "[data-cy-id='End Date-time']"
+      text: "12:00"
+  - tapOn:
+      text: "Next"
+      exact: false
+  - assertVisible:
+      text: "Add contact information for your event. You can change this at any time in the future."
+      exact: false
+  - tapOn:
+      text: "Use the email you use to log in"
+      exact: false
+  - tapOn:
+      text: "Connect an existing Google account"
+      exact: false
+  - tapOn:
+      text: "Next"
+  - assertVisible:
+      text: "Event Assets"

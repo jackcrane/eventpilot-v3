@@ -109,6 +109,7 @@ export const TzDateTime = ({
           noMargin
           style={{ flex: 1 }}
           invalid={!dateTimeValid}
+          data-cy-id={`${label}-date`}
         />
         <Input
           type="time"
@@ -118,6 +119,7 @@ export const TzDateTime = ({
           prependedText="Time"
           noMargin
           invalid={!dateTimeValid}
+          data-cy-id={`${label}-time`}
         />
         <DropdownInput
           prompt="Select a tz"

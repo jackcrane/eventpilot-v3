@@ -5,6 +5,7 @@
     "precypress": "node scripts/generateYamlSpecs.js",
     "precypress:open": "node scripts/generateYamlSpecs.js",
     "preverify": "node scripts/generateYamlSpecs.js",
+    "regenerate": "node scripts/generateYamlSpecs.js",
     "cypress": "cypress run",
     "cypress:open": "cypress open",
     "verify": "cypress verify"

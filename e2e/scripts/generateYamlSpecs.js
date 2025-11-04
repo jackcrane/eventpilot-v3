@@ -73,6 +73,15 @@ const toLocator = (params, { allowText = true } = {}) => {
     return `cy.get(${stringify(params.selector)})`;
   }
 
+  if (Object.prototype.hasOwnProperty.call(params, "placeholder")) {
+    if (typeof params.placeholder !== "string") {
+      throw new Error(
+        "The `placeholder` field must be a string when provided in a locator",
+      );
+    }
+    return `cy.get(${stringify(`[placeholder*="${params.placeholder}"]`)})`;
+  }
+
   if (allowText && params.text) {
     const options = params.exact === false ? "" : ", { matchCase: false }";
     return `cy.contains(${stringify(params.text)}${options})`;
@@ -108,9 +117,18 @@ const generateTypeText = (params) => {
     throw new Error("The `typeText` step requires an object definition");
   }
 
-  if (!params.selector && !params.dataCy) {
+  const hasPlaceholder =
+    params && Object.prototype.hasOwnProperty.call(params, "placeholder");
+
+  if (hasPlaceholder && typeof params.placeholder !== "string") {
     throw new Error(
-      "The `typeText` step requires a selector, dataCy, or text target",
+      "The `placeholder` field must be a string when provided in `typeText`",
+    );
+  }
+
+  if (!params.selector && !params.dataCy && !hasPlaceholder) {
+    throw new Error(
+      "The `typeText` step requires a selector, dataCy, placeholder, or text target",
     );
   }
 
@@ -318,6 +336,49 @@ const generateTakeScreenshot = (params) => {
   );
 };
 
+const generateAuthenticateUser = (params) => {
+  let email = null;
+  let password = "Password";
+
+  if (typeof params === "string") {
+    email = params;
+  } else if (params && typeof params === "object") {
+    if (typeof params.email === "string") {
+      email = params.email;
+    }
+    if (typeof params.password === "string" && params.password.trim() !== "") {
+      password = params.password;
+    }
+  }
+
+  if (!email || typeof email !== "string" || !email.trim()) {
+    throw new Error(
+      "The `authenticateUser` step requires an email string (accepts either `authenticateUser: email` or `authenticateUser: { email }`).",
+    );
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const requestStatement = [
+    "cy.request({",
+    "  method: 'POST',",
+    "  url: '/api/auth/login',",
+    `  body: { email: ${stringify(normalizedEmail)}, password: ${stringify(password)} },`,
+    "  headers: { 'Content-Type': 'application/json' },",
+    "}).then((response) => {",
+    "  const token = response?.body?.token;",
+    "  if (!token || typeof token !== 'string') {",
+    "    throw new Error('authenticateUser: expected login response to include a token');",
+    "  }",
+    "  return cy.window().then((win) => {",
+    "    win.localStorage.setItem('token', token);",
+    "  });",
+    "});",
+  ];
+
+  return requestStatement.join("\n");
+};
+
 const STEP_GENERATORS = {
   open: generateOpen,
   tapOn: generateTapOn,
@@ -333,6 +394,7 @@ const STEP_GENERATORS = {
   pause: generatePause,
   saveSnapshot: generateSaveSnapshot,
   takeScreenshot: generateTakeScreenshot,
+  authenticateUser: generateAuthenticateUser,
 };
 
 const normalizeStep = (rawStep, index, fileName) => {
