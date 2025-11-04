@@ -2,14 +2,14 @@
 // Dump DATA ONLY for all NON-EMPTY user tables (excluding Prisma migrations) to one SQL file,
 // using column lists in every INSERT so schema changes don't break restores.
 // Usage:
-//   node e2e/scripts/dump-db.mjs --url postgresql://user@host:5432/db --out e2e/cypress/fixtures/db/create-db.sql
+//   node e2e/scripts/dump-db.js --url postgresql://user@host:5432/db --out e2e/cypress/fixtures/db/create-db.sql
 
-import { spawn } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
+const { spawn } = require("node:child_process");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // ---------- proc utils ----------
-export const execChild = (cmd, args, opts = {}) =>
+const execChild = (cmd, args, opts = {}) =>
   new Promise((resolve, reject) => {
     const child = spawn(cmd, args, opts);
     let stdout = "";
@@ -24,7 +24,7 @@ export const execChild = (cmd, args, opts = {}) =>
   });
 
 // ---------- args ----------
-export const parseArgs = () => {
+const parseArgs = () => {
   const out = { url: undefined, out: undefined };
   const argv = process.argv.slice(2);
   for (let i = 0; i < argv.length; i += 1) {
@@ -44,7 +44,7 @@ export const parseArgs = () => {
   return out;
 };
 
-export const ensureArgs = ({ url, out }) => {
+const ensureArgs = ({ url, out }) => {
   if (!url) {
     console.error("Missing --url (Postgres connection string).");
     process.exit(1);
@@ -62,7 +62,7 @@ export const ensureArgs = ({ url, out }) => {
 const qi = (s) => `"${String(s).replace(/"/g, '""')}"`;
 
 // ---------- discovery ----------
-export const listUserTables = async (url) => {
+const listUserTables = async (url) => {
   // Avoid system schemas; exclude Prisma migrations explicitly.
   const sql = `
     SELECT table_schema, table_name
@@ -95,7 +95,7 @@ export const listUserTables = async (url) => {
     });
 };
 
-export const tableHasRows = async (url, schema, name) => {
+const tableHasRows = async (url, schema, name) => {
   const sql = `SELECT EXISTS (SELECT 1 FROM ${qi(schema)}.${qi(
     name
   )} LIMIT 1);`;
@@ -113,7 +113,7 @@ export const tableHasRows = async (url, schema, name) => {
   return v === "t" || v === "true" || v === "1";
 };
 
-export const getNonEmptyTables = async (url) => {
+const getNonEmptyTables = async (url) => {
   const all = await listUserTables(url);
   const out = [];
   // modest concurrency
@@ -138,7 +138,7 @@ export const getNonEmptyTables = async (url) => {
 };
 
 // ---------- dump ----------
-export const writeNote = (outPath, reason) => {
+const writeNote = (outPath, reason) => {
   const note = [
     "--",
     "-- No non-empty user tables found to dump data for.",
@@ -150,7 +150,7 @@ export const writeNote = (outPath, reason) => {
   fs.writeFileSync(outPath, note, "utf8");
 };
 
-export const dumpData = async (url, tables, outPath) => {
+const dumpData = async (url, tables, outPath) => {
   // Use -t <pattern> (short form) and pass EXACT quoted identifiers: "schema"."table"
   const tableArgs = tables.flatMap(({ schema, name }) => [
     "-t",
@@ -174,7 +174,7 @@ export const dumpData = async (url, tables, outPath) => {
 };
 
 // ---------- main ----------
-export const dumpDatabase = async ({ url, outPath }) => {
+const dumpDatabase = async ({ url, outPath }) => {
   console.log(
     "▶️  Scanning for non-empty tables (excluding public._prisma_migrations) …"
   );
@@ -204,9 +204,21 @@ const run = async () => {
 };
 
 // Detect direct CLI execution in ESM
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (require.main === module) {
   run().catch((err) => {
     console.error("Failed:", err.message);
     process.exit(1);
   });
 }
+
+module.exports = {
+  execChild,
+  parseArgs,
+  ensureArgs,
+  listUserTables,
+  tableHasRows,
+  getNonEmptyTables,
+  writeNote,
+  dumpData,
+  dumpDatabase,
+};
