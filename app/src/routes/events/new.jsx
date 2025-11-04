@@ -16,7 +16,7 @@ import {
   TzDateTime,
   TzPicker,
 } from "../../../components/tzDateTime/tzDateTime";
-import React, { useEffect } from "react";
+import React from "react";
 import ReactConfetti from "react-confetti";
 import { isEmail } from "../../../util/isEmail";
 import { Row } from "../../../util/Flex";
@@ -374,8 +374,6 @@ const EventAssets = ({ event = {}, onChangeEvent }) => {
         value={event.logo}
         hint="A logo for your event. This is required, and should be a square image at least 200px by 200px."
         accept="image/*"
-        data-cy-id="logo"
-        alertCyId={"logo-alert"}
       />
       <Dropzone
         label="Banner image"
@@ -391,8 +389,6 @@ const EventAssets = ({ event = {}, onChangeEvent }) => {
         }
         hint="A banner image for your event. This is required, and should be a rectangular image. It will be shown across the top of your webpages."
         accept="image/*"
-        data-cy-id="banner"
-        alertCyId={"banner-alert"}
       />
 
       <label class="form-label required">IP & Usage Rights</label>
@@ -433,9 +429,7 @@ const EventBillingDuringCreation = ({
       <Util.Hr />
       {event.billingPaymentMethodId ? (
         <Alert variant="success" title="Payment method added">
-          {stripeMock
-            ? "A mock payment method has been added automatically."
-            : "A payment method has been added. You can proceed to the next step."}
+          A payment method has been added. You can proceed to the next step.
         </Alert>
       ) : null}
       {!event.id && (
@@ -450,9 +444,7 @@ const EventBillingDuringCreation = ({
       )}
       {loading && event.id ? (
         <Typography.Text>Loading…</Typography.Text>
-      ) : !stripeMock &&
-        intent?.client_secret &&
-        customer_session?.client_secret ? (
+      ) : intent?.client_secret && customer_session?.client_secret ? (
         <Elements
           stripe={stripePromise}
           options={{

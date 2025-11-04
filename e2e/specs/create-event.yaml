@@ -1,6 +1,5 @@
 name: Login
 seedFile: cypress/fixtures/db/login.sql
-skip: true
 steps:
   - setViewport:
       width: 1280
@@ -90,23 +89,4 @@ steps:
       exact: false
   - assertVisible:
       text: "Billing"
-  - assertVisible:
-      text: "Stripe mocked for tests"
-  - assertVisible:
-      text: "mock payment method has been added automatically"
-      exact: false
-  - tapOn:
-      text: "Next"
-      exact: false
-  - assertVisible:
-      text: "Social Media"
-  - tapOn:
-      text: "Next"
-      exact: false
-  - assertVisible:
-      text: "Submitting your event"
-  - tapOn:
-      text: "Create Event"
-  - waitFor: 4000
-  - assertVisible:
-      text: "Remaining Steps"
+  - takeScreenshot:
