@@ -489,6 +489,8 @@ model Event {
   configuration Configuration?
   Session       Session[]
   TodoItem      TodoItem[]
+
+  finalized Boolean @default(false)
 }
 
 model GmailConnection {

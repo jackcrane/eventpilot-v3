@@ -56,6 +56,7 @@ export const eventSchema = z.object({
     })
     .nullable()
     .optional(),
+  finalized: z.boolean().optional(),
 });
 
 export const get = [

@@ -72,16 +72,24 @@ export const post = [
         return res.status(400).json({ message: "Instance is required" });
       }
 
-      const { defaultPaymentMethodId, stripe_customerId, ...eventData } =
-        result.data || {};
+      const {
+        defaultPaymentMethodId,
+        stripe_customerId,
+        finalized: finalizedInput,
+        instance,
+        ...eventData
+      } = result.data || {};
+
+      const shouldFinalize = finalizedInput !== false;
+      const finalized = finalizedInput === false ? false : true;
 
       event = await prisma.event.create({
         data: {
           ...eventData,
+          finalized,
           externalContactEmail: result.data.externalContactEmail
             ? result.data.externalContactEmail
             : req.user.email,
-          instance: undefined,
           userId: req.user.id,
           logs: {
             create: {
@@ -91,20 +99,30 @@ export const post = [
               data: result.data,
             },
           },
-          instances: {
-            create: {
-              name: result.data.instance?.name,
-              startTime: result.data.instance?.startTime,
-              endTime: result.data.instance?.endTime,
-              startTimeTz: result.data.instance?.startTimeTz,
-              endTimeTz: result.data.instance?.endTimeTz,
-            },
-          },
+          ...(instance
+            ? {
+                instances: {
+                  create: {
+                    name: instance?.name,
+                    startTime: instance?.startTime,
+                    endTime: instance?.endTime,
+                    startTimeTz: instance?.startTimeTz,
+                    endTimeTz: instance?.endTimeTz,
+                  },
+                },
+              }
+            : {}),
           configuration: {
             create: {},
           },
         },
       });
+
+      if (!shouldFinalize) {
+        return res.json({
+          event,
+        });
+      }
 
       // Ensure an event-scoped Stripe customer exists (reuse provided customer if any)
       let customerId = stripe_customerId;
