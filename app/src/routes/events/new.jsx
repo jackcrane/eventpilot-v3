@@ -8,7 +8,7 @@ import {
   useOffcanvas,
 } from "tabler-react-2";
 import { Page } from "../../../components/page/Page";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SlugInput } from "../../../components/slugInput/SlugInput";
 import { Dropzone } from "../../../components/dropzone/Dropzone";
 import { Icon } from "../../../util/Icon";
@@ -23,17 +23,20 @@ import { Row } from "../../../util/Flex";
 import { EventChecklist } from "../../../components/EventChecklist/EventChecklist";
 import { useAuth } from "../../../hooks";
 import SetupForm from "../../../components/stripe/Stripe";
-import { useProspectStripeSetupIntent } from "../../../hooks/useProspectStripeSetupIntent";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 // Hosted email comparison is deprecated in favor of Google options
 // import { HostedEmailComparisonPopoverContent } from "../../../components/HostedEmailComparison/HostedEmailComparison";
 import { useEvents } from "../../../hooks/useEvents";
+import { useEventStripeSetupIntent } from "../../../hooks/useEventStripeSetupIntent";
+import { useEventBuilder } from "../../../hooks/useEventBuilder";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 // Gmail connection is now initiated from the event dashboard, not here
 
 export const NewEventPage = () => {
   const [event, setEvent] = useState({
+    id: null,
     name: null,
     description: null,
     slug: null,
@@ -55,13 +58,16 @@ export const NewEventPage = () => {
       startTimeTz: null,
       endTimeTz: null,
     },
-    // Billing collected during wizard (Stripe prospect)
-    prospectCustomerId: null,
-    prospectPaymentMethodId: null,
+    // Billing collected during wizard
+    billingPaymentMethodId: null,
   });
   window.setEvent = setEvent;
   const [stage, setStage] = useState(0);
-  const { schema, mutationLoading, createEvent } = useEvents();
+  const { schema } = useEvents();
+  const { createDraft, finalize, mutationLoading } = useEventBuilder({
+    eventId: event.id,
+  });
+  const navigate = useNavigate();
   const [err, setErr] = useState(null);
   // No pre-creation anymore; billing happens before create
 
@@ -69,24 +75,55 @@ export const NewEventPage = () => {
     setEvent({ ...event, ...e });
   };
 
-  // Removed immediate Google OAuth redirect after event creation
+  const buildPayload = useCallback(
+    ({ includePayment } = {}) => {
+      if (!schema) {
+        throw new Error("Schema not loaded");
+      }
+      return schema.parse({
+        ...event,
+        defaultPaymentMethodId: includePayment
+          ? event.billingPaymentMethodId
+          : undefined,
+        stripe_customerId: undefined,
+      });
+    },
+    [event, schema]
+  );
+
+  const ensureDraft = useCallback(async () => {
+    if (event.id) return event.id;
+    if (!schema) return null;
+    try {
+      const payload = buildPayload({ includePayment: false });
+      const draft = await createDraft(payload);
+      if (draft?.id) {
+        setEvent((prev) => ({ ...prev, id: draft.id }));
+        setErr(null);
+        return draft.id;
+      }
+    } catch (error) {
+      setErr(error);
+    }
+    return null;
+  }, [event.id, schema, buildPayload, createDraft]);
 
   const onSubmit = async () => {
     try {
-      if (!event.prospectPaymentMethodId || !event.prospectCustomerId) {
+      if (!event.billingPaymentMethodId) {
         toast.error("Add a payment method before creating your event.");
         setStage(4);
         return false;
       }
-      const parsed = schema.parse({
-        ...event,
-        // Require PM added during wizard
-        defaultPaymentMethodId: event.prospectPaymentMethodId,
-        stripe_customerId: event.prospectCustomerId || undefined,
-      });
-      // Create the event and navigate to the dashboard on success
-      const res = await createEvent(parsed, true);
-      return Boolean(res);
+      const draftId = await ensureDraft();
+      if (!draftId) return false;
+      const parsed = buildPayload({ includePayment: true });
+      const created = await finalize(parsed);
+      if (created?.id) {
+        navigate(`/events/${created.id}`);
+        return true;
+      }
+      return false;
     } catch (e) {
       setErr(e);
       console.log(e);
@@ -123,6 +160,7 @@ export const NewEventPage = () => {
               <EventBillingDuringCreation
                 event={event}
                 onChangeEvent={onChangeEvent}
+                ensureDraft={ensureDraft}
               />
             )}
             {stage === 5 && (
@@ -366,30 +404,20 @@ const EventAssets = ({ event = {}, onChangeEvent }) => {
   );
 };
 
-const EventBillingDuringCreation = ({ event = {}, onChangeEvent }) => {
-  const {
-    intent,
-    customer_session,
-    customerId,
-    loading,
-    error,
-    refetch,
-    mock: stripeMock,
-  } = useProspectStripeSetupIntent();
-
-  const stripePromise = stripeMock
-    ? null
-    : loadStripe(import.meta.env.VITE_STRIPE_PK);
-
+const EventBillingDuringCreation = ({
+  event = {},
+  onChangeEvent,
+  ensureDraft,
+}) => {
   useEffect(() => {
-    if (!stripeMock) return;
-    if (event.prospectPaymentMethodId && event.prospectCustomerId) return;
-    onChangeEvent({
-      prospectPaymentMethodId:
-        event.prospectPaymentMethodId || "pm_mock_prospect",
-      prospectCustomerId: event.prospectCustomerId || "cus_mock_prospect",
-    });
-  }, [stripeMock, event.prospectPaymentMethodId, event.prospectCustomerId]);
+    if (!event.id && ensureDraft) {
+      void ensureDraft();
+    }
+  }, [event.id, ensureDraft]);
+
+  const { intent, customer_session, loading, error, refetch } =
+    useEventStripeSetupIntent({ eventId: event.id });
+  const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK);
 
   return (
     <>
@@ -403,29 +431,24 @@ const EventBillingDuringCreation = ({ event = {}, onChangeEvent }) => {
         your event. You can cancel at any time.
       </Alert>
       <Util.Hr />
-      {stripeMock && (
-        <Alert
-          data-cy-id="stripe-mock-alert"
-          variant="info"
-          title="Stripe mocked for tests"
-        >
-          Automated tests bypass Stripe checkout. A mock payment method has been
-          attached so you can continue the flow.
-        </Alert>
-      )}
-      {event.prospectPaymentMethodId ? (
+      {event.billingPaymentMethodId ? (
         <Alert variant="success" title="Payment method added">
           {stripeMock
             ? "A mock payment method has been added automatically."
             : "A payment method has been added. You can proceed to the next step."}
         </Alert>
       ) : null}
-      {!stripeMock && error && (
+      {!event.id && (
+        <Alert variant="warning" title="Saving event draft">
+          We’re saving your event before collecting payment details…
+        </Alert>
+      )}
+      {error && (
         <Alert variant="danger" title="Error loading billing">
           {String(error?.message || "Failed to load Stripe setup")}
         </Alert>
       )}
-      {!stripeMock && loading ? (
+      {loading && event.id ? (
         <Typography.Text>Loading…</Typography.Text>
       ) : !stripeMock &&
         intent?.client_secret &&
@@ -439,7 +462,7 @@ const EventBillingDuringCreation = ({ event = {}, onChangeEvent }) => {
         >
           <SetupForm
             buttonText={
-              event.prospectPaymentMethodId
+              event.billingPaymentMethodId
                 ? "Replace card"
                 : "Add payment method"
             }
@@ -448,19 +471,15 @@ const EventBillingDuringCreation = ({ event = {}, onChangeEvent }) => {
                 setupIntent?.payment_method || setupIntent?.paymentMethod?.id;
               if (pmId) {
                 onChangeEvent({
-                  prospectPaymentMethodId: pmId,
-                  prospectCustomerId: customerId,
+                  billingPaymentMethodId: pmId,
                 });
               }
             }}
           />
         </Elements>
+      ) : event.id ? (
+        <Button onClick={() => refetch()}>Retry</Button>
       ) : null}
-      {!stripeMock &&
-        !loading &&
-        !(intent?.client_secret && customer_session?.client_secret) && (
-          <Button onClick={() => refetch()}>Retry</Button>
-        )}
     </>
   );
 };
@@ -739,7 +758,7 @@ const Submit = ({ event = {}, onChangeEvent, onSubmit, err, loading }) => {
       <Typography.Text>
         You are almost done! Click below to create your event.
       </Typography.Text>
-      {!event.prospectPaymentMethodId ? (
+      {!event.billingPaymentMethodId ? (
         <Alert
           variant="warning"
           className="mt-3"

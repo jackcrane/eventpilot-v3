@@ -90,7 +90,7 @@ export const generateSections = (event) => {
       optional: false,
       items: [
         {
-          key: "prospectPaymentMethodId",
+          key: "billingPaymentMethodId",
           label: "Payment Method",
           validate: (val) => !!val,
         },
