@@ -11,3 +11,7 @@ steps:
   - waitFor: 1000
   - tapOn:
       text: "Volunteer"
+      parentSelector: "nav"
+      allowScroll: true
+      exact: true
+  - waitFor: 1000

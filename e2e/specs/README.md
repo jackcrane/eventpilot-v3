@@ -13,6 +13,7 @@ Most step handlers accept a target element described via:
 - `selector`: Any CSS selector string.
 - `dataCy`: Convenience for `[data-cy="value"]`.
 - `text`: Visible text. Uses `cy.contains` and supports `exact: false` for partial matches.
+- `parentSelector`: Optional CSS selector that scopes the lookup. For example, `{ parentSelector: "nav.sidenav", text: "Volunteer" }` clicks the descendant inside the matching nav.
 
 ## Step Reference
 
@@ -20,8 +21,8 @@ Most step handlers accept a target element described via:
 | --- | --- | --- |
 | `open: "/path"` | `cy.visit` a relative URL. You can use `{ path: "/dashboard" }` as an alternative. |
 | `setViewport: { width, height }` | Calls `cy.viewport`. Useful for responsive layouts. |
-| `tapOn` | Locates the element, waits until it is visible, then clicks. |
-| `typeText: { selector/dataCy, text, clear?, submit? }` | Types into an input. Clears first unless `clear: false`. Appends `{enter}` when `submit: true`. |
+| `tapOn` | Locates the element, scrolls into view when `allowScroll: true`, and clicks. Supports `parentSelector` plus optional `xPercent`/`yPercent` (0-100) to offset the click point within the element. |
+| `typeText: { selector/dataCy, text, clear?, submit? }` | Types into an input. Clears first unless `clear: false`. Appends `{enter}` when `submit: true`. Accepts `parentSelector` alongside the locator fields. |
 | `assertVisible` | Waits for the element to be visible. Accepts either an object locator or a string shorthand for exact text matches; use `allowScroll: true` to bring off-screen elements into view first. |
 | `assertContains: { selector/dataCy, text }` | Ensures the element contains the given text fragment. |
 | `assertText: { selector/dataCy, text }` | Matches the element's text exactly. |

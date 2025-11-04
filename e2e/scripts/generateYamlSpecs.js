@@ -92,6 +92,41 @@ const toLocator = (params, { allowText = true } = {}) => {
   );
 };
 
+const toLocatorChain = (params, { allowText = true } = {}) => {
+  if (!params || typeof params !== "object") {
+    throw new Error(
+      "When using `parentSelector`, provide the rest of the locator as an object"
+    );
+  }
+
+  if (params.dataCy) {
+    return `.find(${stringify(`[data-cy="${params.dataCy}"]`)})`;
+  }
+
+  if (params.selector) {
+    return `.find(${stringify(params.selector)})`;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(params, "placeholder")) {
+    if (typeof params.placeholder !== "string") {
+      throw new Error(
+        "The `placeholder` field must be a string when provided in a locator"
+      );
+    }
+
+    return `.find(${stringify(`[placeholder*="${params.placeholder}"]`)})`;
+  }
+
+  if (allowText && params.text) {
+    const options = params.exact === false ? "" : ", { matchCase: false }";
+    return `.contains(${stringify(params.text)}${options})`;
+  }
+
+  throw new Error(
+    "When using `parentSelector`, specify text, selector, dataCy, or placeholder"
+  );
+};
+
 const generateOpen = (params) => {
   const target =
     typeof params === "string"
@@ -109,7 +144,83 @@ const generateOpen = (params) => {
   return `cy.visit(${stringify(target)});`;
 };
 
+const validatePercent = (value, fieldName) => {
+  if (
+    typeof value !== "number" ||
+    Number.isNaN(value) ||
+    value < 0 ||
+    value > 100
+  ) {
+    throw new Error(
+      `The \`${fieldName}\` field must be a number between 0 and 100 when provided in \`tapOn\``
+    );
+  }
+};
+
 const generateTapOn = (params) => {
+  const isObject = params && typeof params === "object";
+
+  if (isObject) {
+    const {
+      parentSelector,
+      allowScroll,
+      xPercent,
+      yPercent,
+      ...locatorParams
+    } = params;
+    let locator;
+
+    if (parentSelector) {
+      if (typeof parentSelector !== "string") {
+        throw new Error(
+          "The `parentSelector` field must be a string when provided in `tapOn`"
+        );
+      }
+
+      locator = `cy.get(${stringify(parentSelector)})${toLocatorChain(locatorParams)}`;
+    } else {
+      locator = toLocator(locatorParams);
+    }
+
+    const lines = [`${locator}`];
+    const hasXPercent = xPercent !== undefined;
+    const hasYPercent = yPercent !== undefined;
+
+    if (hasXPercent) {
+      validatePercent(xPercent, "xPercent");
+    }
+
+    if (hasYPercent) {
+      validatePercent(yPercent, "yPercent");
+    }
+
+    if (allowScroll) {
+      lines.push(`  .scrollIntoView({ block: 'nearest', inline: 'nearest' })`);
+    }
+
+    lines.push(`  .should('be.visible')`);
+
+    if (hasXPercent || hasYPercent) {
+      const resolvedX = hasXPercent ? xPercent : 50;
+      const resolvedY = hasYPercent ? yPercent : 50;
+
+      lines.push(`  .then(($el) => {`);
+      lines.push(`    const element = $el[0];`);
+      lines.push(
+        `    if (!element) { throw new Error('tapOn: expected element for coordinate click'); }`
+      );
+      lines.push(`    const rect = element.getBoundingClientRect();`);
+      lines.push(`    const x = rect.width * ${resolvedX} / 100;`);
+      lines.push(`    const y = rect.height * ${resolvedY} / 100;`);
+      lines.push(`    cy.wrap($el).click(x, y);`);
+      lines.push(`  })`);
+    } else {
+      lines.push(`  .click()`);
+    }
+
+    return `${lines.join("\n")};`;
+  }
+
   const locator = toLocator(params);
   return `${locator}.should('be.visible').click();`;
 };
@@ -119,32 +230,61 @@ const generateTypeText = (params) => {
     throw new Error("The `typeText` step requires an object definition");
   }
 
-  const hasPlaceholder =
-    params && Object.prototype.hasOwnProperty.call(params, "placeholder");
+  const {
+    text: textToType,
+    clear,
+    submit,
+    parentSelector,
+    ...locatorParams
+  } = params;
 
-  if (hasPlaceholder && typeof params.placeholder !== "string") {
+  const hasPlaceholder = Object.prototype.hasOwnProperty.call(
+    locatorParams,
+    "placeholder"
+  );
+
+  if (hasPlaceholder && typeof locatorParams.placeholder !== "string") {
     throw new Error(
       "The `placeholder` field must be a string when provided in `typeText`"
     );
   }
 
-  if (!params.selector && !params.dataCy && !hasPlaceholder) {
+  if (
+    !locatorParams.selector &&
+    !locatorParams.dataCy &&
+    !hasPlaceholder
+  ) {
     throw new Error(
       "The `typeText` step requires a selector, dataCy, placeholder, or text target"
     );
   }
 
-  if (typeof params.text !== "string") {
+  if (typeof textToType !== "string") {
     throw new Error("The `typeText` step requires a string `text` field");
   }
 
-  const locator = toLocator(params, { allowText: false });
+  let locator;
+
+  if (parentSelector) {
+    if (typeof parentSelector !== "string") {
+      throw new Error(
+        "The `parentSelector` field must be a string when provided in `typeText`"
+      );
+    }
+
+    locator = `cy.get(${stringify(parentSelector)})${toLocatorChain(locatorParams, {
+      allowText: false,
+    })}`;
+  } else {
+    locator = toLocator(locatorParams, { allowText: false });
+  }
+
   const lines = [`${locator}`];
-  if (params.clear !== false) {
+  if (clear !== false) {
     lines.push(`  .clear()`);
   }
-  lines.push(`  .type(${stringify(params.text)})`);
-  if (params.submit) {
+  lines.push(`  .type(${stringify(textToType)})`);
+  if (submit) {
     lines.push(`  .type('{enter}')`);
   }
 
