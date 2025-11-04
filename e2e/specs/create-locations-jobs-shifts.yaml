@@ -14,4 +14,31 @@ steps:
       parentSelector: "nav"
       allowScroll: true
       exact: true
+  - waitFor: 200
+  - tapOn:
+      text: "Jobs & Shifts"
+      parentSelector: "nav"
+      allowScroll: true
+      exact: true
   - waitFor: 1000
+  # Create a Location
+  - tapOn:
+      text: "Create a Location"
+  - waitFor: 750
+  - typeText:
+      text: "Test Location"
+      placeholder: "Location Name"
+  - typeText:
+      text: "Test Description"
+      placeholder: "Description"
+      exact: true
+  - tapOn:
+      text: "Copy from Start Time"
+      parentSelector: ".tour__location-crud"
+  - waitFor: 70
+  - typeText:
+      text: "12:00"
+      selector: "[data-cy-id='End Time and Date-time']"
+  - tapOn:
+      text: "Create Location"
+      parentSelector: ".tour__location-crud"

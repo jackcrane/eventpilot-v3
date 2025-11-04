@@ -79,7 +79,13 @@ const toLocator = (params, { allowText = true } = {}) => {
         "The `placeholder` field must be a string when provided in a locator"
       );
     }
-    return `cy.get(${stringify(`[placeholder*="${params.placeholder}"]`)})`;
+
+    const placeholderOperator =
+      params.exact === true ? "=" : "*=";
+
+    return `cy.get(${stringify(
+      `[placeholder${placeholderOperator}"${params.placeholder}"]`
+    )})`;
   }
 
   if (allowText && params.text) {
@@ -114,7 +120,12 @@ const toLocatorChain = (params, { allowText = true } = {}) => {
       );
     }
 
-    return `.find(${stringify(`[placeholder*="${params.placeholder}"]`)})`;
+    const placeholderOperator =
+      params.exact === true ? "=" : "*=";
+
+    return `.find(${stringify(
+      `[placeholder${placeholderOperator}"${params.placeholder}"]`
+    )})`;
   }
 
   if (allowText && params.text) {
