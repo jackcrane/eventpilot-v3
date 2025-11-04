@@ -379,6 +379,36 @@ const generateAuthenticateUser = (params) => {
   return requestStatement.join("\n");
 };
 
+const generateUploadFile = (params) => {
+  if (!params || typeof params !== "object") {
+    throw new Error("The `uploadFile` step expects an object definition");
+  }
+
+  const { file, options } = params;
+
+  if (typeof file !== "string" || !file.trim()) {
+    throw new Error("The `uploadFile` step requires a non-empty string `file`");
+  }
+
+  const locator = toLocator(params, { allowText: false });
+
+  const normalizedFile = file.startsWith("cypress/fixtures/")
+    ? file
+    : path.posix.join("cypress", "fixtures", file);
+
+  if (options !== undefined) {
+    if (typeof options !== "object" || options === null || Array.isArray(options)) {
+      throw new Error(
+        "The `uploadFile` step expects `options` to be an object when provided",
+      );
+    }
+
+    return `${locator}.selectFile(${stringify(normalizedFile)}, ${stringify(options)});`;
+  }
+
+  return `${locator}.selectFile(${stringify(normalizedFile)});`;
+};
+
 const STEP_GENERATORS = {
   open: generateOpen,
   tapOn: generateTapOn,
@@ -395,6 +425,7 @@ const STEP_GENERATORS = {
   saveSnapshot: generateSaveSnapshot,
   takeScreenshot: generateTakeScreenshot,
   authenticateUser: generateAuthenticateUser,
+  uploadFile: generateUploadFile,
 };
 
 const normalizeStep = (rawStep, index, fileName) => {

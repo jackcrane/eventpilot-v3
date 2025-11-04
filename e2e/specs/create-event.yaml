@@ -70,3 +70,15 @@ steps:
       text: "Next"
   - assertVisible:
       text: "Event Assets"
+  - uploadFile:
+      selector: "[data-cy-id='logo']"
+      file: "files/logo.png"
+  - assertContains:
+      selector: "[data-cy-id='logo-alert']"
+      text: "Existing File"
+  - uploadFile:
+      selector: "[data-cy-id='banner']"
+      file: "files/banner.jpg"
+  - assertContains:
+      selector: "[data-cy-id='banner-alert']"
+      text: "Existing File"

@@ -14,6 +14,7 @@ export const Dropzone = ({
   required,
   hint,
   value,
+  alertCyId,
   ...props
 }) => {
   const [files, setFiles] = useState([]);
@@ -51,7 +52,12 @@ export const Dropzone = ({
         </Alert>
       )} */}
       {value && (
-        <Alert variant="success" className="mb-3" title="Existing File">
+        <Alert
+          variant="success"
+          className="mb-3"
+          title="Existing File"
+          data-cy-id={alertCyId}
+        >
           <Typography.Text>A file is uploaded for this field.</Typography.Text>
           <img
             src={value.url || value.location}
