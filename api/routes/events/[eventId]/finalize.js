@@ -107,6 +107,7 @@ export const post = [
             customerId = null;
           }
         } catch (e) {
+          void e;
           customerId = null;
         }
       }
