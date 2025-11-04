@@ -112,10 +112,18 @@ export const post = [
         // Best-effort verification: ensure this customer belongs to the same user
         try {
           const cust = await stripe.customers.retrieve(customerId);
+          const deleted = typeof cust !== "string" && cust?.deleted;
+          const prospectOwner =
+            typeof cust !== "string"
+              ? String(cust?.metadata?.prospectUserId || "")
+              : "";
           if (
             !cust ||
             typeof cust === "string" ||
-            (cust.metadata && cust.metadata.prospectUserId !== req.user.id)
+            deleted ||
+            (prospectOwner &&
+              String(req.user.id || "") &&
+              prospectOwner !== String(req.user.id || ""))
           ) {
             // Fallback to creating a new customer if verification fails
             customerId = null;
