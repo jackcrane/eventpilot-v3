@@ -1,5 +1,5 @@
 import { verifyAuth } from "#verifyAuth";
-import { stripe } from "#stripe";
+import { stripe, isStripeMock } from "#stripe";
 
 // GET /api/events/prospect/payment/setup
 // Creates a temporary Stripe Customer and returns a SetupIntent + CustomerSession
@@ -9,6 +9,22 @@ import { stripe } from "#stripe";
 export const get = [
   verifyAuth(["manager"]),
   async (req, res) => {
+    if (isStripeMock) {
+      const customerId = `cus_mock_${req.user.id}`;
+      return res.json({
+        customerId,
+        intent: {
+          id: `seti_mock_${req.user.id}`,
+          status: "succeeded",
+          client_secret: `seti_mock_secret_${req.user.id}`,
+        },
+        customer_session: {
+          id: `cs_mock_${req.user.id}`,
+          client_secret: `cs_mock_secret_${req.user.id}`,
+        },
+      });
+    }
+
     // Create a temporary customer for this user; we don't persist this in DB.
     const customer = await stripe.customers.create({
       email: req.user.email || undefined,
@@ -58,4 +74,3 @@ export const get = [
     });
   },
 ];
-

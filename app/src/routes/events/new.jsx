@@ -16,7 +16,7 @@ import {
   TzDateTime,
   TzPicker,
 } from "../../../components/tzDateTime/tzDateTime";
-import React from "react";
+import React, { useEffect } from "react";
 import ReactConfetti from "react-confetti";
 import { isEmail } from "../../../util/isEmail";
 import { Row } from "../../../util/Flex";
@@ -367,10 +367,29 @@ const EventAssets = ({ event = {}, onChangeEvent }) => {
 };
 
 const EventBillingDuringCreation = ({ event = {}, onChangeEvent }) => {
-  const { intent, customer_session, customerId, loading, error, refetch } =
-    useProspectStripeSetupIntent();
+  const {
+    intent,
+    customer_session,
+    customerId,
+    loading,
+    error,
+    refetch,
+    mock: stripeMock,
+  } = useProspectStripeSetupIntent();
 
-  const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK);
+  const stripePromise = stripeMock
+    ? null
+    : loadStripe(import.meta.env.VITE_STRIPE_PK);
+
+  useEffect(() => {
+    if (!stripeMock) return;
+    if (event.prospectPaymentMethodId && event.prospectCustomerId) return;
+    onChangeEvent({
+      prospectPaymentMethodId:
+        event.prospectPaymentMethodId || "pm_mock_prospect",
+      prospectCustomerId: event.prospectCustomerId || "cus_mock_prospect",
+    });
+  }, [stripeMock, event.prospectPaymentMethodId, event.prospectCustomerId]);
 
   return (
     <>
@@ -384,19 +403,33 @@ const EventBillingDuringCreation = ({ event = {}, onChangeEvent }) => {
         your event. You can cancel at any time.
       </Alert>
       <Util.Hr />
+      {stripeMock && (
+        <Alert
+          data-cy-id="stripe-mock-alert"
+          variant="info"
+          title="Stripe mocked for tests"
+        >
+          Automated tests bypass Stripe checkout. A mock payment method has been
+          attached so you can continue the flow.
+        </Alert>
+      )}
       {event.prospectPaymentMethodId ? (
         <Alert variant="success" title="Payment method added">
-          A payment method has been added. You can proceed to the next step.
+          {stripeMock
+            ? "A mock payment method has been added automatically."
+            : "A payment method has been added. You can proceed to the next step."}
         </Alert>
       ) : null}
-      {error && (
+      {!stripeMock && error && (
         <Alert variant="danger" title="Error loading billing">
           {String(error?.message || "Failed to load Stripe setup")}
         </Alert>
       )}
-      {loading ? (
+      {!stripeMock && loading ? (
         <Typography.Text>Loading…</Typography.Text>
-      ) : intent?.client_secret && customer_session?.client_secret ? (
+      ) : !stripeMock &&
+        intent?.client_secret &&
+        customer_session?.client_secret ? (
         <Elements
           stripe={stripePromise}
           options={{
@@ -422,9 +455,12 @@ const EventBillingDuringCreation = ({ event = {}, onChangeEvent }) => {
             }}
           />
         </Elements>
-      ) : (
-        <Button onClick={() => refetch()}>Retry</Button>
-      )}
+      ) : null}
+      {!stripeMock &&
+        !loading &&
+        !(intent?.client_secret && customer_session?.client_secret) && (
+          <Button onClick={() => refetch()}>Retry</Button>
+        )}
     </>
   );
 };
