@@ -22,7 +22,7 @@ Most step handlers accept a target element described via:
 | `setViewport: { width, height }` | Calls `cy.viewport`. Useful for responsive layouts. |
 | `tapOn` | Locates the element, waits until it is visible, then clicks. |
 | `typeText: { selector/dataCy, text, clear?, submit? }` | Types into an input. Clears first unless `clear: false`. Appends `{enter}` when `submit: true`. |
-| `assertVisible` | Waits for the element to be visible. |
+| `assertVisible` | Waits for the element to be visible. Accepts either an object locator or a string shorthand for exact text matches; use `allowScroll: true` to bring off-screen elements into view first. |
 | `assertContains: { selector/dataCy, text }` | Ensures the element contains the given text fragment. |
 | `assertText: { selector/dataCy, text }` | Matches the element's text exactly. |
 | `expectUrl` | Accepts a string (URL includes) or `{ equals | includes }` to validate location. |

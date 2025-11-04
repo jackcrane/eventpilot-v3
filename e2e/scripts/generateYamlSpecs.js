@@ -36,7 +36,7 @@ const readSpecFiles = () => {
     .readdirSync(SPECS_DIR, { withFileTypes: true })
     .filter((entry) => entry.isFile())
     .filter((entry) =>
-      SUPPORTED_EXTENSIONS.has(path.extname(entry.name).toLowerCase()),
+      SUPPORTED_EXTENSIONS.has(path.extname(entry.name).toLowerCase())
     )
     .map((entry) => path.join(SPECS_DIR, entry.name));
 };
@@ -76,7 +76,7 @@ const toLocator = (params, { allowText = true } = {}) => {
   if (Object.prototype.hasOwnProperty.call(params, "placeholder")) {
     if (typeof params.placeholder !== "string") {
       throw new Error(
-        "The `placeholder` field must be a string when provided in a locator",
+        "The `placeholder` field must be a string when provided in a locator"
       );
     }
     return `cy.get(${stringify(`[placeholder*="${params.placeholder}"]`)})`;
@@ -88,7 +88,7 @@ const toLocator = (params, { allowText = true } = {}) => {
   }
 
   throw new Error(
-    "Unable to build locator. Expected one of selector, dataCy, or text.",
+    "Unable to build locator. Expected one of selector, dataCy, or text."
   );
 };
 
@@ -97,11 +97,13 @@ const generateOpen = (params) => {
     typeof params === "string"
       ? params
       : params && typeof params === "object" && params.path
-        ? params.path
-        : null;
+      ? params.path
+      : null;
 
   if (!target) {
-    throw new Error("The `open` step requires a string path or { path } object");
+    throw new Error(
+      "The `open` step requires a string path or { path } object"
+    );
   }
 
   return `cy.visit(${stringify(target)});`;
@@ -122,13 +124,13 @@ const generateTypeText = (params) => {
 
   if (hasPlaceholder && typeof params.placeholder !== "string") {
     throw new Error(
-      "The `placeholder` field must be a string when provided in `typeText`",
+      "The `placeholder` field must be a string when provided in `typeText`"
     );
   }
 
   if (!params.selector && !params.dataCy && !hasPlaceholder) {
     throw new Error(
-      "The `typeText` step requires a selector, dataCy, placeholder, or text target",
+      "The `typeText` step requires a selector, dataCy, placeholder, or text target"
     );
   }
 
@@ -150,8 +152,21 @@ const generateTypeText = (params) => {
 };
 
 const generateAssertVisible = (params) => {
-  const locator = toLocator(params);
-  return `${locator}.should('be.visible');`;
+  const normalizedParams =
+    typeof params === "string" ? { text: params, exact: true } : params;
+
+  const { allowScroll, ...locatorParams } = normalizedParams || {};
+
+  const locator = toLocator(locatorParams);
+  const lines = [`${locator}`];
+
+  if (allowScroll) {
+    lines.push(`  .scrollIntoView({ block: 'nearest', inline: 'nearest' })`);
+  }
+
+  lines.push(`  .should('be.visible')`);
+
+  return `${lines.join("\n")};`;
 };
 
 const generateAssertContains = (params) => {
@@ -187,16 +202,16 @@ const generateWaitFor = (params) => {
     typeof params === "number"
       ? params
       : params && typeof params === "object" && typeof params.ms === "number"
-        ? params.ms
-        : params &&
-            typeof params === "object" &&
-            typeof params.seconds === "number"
-          ? params.seconds * 1000
-          : null;
+      ? params.ms
+      : params &&
+        typeof params === "object" &&
+        typeof params.seconds === "number"
+      ? params.seconds * 1000
+      : null;
 
   if (duration === null || Number.isNaN(duration)) {
     throw new Error(
-      "The `waitFor` step requires a number of milliseconds or { ms | seconds }",
+      "The `waitFor` step requires a number of milliseconds or { ms | seconds }"
     );
   }
 
@@ -221,7 +236,7 @@ const generateExpectUrl = (params) => {
   }
 
   throw new Error(
-    "The `expectUrl` step supports `equals` or `includes` string fields",
+    "The `expectUrl` step supports `equals` or `includes` string fields"
   );
 };
 
@@ -239,7 +254,7 @@ const generateSetViewport = (params) => {
 
   if (typeof width !== "number" || typeof height !== "number") {
     throw new Error(
-      "The `setViewport` step requires numeric `width` and `height`",
+      "The `setViewport` step requires numeric `width` and `height`"
     );
   }
 
@@ -250,9 +265,11 @@ const generateLog = (params) => {
   const message =
     typeof params === "string"
       ? params
-      : params && typeof params === "object" && typeof params.message === "string"
-        ? params.message
-        : null;
+      : params &&
+        typeof params === "object" &&
+        typeof params.message === "string"
+      ? params.message
+      : null;
 
   if (!message) {
     throw new Error("The `log` step requires a message string");
@@ -274,13 +291,13 @@ const generateSaveSnapshot = (params) => {
         name = params.name.trim();
       } else {
         throw new Error(
-          "The `saveSnapshot` step requires a non-empty string `name` value",
+          "The `saveSnapshot` step requires a non-empty string `name` value"
         );
       }
     }
   } else if (params !== undefined) {
     throw new Error(
-      "The `saveSnapshot` step accepts a string or object with a `name` field",
+      "The `saveSnapshot` step accepts a string or object with a `name` field"
     );
   }
 
@@ -296,7 +313,7 @@ const generateTakeScreenshot = (params) => {
     const trimmed = params.trim();
     if (!trimmed) {
       throw new Error(
-        "The `takeScreenshot` step requires a non-empty string when provided",
+        "The `takeScreenshot` step requires a non-empty string when provided"
       );
     }
     return `cy.screenshot(${stringify(trimmed)});`;
@@ -310,7 +327,7 @@ const generateTakeScreenshot = (params) => {
     if (name !== undefined) {
       if (typeof name !== "string" || !name.trim()) {
         throw new Error(
-          "The `takeScreenshot` step expects `name` to be a non-empty string",
+          "The `takeScreenshot` step expects `name` to be a non-empty string"
         );
       }
       parts.push(stringify(name.trim()));
@@ -319,9 +336,13 @@ const generateTakeScreenshot = (params) => {
     }
 
     if (options !== undefined) {
-      if (typeof options !== "object" || options === null || Array.isArray(options)) {
+      if (
+        typeof options !== "object" ||
+        options === null ||
+        Array.isArray(options)
+      ) {
         throw new Error(
-          "The `takeScreenshot` step expects `options` to be an object when provided",
+          "The `takeScreenshot` step expects `options` to be an object when provided"
         );
       }
       parts.push(stringify(options));
@@ -332,7 +353,7 @@ const generateTakeScreenshot = (params) => {
   }
 
   throw new Error(
-    "The `takeScreenshot` step accepts no value, a string name, or an object with `name` and optional `options`",
+    "The `takeScreenshot` step accepts no value, a string name, or an object with `name` and optional `options`"
   );
 };
 
@@ -353,7 +374,7 @@ const generateAuthenticateUser = (params) => {
 
   if (!email || typeof email !== "string" || !email.trim()) {
     throw new Error(
-      "The `authenticateUser` step requires an email string (accepts either `authenticateUser: email` or `authenticateUser: { email }`).",
+      "The `authenticateUser` step requires an email string (accepts either `authenticateUser: email` or `authenticateUser: { email }`)."
     );
   }
 
@@ -363,7 +384,9 @@ const generateAuthenticateUser = (params) => {
     "cy.request({",
     "  method: 'POST',",
     "  url: '/api/auth/login',",
-    `  body: { email: ${stringify(normalizedEmail)}, password: ${stringify(password)} },`,
+    `  body: { email: ${stringify(normalizedEmail)}, password: ${stringify(
+      password
+    )} },`,
     "  headers: { 'Content-Type': 'application/json' },",
     "}).then((response) => {",
     "  const token = response?.body?.token;",
@@ -397,13 +420,19 @@ const generateUploadFile = (params) => {
     : path.posix.join("cypress", "fixtures", file);
 
   if (options !== undefined) {
-    if (typeof options !== "object" || options === null || Array.isArray(options)) {
+    if (
+      typeof options !== "object" ||
+      options === null ||
+      Array.isArray(options)
+    ) {
       throw new Error(
-        "The `uploadFile` step expects `options` to be an object when provided",
+        "The `uploadFile` step expects `options` to be an object when provided"
       );
     }
 
-    return `${locator}.selectFile(${stringify(normalizedFile)}, ${stringify(options)});`;
+    return `${locator}.selectFile(${stringify(normalizedFile)}, ${stringify(
+      options
+    )});`;
   }
 
   return `${locator}.selectFile(${stringify(normalizedFile)});`;
@@ -420,7 +449,7 @@ const generateBackupDb = (params) => {
 
   if (typeof name !== "string" || !name.trim()) {
     throw new Error(
-      "The `backupDb` step requires a non-empty string name (either `backupDb: name` or `backupDb: { name }`).",
+      "The `backupDb` step requires a non-empty string name (either `backupDb: name` or `backupDb: { name }`)."
     );
   }
 
@@ -456,14 +485,14 @@ const normalizeStep = (rawStep, index, fileName) => {
 
   if (!rawStep || typeof rawStep !== "object") {
     throw new Error(
-      `Step ${index + 1} in ${fileName} must be a string or single-key object`,
+      `Step ${index + 1} in ${fileName} must be a string or single-key object`
     );
   }
 
   const entries = Object.entries(rawStep);
   if (entries.length !== 1) {
     throw new Error(
-      `Step ${index + 1} in ${fileName} should contain exactly one action`,
+      `Step ${index + 1} in ${fileName} should contain exactly one action`
     );
   }
 
@@ -473,7 +502,7 @@ const normalizeStep = (rawStep, index, fileName) => {
   if (!handler) {
     const available = Object.keys(STEP_GENERATORS).sort().join(", ");
     throw new Error(
-      `Unknown action "${action}" in ${fileName}. Supported actions: ${available}`,
+      `Unknown action "${action}" in ${fileName}. Supported actions: ${available}`
     );
   }
 
@@ -509,12 +538,12 @@ const loadSpec = (filePath) => {
   ];
 
   const seedFilePath = candidatePaths.find((candidate) =>
-    fs.existsSync(candidate),
+    fs.existsSync(candidate)
   );
 
   if (!seedFilePath) {
     throw new Error(
-      `${filePath} seedFile "${seedInput}" not found. Use a path relative to e2e/ or cypress/fixtures/db/.`,
+      `${filePath} seedFile "${seedInput}" not found. Use a path relative to e2e/ or cypress/fixtures/db/.`
     );
   }
 
@@ -522,7 +551,7 @@ const loadSpec = (filePath) => {
   if (spec.skip !== undefined) {
     if (typeof spec.skip !== "boolean") {
       throw new Error(
-        `${filePath} has an invalid skip value. Expected a boolean when provided.`,
+        `${filePath} has an invalid skip value. Expected a boolean when provided.`
       );
     }
     skipValue = spec.skip;
@@ -547,20 +576,22 @@ const loadSpec = (filePath) => {
 
 const generateTestContents = (spec, sourceName) => {
   const statements = spec.steps.map((step, index) =>
-    normalizeStep(step, index, sourceName),
+    normalizeStep(step, index, sourceName)
   );
   const sanitizedScreenshotName = `${spec.name.replace(/\s+/g, "-")}-final`;
-  statements.push(`cy.screenshot(${stringify(sanitizedScreenshotName)});`);
+  statements.push(`cy.screenshot(${JSON.stringify(sanitizedScreenshotName)});`);
 
   const testBody = statements.map((statement) => indent(statement)).join("\n");
 
-  const descriptionComment = spec.description
-    ? `// ${spec.description}\n`
-    : "";
+  const descriptionComment = spec.description ? `// ${spec.description}\n` : "";
 
-  const testLabel = stringify(`runs ${spec.name}`);
+  const testLabel = JSON.stringify(`runs ${spec.name}`);
 
-  return `// Auto-generated from ${sourceName}\n${descriptionComment}// Database seed: ${spec.seedFileRelative}\n\ndescribe(${stringify(spec.name)}, () => {\n  it(${testLabel}, () => {\n${testBody}\n  });\n});\n`;
+  return `// Auto-generated from ${sourceName}\n${descriptionComment}// Database seed: ${
+    spec.seedFileRelative
+  }\n\ndescribe(${JSON.stringify(
+    spec.name
+  )}, () => {\n  it(${testLabel}, () => {\n${testBody}\n  });\n});\n`;
 };
 
 const generateSpecs = () => {
@@ -570,7 +601,7 @@ const generateSpecs = () => {
 
   if (specFiles.length === 0) {
     console.log(
-      "[generateYamlSpecs] No YAML specs found. Add files to e2e/specs/*.yaml",
+      "[generateYamlSpecs] No YAML specs found. Add files to e2e/specs/*.yaml"
     );
     return;
   }
@@ -583,13 +614,13 @@ const generateSpecs = () => {
     const spec = loadSpec(filePath);
     if (spec.skip) {
       console.log(
-        `[generateYamlSpecs] Skipping ${path.basename(filePath)} (skip: true)`,
+        `[generateYamlSpecs] Skipping ${path.basename(filePath)} (skip: true)`
       );
       continue;
     }
     const outputName = `${path.basename(
       filePath,
-      path.extname(filePath),
+      path.extname(filePath)
     )}.cy.js`;
     const contents = generateTestContents(spec, path.basename(filePath));
     const outputAbsolute = path.join(OUTPUT_DIR, outputName);
@@ -609,12 +640,13 @@ const generateSpecs = () => {
   console.log(
     `[generateYamlSpecs] Generated ${generated} Cypress spec${
       generated === 1 ? "" : "s"
-    } from YAML`,
+    } from YAML`
   );
 };
 
 const args = process.argv.slice(2);
-const watchMode = args.includes("--watch");
+// Support both --watch and -w
+const watchMode = args.includes("--watch") || args.includes("-w");
 
 const runGeneration = () => {
   try {

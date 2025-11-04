@@ -1,0 +1,13 @@
+name: Create Locations, Jobs, and Shifts
+seedFile: cypress/fixtures/db/created-event.sql
+steps:
+  - setViewport:
+      width: 1280
+      height: 720
+  - authenticateUser:
+      email: test@eventpilot-test.com
+      password: Password
+  - open: /events/cmhkuuh7n0005qryc1qvb3ama
+  - waitFor: 1000
+  - tapOn:
+      text: "Volunteer"
