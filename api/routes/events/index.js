@@ -157,25 +157,30 @@ export const post = [
             }
           } catch (_) {
             void _;
-      if (customerId) {
-        // Best-effort verification: ensure this customer belongs to the same user
-        try {
-          const cust = await stripe.customers.retrieve(customerId);
-          const deleted = typeof cust !== "string" && cust?.deleted;
-          const prospectOwner =
-            typeof cust !== "string"
-              ? String(cust?.metadata?.prospectUserId || "")
-              : "";
-          if (
-            !cust ||
-            typeof cust === "string" ||
-            deleted ||
-            (prospectOwner &&
-              String(req.user.id || "") &&
-              prospectOwner !== String(req.user.id || ""))
-          ) {
-            // Fallback to creating a new customer if verification fails
-            customerId = null;
+          }
+        }
+        if (customerId) {
+          // Best-effort verification: ensure this customer belongs to the same user
+          try {
+            const cust = await stripe.customers.retrieve(customerId);
+            const deleted = typeof cust !== "string" && cust?.deleted;
+            const prospectOwner =
+              typeof cust !== "string"
+                ? String(cust?.metadata?.prospectUserId || "")
+                : "";
+            if (
+              !cust ||
+              typeof cust === "string" ||
+              deleted ||
+              (prospectOwner &&
+                String(req.user.id || "") &&
+                prospectOwner !== String(req.user.id || ""))
+            ) {
+              // Fallback to creating a new customer if verification fails
+              customerId = null;
+            }
+          } catch (e) {
+            void e;
           }
         }
         if (!customerId) {
