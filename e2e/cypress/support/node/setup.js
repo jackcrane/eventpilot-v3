@@ -6,6 +6,7 @@ const {
   reseedCurrentDatabase,
   getActiveDatabase,
   specKey,
+  backupActiveDatabase,
 } = require("./testDbLifecycle");
 const { startApi, stopApi } = require("./serverManager");
 
@@ -71,6 +72,15 @@ const createTestEnvironment = (on, config) => {
       return true;
     },
     "db:active": () => getActiveDatabase(currentSpecKey),
+    "db:backup": async (options) => {
+      const targetName =
+        typeof options === "string" ? options : options && options.name;
+      const result = await backupActiveDatabase(currentSpecKey, targetName);
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+      return result.fileName;
+    },
   });
 
   return config;

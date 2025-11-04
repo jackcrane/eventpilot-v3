@@ -60,6 +60,10 @@ cy.reSeedDb();
 
 This reloads the dump for the current spec. If the restore fails, the command throws and the test fails with the underlying `pg_restore` error.
 
+### Backing Up the Active Database
+
+YAML-driven specs can capture the current database with the `backupDb` action. Provide a name (`backupDb: my-new-dump` or `backupDb: { name: my-new-dump }`) and the generator saves `cypress/fixtures/db/my-new-dump.sql` using the same non-empty-table rules as `scripts/dump-db.js`. The step fails if no spec database is running or the name is blank.
+
 ### Generating Dumps
 
 The helper script wraps `pg_dump` so it is easy to create consistent snapshots.
@@ -100,7 +104,7 @@ steps:
       includes: thank-you
 ```
 
-Supported actions include `open`, `tapOn`, `typeText`, `assertVisible`, `assertContains`, `assertText`, `waitFor`, `expectUrl`, `scrollIntoView`, `setViewport`, `saveSnapshot`, `log`, and `pause`. Any generator errors fail fast with a message so you can adjust the flow before Cypress starts.
+Supported actions include `open`, `tapOn`, `typeText`, `assertVisible`, `assertContains`, `assertText`, `waitFor`, `expectUrl`, `scrollIntoView`, `setViewport`, `saveSnapshot`, `log`, `pause`, `uploadFile`, and `backupDb`. Any generator errors fail fast with a message so you can adjust the flow before Cypress starts.
 
 ### Creating New Specs
 

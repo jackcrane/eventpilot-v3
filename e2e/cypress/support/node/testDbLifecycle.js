@@ -9,6 +9,7 @@ const {
   buildConnectionString,
   resetDatabase,
 } = require("./dbManager");
+const { dumpDatabase } = require("../../../scripts/dump-db.js");
 
 const SPEC_ROOT = path.resolve(process.cwd(), "cypress/e2e");
 const DUMP_ROOT = path.resolve(process.cwd(), "cypress/fixtures/db");
@@ -16,7 +17,7 @@ const API_DIR = path.resolve(process.cwd(), "../api");
 const GENERATED_MANIFEST_PATH = path.join(
   SPEC_ROOT,
   "generated",
-  "yaml-manifest.json",
+  "yaml-manifest.json"
 );
 
 const activeSpecs = new Map();
@@ -52,7 +53,7 @@ const manifestForGeneratedSpecs = () => {
     throw new Error(
       `Unable to parse YAML manifest at ${GENERATED_MANIFEST_PATH}: ${
         error.message || error
-      }`,
+      }`
     );
   }
 
@@ -194,7 +195,10 @@ const prepareDatabaseForSpec = async (spec) => {
 
   const baseName = sanitizeDbName(relative.replace(/\.[^.]+$/, ""));
   const suffix = crypto.randomBytes(4).toString("hex");
-  const databaseName = `e2e_${(baseName || "spec").slice(0, 40)}_${suffix}`.slice(0, 62);
+  const databaseName = `e2e_${(baseName || "spec").slice(
+    0,
+    40
+  )}_${suffix}`.slice(0, 62);
 
   try {
     await createDatabase(databaseName);
@@ -292,6 +296,77 @@ const getActiveDatabase = (key) => {
   };
 };
 
+const sanitizeBackupFileName = (input) => {
+  if (typeof input !== "string") {
+    return null;
+  }
+
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalizedSeparators = trimmed.replace(/\\/g, "/");
+  const base = path.basename(normalizedSeparators);
+  if (!base || base === "." || base === "..") {
+    return null;
+  }
+
+  const cleaned = base.replace(/[^a-zA-Z0-9._-]/g, "-");
+  const collapsed = cleaned.replace(/-+/g, "-");
+  const trimmedEdges = collapsed.replace(/^[-_.]+|[-_.]+$/g, "");
+
+  if (!trimmedEdges) {
+    return null;
+  }
+
+  return trimmedEdges;
+};
+
+const backupActiveDatabase = async (key, name) => {
+  if (!key) {
+    return {
+      success: false,
+      message: "Cannot back up outside an active test run.",
+    };
+  }
+
+  const context = activeSpecs.get(key);
+  if (!context) {
+    return {
+      success: false,
+      message: "No active database found for this spec.",
+    };
+  }
+
+  const sanitized = sanitizeBackupFileName(name);
+  if (!sanitized) {
+    return {
+      success: false,
+      message:
+        "backupDb requires a non-empty name consisting of letters, numbers, dots, dashes, or underscores.",
+    };
+  }
+
+  const extension = sanitized.match(/\.(sql|dump)$/i) ? "" : ".sql";
+  const fileName = `${sanitized}${extension}`;
+  const outPath = path.join(DUMP_ROOT, fileName);
+
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+
+  try {
+    await dumpDatabase({ url: context.databaseUrl, outPath });
+    return { success: true, fileName };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Unable to back up database to ${fileName}.\n${
+        error.message || error
+      }`,
+    };
+  }
+};
+
 module.exports = {
   prepareDatabaseForSpec,
   teardownDatabaseForSpec,
@@ -299,4 +374,5 @@ module.exports = {
   reseedCurrentDatabase,
   getActiveDatabase,
   specKey,
+  backupActiveDatabase,
 };

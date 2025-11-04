@@ -409,6 +409,26 @@ const generateUploadFile = (params) => {
   return `${locator}.selectFile(${stringify(normalizedFile)});`;
 };
 
+const generateBackupDb = (params) => {
+  let name = null;
+
+  if (typeof params === "string") {
+    name = params;
+  } else if (params && typeof params === "object") {
+    name = params.name;
+  }
+
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error(
+      "The `backupDb` step requires a non-empty string name (either `backupDb: name` or `backupDb: { name }`).",
+    );
+  }
+
+  const normalizedName = name.trim();
+
+  return `cy.task('db:backup', { name: ${stringify(normalizedName)} });`;
+};
+
 const STEP_GENERATORS = {
   open: generateOpen,
   tapOn: generateTapOn,
@@ -426,6 +446,7 @@ const STEP_GENERATORS = {
   takeScreenshot: generateTakeScreenshot,
   authenticateUser: generateAuthenticateUser,
   uploadFile: generateUploadFile,
+  backupDb: generateBackupDb,
 };
 
 const normalizeStep = (rawStep, index, fileName) => {

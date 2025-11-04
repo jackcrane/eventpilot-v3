@@ -71,14 +71,39 @@ steps:
   - assertVisible:
       text: "Event Assets"
   - uploadFile:
-      selector: "[data-cy-id='logo']"
+      selector: "input[data-cy-id='logo']"
       file: "files/logo.png"
   - assertContains:
       selector: "[data-cy-id='logo-alert']"
       text: "Existing File"
   - uploadFile:
-      selector: "[data-cy-id='banner']"
+      selector: "input[data-cy-id='banner']"
       file: "files/banner.jpg"
   - assertContains:
       selector: "[data-cy-id='banner-alert']"
       text: "Existing File"
+  - takeScreenshot:
+      name: "event-assets"
+  - tapOn:
+      text: "Next"
+      exact: false
+  - assertVisible:
+      text: "Billing"
+  - waitFor: 3000
+  - typeText:
+      text: "4242424242424242"
+      placeholder: "1234 1234 1234 1234"
+  - typeText:
+      text: "499"
+      placeholder: "MM / YY"
+  - typeText:
+      text: "424"
+      placeholder: "CVC"
+  - typeText:
+      text: "42424"
+      placeholder: "12345" # Zip
+  - takeScreenshot:
+      name: "billing-details"
+  - tapOn:
+      text: "Add payment method"
+  - waitFor: 3000

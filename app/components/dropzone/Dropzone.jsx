@@ -79,7 +79,11 @@ export const Dropzone = ({
           style={{ flex: 1 }}
           type="file"
           name="file"
-          inputProps={{ multiple: true, accept }}
+          inputProps={{
+            multiple: true,
+            accept,
+            "data-cy-id": props["data-cy-id"],
+          }}
           onRawChange={handleFileChange}
           className="mb-0"
           {...props}
