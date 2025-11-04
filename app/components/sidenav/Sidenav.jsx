@@ -55,17 +55,25 @@ export const Sidenav = ({
 
   // auto-open dropdowns containing an active child on mount
   useEffect(() => {
-    const initial = {};
-    items.forEach((item, idx) => {
-      if (
-        item.type === "dropdown" &&
-        Array.isArray(item.children) &&
-        item.children.some((child) => child.active)
-      ) {
-        initial[idx] = true;
-      }
+    setOpenDropdowns((prev) => {
+      const next = {};
+
+      items.forEach((item, idx) => {
+        const wasOpen = prev[idx];
+        const hasActiveChild =
+          item.type === "dropdown" &&
+          Array.isArray(item.children) &&
+          item.children.some((child) => child.active);
+
+        if (hasActiveChild) {
+          next[idx] = true;
+        } else if (wasOpen) {
+          next[idx] = true;
+        }
+      });
+
+      return next;
     });
-    setOpenDropdowns(initial);
   }, [items]);
 
   useEffect(() => {
