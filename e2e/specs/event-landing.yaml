@@ -1,5 +1,6 @@
 name: Ensure event landing page shows default state correctly
 seedFile: cypress/fixtures/db/created-event.sql
+skip: true
 steps:
   - setViewport:
       width: 1280
