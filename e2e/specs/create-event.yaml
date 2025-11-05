@@ -15,6 +15,7 @@ steps:
   - tapOn:
       selector: "[data-cy-id='create-event']"
       exact: false
+  - waitFor: 2000
   - typeText:
       text: "Test Event"
       selector: "[placeholder='Event Name']"
@@ -89,4 +90,5 @@ steps:
       exact: false
   - assertVisible:
       text: "Billing"
+  - assertNotVisible: "Saving event draft"
   - takeScreenshot:

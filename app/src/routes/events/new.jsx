@@ -374,6 +374,8 @@ const EventAssets = ({ event = {}, onChangeEvent }) => {
         value={event.logo}
         hint="A logo for your event. This is required, and should be a square image at least 200px by 200px."
         accept="image/*"
+        data-cy-id="logo"
+        alertCyId={"logo-alert"}
       />
       <Dropzone
         label="Banner image"
@@ -389,6 +391,8 @@ const EventAssets = ({ event = {}, onChangeEvent }) => {
         }
         hint="A banner image for your event. This is required, and should be a rectangular image. It will be shown across the top of your webpages."
         accept="image/*"
+        data-cy-id="banner"
+        alertCyId={"banner-alert"}
       />
 
       <label class="form-label required">IP & Usage Rights</label>

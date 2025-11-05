@@ -80,8 +80,7 @@ const toLocator = (params, { allowText = true } = {}) => {
       );
     }
 
-    const placeholderOperator =
-      params.exact === true ? "=" : "*=";
+    const placeholderOperator = params.exact === true ? "=" : "*=";
 
     return `cy.get(${stringify(
       `[placeholder${placeholderOperator}"${params.placeholder}"]`
@@ -120,8 +119,7 @@ const toLocatorChain = (params, { allowText = true } = {}) => {
       );
     }
 
-    const placeholderOperator =
-      params.exact === true ? "=" : "*=";
+    const placeholderOperator = params.exact === true ? "=" : "*=";
 
     return `.find(${stringify(
       `[placeholder${placeholderOperator}"${params.placeholder}"]`
@@ -188,7 +186,9 @@ const generateTapOn = (params) => {
         );
       }
 
-      locator = `cy.get(${stringify(parentSelector)})${toLocatorChain(locatorParams)}`;
+      locator = `cy.get(${stringify(parentSelector)})${toLocatorChain(
+        locatorParams
+      )}`;
     } else {
       locator = toLocator(locatorParams);
     }
@@ -260,11 +260,7 @@ const generateTypeText = (params) => {
     );
   }
 
-  if (
-    !locatorParams.selector &&
-    !locatorParams.dataCy &&
-    !hasPlaceholder
-  ) {
+  if (!locatorParams.selector && !locatorParams.dataCy && !hasPlaceholder) {
     throw new Error(
       "The `typeText` step requires a selector, dataCy, placeholder, or text target"
     );
@@ -283,9 +279,12 @@ const generateTypeText = (params) => {
       );
     }
 
-    locator = `cy.get(${stringify(parentSelector)})${toLocatorChain(locatorParams, {
-      allowText: false,
-    })}`;
+    locator = `cy.get(${stringify(parentSelector)})${toLocatorChain(
+      locatorParams,
+      {
+        allowText: false,
+      }
+    )}`;
   } else {
     locator = toLocator(locatorParams, { allowText: false });
   }
@@ -609,11 +608,36 @@ const generateBackupDb = (params) => {
   return `cy.task('db:backup', { name: ${stringify(normalizedName)} });`;
 };
 
+const generateAssertNotVisible = (params) => {
+  // supports either a string (text match) or an object like other assertions
+  const normalized =
+    typeof params === "string" ? { text: params, exact: true } : params;
+
+  if (!normalized || typeof normalized !== "object") {
+    throw new Error("The `assertNotVisible` step requires a string or object");
+  }
+
+  // optional: choose behavior
+  // mode: "hidden" (default) -> element exists but is not visible
+  // mode: "missing"          -> element should not exist in the DOM
+  const { mode = "hidden", ...locatorParams } = normalized;
+
+  const locator = toLocator(locatorParams);
+
+  if (mode === "missing") {
+    return `${locator}.should('not.exist');`;
+  }
+
+  // default: not visible
+  return `${locator}.should('not.be.visible');`;
+};
+
 const STEP_GENERATORS = {
   open: generateOpen,
   tapOn: generateTapOn,
   typeText: generateTypeText,
   assertVisible: generateAssertVisible,
+  assertNotVisible: generateAssertNotVisible,
   assertContains: generateAssertContains,
   assertText: generateAssertText,
   waitFor: generateWaitFor,

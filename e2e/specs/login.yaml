@@ -12,6 +12,7 @@ steps:
   - log: "Reached the home page"
   - tapOn:
       text: "Login"
+  - waitFor: 3000
   - typeText:
       text: "test@eventpilot-test.com"
       selector: "[placeholder='Email']"

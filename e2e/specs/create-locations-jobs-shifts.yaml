@@ -42,3 +42,91 @@ steps:
   - tapOn:
       text: "Create Location"
       parentSelector: ".tour__location-crud"
+  # First job
+  - tapOn:
+      text: "Create Job"
+  - waitFor: 750
+  - typeText:
+      text: "Test Job"
+      placeholder: "Job Name"
+  - typeText:
+      text: "A description of what is required to do this job"
+      placeholder: "A more lengthy description"
+      exact: true
+  - tapOn:
+      text: "Other"
+      parentSelector: ".tour__job-crud"
+  - tapOn:
+      text: "Create a Shift"
+      allowScroll: true
+  - tapOn:
+      text: "Copy from Start Time"
+      parentSelector: ".tour__job-crud"
+      allowScroll: true
+  - typeText:
+      text: "08:00"
+      selector: "[data-cy-id='End Time-time']"
+      parentSelector: ".tour__job-crud"
+      allowScroll: true
+  - tapOn:
+      text: "Create another Shift"
+      allowScroll: true
+  - tapOn:
+      text: "Create another Shift"
+      allowScroll: true
+  - tapOn:
+      text: "Create Job"
+      allowScroll: true
+  - waitFor: 1000
+  # Second job
+  - tapOn:
+      selector: "button.tour__launch-job-crud"
+  - waitFor: 750
+  - typeText:
+      text: "Shorter Test Job"
+      placeholder: "Job Name"
+  - typeText:
+      text: "A description of what is required to do this shorter job"
+      placeholder: "A more lengthy description"
+      exact: true
+  - tapOn:
+      text: "Must be over 21"
+      parentSelector: ".tour__job-crud"
+  - tapOn:
+      text: "Create a Shift"
+      allowScroll: true
+  - tapOn:
+      text: "Copy from Start Time"
+      parentSelector: ".tour__job-crud"
+      allowScroll: true
+  - typeText:
+      text: "07:00"
+      selector: "[data-cy-id='End Time-time']"
+      parentSelector: ".tour__job-crud"
+      allowScroll: true
+  - tapOn:
+      text: "Create another Shift"
+      allowScroll: true
+  - tapOn:
+      text: "Create another Shift"
+      allowScroll: true
+  - tapOn:
+      text: "Create another Shift"
+      allowScroll: true
+  - tapOn:
+      text: "Create another Shift"
+      allowScroll: true
+  - tapOn:
+      text: "Create another Shift"
+      allowScroll: true
+  - tapOn:
+      text: "Create Job"
+      allowScroll: true
+  - waitFor: 1000
+  - takeScreenshot: "jobs-and-shifts-table"
+  - tapOn:
+      text: "Actions"
+  - waitFor: 200
+  - tapOn:
+      text: "View as Calendar"
+  - takeScreenshot: "jobs-and-shifts-calendar"
