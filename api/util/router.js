@@ -69,14 +69,12 @@ function getRoutePathFromFile(filePath, routesDir) {
 async function registerRoutes(app, routesDir) {
   async function traverseDir(dir) {
     // Ensure static route files (no [param]) are registered before dynamic ones
-    const files = fs
-      .readdirSync(dir)
-      .sort((a, b) => {
-        const aIsDyn = a.includes("[");
-        const bIsDyn = b.includes("[");
-        if (aIsDyn !== bIsDyn) return aIsDyn - bIsDyn; // static first
-        return a.localeCompare(b);
-      });
+    const files = fs.readdirSync(dir).sort((a, b) => {
+      const aIsDyn = a.includes("[");
+      const bIsDyn = b.includes("[");
+      if (aIsDyn !== bIsDyn) return aIsDyn - bIsDyn; // static first
+      return a.localeCompare(b);
+    });
     for (const file of files) {
       const filePath = path.join(dir, file);
       if (isTestFile(filePath)) {
@@ -93,16 +91,32 @@ async function registerRoutes(app, routesDir) {
         // Supported HTTP methods
         ["get", "post", "put", "patch", "head", "options", "query"].forEach(
           (method) => {
-            if (routeModule[method]) {
-              // If it's an array, use it as middleware chain
-              const handlers = Array.isArray(routeModule[method])
-                ? routeModule[method]
-                : [routeModule[method]];
-              app[method](routePath, ...handlers);
-              // console.log(
-              //   `Registered route ${method.toUpperCase()} ${routePath}`
-              // );
+            if (!routeModule[method]) {
+              return;
             }
+
+            // If it's an array, use it as middleware chain
+            const handlers = Array.isArray(routeModule[method])
+              ? routeModule[method]
+              : [routeModule[method]];
+
+            if (method === "query") {
+              const wrappedHandlers = handlers.map((handler) => {
+                return (req, res, next) => {
+                  if (req.method !== "QUERY") {
+                    return next();
+                  }
+                  return handler(req, res, next);
+                };
+              });
+              app.all(routePath, ...wrappedHandlers);
+              return;
+            }
+
+            app[method](routePath, ...handlers);
+            // console.log(
+            //   `Registered route ${method.toUpperCase()} ${routePath}`
+            // );
           }
         );
 

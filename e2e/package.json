@@ -1,0 +1,18 @@
+{
+  "name": "eventpilot-e2e",
+  "private": true,
+  "scripts": {
+    "precypress": "node scripts/generateYamlSpecs.js",
+    "precypress:open": "node scripts/generateYamlSpecs.js",
+    "preverify": "node scripts/generateYamlSpecs.js",
+    "regenerate": "node scripts/generateYamlSpecs.js",
+    "cypress": "cypress run",
+    "cypress:open": "cypress open",
+    "verify": "cypress verify"
+  },
+  "devDependencies": {
+    "cypress": "13.13.1",
+    "is-ci": "3.0.1",
+    "js-yaml": "^4.1.0"
+  }
+}

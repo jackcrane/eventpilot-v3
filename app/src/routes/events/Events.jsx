@@ -20,7 +20,11 @@ export const Events = () => {
       {loading && <Typography.Text>Loading...</Typography.Text>}
       <Row gap={2} align="flex-start" justify="space-between">
         <div style={{ flex: 1 }}>
-          <Button onClick={() => navigate("/events/new")} className="mb-3">
+          <Button
+            onClick={() => navigate("/events/new")}
+            className="mb-3"
+            data-cy-id="create-event"
+          >
             Create Event
           </Button>
           {events?.length === 0 ? (

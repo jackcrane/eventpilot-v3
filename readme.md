@@ -30,6 +30,7 @@ An extremely opinionated starter stack for building full-stack applications the 
 - Vitest
 - Supertest
 - Codecov
+- Cypress E2E (Dockerized)
 
 #### Ops
 
@@ -78,6 +79,10 @@ cd app && yarn install
 ```bash
 cd api && yarn start
 ```
+
+## End-to-End Tests
+
+See `docs/e2e-testing.md` for the Cypress + Docker based E2E harness and database seeding workflow.
 
 ```bash
 cd api && yarn dev

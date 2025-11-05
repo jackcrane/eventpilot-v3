@@ -1,0 +1,172 @@
+name: E2E Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+      pull-requests: write
+    timeout-minutes: 60
+    env:
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+      POSTMARK_API_TOKEN: ${{ secrets.POSTMARK_API_TOKEN }}
+      JWT_SECRET: e2e
+      AWS_ACCESS_KEY_ID: DO80176TUYT8GPJMLJLG
+      AWS_SECRET_ACCESS_KEY: hbimc104MTHD4he5bOaooFpez+vP+qvts3/NH5O7saA
+      AWS_REGION: nyc3
+      AWS_BUCKET: jack-general
+      AWS_ENDPOINT: http://host.docker.internal:9000
+      PROJECT_NAME: eventpilot-v3
+      OTEL_ENABLED: "false"
+      STRIPE_PK: ${{ secrets.STRIPE_PK_E2E }}
+      STRIPE_SK: ${{ secrets.STRIPE_SK_E2E }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio \
+            -p 9000:9000 \
+            -p 9001:9001 \
+            -e MINIO_ROOT_USER="${AWS_ACCESS_KEY_ID}" \
+            -e MINIO_ROOT_PASSWORD="${AWS_SECRET_ACCESS_KEY}" \
+            minio/minio:RELEASE.2024-03-21T23-13-43Z \
+            server /data --console-address ":9001"
+
+      - name: Wait for MinIO readiness
+        run: |
+          for i in {1..30}; do
+            if curl -sSf http://127.0.0.1:9000/minio/health/ready >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MinIO failed to become ready" >&2
+          exit 1
+
+      - name: Create MinIO bucket
+        run: |
+          docker run --rm --network host \
+            -e MC_HOST_minio="http://${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}@127.0.0.1:9000" \
+            minio/mc:latest \
+            mb --ignore-existing minio/${AWS_BUCKET}
+
+      - name: Prepare artifact directories
+        run: |
+          mkdir -p e2e/artifacts
+          mkdir -p e2e/cypress/screenshots
+          mkdir -p e2e/cypress/videos
+
+      - name: 🏎️ Run E2E test suite
+        id: run-e2e
+        run: ./run-e2e.sh
+        continue-on-error: true
+
+      - name: Teardown docker services
+        if: always()
+        run: docker compose -f e2e/docker-compose.yml down -v
+
+      - name: Stop MinIO
+        if: always()
+        run: docker rm -f minio
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts
+          path: |
+            e2e/artifacts
+            e2e/cypress/screenshots
+            e2e/cypress/videos
+          if-no-files-found: ignore
+
+      - name: Comment with artifact links
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        env:
+          TEST_OUTCOME: ${{ steps.run-e2e.outcome }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const runId = context.runId;
+            const outcome = process.env.TEST_OUTCOME;
+            const outcomeText = {
+              success: 'succeeded',
+              failure: 'failed',
+              cancelled: 'was cancelled',
+              skipped: 'was skipped',
+            }[outcome] ?? `finished with status "${outcome ?? 'unknown'}"`;
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+
+            const { data: artifacts } = await github.rest.actions.listWorkflowRunArtifacts({
+              owner,
+              repo,
+              run_id: runId,
+              per_page: 100,
+            });
+
+            if (!artifacts.total_count) {
+              core.info('No artifacts found, skipping comment.');
+              return;
+            }
+
+            const artifactLines = artifacts.artifacts
+              .map((artifact) => {
+                const url = `https://github.com/${owner}/${repo}/actions/runs/${runId}/artifacts/${artifact.id}`;
+                return `- [${artifact.name}](${url})`;
+              })
+              .join('\n');
+
+            const body = [
+              '### E2E Test Artifacts',
+              `Workflow [run #${runId}](${runUrl}) ${outcomeText}.`,
+              '',
+              'Artifacts:',
+              artifactLines,
+            ].join('\n');
+
+            const marker = '### E2E Test Artifacts';
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+
+            const existing = comments.find((comment) => comment.body && comment.body.startsWith(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail workflow if tests failed
+        if: steps.run-e2e.outcome == 'failure'
+        run: exit 1
