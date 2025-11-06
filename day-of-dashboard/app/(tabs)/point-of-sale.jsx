@@ -14,8 +14,11 @@ import { useDayOfSessionContext } from "../../contexts/DayOfSessionContext";
 import { useTapToPay } from "../../hooks/useTapToPay";
 import PaymentResultModal from "../../components/pos/PaymentResultModal";
 import PosKeypad from "../../components/pos/PosKeypad";
+import { IconSymbol } from "../../components/ui/icon-symbol";
 
-const PrimaryButton = ({ label, onPress, disabled }) => (
+const TAP_TO_PAY_MARKETING_COPY_ENABLED = false;
+
+const PrimaryButton = ({ label, onPress, disabled, icon }) => (
   <Pressable
     onPress={onPress}
     disabled={disabled}
@@ -25,16 +28,29 @@ const PrimaryButton = ({ label, onPress, disabled }) => (
       pressed && !disabled ? styles.primaryButtonPressed : null,
     ]}
   >
-    <Text
-      style={[
-        styles.primaryButtonLabel,
-        disabled
-          ? styles.primaryButtonLabelDisabled
-          : styles.primaryButtonLabelEnabled,
-      ]}
-    >
-      {label}
-    </Text>
+    <View style={styles.primaryButtonContent}>
+      {icon ? (
+        <IconSymbol
+          name={icon}
+          size={26}
+          color={
+            disabled ? DayOfColors.light.tertiary : DayOfColors.common.white
+          }
+          style={styles.primaryButtonIcon}
+          weight="bold"
+        />
+      ) : null}
+      <Text
+        style={[
+          styles.primaryButtonLabel,
+          disabled
+            ? styles.primaryButtonLabelDisabled
+            : styles.primaryButtonLabelEnabled,
+        ]}
+      >
+        {label}
+      </Text>
+    </View>
   </Pressable>
 );
 
@@ -169,12 +185,7 @@ const PointOfSaleScreen = () => {
     console.log("[POS][view] handleCollectPayment declined", {
       declineReason,
     });
-  }, [
-    amountInCents,
-    merchantDisplayName,
-    resetError,
-    takePayment,
-  ]);
+  }, [amountInCents, merchantDisplayName, resetError, takePayment]);
 
   const handleDismissTransactionModal = useCallback(() => {
     setTransactionModal(null);
@@ -446,7 +457,14 @@ const PointOfSaleScreen = () => {
         <View style={styles.bottomSection}>
           <PosKeypad onKeyPress={handleKeyPress} />
           <PrimaryButton
-            label={collectLabel}
+            label={
+              TAP_TO_PAY_MARKETING_COPY_ENABLED
+                ? "Tap to Pay on iPhone"
+                : collectLabel
+            }
+            icon={
+              TAP_TO_PAY_MARKETING_COPY_ENABLED ? "wave.3.right.circle" : null
+            }
             disabled={!readyToCollect}
             onPress={handleCollectPayment}
           />
@@ -548,6 +566,14 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingVertical: 18,
     alignItems: "center",
+  },
+  primaryButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  primaryButtonIcon: {
+    marginBottom: 2,
   },
   primaryButtonEnabled: {
     backgroundColor: DayOfColors.light.primary,
