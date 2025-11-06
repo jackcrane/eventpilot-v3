@@ -1,5 +1,5 @@
 import useSWRMutation from "swr/mutation";
-import { mutate } from "swr";
+import { useSWRConfig } from "swr";
 import toast from "react-hot-toast";
 import { authFetch } from "../util/url";
 
@@ -7,6 +7,7 @@ import { authFetch } from "../util/url";
 // Args: { eventId }
 // Trigger args: { to (string|string[]), cc?, bcc?, subject?, text? | html?, fileIds? }
 export const useConversationCompose = ({ eventId } = {}) => {
+  const { mutate } = useSWRConfig();
   const key = eventId ? `/api/events/${eventId}/conversations/v2/threads` : null;
 
   const { trigger, isMutating, error, data, reset } = useSWRMutation(
@@ -57,4 +58,3 @@ export const useConversationCompose = ({ eventId } = {}) => {
     reset,
   };
 };
-

@@ -1,46 +1,60 @@
 // useLocations.js
-import useSWR from "swr";
-import { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
+const locationsListKey = (eventId) => `/api/events/${eventId}/locations`;
+const locationDetailKey = (eventId, locationId, includeShifts = false) =>
+  `/api/events/${eventId}/locations/${locationId}${
+    includeShifts ? "?includeShifts=true" : ""
+  }`;
+const locationNamespace = (eventId) => `/api/events/${eventId}/locations`;
+
+// ✅ Revalidate everything under /locations (including the list and details)
+//    Uses BOUND mutate (same cache as useSWR)
+const revalidateLocations = async (eventId, boundMutate) => {
+  await boundMutate((key) => {
+    // Optional debug: list current key being checked
+    // console.log("revalidateLocations checking:", key);
+    if (typeof key !== "string") return false;
+    // startsWith handles BOTH the list key and any subpaths/queries
+    return key.startsWith(locationNamespace(eventId));
+  });
+};
+
 export const useLocations = ({ eventId }) => {
+  const { mutate: boundMutate, cache } = useSWRConfig(); // <-- key change
   const {
     data,
     error,
     isLoading,
     mutate: refetchList,
-  } = useSWR(`/api/events/${eventId}/locations`, fetcher);
+  } = useSWR(locationsListKey(eventId), fetcher);
+
+  // Optional: see which keys exist in THIS cache
+  // for (const k of cache.keys()) console.log("SWR cache key:", k);
 
   const createLocation = async (body) => {
     try {
-      // fire the request and get back the new location object
       const promise = authFetch(`/api/events/${eventId}/locations`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       }).then((r) => {
         if (!r.ok) throw new Error("Request failed");
         return r.json();
       });
+
       const newLocation = await toast.promise(promise, {
         loading: "Creating location…",
         success: "Location created",
         error: "Error creating location",
       });
 
-      // revalidate the list
-      refetchList();
-
-      // revalidate the single‐location cache that useLocation will be using
-      mutate(
-        `/api/events/${eventId}/locations/${newLocation.id}${
-          newLocation.includeShifts ? "?includeShifts=true" : ""
-        }`
-      );
-
-      return true;
+      await revalidateLocations(eventId, boundMutate);
+      return newLocation;
     } catch {
       return false;
     }
@@ -52,26 +66,22 @@ export const useLocations = ({ eventId }) => {
         `/api/events/${eventId}/locations/${locationId}`,
         {
           method: "PUT",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         }
       ).then((r) => {
         if (!r.ok) throw new Error("Request failed");
         return r.json();
       });
-      await toast.promise(promise, {
+
+      const { location: updatedLocation } = await toast.promise(promise, {
         loading: "Updating location…",
         success: "Location updated",
         error: "Error updating location",
       });
 
-      // revalidate both list and detail
-      refetchList();
-      mutate(`/api/events/${eventId}/locations/${locationId}`);
-      mutate(
-        `/api/events/${eventId}/locations/${locationId}?includeShifts=true`
-      );
-
-      return true;
+      await revalidateLocations(eventId, boundMutate);
+      return updatedLocation ?? true;
     } catch {
       return false;
     }
@@ -86,17 +96,14 @@ export const useLocations = ({ eventId }) => {
         if (!r.ok) throw new Error("Request failed");
         return true;
       });
+
       await toast.promise(promise, {
         loading: "Deleting location…",
         success: "Deleted",
         error: "Error deleting",
       });
 
-      refetchList();
-      // flush the detail cache
-      mutate(`/api/events/${eventId}/locations/${locationId}`);
-      mutate(`/api/events/${eventId}/locations`);
-
+      await revalidateLocations(eventId, boundMutate);
       return true;
     } catch {
       return false;
@@ -111,5 +118,7 @@ export const useLocations = ({ eventId }) => {
     loading: isLoading,
     error,
     refetch: refetchList,
+    locationsListKey,
+    locationDetailKey,
   };
 };

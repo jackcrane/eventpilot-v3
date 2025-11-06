@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
 import { authFetch } from "../util/url";
@@ -27,6 +27,7 @@ export const useMailingLists = ({
   includeDeleted,
   crmPersonIds,
 } = {}) => {
+  const { mutate: boundMutate } = useSWRConfig();
   let key = null;
 
   if (eventId) {
@@ -81,7 +82,7 @@ export const useMailingLists = ({
 
       await refetch();
       if (mailingList?.id) {
-        await mutate(`/api/events/${eventId}/mailing-lists/${mailingList.id}`);
+        await boundMutate(`/api/events/${eventId}/mailing-lists/${mailingList.id}`);
       }
 
       return mailingList ?? null;
@@ -115,7 +116,7 @@ export const useMailingLists = ({
       });
 
       await refetch();
-      await mutate(listUrl);
+      await boundMutate(listUrl);
 
       return true;
     } catch (e) {
@@ -143,7 +144,7 @@ export const useMailingLists = ({
       });
 
       await refetch();
-      await mutate(listUrl);
+      await boundMutate(listUrl);
 
       return true;
     } catch (e) {

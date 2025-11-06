@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { useConfirm } from "tabler-react-2";
@@ -7,6 +7,7 @@ const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useCrmPerson = ({ eventId, personId }) => {
   const key = `/api/events/${eventId}/crm/person/${personId}`;
+  const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(key, fetcher);
   const [mutationLoading, setMutationLoading] = useState(false);
   const { confirm, ConfirmModal } = useConfirm({

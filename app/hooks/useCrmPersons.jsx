@@ -1,4 +1,4 @@
-import useSWR, { mutate as globalMutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
@@ -26,6 +26,7 @@ export const useCrmPersons = ({ eventId, page, size, orderBy, order, q, filters 
     keepPreviousData: true,
     revalidateOnFocus: false,
   });
+  const { mutate: boundMutate } = useSWRConfig();
   const [mutationLoading, setMutationLoading] = useState(false);
 
   // state for trimmed imports
@@ -85,7 +86,7 @@ export const useCrmPersons = ({ eventId, page, size, orderBy, order, q, filters 
 
       // Revalidate current page and any cached pages for this list
       await mutate();
-      await globalMutate((k) => typeof k === "string" && k.startsWith(baseKey));
+      await boundMutate((k) => typeof k === "string" && k.startsWith(baseKey));
       return true;
     } catch {
       return false;

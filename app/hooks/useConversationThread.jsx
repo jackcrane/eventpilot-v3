@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import useSWRMutation from "swr/mutation";
 import toast from "react-hot-toast";
 import { useConfirm } from "tabler-react-2";
@@ -13,6 +13,7 @@ export const useConversationThread = ({ eventId, threadId } = {}) => {
     eventId && threadId
       ? `/api/events/${eventId}/conversations/v2/threads/${threadId}`
       : null;
+  const { mutate } = useSWRConfig();
 
   // Read (detail)
   const { data, error, isLoading } = useSWR(key, fetcher);

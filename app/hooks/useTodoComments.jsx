@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 
@@ -8,6 +8,7 @@ export const useTodoComments = ({ eventId, todoId }) => {
   const key = eventId && todoId ? `/api/events/${eventId}/todos/${todoId}/comments` : null;
   const todoKey = eventId && todoId ? `/api/events/${eventId}/todos/${todoId}` : null;
   const listKey = eventId ? `/api/events/${eventId}/todos` : null;
+  const { mutate: boundMutate } = useSWRConfig();
 
   const { data, error, isLoading, mutate: refetch } = useSWR(key, fetcher);
 
@@ -30,8 +31,8 @@ export const useTodoComments = ({ eventId, todoId }) => {
       });
 
       await refetch();
-      if (todoKey) await mutate(todoKey);
-      if (listKey) await mutate(listKey);
+      if (todoKey) await boundMutate(todoKey);
+      if (listKey) await boundMutate(listKey);
       return true;
     } catch (e) {
       return false;

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import useSWRSubscription from "swr/subscription";
-import { mutate } from "swr";
+import { useSWRConfig } from "swr";
 import toast from "react-hot-toast";
 import { u } from "../util/url";
 import { Row } from "../util/Flex";
@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 // - Triggers revalidation for conversation list/detail keys on each event
 // - Optionally invokes onEmail(payload)
 export const useConversationEvents = ({ eventId, onEmail } = {}) => {
+  const { mutate } = useSWRConfig();
   const lastIdRef = useRef(null);
 
   const key = eventId ? `/api/events/${eventId}/conversations/v2/stream` : null;

@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -20,6 +20,7 @@ const fetchSchema = async ([url]) => {
 export const useInstance = ({ eventId, instanceId }) => {
   const skip = instanceId === "eventpilot__create";
   const key = skip ? null : `/api/events/${eventId}/instances/${instanceId}`;
+  const { mutate: boundMutate } = useSWRConfig();
 
   const { data, error, isLoading } = useSWR(key, fetcher);
   const { data: schema, isLoading: schemaLoading } = useSWR(
@@ -63,10 +64,10 @@ export const useInstance = ({ eventId, instanceId }) => {
         error: "Error",
       });
 
-      await mutate(key);
-      await mutate(`/api/events/${eventId}/instances`);
+      await boundMutate(key);
+      await boundMutate(`/api/events/${eventId}/instances`);
       // Invalidate all event-scoped keys to refresh dependent data
-      await mutate(
+      await boundMutate(
         (k) => typeof k === "string" && k.includes(`/api/events/${eventId}`),
         undefined,
         { revalidate: true }
@@ -97,12 +98,12 @@ export const useInstance = ({ eventId, instanceId }) => {
           error: "Error deleting",
         });
 
-        await mutate(key);
+        await boundMutate(key);
         // Invalidate instances list so deleted instance disappears everywhere
-        if (eventId) await mutate(`/api/events/${eventId}/instances`);
+        if (eventId) await boundMutate(`/api/events/${eventId}/instances`);
         // Also refresh all event-scoped keys across the app
         if (eventId)
-          await mutate(
+          await boundMutate(
             (k) => typeof k === "string" && k.includes(`/api/events/${eventId}`),
             undefined,
             { revalidate: true }
@@ -122,7 +123,7 @@ export const useInstance = ({ eventId, instanceId }) => {
     loading: skip ? false : isLoading,
     mutationLoading,
     error,
-    refetch: () => (skip ? null : mutate(key)),
+    refetch: () => (skip ? null : boundMutate(key)),
     schema,
     schemaLoading,
     validationError,

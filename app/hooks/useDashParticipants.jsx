@@ -1,10 +1,11 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useDashParticipants = ({ eventId }) => {
   const key = eventId ? `/api/events/${eventId}/dash/participants` : null;
+  const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(key, fetcher, {
     refreshInterval: 5000,
   });

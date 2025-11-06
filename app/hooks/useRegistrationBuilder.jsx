@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
@@ -18,6 +18,7 @@ const fetchSchema = async ([url]) => {
 
 export const useRegistrationBuilder = ({ eventId }) => {
   const key = `/api/events/${eventId}/registration/builder`;
+  const { mutate } = useSWRConfig();
 
   const { data, error, isLoading } = useSWR(key, fetcher);
   const { data: schema, loading: schemaLoading } = useSWR(

@@ -1,5 +1,5 @@
 import useSWRMutation from "swr/mutation";
-import { mutate } from "swr";
+import { useSWRConfig } from "swr";
 import toast from "react-hot-toast";
 import { authFetch, authFetchWithoutContentType } from "../util/url";
 
@@ -7,6 +7,7 @@ import { authFetch, authFetchWithoutContentType } from "../util/url";
 // Args: { eventId, threadId }
 // Reply args for trigger: { text?, html?, subject?, to?, cc?, bcc? }
 export const useConversationReply = ({ eventId, threadId } = {}) => {
+  const { mutate } = useSWRConfig();
   const key = eventId && threadId
     ? `/api/events/${eventId}/conversations/v2/threads/${threadId}`
     : null;

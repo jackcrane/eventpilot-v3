@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 
@@ -6,6 +6,7 @@ const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useUserProgress = () => {
   const key = `/api/auth/me/dash`;
+  const { mutate } = useSWRConfig();
 
   const { data, error, isLoading } = useSWR(key, fetcher);
 

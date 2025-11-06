@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
@@ -9,6 +9,7 @@ export const useCrmPersonInvolvement = ({ eventId, personId }) => {
   const key = personId
     ? `/api/events/${eventId}/crm/person/${personId}/involvement`
     : null;
+  const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(key, fetcher);
 
   return {
@@ -18,4 +19,3 @@ export const useCrmPersonInvolvement = ({ eventId, personId }) => {
     refetch: () => (key ? mutate(key) : undefined),
   };
 };
-
