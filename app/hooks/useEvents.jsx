@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { Input, Typography, Button, useModal, Badge } from "tabler-react-2";

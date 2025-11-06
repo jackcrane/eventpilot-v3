@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
 import { authFetch } from "../util/url";
@@ -23,6 +23,7 @@ const parseResponse = async (res) => {
 };
 
 export const useMailingList = ({ eventId, mailingListId } = {}) => {
+  const { mutate: boundMutate } = useSWRConfig();
   const key =
     eventId && mailingListId
       ? `/api/events/${eventId}/mailing-lists/${mailingListId}`
@@ -63,7 +64,7 @@ export const useMailingList = ({ eventId, mailingListId } = {}) => {
       });
 
       await refetch();
-      if (listCollectionKey) await mutate(listCollectionKey);
+      if (listCollectionKey) await boundMutate(listCollectionKey);
       return true;
     } catch (e) {
       return false;
@@ -102,8 +103,8 @@ export const useMailingList = ({ eventId, mailingListId } = {}) => {
         error: (e) => e?.message || "Error deleting mailing list",
       });
 
-      if (listCollectionKey) await mutate(listCollectionKey);
-      if (key) await mutate(key, null, false);
+      if (listCollectionKey) await boundMutate(listCollectionKey);
+      if (key) await boundMutate(key, null, false);
       return true;
     } catch (e) {
       return false;

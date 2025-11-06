@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import { useState } from "react";
 
@@ -7,6 +7,7 @@ export const useVolunteerRegistrationFormV2 = ({ eventId }) => {
   const key = eventId ? `/api/events/${eventId}/builder` : null;
 
   const fetcher = (url) => authFetch(url).then((r) => r.json());
+  const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(key, fetcher);
   const [mutationLoading, setMutationLoading] = useState(false);
 

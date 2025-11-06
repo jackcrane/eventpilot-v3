@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR from "swr";
 import { authFetch } from "../util/url";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());

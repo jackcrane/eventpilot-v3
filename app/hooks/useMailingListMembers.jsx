@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
 import { authFetch } from "../util/url";
@@ -41,6 +41,7 @@ export const useMailingListMembers = (
     filters,
   } = {}
 ) => {
+  const { mutate: boundMutate } = useSWRConfig();
   const key =
     eventId && mailingListId
       ? `/api/events/${eventId}/mailing-lists/${mailingListId}`
@@ -131,7 +132,7 @@ export const useMailingListMembers = (
         mutateSummary?.(),
         mutateMembers?.(),
       ]);
-      if (listCollectionKey) await mutate(listCollectionKey);
+      if (listCollectionKey) await boundMutate(listCollectionKey);
       return result;
     };
 

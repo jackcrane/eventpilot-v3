@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -19,6 +19,7 @@ const fetchSchema = async ([url]) => {
 export const useRegistrationTeam = ({ eventId, teamId }) => {
   const key = `/api/events/${eventId}/registration/team/${teamId}`;
   const listKey = `/api/events/${eventId}/registration/team`;
+  const { mutate } = useSWRConfig();
 
   const { data, error, isLoading } = useSWR(key, fetcher);
   const { data: schema, loading: schemaLoading } = useSWR(

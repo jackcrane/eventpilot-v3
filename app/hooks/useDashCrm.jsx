@@ -1,10 +1,11 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useDashCrm = ({ eventId }) => {
   const key = eventId ? `/api/events/${eventId}/dash/crm` : null;
+  const { mutate } = useSWRConfig();
   const { data, error, isLoading } = useSWR(key, fetcher);
 
   return {
@@ -14,4 +15,3 @@ export const useDashCrm = ({ eventId }) => {
     refetch: () => (key ? mutate(key) : undefined),
   };
 };
-

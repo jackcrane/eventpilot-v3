@@ -1,4 +1,4 @@
-import useSWR, { mutate } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -8,6 +8,7 @@ const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useEvent = ({ eventId, refreshInterval = 0 }) => {
   const key = `/api/events/${eventId}`;
+  const { mutate: boundMutate } = useSWRConfig();
   const [mutationLoading, setMutationLoading] = useState(false);
   const { confirm, ConfirmModal } = useConfirm({
     title: "Are you sure you want to delete this event?",
@@ -40,7 +41,7 @@ export const useEvent = ({ eventId, refreshInterval = 0 }) => {
         error: "Error",
       });
 
-      await mutate(key); // Invalidate and refetch
+      await boundMutate(key); // Invalidate and refetch
       return true;
     } catch {
       return false;
@@ -65,7 +66,7 @@ export const useEvent = ({ eventId, refreshInterval = 0 }) => {
           error: "Error deleting",
         });
 
-        await mutate(key); // Invalidate and refetch
+        await boundMutate(key); // Invalidate and refetch
         if (onDelete) onDelete();
         return true;
       } catch {
