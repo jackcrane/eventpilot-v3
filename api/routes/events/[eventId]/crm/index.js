@@ -13,6 +13,12 @@ export const get = [
   async (req, res) => {
     const eventId = req.params.eventId;
 
+    const includePersonsRaw = req.query.includePersons;
+    const includePersons =
+      includePersonsRaw === "true" ||
+      includePersonsRaw === "1" ||
+      includePersonsRaw === "yes";
+
     try {
       const crmFields = await prisma.crmField.findMany({
         where: {
@@ -21,28 +27,31 @@ export const get = [
         },
       });
 
-      let crmPersons = await prisma.crmPerson.findMany({
-        where: {
-          eventId,
-          deleted: req.query.includeDeleted ? undefined : false,
-        },
-        include: {
-          emails: {
-            where: { deleted: req.query.includeDeleted ? undefined : false },
+      let crmPersons;
+      if (includePersons) {
+        const persons = await prisma.crmPerson.findMany({
+          where: {
+            eventId,
+            deleted: req.query.includeDeleted ? undefined : false,
           },
-          phones: true,
-          fieldValues: true,
-        },
-      });
+          include: {
+            emails: {
+              where: { deleted: req.query.includeDeleted ? undefined : false },
+            },
+            phones: true,
+            fieldValues: true,
+          },
+        });
 
-      crmPersons = crmPersons.map((person) => ({
-        ...person,
-        fields: collapseCrmValues(person.fieldValues),
-      }));
+        crmPersons = persons.map((person) => ({
+          ...person,
+          fields: collapseCrmValues(person.fieldValues),
+        }));
+      }
 
       res.json({
         crmFields,
-        crmPersons,
+        ...(includePersons ? { crmPersons } : {}),
       });
     } catch (error) {
       console.error("Error in GET /event/:eventId/crm:", error);

@@ -14,7 +14,6 @@ import { CrmHeaderActions } from "./CrmHeaderActions";
 import { CrmFilterBar } from "./CrmFilterBar";
 import { CrmImportProgressAlerts } from "./CrmImportProgressAlerts";
 import { CrmPersonsTable } from "./CrmPersonsTable";
-import { useCrm } from "../../hooks/useCrm";
 import { useCrmFields } from "../../hooks/useCrmFields";
 import { useCrmSavedSegments } from "../../hooks/useCrmSavedSegments";
 import {
@@ -97,7 +96,6 @@ const AiMailingListCreateContent = ({ defaultTitle, onCreate, onCancel }) => {
 export const EventCrmPage = ({ eventId }) => {
   const navigate = useNavigate();
 
-  const crm = useCrm({ eventId });
   const offcanvasState = useOffcanvas({
     offcanvasProps: { position: "end", size: 500, zIndex: 1051 },
   });
@@ -112,7 +110,7 @@ export const EventCrmPage = ({ eventId }) => {
     useCrmStoredFilters();
 
   const manualFilters = useCrmManualFilters({
-    crmFields: crm.crmFields,
+    crmFields: fieldsModal.crmFields,
     storedFilters,
     setStoredFilters,
   });
@@ -228,9 +226,9 @@ export const EventCrmPage = ({ eventId }) => {
 
   const [hasInitialLoaded, setHasInitialLoaded] = useState(false);
   const busy =
-    crm.loading ||
+    fieldsModal.loading ||
     personsQuery.loading ||
-    crm.validating ||
+    fieldsModal.validating ||
     personsQuery.validating ||
     (aiState.usingAi && segmentLoading);
 
@@ -240,10 +238,14 @@ export const EventCrmPage = ({ eventId }) => {
   }, [eventId]);
 
   useEffect(() => {
-    if (!hasInitialLoaded && !crm.loading && !personsQuery.loading) {
+    if (
+      !hasInitialLoaded &&
+      !fieldsModal.loading &&
+      !personsQuery.loading
+    ) {
       setHasInitialLoaded(true);
     }
-  }, [hasInitialLoaded, crm.loading, personsQuery.loading]);
+  }, [hasInitialLoaded, fieldsModal.loading, personsQuery.loading]);
 
   const basePersons = aiState.usingAi
     ? aiState.aiResults?.crmPersons
@@ -282,7 +284,7 @@ export const EventCrmPage = ({ eventId }) => {
 
   const columnConfig = useCrmColumnConfig({
     eventId,
-    crmFields: crm.crmFields,
+    crmFields: fieldsModal.crmFields,
     onViewPerson,
     participantFieldLabels,
     volunteerFieldLabels,
@@ -544,9 +546,7 @@ export const EventCrmPage = ({ eventId }) => {
   }, [page, logPagination]);
 
   const hasCrmData =
-    typeof crm.crmFields !== "undefined" ||
-    typeof crm.crmPersons !== "undefined" ||
-    Boolean(crm.error);
+    typeof fieldsModal.crmFields !== "undefined" || Boolean(fieldsModal.error);
 
   const hasPersonsData = aiState.usingAi
     ? typeof aiState.aiResults?.crmPersons !== "undefined" ||

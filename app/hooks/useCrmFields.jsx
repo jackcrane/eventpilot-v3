@@ -14,8 +14,7 @@ const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useCrmFields = ({ eventId }) => {
   const key = `/api/events/${eventId}/crm/fields`;
-  const { mutate } = useSWRConfig();
-  const { data, error, isLoading } = useSWR(key, fetcher);
+  const { data, error, isLoading, isValidating } = useSWR(key, fetcher);
   const [mutationLoading, setMutationLoading] = useState(false);
 
   const {
@@ -85,6 +84,7 @@ export const useCrmFields = ({ eventId }) => {
   return {
     crmFields: data?.crmFields,
     loading: isLoading,
+    validating: isValidating,
     mutationLoading,
     error,
     createCrmFieldModal,
