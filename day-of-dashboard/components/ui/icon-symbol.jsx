@@ -13,6 +13,7 @@ const MAPPING = {
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'arrow.down': 'arrow-downward',
+  'wave.3.right.circle': 'wifi',
 };
 
 /**

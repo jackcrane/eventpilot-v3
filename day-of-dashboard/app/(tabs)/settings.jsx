@@ -27,6 +27,8 @@ export const SettingsScreen = () => {
     lastError,
     tapToPaySupported,
     defaultLocationId,
+    tapToPayDiscoveryAvailable,
+    showTapToPayDiscovery,
   } = useTapToPay();
 
   const tapToPayStatus = useMemo(() => {
@@ -72,6 +74,24 @@ export const SettingsScreen = () => {
       "Unable to initialize Tap to Pay. Try again.";
     Alert.alert("Initialization failed", message);
   }, [initializeTerminal]);
+
+  const handleShowTapToPayHelp = useCallback(async () => {
+    try {
+      const success = await showTapToPayDiscovery();
+      if (!success) {
+        Alert.alert(
+          "Unable to show help",
+          "Tap to Pay guidance is not available on this device."
+        );
+      }
+    } catch (error) {
+      Alert.alert(
+        "Unable to show help",
+        error?.message ||
+          "Tap to Pay guidance is not available on this device."
+      );
+    }
+  }, [showTapToPayDiscovery]);
 
   const permissionDetails = useMemo(() => {
     return permissions.map((value) => {
@@ -214,6 +234,17 @@ export const SettingsScreen = () => {
             <Text style={styles.helperText}>
               Assign a Stripe Terminal location to finish setup.
             </Text>
+          ) : null}
+
+          {tapToPayDiscoveryAvailable ? (
+            <TouchableOpacity
+              onPress={handleShowTapToPayHelp}
+              style={styles.discoveryButton}
+            >
+              <Text style={styles.discoveryButtonText}>
+                How Tap to Pay works
+              </Text>
+            </TouchableOpacity>
           ) : null}
         </View>
 
@@ -373,5 +404,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     color: DayOfColors.light.secondary,
+  },
+  discoveryButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: DayOfColors.light.primary,
+    alignItems: "center",
+  },
+  discoveryButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: DayOfColors.light.primary,
   },
 });
