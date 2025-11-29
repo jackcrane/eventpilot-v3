@@ -15,10 +15,11 @@ export const UniversalSearch = ({
   eventId,
   onResultSelected,
   placeholder = "Search anything across your event…",
-  minChars = 2,
+  minChars = 3,
 }) => {
   const containerRef = useRef(null);
   const inputRef = useRef(null);
+  const optionRefs = useRef([]);
   const listboxId = useId();
 
   const [query, setQuery] = useState("");
@@ -70,10 +71,20 @@ export const UniversalSearch = ({
     eventId,
     query: debouncedQuery.length >= minChars ? debouncedQuery : "",
   });
+  const visibleResults = useMemo(() => results.slice(0, 15), [results]);
 
   useEffect(() => {
-    setActiveIndex(results.length ? 0 : -1);
-  }, [results.length, debouncedQuery]);
+    setActiveIndex(visibleResults.length ? 0 : -1);
+    optionRefs.current = [];
+  }, [visibleResults.length, debouncedQuery]);
+
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    const node = optionRefs.current[activeIndex];
+    if (node && typeof node.scrollIntoView === "function") {
+      node.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeIndex]);
 
   const showResults = useMemo(() => isActive, [isActive]);
 
@@ -86,22 +97,22 @@ export const UniversalSearch = ({
   const handleKeyDown = (event) => {
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      if (!results.length) return;
+      if (!visibleResults.length) return;
       setActiveIndex((prev) => {
-        const next = Math.min(prev + 1, results.length - 1);
+        const next = Math.min(prev + 1, visibleResults.length - 1);
         return next;
       });
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      if (!results.length) return;
+      if (!visibleResults.length) return;
       setActiveIndex((prev) => {
         const next = Math.max(prev - 1, 0);
         return next;
       });
     } else if (event.key === "Enter") {
-      if (activeIndex >= 0 && results[activeIndex]) {
+      if (activeIndex >= 0 && visibleResults[activeIndex]) {
         event.preventDefault();
-        handleSelect(results[activeIndex]);
+        handleSelect(visibleResults[activeIndex]);
       }
     } else if (event.key === "Escape") {
       setIsActive(false);
@@ -150,20 +161,39 @@ export const UniversalSearch = ({
           aria-activedescendant={activeOptionId}
         >
           {loading && (
-            <div className="card-body text-muted small" role="status">
-              Searching…
+            <div className={styles.emptyState} role="status">
+              <div className={styles.emptyTitle}>Searching…</div>
+              <div className={styles.emptyDescription}>
+                We’re looking across CRM, teams, registrations, and more.
+              </div>
             </div>
           )}
-          {!loading && results.length === 0 && (
-            <div className="card-body text-muted small" role="status">
-              {debouncedQuery.length >= minChars
-                ? `No results for “${debouncedQuery}”.`
-                : "Start typing to search across your event."}
+          {!loading && trimmedQuery.length < minChars && (
+            <div className={styles.emptyState} role="status">
+              <div className={styles.emptyTitle}>
+                Enter at least {minChars} characters
+              </div>
+              <div className={styles.emptyDescription}>
+                Try searching by name, email, team code, or anything else
+                you track for this event.
+              </div>
             </div>
           )}
-          {!loading && results.length > 0 && (
+          {!loading &&
+            trimmedQuery.length >= minChars &&
+            results.length === 0 && (
+              <div className={styles.emptyState} role="status">
+                <div className={styles.emptyTitle}>
+                  No results for “{debouncedQuery}”
+                </div>
+                <div className={styles.emptyDescription}>
+                  Refine your search or try a different keyword.
+                </div>
+              </div>
+            )}
+          {!loading && trimmedQuery.length >= minChars && visibleResults.length > 0 && (
             <div className={`list-group list-group-flush ${styles.resultsScroll}`}>
-              {results.map((result, index) => {
+              {visibleResults.map((result, index) => {
                 return (
                   <button
                     key={`${result.resourceType}-${result.resourceId}`}
@@ -175,6 +205,9 @@ export const UniversalSearch = ({
                     role="option"
                     aria-selected={index === activeIndex}
                     id={`${listboxId}-option-${index}`}
+                    ref={(node) => {
+                      optionRefs.current[index] = node;
+                    }}
                   >
                     <div className="d-flex justify-content-between align-items-center">
                       <span className="fw-semibold">
@@ -197,6 +230,11 @@ export const UniversalSearch = ({
                   </button>
                 );
               })}
+              {results.length > visibleResults.length && (
+                <div className="list-group-item text-muted small text-center">
+                  To view more results, refine your search.
+                </div>
+              )}
             </div>
           )}
         </div>

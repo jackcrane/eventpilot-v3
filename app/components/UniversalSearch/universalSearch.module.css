@@ -26,6 +26,22 @@
   padding: 0.5rem 0.75rem;
 }
 
+.emptyState {
+  padding: 1.25rem 1.5rem;
+  text-align: center;
+}
+
+.emptyTitle {
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--tblr-heading-color, rgba(15, 23, 42, 0.9));
+}
+
+.emptyDescription {
+  font-size: 0.85rem;
+  color: var(--tblr-muted, rgba(15, 23, 42, 0.7));
+}
+
 @media (max-width: 768px) {
   .shortcut {
     display: none;
