@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import styles from "./Header.module.css";
 import { Dropdown } from "tabler-react-2/dist/dropdown";
@@ -7,25 +7,34 @@ import { Icon } from "../../util/Icon";
 const IconLogout = () => <Icon i={"logout"} size={18} />;
 const IconLogin2 = () => <Icon i={"login-2"} size={18} />;
 const IconSettings = () => <Icon i={"settings"} size={18} />;
-import logo from "../../assets/logotype.svg";
 import icon from "../../assets/ico.png";
-import { Link, useLocation, useMatches, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { EventPicker } from "../eventPicker/EventPicker";
 import { useParsedUrl } from "../../hooks/useParsedUrl";
-import { StripeTrigger } from "../stripe/Stripe";
 import { HideWhenSmaller, ShowWhenSmaller } from "../media/Media";
 import toast from "react-hot-toast";
 import { InstancePicker } from "../InstancePicker/InstancePicker";
 import { Row } from "../../util/Flex";
+import { UniversalSearch } from "../UniversalSearch/UniversalSearch";
 
 export const Header = ({
   setMobileNavOpen,
   mobileNavOpen,
   showPicker = true,
 }) => {
-  const { user, loggedIn, login, logout, resendVerificationEmail } = useAuth();
-  const { navigate } = useNavigate();
+  const { user, loggedIn, logout, resendVerificationEmail } = useAuth();
   const url = useParsedUrl(window.location.pathname);
+
+  const currentEventId = useMemo(() => {
+    if (!url?.events) return null;
+    if (typeof url.events === "string") {
+      return url.events;
+    }
+    if (Array.isArray(url.events)) {
+      return url.events[0] ?? null;
+    }
+    return null;
+  }, [url?.events]);
 
   return (
     <>
@@ -58,47 +67,59 @@ export const Header = ({
             <Breadcrumbs showPicker={showPicker} />
           </HideWhenSmaller>
         </div>
-        <Dropdown
-          prompt={loggedIn ? user?.name : "Account"}
-          items={
-            loggedIn
-              ? [
-                  {
-                    text: "Account Settings",
-                    href: "/me",
-                    type: "item",
-                    icon: <IconSettings />,
-                  },
-                  import.meta.env.MODE === "development" && {
-                    text: "Copy token",
-                    onclick: () => {
-                      const token = localStorage.getItem("token");
-                      navigator.clipboard.writeText(token);
-                      toast.success("Copied to clipboard");
+        <div className={styles.headerActions}>
+          {currentEventId && (
+            <div className={styles.headerSearch}>
+              <UniversalSearch
+                eventId={currentEventId}
+                onResultSelected={(result) =>
+                  console.debug("Search result selected", result)
+                }
+              />
+            </div>
+          )}
+          <Dropdown
+            prompt={loggedIn ? user?.name : "Account"}
+            items={
+              loggedIn
+                ? [
+                    {
+                      text: "Account Settings",
+                      href: "/me",
+                      type: "item",
+                      icon: <IconSettings />,
                     },
-                    type: "item",
-                    icon: <Icon i="copy" />,
-                  },
-                  {
-                    type: "divider",
-                  },
-                  {
-                    text: "Log Out",
-                    onclick: logout,
-                    type: "item",
-                    icon: <IconLogout />,
-                  },
-                ].filter(Boolean)
-              : [
-                  {
-                    text: "Log In",
-                    onclick: () => (document.location.href = "/login"),
-                    type: "item",
-                    icon: <IconLogin2 />,
-                  },
-                ]
-          }
-        />
+                    import.meta.env.MODE === "development" && {
+                      text: "Copy token",
+                      onclick: () => {
+                        const token = localStorage.getItem("token");
+                        navigator.clipboard.writeText(token);
+                        toast.success("Copied to clipboard");
+                      },
+                      type: "item",
+                      icon: <Icon i="copy" />,
+                    },
+                    {
+                      type: "divider",
+                    },
+                    {
+                      text: "Log Out",
+                      onclick: logout,
+                      type: "item",
+                      icon: <IconLogout />,
+                    },
+                  ].filter(Boolean)
+                : [
+                    {
+                      text: "Log In",
+                      onclick: () => (document.location.href = "/login"),
+                      type: "item",
+                      icon: <IconLogin2 />,
+                    },
+                  ]
+            }
+          />
+        </div>
       </header>
     </>
   );
