@@ -1,12 +1,7 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { reportApiError } from "#util/reportApiError.js";
-
-export const collapseCrmValues = (arr) => {
-  return Object.fromEntries(
-    arr.map(({ crmFieldId, value }) => [crmFieldId, value])
-  );
-};
+import { collapseCrmValues } from "#util/crm/collapseCrmValues.js";
 
 export const get = [
   verifyAuth(["manager"]),

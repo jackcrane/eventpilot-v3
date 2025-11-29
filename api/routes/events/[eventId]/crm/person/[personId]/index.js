@@ -1,43 +1,11 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { serializeError } from "#serializeError";
-import { z } from "zod";
 import { LogType } from "@prisma/client";
-import { collapseCrmValues } from "../..";
+import { collapseCrmValues } from "#util/crm/collapseCrmValues.js";
 import { diffObjects } from "../../../../../../util/diffObjects";
 import { reportApiError } from "#util/reportApiError.js";
-
-export const personSchema = z.object({
-  name: z.string().min(2).max(50),
-  fields: z
-    .array(
-      z.object({
-        id: z.string(), // id
-        value: z.string(),
-      })
-    )
-    .default([]),
-  emails: z
-    .array(
-      z.object({
-        id: z.string().optional().nullable(),
-        email: z.string().email(),
-        label: z.string().default(""),
-        notes: z.string().optional().nullable(),
-      })
-    )
-    .default([]),
-  phones: z
-    .array(
-      z.object({
-        id: z.string().optional().nullable(),
-        phone: z.string(),
-        label: z.string().default(""),
-        notes: z.string().optional().nullable(),
-      })
-    )
-    .default([]),
-});
+import { personSchema } from "#util/crm/personSchema.js";
 
 export const get = [
   verifyAuth(["manager"]),
