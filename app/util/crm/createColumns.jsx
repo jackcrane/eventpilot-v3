@@ -44,7 +44,9 @@ const renderParticipantTotals = (_, row) => {
     );
   if (Array.isArray(stats?.periods) && stats.periods.length)
     extras.push(
-      `Period${stats.periods.length > 1 ? "s" : ""}: ${stats.periods.join(", ")}`
+      `Period${stats.periods.length > 1 ? "s" : ""}: ${stats.periods.join(
+        ", "
+      )}`
     );
   if (Array.isArray(stats?.teams) && stats.teams.length)
     extras.push(
@@ -83,7 +85,9 @@ const renderParticipantLatest = (latest) => {
     <div className="d-flex flex-column gap-1">
       <span className="d-inline-flex align-items-center gap-2">
         <span>{created ? `Created ${created}` : "Registration"}</span>
-        <Badge soft color={badgeColor}>{statusLabel}</Badge>
+        <Badge soft color={badgeColor}>
+          {statusLabel}
+        </Badge>
       </span>
       {lines.map((line) => (
         <small key={line} className="text-muted text-truncate">
@@ -109,9 +113,9 @@ const renderVolunteerTotals = (_, row) => {
   const totalShifts = Number.isFinite(stats.totalShifts)
     ? stats.totalShifts
     : 0;
-  const base = `${stats.total} reg${stats.total === 1 ? "" : "s"} • ${
-    totalShifts
-  } shift${totalShifts === 1 ? "" : "s"}`;
+  const base = `${stats.total} reg${
+    stats.total === 1 ? "" : "s"
+  } • ${totalShifts} shift${totalShifts === 1 ? "" : "s"}`;
   const extras = [];
   if (Array.isArray(stats?.jobs) && stats.jobs.length)
     extras.push(`Jobs: ${stats.jobs.join(", ")}`);
@@ -177,8 +181,7 @@ const slugify = (input = "") =>
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    || "field";
+    .replace(/^-+|-+$/g, "") || "field";
 
 const hashLabel = (label = "") => {
   let hash = 0;
@@ -300,16 +303,6 @@ export const createBaseColumns = (onViewPerson) => [
     icon: <Icon i="mail" />,
   },
   {
-    id: "emailOpenRate",
-    label: "Email Open Rate",
-    order: 8,
-    show: false,
-    accessor: "emailOpenRate",
-    render: renderEmailOpenRate,
-    sortable: false,
-    icon: <Icon i="percentage" />,
-  },
-  {
     id: "registrationPeriod",
     label: "Registration Period",
     order: 9,
@@ -388,7 +381,9 @@ export const buildDynamicColumn = (field) => ({
   show: field.showInGeneralTable,
   accessor: `fields.${field.id}`,
   render: (value) =>
-    field.type === "DATE" && value ? new Date(value).toLocaleDateString() : value,
+    field.type === "DATE" && value
+      ? new Date(value).toLocaleDateString()
+      : value,
   sortable: true,
   sortFn:
     field.type === "DATE"
