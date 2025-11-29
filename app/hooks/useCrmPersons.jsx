@@ -9,7 +9,16 @@ const fetcher = (url) =>
     return r.json();
   });
 
-export const useCrmPersons = ({ eventId, page, size, orderBy, order, q, filters } = {}) => {
+export const useCrmPersons = ({
+  eventId,
+  page,
+  size,
+  orderBy,
+  order,
+  q,
+  filters,
+  include,
+} = {}) => {
   const baseKey = `/api/events/${eventId}/crm/person`;
   const params = new URLSearchParams();
   if (page && size) {
@@ -20,6 +29,19 @@ export const useCrmPersons = ({ eventId, page, size, orderBy, order, q, filters 
   if (order) params.set("order", String(order));
   if (q && String(q).trim()) params.set("q", String(q).trim());
   if (Array.isArray(filters) && filters.length) params.set("filters", JSON.stringify(filters));
+  if (Array.isArray(include) && include.length) {
+    const normalizedInclude = Array.from(
+      new Set(
+        include
+          .filter((value) => typeof value === "string")
+          .map((value) => value.trim())
+          .filter(Boolean)
+      )
+    ).sort();
+    if (normalizedInclude.length) {
+      params.set("include", normalizedInclude.join(","));
+    }
+  }
   const qs = params.toString();
   const key = qs ? `${baseKey}?${qs}` : baseKey;
   const { data, error, isLoading, isValidating, mutate } = useSWR(key, fetcher, {

@@ -194,6 +194,9 @@ model Email {
   @@index([crmPersonId, createdAt(sort: Desc)])
   @@index([crmPersonEmailId, createdAt(sort: Desc)])
   @@index([campaignId])
+  @@index([crmPersonId], name: "idx_email_crmpersonid")
+  @@index([crmPersonEmailId], name: "idx_email_crmpersonemailid_single")
+
 }
 
 enum CampaignEmailQueueStatus {

@@ -3,7 +3,7 @@ import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
 import { zerialize } from "zodex";
 import { serializeError } from "#serializeError";
-import { collapseCrmValues } from "..";
+import { collapseCrmValues } from "#util/crm/collapseCrmValues.js";
 import { reportApiError } from "#util/reportApiError.js";
 
 // Iteration spec: current (from X-Instance header), previous (relative to current),
