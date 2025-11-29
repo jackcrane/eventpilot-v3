@@ -1,3 +1,21 @@
+const parseIncludeParam = (rawInclude) => {
+  if (!rawInclude) return [];
+  const values = Array.isArray(rawInclude)
+    ? rawInclude
+    : String(rawInclude)
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+  const normalized = [];
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    normalized.push(trimmed);
+  }
+  return Array.from(new Set(normalized));
+};
+
 export const parseCrmListQuery = (req) => {
   const page = Math.max(parseInt(req.query.page ?? "1", 10), 1);
   const size = Math.min(Math.max(parseInt(req.query.size ?? "50", 10), 1), 200);
@@ -19,5 +37,7 @@ export const parseCrmListQuery = (req) => {
     }
   }
 
-  return { page, size, order, orderBy, includeDeleted, q, filters };
+  const include = parseIncludeParam(req.query.include);
+
+  return { page, size, order, orderBy, includeDeleted, q, filters, include };
 };

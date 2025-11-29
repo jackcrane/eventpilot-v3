@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { authFetch } from "../util/url";
 import { filterPersons } from "../util/crm/filterPersons";
 import { getCrmValueByAccessor } from "./useCrmTableSorting";
+import { getCrmDataRequirements } from "../util/crm/getCrmDataRequirements";
 
 const arrayToString = (value) => {
   if (!Array.isArray(value)) return value == null ? "" : String(value);
@@ -138,7 +139,7 @@ export const useCrmCsvExport = ({
 }) => {
   const [downloading, setDownloading] = useState(false);
 
-  const fetchManualData = useCallback(async () => {
+  const fetchManualData = useCallback(async ({ include } = {}) => {
     if (!eventId) return [];
     const baseKey = `/api/events/${eventId}/crm/person`;
     const params = new URLSearchParams();
@@ -147,6 +148,9 @@ export const useCrmCsvExport = ({
     if (search && search.trim()) params.set("q", search.trim());
     if (Array.isArray(serverFilters) && serverFilters.length) {
       params.set("filters", JSON.stringify(serverFilters));
+    }
+    if (Array.isArray(include) && include.length) {
+      params.set("include", include.join(","));
     }
     const key = params.toString() ? `${baseKey}?${params.toString()}` : baseKey;
     const res = await authFetch(key);
@@ -200,7 +204,10 @@ export const useCrmCsvExport = ({
       try {
         await toast.promise(
           (async () => {
-            const data = aiState?.usingAi ? await fetchAiData() : await fetchManualData();
+            const include = getCrmDataRequirements(columns);
+            const data = aiState?.usingAi
+              ? await fetchAiData()
+              : await fetchManualData({ include });
             const filtered = filterPersons({
               persons: data,
               filters: clientFilters,

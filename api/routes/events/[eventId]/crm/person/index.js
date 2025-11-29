@@ -60,6 +60,74 @@ const createPersonPayload = ({ person, eventId, isImport, req, importId }) => ({
   },
 });
 
+const OPTIONAL_DATA_FETCHERS = {
+  participantStats: async ({ eventId, personIds, tmark }) => {
+    if (!personIds.length) return { participantStats: new Map() };
+    const registrations = await fetchParticipantRegistrations({
+      eventId,
+      personIds,
+    });
+    tmark("Fetched participant registrations", {
+      participantRegistrations: registrations.length,
+    });
+    return {
+      participantStats: createParticipantStatsMap(registrations),
+    };
+  },
+  volunteerStats: async ({ eventId, personIds, tmark }) => {
+    if (!personIds.length) return { volunteerStats: new Map() };
+    const volunteerRegistrations = await fetchVolunteerRegistrations({
+      eventId,
+      personIds,
+    });
+    tmark("Fetched volunteer registrations", {
+      volunteerRegistrations: volunteerRegistrations.length,
+    });
+    return {
+      volunteerStats: createVolunteerStatsMap(volunteerRegistrations),
+    };
+  },
+  lastEmailedAt: async ({ personIds, tmark }) => {
+    if (!personIds.length) return { emailMap: new Map() };
+    const emailEntries = await fetchLatestEmailEntries({ personIds });
+    tmark("Fetched latest email entries", {
+      emailEntries: emailEntries.length,
+    });
+    return {
+      emailMap: new Map(
+        emailEntries.map((entry) => [entry.crmPersonId, entry.createdAt])
+      ),
+    };
+  },
+};
+
+const fetchOptionalData = async ({ features, eventId, personIds, tmark }) => {
+  const accumulator = {
+    participantStats: new Map(),
+    volunteerStats: new Map(),
+    emailMap: new Map(),
+  };
+
+  const tasks = Array.from(features)
+    .map((feature) => OPTIONAL_DATA_FETCHERS[feature])
+    .filter(Boolean)
+    .map((fetcher) => fetcher({ eventId, personIds, tmark }));
+
+  if (!tasks.length) return accumulator;
+
+  const results = await Promise.all(tasks);
+  for (const result of results) {
+    if (!result) continue;
+    if (result.participantStats)
+      accumulator.participantStats = result.participantStats;
+    if (result.volunteerStats)
+      accumulator.volunteerStats = result.volunteerStats;
+    if (result.emailMap) accumulator.emailMap = result.emailMap;
+  }
+
+  return accumulator;
+};
+
 export const get = [
   verifyAuth(["manager"]),
   async (req, res) => {
@@ -70,34 +138,29 @@ export const get = [
       const options = parseCrmListQuery(req);
       tmark("Parsed request", options);
 
+      const { include: includeFeatures = [], ...queryOptions } = options;
+      const requestedFeatures = new Set(includeFeatures);
+      tmark("Computed requested features", {
+        requestedFeatures: Array.from(requestedFeatures),
+      });
+
       const { crmPersons, total, lifetimeMap } = await fetchCrmRows({
         eventId,
-        ...options,
+        ...queryOptions,
+        includeFieldValues: requestedFeatures.has("customFields"),
       });
       tmark("Fetched CRM rows", { count: crmPersons.length, total });
 
       const personIds = crmPersons.map((person) => person.id);
       tmark("Person IDs extracted", { personIds: personIds.length });
 
-      const [participantRegistrations, volunteerRegistrations, emailEntries] =
-        await Promise.all([
-          fetchParticipantRegistrations({ eventId, personIds }),
-          fetchVolunteerRegistrations({ eventId, personIds }),
-          fetchLatestEmailEntries({ personIds }),
-        ]);
-      tmark("Fetched related data", {
-        participantRegistrations: participantRegistrations.length,
-        volunteerRegistrations: volunteerRegistrations.length,
-        emailEntries: emailEntries.length,
-      });
-
-      const participantStats = createParticipantStatsMap(
-        participantRegistrations
-      );
-      const volunteerStats = createVolunteerStatsMap(volunteerRegistrations);
-      const emailMap = new Map(
-        emailEntries.map((entry) => [entry.crmPersonId, entry.createdAt])
-      );
+      const { participantStats, volunteerStats, emailMap } =
+        await fetchOptionalData({
+          features: requestedFeatures,
+          eventId,
+          personIds,
+          tmark,
+        });
       tmark("Computed aggregates", {
         participantStats: participantStats.size,
         volunteerStats: volunteerStats.size,

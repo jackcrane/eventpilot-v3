@@ -11,6 +11,7 @@ export const fetchCrmRows = async ({
   order,
   page,
   size,
+  includeFieldValues = true,
 }) => {
   const params = [];
   const addParam = (value) => {
@@ -48,6 +49,31 @@ export const fetchCrmRows = async ({
   const offsetParam = addParam(offset);
   const limitParam = addParam(offset + size);
 
+  const fieldSelectSql = includeFieldValues
+    ? `,
+        COALESCE(fieldAgg.data, '[]'::jsonb) AS "fieldValues"`
+    : "";
+
+  const fieldJoinSql = includeFieldValues
+    ? `
+      LEFT JOIN LATERAL (
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'id', f.id,
+            'crmFieldId', f."crmFieldId",
+            'crmPersonId', f."crmPersonId",
+            'value', f.value,
+            'metadata', f.metadata,
+            'createdAt', f."createdAt",
+            'updatedAt', f."updatedAt"
+          ) ORDER BY f."createdAt" DESC
+        ) AS data
+        FROM "CrmPersonField" f
+        WHERE f."crmPersonId" = base.id
+      ) fieldAgg ON true
+    `
+    : "";
+
   const crmRows = await prisma.$queryRawUnsafe(
     `
       WITH base AS (
@@ -62,8 +88,8 @@ export const fetchCrmRows = async ({
       SELECT
         base.*,
         COALESCE(emailAgg.data, '[]'::jsonb) AS emails,
-        COALESCE(phoneAgg.data, '[]'::jsonb) AS phones,
-        COALESCE(fieldAgg.data, '[]'::jsonb) AS "fieldValues"
+        COALESCE(phoneAgg.data, '[]'::jsonb) AS phones
+        ${fieldSelectSql}
       FROM base
       LEFT JOIN LATERAL (
         SELECT jsonb_agg(
@@ -98,21 +124,7 @@ export const fetchCrmRows = async ({
         FROM "CrmPersonPhone" ph
         WHERE ph."crmPersonId" = base.id
       ) phoneAgg ON true
-      LEFT JOIN LATERAL (
-        SELECT jsonb_agg(
-          jsonb_build_object(
-            'id', f.id,
-            'crmFieldId', f."crmFieldId",
-            'crmPersonId', f."crmPersonId",
-            'value', f.value,
-            'metadata', f.metadata,
-            'createdAt', f."createdAt",
-            'updatedAt', f."updatedAt"
-          ) ORDER BY f."createdAt" DESC
-        ) AS data
-        FROM "CrmPersonField" f
-        WHERE f."crmPersonId" = base.id
-      ) fieldAgg ON true
+      ${fieldJoinSql}
       WHERE base.row_number > ${offsetParam}
         AND base.row_number <= ${limitParam}
       ORDER BY base.row_number
@@ -122,19 +134,14 @@ export const fetchCrmRows = async ({
 
   const lifetimeMap = new Map();
   const crmPersons = crmRows.map((row) => {
-    const {
-      lifetime_value,
-      emails = [],
-      phones = [],
-      fieldValues = [],
-      ...rest
-    } = row;
+    const { lifetime_value, emails = [], phones = [], fieldValues = [], ...rest } = row;
     lifetimeMap.set(rest.id, Number(lifetime_value || 0));
     return {
       ...rest,
       emails: Array.isArray(emails) ? emails : [],
       phones: Array.isArray(phones) ? phones : [],
-      fieldValues: Array.isArray(fieldValues) ? fieldValues : [],
+      fieldValues:
+        includeFieldValues && Array.isArray(fieldValues) ? fieldValues : [],
     };
   });
 

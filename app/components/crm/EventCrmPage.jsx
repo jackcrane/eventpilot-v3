@@ -30,9 +30,20 @@ import { filterPersons } from "../../util/crm/filterPersons";
 import { CrmMailingListBulkAction } from "./CrmMailingListBulkAction";
 import { Row } from "../../util/Flex";
 import { useCrmCsvExport } from "../../hooks/useCrmCsvExport";
+import { getCrmDataRequirements } from "../../util/crm/getCrmDataRequirements";
 
 const DESCRIPTION =
   "This is the contacts page. It is a powerful CRM for managing your event's contacts.";
+
+const arraysEqual = (left = [], right = []) => {
+  if (left === right) return true;
+  if (!Array.isArray(left) || !Array.isArray(right)) return false;
+  if (left.length !== right.length) return false;
+  for (let i = 0; i < left.length; i += 1) {
+    if (left[i] !== right[i]) return false;
+  }
+  return true;
+};
 
 const AiMailingListCreateContent = ({ defaultTitle, onCreate, onCancel }) => {
   const [title, setTitle] = useState(defaultTitle || "");
@@ -124,9 +135,15 @@ export const EventCrmPage = ({ eventId }) => {
   const [orderBy, setOrderBy] = useState("createdAt");
   const [order, setOrder] = useState("desc");
   const [selectedPersonIds, setSelectedPersonIds] = useState([]);
+  const [participantFieldLabels, setParticipantFieldLabels] = useState([]);
+  const [volunteerFieldLabels, setVolunteerFieldLabels] = useState([]);
   const pageChangeReasonRef = useRef("initial");
   const lastAiResultsRef = useRef(null);
   const lastAiAstRef = useRef(null);
+  const onViewPerson = useCallback(
+    (id) => `/events/${eventId}/crm/${id}`,
+    [eventId]
+  );
 
   const logPagination = useCallback((message, payload = {}) => {
     console.debug("[CRM Pagination]", message, payload);
@@ -214,6 +231,19 @@ export const EventCrmPage = ({ eventId }) => {
     eventId,
   ]);
 
+  const columnConfig = useCrmColumnConfig({
+    eventId,
+    crmFields: fieldsModal.crmFields,
+    onViewPerson,
+    participantFieldLabels,
+    volunteerFieldLabels,
+  });
+
+  const dataRequirements = useMemo(
+    () => getCrmDataRequirements(columnConfig.visibleColumns),
+    [columnConfig.visibleColumns]
+  );
+
   const personsQuery = useCrmPersons({
     eventId,
     page: aiState.usingAi ? undefined : paginationState.page,
@@ -222,6 +252,7 @@ export const EventCrmPage = ({ eventId }) => {
     order: aiState.usingAi ? undefined : paginationState.order,
     q: aiState.usingAi ? undefined : manualFilters.search,
     filters: aiState.usingAi ? undefined : manualFilters.serverFilters,
+    include: dataRequirements,
   });
 
   const [hasInitialLoaded, setHasInitialLoaded] = useState(false);
@@ -251,7 +282,7 @@ export const EventCrmPage = ({ eventId }) => {
     ? aiState.aiResults?.crmPersons
     : personsQuery.crmPersons;
 
-  const participantFieldLabels = useMemo(() => {
+  const participantFieldLabelsFromData = useMemo(() => {
     if (!Array.isArray(basePersons) || !basePersons.length) return [];
     const labels = new Set();
     for (const person of basePersons) {
@@ -263,8 +294,15 @@ export const EventCrmPage = ({ eventId }) => {
     }
     return Array.from(labels).sort((a, b) => a.localeCompare(b));
   }, [basePersons]);
+  useEffect(() => {
+    setParticipantFieldLabels((current) =>
+      arraysEqual(current, participantFieldLabelsFromData)
+        ? current
+        : participantFieldLabelsFromData
+    );
+  }, [participantFieldLabelsFromData]);
 
-  const volunteerFieldLabels = useMemo(() => {
+  const volunteerFieldLabelsFromData = useMemo(() => {
     if (!Array.isArray(basePersons) || !basePersons.length) return [];
     const labels = new Set();
     for (const person of basePersons) {
@@ -276,19 +314,14 @@ export const EventCrmPage = ({ eventId }) => {
     }
     return Array.from(labels).sort((a, b) => a.localeCompare(b));
   }, [basePersons]);
+  useEffect(() => {
+    setVolunteerFieldLabels((current) =>
+      arraysEqual(current, volunteerFieldLabelsFromData)
+        ? current
+        : volunteerFieldLabelsFromData
+    );
+  }, [volunteerFieldLabelsFromData]);
 
-  const onViewPerson = useCallback(
-    (id) => `/events/${eventId}/crm/${id}`,
-    [eventId]
-  );
-
-  const columnConfig = useCrmColumnConfig({
-    eventId,
-    crmFields: fieldsModal.crmFields,
-    onViewPerson,
-    participantFieldLabels,
-    volunteerFieldLabels,
-  });
   const csvExport = useCrmCsvExport({
     eventId,
     search: manualFilters.search,
