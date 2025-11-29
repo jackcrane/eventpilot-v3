@@ -514,29 +514,46 @@ export const get = [
 
       if (personIds.length) {
         tmark("Parallel fetch (emails, participants, volunteers) start");
-        [emailEntries, participantRegistrations, volunteerRegistrations] =
-          await Promise.all([
-            prisma.$queryRawUnsafe(
-              `
+        const emailEntries = await prisma.$queryRawUnsafe(
+          `
+  (
   SELECT
-    e."createdAt" AS "createdAt",
-    e."crmPersonId" AS "crmPersonId",
+    e."createdAt",
+    e."crmPersonId",
     json_build_object('crmPersonId', cpe."crmPersonId") AS "crmPersonEmail",
     e."opened",
     e."status"
   FROM "Email" e
   LEFT JOIN "CrmPersonEmail" cpe
     ON cpe."id" = e."crmPersonEmailId"
-  WHERE
-    e."crmPersonId" = ANY($1)
-    OR cpe."crmPersonId" = ANY($1)
-  ORDER BY e."createdAt" DESC
+  WHERE e."crmPersonId" = ANY($1)
+)
+UNION ALL
+(
+  SELECT
+    e."createdAt",
+    e."crmPersonId",
+    json_build_object('crmPersonId', cpe."crmPersonId") AS "crmPersonEmail",
+    e."opened",
+    e."status"
+  FROM "Email" e
+  JOIN "CrmPersonEmail" cpe
+    ON cpe."id" = e."crmPersonEmailId"
+  WHERE cpe."crmPersonId" = ANY($1)
+)
+ORDER BY "createdAt" DESC;
   `,
-              personIds
-            ),
+          personIds
+        );
 
-            prisma.$queryRawUnsafe(
-              `
+        tmark("Fetched emailEntries", {
+          emails: emailEntries.length,
+        });
+
+        console.log(emailEntries);
+
+        const participantRegistrations = await prisma.$queryRawUnsafe(
+          `
   SELECT
     r."id",
     r."crmPersonId",
@@ -588,12 +605,16 @@ export const get = [
     AND r."deleted" = false
   ORDER BY r."createdAt" DESC
   `,
-              eventId,
-              personIds
-            ),
+          eventId,
+          personIds
+        );
 
-            prisma.$queryRawUnsafe(
-              `
+        tmark("Fetched participantRegistrations", {
+          participantRegistrations: participantRegistrations.length,
+        });
+
+        const volunteerRegistrations = await prisma.$queryRawUnsafe(
+          `
   SELECT
     vr."id",
     vr."createdAt",
@@ -645,11 +666,10 @@ export const get = [
     AND cpl."crmPersonId" = ANY($2)
   ORDER BY vr."createdAt" DESC
   `,
-              eventId,
-              personIds
-            ),
-          ]);
-        tmark("Parallel fetch end", {
+          eventId,
+          personIds
+        );
+        tmark("Fetched volunteerRegistrations", {
           emails: emailEntries.length,
           participantRegistrations: participantRegistrations.length,
           volunteerRegistrations: volunteerRegistrations.length,
