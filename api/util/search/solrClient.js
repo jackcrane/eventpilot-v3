@@ -113,8 +113,12 @@ export async function solrSearch({ query, eventId, rows = 25 }) {
     sort: "score desc,updatedAt desc",
     fl: "*,score",
   });
+  const filters = [`deleted:false`];
   if (eventId) {
-    params.append("fq", `eventId:"${escapeValue(eventId)}"`);
+    filters.push(`eventId:"${escapeValue(eventId)}"`);
+  }
+  for (const filter of filters) {
+    params.append("fq", filter);
   }
   const response = await solrFetch(`select?${params.toString()}`);
   const docs = response?.response?.docs ?? [];

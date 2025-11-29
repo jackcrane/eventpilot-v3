@@ -42,6 +42,8 @@ export function createSearchDocument(resourceType, record, config) {
     .map((token) => sanitize(token))
     .filter(Boolean);
 
+  const deleted = Boolean(config?.deleted ?? record.deleted ?? false);
+
   return {
     id: `${resourceType}:${record.id}`,
     resourceType,
@@ -53,6 +55,7 @@ export function createSearchDocument(resourceType, record, config) {
     searchText: searchTokens.join(" "),
     resourceKind: config?.resourceKind ?? resourceType,
     updatedAt: new Date().toISOString(),
+    deleted,
     ...(config?.extra ?? {}),
   };
 }
