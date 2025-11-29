@@ -86,41 +86,55 @@ export const get = [
       const orderBy =
         typeof req.query.orderBy === "string" ? req.query.orderBy : null;
 
-      const whereBase = {
-        eventId,
-        deleted: req.query.includeDeleted ? undefined : false,
-      };
+      const includeDeleted = Boolean(req.query.includeDeleted);
 
       // Text search across common fields
       const q = (req.query.q || "").toString().trim();
 
-      const andClauses = [];
+      const params = [];
+      const addParam = (value) => {
+        params.push(value);
+        return `$${params.length}`;
+      };
+
+      const whereClauses = [];
+      const eventParam = addParam(eventId);
+      whereClauses.push(`p."eventId" = ${eventParam}`);
+      if (!includeDeleted) {
+        whereClauses.push(`p."deleted" = false`);
+      }
+
       if (q) {
-        andClauses.push({
-          OR: [
-            { name: { contains: q, mode: "insensitive" } },
-            { source: { contains: q, mode: "insensitive" } },
-            { stripe_customerId: { contains: q, mode: "insensitive" } },
-            {
-              emails: {
-                some: {
-                  email: { contains: q, mode: "insensitive" },
-                  deleted: req.query.includeDeleted ? undefined : false,
-                },
-              },
-            },
-            {
-              phones: {
-                some: { phone: { contains: q, mode: "insensitive" } },
-              },
-            },
-            {
-              fieldValues: {
-                some: { value: { contains: q, mode: "insensitive" } },
-              },
-            },
-          ],
-        });
+        const qPattern = addParam(`%${q}%`);
+        const emailDeletedClause = includeDeleted
+          ? ""
+          : 'AND e."deleted" = false';
+        whereClauses.push(
+          `(
+            p.name ILIKE ${qPattern}
+            OR p.source ILIKE ${qPattern}
+            OR p."stripe_customerId" ILIKE ${qPattern}
+            OR EXISTS (
+              SELECT 1
+              FROM "CrmPersonEmail" e
+              WHERE e."crmPersonId" = p.id
+                ${emailDeletedClause}
+                AND e.email ILIKE ${qPattern}
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM "CrmPersonPhone" ph
+              WHERE ph."crmPersonId" = p.id
+                AND ph.phone ILIKE ${qPattern}
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM "CrmPersonField" f
+              WHERE f."crmPersonId" = p.id
+                AND f.value ILIKE ${qPattern}
+            )
+          )`
+        );
       }
       tmark("Parsed query params & text search", {
         q,
@@ -142,135 +156,209 @@ export const get = [
       }
       tmark("Parsed filters", { filtersCount: filters.length });
 
-      // Build Prisma where clauses for common fields and simple custom field ops
+      const buildStringComparison = (expr, op, rawVal) => {
+        const value = rawVal == null ? "" : String(rawVal).trim();
+        const normalizedExpr = `COALESCE(${expr}, '')`;
+        const lowerExpr = `LOWER(${normalizedExpr})`;
+        if (op === "exists") return `${normalizedExpr} <> ''`;
+        if (op === "not-exists") return `${normalizedExpr} = ''`;
+        if (!value) return null;
+        if (op === "eq") return `${lowerExpr} = LOWER(${addParam(value)})`;
+        if (op === "neq")
+          return `NOT (${lowerExpr} = LOWER(${addParam(value)}))`;
+        if (op === "contains")
+          return `${normalizedExpr} ILIKE ${addParam(`%${value}%`)}`;
+        if (op === "not-contains")
+          return `NOT (${normalizedExpr} ILIKE ${addParam(`%${value}%`)})`;
+        if (op === "starts-with")
+          return `${normalizedExpr} ILIKE ${addParam(`${value}%`)}`;
+        if (op === "ends-with")
+          return `${normalizedExpr} ILIKE ${addParam(`%${value}`)}`;
+        return null;
+      };
+
+      const buildDateComparison = (expr, op, rawVal) => {
+        if (op === "exists") return `${expr} IS NOT NULL`;
+        if (op === "not-exists") return `${expr} IS NULL`;
+        if (!rawVal) return null;
+        const date = new Date(rawVal);
+        if (Number.isNaN(date.getTime())) return null;
+        const param = addParam(date);
+        if (op === "date-after" || op === "greater-than")
+          return `${expr} > ${param}`;
+        if (op === "date-before" || op === "less-than")
+          return `${expr} < ${param}`;
+        if (op === "greater-than-or-equal") return `${expr} >= ${param}`;
+        if (op === "less-than-or-equal") return `${expr} <= ${param}`;
+        if (op === "eq") return `${expr} = ${param}`;
+        if (op === "neq") return `${expr} <> ${param}`;
+        return null;
+      };
+
+      const buildRelationStringClause = ({
+        table,
+        alias,
+        column,
+        op,
+        value,
+        extraConditions = [],
+      }) => {
+        const baseConditions = [
+          `${alias}."crmPersonId" = p.id`,
+          ...extraConditions,
+        ];
+        if (op === "exists") {
+          return `EXISTS (SELECT 1 FROM ${table} ${alias} WHERE ${baseConditions.join(
+            " AND "
+          )})`;
+        }
+        if (op === "not-exists") {
+          return `NOT EXISTS (SELECT 1 FROM ${table} ${alias} WHERE ${baseConditions.join(
+            " AND "
+          )})`;
+        }
+        const comparison = buildStringComparison(
+          `${alias}.${column}`,
+          op,
+          value
+        );
+        if (!comparison) return null;
+        return `EXISTS (SELECT 1 FROM ${table} ${alias} WHERE ${baseConditions.join(
+          " AND "
+        )} AND ${comparison})`;
+      };
+
+      const buildFieldClause = (fieldId, op, rawVal) => {
+        if (!fieldId) return null;
+        const fieldParam = addParam(fieldId);
+        const baseConditions = `f."crmPersonId" = p.id AND f."crmFieldId" = ${fieldParam}`;
+        if (op === "exists") {
+          return `EXISTS (SELECT 1 FROM "CrmPersonField" f WHERE ${baseConditions})`;
+        }
+        if (op === "not-exists") {
+          return `NOT EXISTS (SELECT 1 FROM "CrmPersonField" f WHERE ${baseConditions})`;
+        }
+        if (
+          [
+            "eq",
+            "neq",
+            "contains",
+            "not-contains",
+            "starts-with",
+            "ends-with",
+          ].includes(op)
+        ) {
+          const comparison = buildStringComparison("f.value", op, rawVal);
+          if (!comparison) return null;
+          return `EXISTS (SELECT 1 FROM "CrmPersonField" f WHERE ${baseConditions} AND ${comparison})`;
+        }
+        if (
+          [
+            "greater-than",
+            "greater-than-or-equal",
+            "less-than",
+            "less-than-or-equal",
+          ].includes(op)
+        ) {
+          const numeric = Number(rawVal);
+          if (!Number.isFinite(numeric)) return null;
+          const comparator =
+            op === "greater-than"
+              ? ">"
+              : op === "greater-than-or-equal"
+                ? ">="
+                : op === "less-than"
+                  ? "<"
+                  : "<=";
+          const numericParam = addParam(numeric);
+          return `EXISTS (
+            SELECT 1
+            FROM "CrmPersonField" f
+            WHERE ${baseConditions}
+              AND CASE
+                    WHEN f.value ~ '^-?[0-9]+(\\.[0-9]+)?$'
+                    THEN (f.value)::double precision
+                    ELSE NULL
+                  END ${comparator} ${numericParam}
+          )`;
+        }
+        if (op === "date-after" || op === "date-before") {
+          const date = rawVal ? new Date(rawVal) : null;
+          if (!date || Number.isNaN(date.getTime())) return null;
+          const comparator = op === "date-after" ? ">" : "<";
+          const dateParam = addParam(date);
+          return `EXISTS (
+            SELECT 1
+            FROM "CrmPersonField" f
+            WHERE ${baseConditions}
+              AND NULLIF(f.value, '')::timestamptz ${comparator} ${dateParam}
+          )`;
+        }
+        return null;
+      };
+
       for (const f of filters) {
         if (!f || !f.path || !f.operation) continue;
         const op = String(f.operation);
         const path = String(f.path);
         const val = f.value == null ? null : String(f.value);
-
-        const makeString = (key) => {
-          if (op === "exists") return { [key]: { not: null } };
-          if (op === "not-exists") return { NOT: { [key]: { not: null } } };
-          if (val == null || val === "") return {};
-          if (op === "eq")
-            return { [key]: { equals: val, mode: "insensitive" } };
-          if (op === "neq")
-            return { NOT: { [key]: { equals: val, mode: "insensitive" } } };
-          if (op === "contains")
-            return { [key]: { contains: val, mode: "insensitive" } };
-          if (op === "not-contains")
-            return { NOT: { [key]: { contains: val, mode: "insensitive" } } };
-          if (op === "starts-with")
-            return { [key]: { startsWith: val, mode: "insensitive" } };
-          if (op === "ends-with")
-            return { [key]: { endsWith: val, mode: "insensitive" } };
-          return {};
-        };
+        let clause = null;
 
         if (
           path === "name" ||
           path === "source" ||
           path === "stripe_customerId"
         ) {
-          const clause = makeString(path);
-          if (Object.keys(clause).length) andClauses.push(clause);
-          continue;
-        }
-        if (path === "createdAt" || path === "updatedAt") {
-          if (op === "exists") {
-            andClauses.push({ [path]: { not: null } });
-          } else if (op === "not-exists") {
-            andClauses.push({ NOT: { [path]: { not: null } } });
-          } else if (val) {
-            const d = new Date(val);
-            if (!isNaN(d.getTime())) {
-              if (op === "date-after" || op === "greater-than")
-                andClauses.push({ [path]: { gt: d } });
-              else if (op === "date-before" || op === "less-than")
-                andClauses.push({ [path]: { lt: d } });
-              else if (op === "greater-than-or-equal")
-                andClauses.push({ [path]: { gte: d } });
-              else if (op === "less-than-or-equal")
-                andClauses.push({ [path]: { lte: d } });
-              else if (op === "eq") andClauses.push({ [path]: d });
-              else if (op === "neq") andClauses.push({ NOT: { [path]: d } });
-            }
-          }
-          continue;
-        }
-        if (path === "emails") {
-          if (op === "exists") {
-            andClauses.push({
-              emails: {
-                some: { deleted: req.query.includeDeleted ? undefined : false },
-              },
-            });
-          } else if (op === "not-exists") {
-            andClauses.push({
-              NOT: {
-                emails: {
-                  some: {
-                    deleted: req.query.includeDeleted ? undefined : false,
-                  },
-                },
-              },
-            });
-          } else if (val) {
-            const emailClause = makeString("email");
-            andClauses.push({
-              emails: {
-                some: {
-                  ...emailClause,
-                  deleted: req.query.includeDeleted ? undefined : false,
-                },
-              },
-            });
-          }
-          continue;
-        }
-        if (path === "phones") {
-          if (op === "exists") andClauses.push({ phones: { some: {} } });
-          else if (op === "not-exists")
-            andClauses.push({ NOT: { phones: { some: {} } } });
-          else if (val) {
-            const phoneClause = makeString("phone");
-            andClauses.push({ phones: { some: phoneClause } });
-          }
-          continue;
-        }
-        if (path.startsWith("fields.")) {
+          clause = buildStringComparison(`p."${path}"`, op, val);
+        } else if (path === "createdAt" || path === "updatedAt") {
+          clause = buildDateComparison(`p."${path}"`, op, val);
+        } else if (path === "emails") {
+          clause = buildRelationStringClause({
+            table: '"CrmPersonEmail"',
+            alias: "e",
+            column: '"email"',
+            op,
+            value: val,
+            extraConditions: includeDeleted ? [] : ['e."deleted" = false'],
+          });
+        } else if (path === "phones") {
+          clause = buildRelationStringClause({
+            table: '"CrmPersonPhone"',
+            alias: "ph",
+            column: '"phone"',
+            op,
+            value: val,
+          });
+        } else if (path.startsWith("fields.")) {
           const fieldId = path.split(".")[1];
-          if (op === "exists") {
-            andClauses.push({ fieldValues: { some: { crmFieldId: fieldId } } });
-          } else if (op === "not-exists") {
-            andClauses.push({
-              NOT: { fieldValues: { some: { crmFieldId: fieldId } } },
-            });
-          } else if (val) {
-            if (
-              [
-                "eq",
-                "neq",
-                "contains",
-                "not-contains",
-                "starts-with",
-                "ends-with",
-              ].includes(op)
-            ) {
-              const strClause = makeString("value");
-              andClauses.push({
-                fieldValues: { some: { crmFieldId: fieldId, ...strClause } },
-              });
-            }
-          }
+          clause = buildFieldClause(fieldId, op, val);
+        }
+
+        if (clause) {
+          whereClauses.push(clause);
         }
       }
-      tmark("Built where (base + simple filters)", {
-        andClauses: andClauses.length,
+      tmark("Built SQL where clauses", {
+        clauseCount: whereClauses.length,
       });
 
-      // Fields we can sort via Prisma directly
+      const whereSql =
+        whereClauses.length > 0
+          ? `WHERE ${whereClauses.map((clause) => `(${clause})`).join(" AND ")}`
+          : "";
+
+      const countParams = [...params];
+      const countRows = await prisma.$queryRawUnsafe(
+        `
+        SELECT COUNT(*)::int AS count
+        FROM "CrmPerson" p
+        ${whereSql}
+      `,
+        ...countParams
+      );
+      const total = Number(countRows?.[0]?.count || 0);
+      tmark("Counted crmPerson total", { total });
+
       const prismaSortable = new Set([
         "name",
         "createdAt",
@@ -278,231 +366,144 @@ export const get = [
         "source",
       ]);
 
-      // Handle special numeric/date comparisons on custom fields via raw SQL and intersect IDs
-      const specialFilters = (filters || []).filter(
-        (f) =>
-          f &&
-          typeof f.path === "string" &&
-          f.path.startsWith("fields.") &&
-          [
-            "greater-than",
-            "greater-than-or-equal",
-            "less-than",
-            "less-than-or-equal",
-            "date-after",
-            "date-before",
-          ].includes(f.operation)
-      );
+      const joinClauses = [
+        `
+        LEFT JOIN LATERAL (
+          SELECT COALESCE(SUM(li.amount), 0)::double precision AS value
+          FROM "LedgerItem" li
+          WHERE li."eventId" = ${eventParam}
+            AND li."crmPersonId" = p.id
+        ) lifetime ON true
+      `,
+      ];
 
-      let idsConstraint = null; // null = no constraint; Set<string> otherwise
-      for (const sf of specialFilters) {
-        const fieldId = sf.path.split(".")[1];
-        const cmp = sf.operation;
-        const rawVal = String(sf.value || "");
-        let comparator = null;
-        let expr = null;
-        if (cmp === "greater-than") comparator = ">";
-        if (cmp === "greater-than-or-equal") comparator = ">=";
-        if (cmp === "less-than") comparator = "<";
-        if (cmp === "less-than-or-equal") comparator = "<=";
-        if (cmp === "date-after") comparator = ">";
-        if (cmp === "date-before") comparator = "<";
-
-        if (
-          [
-            "greater-than",
-            "greater-than-or-equal",
-            "less-than",
-            "less-than-or-equal",
-          ].includes(cmp)
-        ) {
-          expr = `CASE WHEN f.value ~ '^-?[0-9]+(\\.[0-9]+)?$' THEN (f.value)::double precision ELSE NULL END`;
-        } else if (["date-after", "date-before"].includes(cmp)) {
-          expr = `NULLIF(f.value, '')::timestamptz`;
-        }
-
-        if (expr && comparator) {
-          tmark("Special filter query start", { fieldId, cmp, rawVal });
-          const rows = await prisma.$queryRawUnsafe(
-            `
-            SELECT p.id
-            FROM "CrmPerson" p
-            LEFT JOIN "CrmPersonField" f
-              ON f."crmPersonId" = p.id AND f."crmFieldId" = $1
-            WHERE p."eventId" = $2 ${req.query.includeDeleted ? "" : 'AND p."deleted" = false'}
-              AND ${expr} ${comparator} $3
-          `,
-            fieldId,
-            eventId,
-            rawVal
-          );
-          tmark("Special filter query end", { matchedIds: rows.length });
-          const set = new Set(rows.map((r) => r.id));
-          idsConstraint = idsConstraint
-            ? new Set([...idsConstraint].filter((id) => set.has(id)))
-            : set;
-        }
-      }
-      tmark("Applied special filters (intersection)", {
-        idsConstraintSize: idsConstraint ? idsConstraint.size : null,
-      });
-
-      // Apply Prisma where assembled so far, augmented by idsConstraint if present
-      let where = andClauses.length
-        ? { AND: [whereBase, ...andClauses] }
-        : whereBase;
-      if (idsConstraint && idsConstraint.size > 0) {
-        where = { AND: [where, { id: { in: Array.from(idsConstraint) } }] };
-      } else if (idsConstraint && idsConstraint.size === 0) {
-        where = { AND: [whereBase, { id: { in: [] } }] };
-      }
-
-      const total = await prisma.crmPerson.count({ where });
-      tmark("Counted crmPerson total", { total });
-
-      let crmPersons = [];
-      let precomputedLifetime = null;
-
-      const baseInclude = {
-        emails: {
-          where: { deleted: req.query.includeDeleted ? undefined : false },
-        },
-        phones: true,
-        fieldValues: true,
-      };
-
+      const orderExpressions = [];
+      const orderDirection = order === "asc" ? "ASC" : "DESC";
       if (orderBy === "lifetimeValue") {
-        tmark("Begin lifetimeValue ordering - collect IDs");
-        const idRows = await prisma.crmPerson.findMany({
-          where,
-          select: { id: true },
-          take: size,
-          skip: (page - 1) * size,
-        });
-        const allIds = idRows.map((row) => row.id);
-        tmark("Collected IDs for lifetimeValue", { ids: allIds.length });
-
-        if (allIds.length) {
-          tmark("GroupBy ledgerItem start", { ids: allIds.length });
-          const lifetimeGroups = await prisma.ledgerItem.groupBy({
-            by: ["crmPersonId"],
-            where: {
-              eventId,
-              crmPersonId: { in: allIds },
-            },
-            _sum: { amount: true },
-          });
-          tmark("GroupBy ledgerItem end", { rows: lifetimeGroups.length });
-
-          precomputedLifetime = new Map(allIds.map((id) => [id, 0]));
-          for (const entry of lifetimeGroups) {
-            precomputedLifetime.set(
-              entry.crmPersonId,
-              Number(entry._sum?.amount || 0)
-            );
-          }
-
-          const sortedIds = [...allIds].sort((a, b) => {
-            const left = precomputedLifetime.get(a) ?? 0;
-            const right = precomputedLifetime.get(b) ?? 0;
-            return order === "asc" ? left - right : right - left;
-          });
-
-          const offset = page && size ? (page - 1) * size : 0;
-          const limit = page && size ? size : sortedIds.length;
-          const pageIds = sortedIds.slice(offset, offset + limit);
-          tmark("Sorted & sliced lifetimeValue IDs", {
-            pageIds: pageIds.length,
-            offset,
-            limit,
-          });
-
-          if (pageIds.length) {
-            crmPersons = await prisma.crmPerson.findMany({
-              where: { id: { in: pageIds } },
-              include: baseInclude,
-              take: size,
-              skip: (page - 1) * size,
-            });
-            const index = new Map(pageIds.map((id, idx) => [id, idx]));
-            crmPersons.sort((a, b) => index.get(a.id) - index.get(b.id));
-          }
-        }
-        tmark("Fetched crmPersons (lifetimeValue)", {
-          count: crmPersons.length,
-        });
+        orderExpressions.push(`COALESCE(lifetime.value, 0) ${orderDirection}`);
       } else if (orderBy && orderBy.startsWith("fields.")) {
         const fieldId = orderBy.split(".")[1];
-        const offset = page && size ? (page - 1) * size : 0;
-        const limit = page && size ? size : total || 1;
-
-        tmark("Custom-field sort: prefilter IDs start");
-        const baseIdsRows = await prisma.crmPerson.findMany({
-          where,
-          select: { id: true },
-          take: size,
-          skip: (page - 1) * size,
-        });
-        const baseIds = baseIdsRows.map((r) => r.id);
-        tmark("Custom-field sort: prefilter IDs end", {
-          baseIds: baseIds.length,
-        });
-
-        if (baseIds.length === 0) {
-          crmPersons = [];
-        } else {
-          tmark("Custom-field ORDER BY query start", {
-            fieldId,
-            limit,
-            offset,
-          });
-          const rows = await prisma.$queryRawUnsafe(
-            `
-            SELECT p.id
-            FROM "CrmPerson" p
-            LEFT JOIN "CrmPersonField" f
-              ON f."crmPersonId" = p.id AND f."crmFieldId" = $1
-            WHERE p.id = ANY($2)
-            ORDER BY lower(COALESCE(f.value, '')) ${order.toUpperCase()} NULLS LAST, p."createdAt" DESC
-            LIMIT $3 OFFSET $4
-          `,
-            fieldId,
-            baseIds,
-            limit,
-            offset
+        if (fieldId) {
+          const fieldParam = addParam(fieldId);
+          joinClauses.push(`
+          LEFT JOIN "CrmPersonField" sortField
+            ON sortField."crmPersonId" = p.id
+           AND sortField."crmFieldId" = ${fieldParam}
+        `);
+          orderExpressions.push(
+            `LOWER(COALESCE(sortField.value, '')) ${orderDirection} NULLS LAST`
           );
-          tmark("Custom-field ORDER BY query end", { returned: rows.length });
-
-          const ids = rows.map((r) => r.id);
-          const list = await prisma.crmPerson.findMany({
-            where: { id: { in: ids } },
-            include: baseInclude,
-          });
-          const idx = new Map(ids.map((id, i) => [id, i]));
-          crmPersons = list.sort((a, b) => idx.get(a.id) - idx.get(b.id));
         }
-        tmark("Fetched crmPersons (custom-field sort)", {
-          count: crmPersons.length,
-        });
-      } else {
-        const orderByClause =
-          orderBy && prismaSortable.has(orderBy)
-            ? { [orderBy]: order }
-            : { createdAt: "desc" };
-
-        tmark("Default Prisma findMany start", {
-          orderByClause,
-          paged: Boolean(page && size),
-        });
-        crmPersons = await prisma.crmPerson.findMany({
-          where,
-          include: baseInclude,
-          take: size,
-          skip: (page - 1) * size,
-          orderBy: orderByClause,
-        });
-        tmark("Default Prisma findMany end", { count: crmPersons.length });
+      } else if (orderBy && prismaSortable.has(orderBy)) {
+        orderExpressions.push(`p."${orderBy}" ${orderDirection}`);
       }
+
+      if (!orderExpressions.length) {
+        orderExpressions.push(`p."createdAt" DESC`);
+      } else if (orderBy !== "createdAt") {
+        orderExpressions.push(`p."createdAt" DESC`);
+      }
+
+      const orderSql = orderExpressions.join(", ");
+
+      const offset = (page - 1) * size;
+      const offsetParam = addParam(offset);
+      const limitParam = addParam(offset + size);
+
+      const crmRows = await prisma.$queryRawUnsafe(
+        `
+        WITH base AS (
+          SELECT
+            p.*,
+            COALESCE(lifetime.value, 0)::double precision AS lifetime_value,
+            ROW_NUMBER() OVER (ORDER BY ${orderSql}) AS row_number
+          FROM "CrmPerson" p
+          ${joinClauses.join("\n")}
+          ${whereSql}
+        )
+        SELECT
+          base.*,
+          COALESCE(emailAgg.data, '[]'::jsonb) AS emails,
+          COALESCE(phoneAgg.data, '[]'::jsonb) AS phones,
+          COALESCE(fieldAgg.data, '[]'::jsonb) AS "fieldValues"
+        FROM base
+        LEFT JOIN LATERAL (
+          SELECT jsonb_agg(
+            jsonb_build_object(
+              'id', e.id,
+              'crmPersonId', e."crmPersonId",
+              'email', e.email,
+              'label', e.label,
+              'notes', e.notes,
+              'createdAt', e."createdAt",
+              'updatedAt', e."updatedAt",
+              'deleted', e.deleted
+            ) ORDER BY e."createdAt" DESC
+          ) AS data
+          FROM "CrmPersonEmail" e
+          WHERE e."crmPersonId" = base.id
+            ${includeDeleted ? "" : 'AND e."deleted" = false'}
+        ) emailAgg ON true
+        LEFT JOIN LATERAL (
+          SELECT jsonb_agg(
+            jsonb_build_object(
+              'id', ph.id,
+              'crmPersonId', ph."crmPersonId",
+              'phone', ph.phone,
+              'label', ph.label,
+              'notes', ph.notes,
+              'createdAt', ph."createdAt",
+              'updatedAt', ph."updatedAt",
+              'deleted', ph.deleted
+            ) ORDER BY ph."createdAt" DESC
+          ) AS data
+          FROM "CrmPersonPhone" ph
+          WHERE ph."crmPersonId" = base.id
+        ) phoneAgg ON true
+        LEFT JOIN LATERAL (
+          SELECT jsonb_agg(
+            jsonb_build_object(
+              'id', f.id,
+              'crmFieldId', f."crmFieldId",
+              'crmPersonId', f."crmPersonId",
+              'value', f.value,
+              'metadata', f.metadata,
+              'createdAt', f."createdAt",
+              'updatedAt', f."updatedAt"
+            ) ORDER BY f."createdAt" DESC
+          ) AS data
+          FROM "CrmPersonField" f
+          WHERE f."crmPersonId" = base.id
+        ) fieldAgg ON true
+        WHERE base.row_number > ${offsetParam}
+          AND base.row_number <= ${limitParam}
+        ORDER BY base.row_number
+      `,
+        ...params
+      );
+      tmark("Fetched crmPersons via raw SQL", {
+        count: crmRows.length,
+      });
+
+      const lifetimeMap = new Map();
+      const crmPersons = crmRows.map((row) => {
+        const {
+          row_number,
+          lifetime_value,
+          emails = [],
+          phones = [],
+          fieldValues = [],
+          ...rest
+        } = row;
+        lifetimeMap.set(rest.id, Number(lifetime_value || 0));
+        return {
+          ...rest,
+          emails: Array.isArray(emails) ? emails : [],
+          phones: Array.isArray(phones) ? phones : [],
+          fieldValues: Array.isArray(fieldValues) ? fieldValues : [],
+        };
+      });
+      tmark("Normalized raw CRM rows", { count: crmPersons.length });
 
       const personIds = crmPersons.map((person) => person.id);
       tmark("Person IDs extracted", { personIds: personIds.length });
@@ -515,93 +516,138 @@ export const get = [
         tmark("Parallel fetch (emails, participants, volunteers) start");
         [emailEntries, participantRegistrations, volunteerRegistrations] =
           await Promise.all([
-            prisma.email.findMany({
-              where: {
-                OR: [
-                  { crmPersonId: { in: personIds } },
-                  { crmPersonEmail: { crmPersonId: { in: personIds } } },
-                ],
-              },
-              select: {
-                createdAt: true,
-                crmPersonId: true,
-                crmPersonEmail: { select: { crmPersonId: true } },
-                opened: true,
-                status: true,
-              },
-              orderBy: { createdAt: "desc" },
-            }),
-            prisma.registration.findMany({
-              where: {
-                eventId,
-                crmPersonId: { in: personIds },
-                deleted: false,
-              },
-              select: {
-                id: true,
-                crmPersonId: true,
-                finalized: true,
-                createdAt: true,
-                instance: { select: { id: true, name: true } },
-                registrationTier: { select: { id: true, name: true } },
-                registrationPeriod: { select: { id: true, name: true } },
-                team: { select: { id: true, name: true } },
-                coupon: { select: { id: true, code: true, title: true } },
-                upsells: {
-                  select: {
-                    quantity: true,
-                    upsellItem: { select: { id: true, name: true } },
-                  },
-                },
-                fieldResponses: {
-                  select: {
-                    fieldId: true,
-                    value: true,
-                    option: { select: { label: true } },
-                    field: { select: { id: true, label: true } },
-                  },
-                },
-              },
-              orderBy: { createdAt: "desc" },
-            }),
-            prisma.volunteerRegistration.findMany({
-              where: {
-                eventId,
-                deleted: false,
-                crmPersonLink: { crmPersonId: { in: personIds } },
-              },
-              select: {
-                id: true,
-                createdAt: true,
-                instance: { select: { id: true, name: true } },
-                crmPersonLink: { select: { crmPersonId: true } },
-                fieldResponses: {
-                  select: {
-                    fieldId: true,
-                    value: true,
-                    field: { select: { id: true, label: true } },
-                  },
-                },
-                shifts: {
-                  select: {
-                    shift: {
-                      select: {
-                        id: true,
-                        job: {
-                          select: {
-                            id: true,
-                            name: true,
-                            location: { select: { id: true, name: true } },
-                          },
-                        },
-                        location: { select: { id: true, name: true } },
-                      },
-                    },
-                  },
-                },
-              },
-              orderBy: { createdAt: "desc" },
-            }),
+            prisma.$queryRawUnsafe(
+              `
+  SELECT
+    e."createdAt" AS "createdAt",
+    e."crmPersonId" AS "crmPersonId",
+    json_build_object('crmPersonId', cpe."crmPersonId") AS "crmPersonEmail",
+    e."opened",
+    e."status"
+  FROM "Email" e
+  LEFT JOIN "CrmPersonEmail" cpe
+    ON cpe."id" = e."crmPersonEmailId"
+  WHERE
+    e."crmPersonId" = ANY($1)
+    OR cpe."crmPersonId" = ANY($1)
+  ORDER BY e."createdAt" DESC
+  `,
+              personIds
+            ),
+
+            prisma.$queryRawUnsafe(
+              `
+  SELECT
+    r."id",
+    r."crmPersonId",
+    r."finalized",
+    r."createdAt",
+
+    json_build_object('id', i."id", 'name', i."name") AS instance,
+    json_build_object('id', rt."id", 'name', rt."name") AS "registrationTier",
+    json_build_object('id', rp."id", 'name', rp."name") AS "registrationPeriod",
+    json_build_object('id', t."id", 'name', t."name") AS team,
+    json_build_object('id', c."id", 'code', c."code", 'title', c."title") AS coupon,
+
+    (
+      SELECT json_agg(
+        json_build_object(
+          'quantity', u."quantity",
+          'upsellItem', json_build_object('id', ui."id", 'name', ui."name")
+        )
+      )
+      FROM "RegistrationUpsell" u
+      LEFT JOIN "UpsellItem" ui ON ui."id" = u."upsellItemId"
+      WHERE u."registrationId" = r."id"
+    ) AS upsells,
+
+    (
+      SELECT json_agg(
+        json_build_object(
+          'fieldId', fr."fieldId",
+          'value', fr."value",
+          'option', json_build_object('label', o."label"),
+          'field', json_build_object('id', f."id", 'label', f."label")
+        )
+      )
+      FROM "RegistrationFieldResponse" fr
+      LEFT JOIN "RegistrationFieldOption" o ON o."id" = fr."optionId"
+      LEFT JOIN "RegistrationField" f ON f."id" = fr."fieldId"
+      WHERE fr."registrationId" = r."id"
+    ) AS "fieldResponses"
+
+  FROM "Registration" r
+  LEFT JOIN "EventInstance" i ON i."id" = r."instanceId"
+  LEFT JOIN "RegistrationTier" rt ON rt."id" = r."registrationTierId"
+  LEFT JOIN "RegistrationPricing" rp ON rp."id" = r."registrationPeriodId"
+  LEFT JOIN "Team" t ON t."id" = r."teamId"
+  LEFT JOIN "Coupon" c ON c."id" = r."couponId"
+  WHERE
+    r."eventId" = $1
+    AND r."crmPersonId" = ANY($2)
+    AND r."deleted" = false
+  ORDER BY r."createdAt" DESC
+  `,
+              eventId,
+              personIds
+            ),
+
+            prisma.$queryRawUnsafe(
+              `
+  SELECT
+    vr."id",
+    vr."createdAt",
+    json_build_object('id', i."id", 'name', i."name") AS instance,
+    json_build_object('crmPersonId', cpl."crmPersonId") AS "crmPersonLink",
+
+    (
+      SELECT json_agg(
+        json_build_object(
+          'fieldId', fr."fieldId",
+          'value', fr."value",
+          'field', json_build_object('id', f."id", 'label', f."label")
+        )
+      )
+      FROM "FieldResponse" fr
+      LEFT JOIN "FormField" f ON f."id" = fr."fieldId"
+      WHERE fr."responseId" = vr."id"
+    ) AS "fieldResponses",
+
+    (
+      SELECT json_agg(
+        json_build_object(
+          'shift',
+          json_build_object(
+            'id', s."id",
+            'job', json_build_object(
+              'id', j."id",
+              'name', j."name",
+              'location', json_build_object('id', jl."id", 'name', jl."name")
+            ),
+            'location', json_build_object('id', sl."id", 'name', sl."name")
+          )
+        )
+      )
+      FROM "FormResponseShift" vs
+      LEFT JOIN "Shift" s ON s."id" = vs."shiftId"
+      LEFT JOIN "Job" j ON j."id" = s."jobId"
+      LEFT JOIN "Location" jl ON jl."id" = j."locationId"
+      LEFT JOIN "Location" sl ON sl."id" = s."locationId"
+      WHERE vs."formResponseId" = vr."id"
+    ) AS shifts
+
+  FROM "FormResponse" vr
+  LEFT JOIN "EventInstance" i ON i."id" = vr."instanceId"
+  LEFT JOIN "CrmPersonLink" cpl ON cpl."formResponseId" = vr."id"
+  WHERE
+    vr."eventId" = $1
+    AND vr."deleted" = false
+    AND cpl."crmPersonId" = ANY($2)
+  ORDER BY vr."createdAt" DESC
+  `,
+              eventId,
+              personIds
+            ),
           ]);
         tmark("Parallel fetch end", {
           emails: emailEntries.length,
@@ -610,33 +656,14 @@ export const get = [
         });
       }
 
-      let ledgerMap;
-      if (precomputedLifetime) {
-        ledgerMap = new Map(
-          personIds.map((id) => [id, precomputedLifetime.get(id) ?? 0])
-        );
-        tmark("Used precomputed lifetime map");
-      } else if (personIds.length) {
-        tmark("GroupBy ledgerItem (page-only) start");
-        const ledgerGroups = await prisma.ledgerItem.groupBy({
-          by: ["crmPersonId"],
-          where: {
-            eventId,
-            crmPersonId: { in: personIds },
-          },
-          _sum: { amount: true },
-        });
-        ledgerMap = new Map(
-          ledgerGroups.map((entry) => [
-            entry.crmPersonId,
-            Number(entry._sum?.amount || 0),
-          ])
-        );
-        tmark("GroupBy ledgerItem (page-only) end", {
-          ledgerGroups: ledgerGroups.length,
+      const ledgerMap = new Map(
+        personIds.map((id) => [id, lifetimeMap.get(id) ?? 0])
+      );
+      if (personIds.length) {
+        tmark("Used lifetime sums from raw query", {
+          populated: ledgerMap.size,
         });
       } else {
-        ledgerMap = new Map();
         tmark("Empty ledger map (no persons)");
       }
 
