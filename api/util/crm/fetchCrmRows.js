@@ -134,7 +134,13 @@ export const fetchCrmRows = async ({
 
   const lifetimeMap = new Map();
   const crmPersons = crmRows.map((row) => {
-    const { lifetime_value, emails = [], phones = [], fieldValues = [], ...rest } = row;
+    const {
+      lifetime_value,
+      emails = [],
+      phones = [],
+      fieldValues = [],
+      ...rest
+    } = row;
     lifetimeMap.set(rest.id, Number(lifetime_value || 0));
     return {
       ...rest,
