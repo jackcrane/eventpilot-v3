@@ -510,6 +510,7 @@ export const get = [
 
       let participantRegistrations = [];
       let volunteerRegistrations = [];
+      let emailEntries = [];
 
       if (personIds.length) {
         const participantRegistrations = await prisma.$queryRawUnsafe(
@@ -629,10 +630,32 @@ export const get = [
           eventId,
           personIds
         );
+
         tmark("Fetched volunteerRegistrations", {
           participantRegistrations: participantRegistrations.length,
           volunteerRegistrations: volunteerRegistrations.length,
         });
+
+        const emailEntries = await prisma.$queryRawUnsafe(
+          `
+  SELECT DISTINCT ON ("crmPersonId")
+    "crmPersonId", "createdAt"
+  FROM "Email"
+  WHERE "crmPersonId" = ANY($1::text[])
+  ORDER BY "crmPersonId", "createdAt" DESC
+`,
+          personIds
+        );
+
+        tmark("Fetched emailEntries", {
+          emails: emailEntries.length,
+        });
+      }
+
+      const emailMap = new Map();
+      for (const email of emailEntries) {
+        const personId = email.crmPersonId;
+        emailMap.set(personId, email.createdAt);
       }
 
       const ledgerMap = new Map(
@@ -848,6 +871,7 @@ export const get = [
           ...person,
           fields: collapseCrmValues(person.fieldValues),
           lifetimeValue: ledgerMap.get(person.id) ?? 0,
+          lastEmailedAt: emailMap.get(person.id) ?? null,
           participantStats: participantStats || {
             total: 0,
             finalized: 0,
