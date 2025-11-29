@@ -111,6 +111,7 @@ export async function solrSearch({ query, eventId, rows = 25 }) {
     defType: "edismax",
     qf: "title^4 subtitle^2 description^2 searchText^1",
     sort: "score desc,updatedAt desc",
+    fl: "*,score",
   });
   if (eventId) {
     params.append("fq", `eventId:"${escapeValue(eventId)}"`);
