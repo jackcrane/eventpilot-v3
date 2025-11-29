@@ -508,50 +508,10 @@ export const get = [
       const personIds = crmPersons.map((person) => person.id);
       tmark("Person IDs extracted", { personIds: personIds.length });
 
-      let emailEntries = [];
       let participantRegistrations = [];
       let volunteerRegistrations = [];
 
       if (personIds.length) {
-        tmark("Parallel fetch (emails, participants, volunteers) start");
-        const emailEntries = await prisma.$queryRawUnsafe(
-          `
-  (
-  SELECT
-    e."createdAt",
-    e."crmPersonId",
-    json_build_object('crmPersonId', cpe."crmPersonId") AS "crmPersonEmail",
-    e."opened",
-    e."status"
-  FROM "Email" e
-  LEFT JOIN "CrmPersonEmail" cpe
-    ON cpe."id" = e."crmPersonEmailId"
-  WHERE e."crmPersonId" = ANY($1)
-)
-UNION ALL
-(
-  SELECT
-    e."createdAt",
-    e."crmPersonId",
-    json_build_object('crmPersonId', cpe."crmPersonId") AS "crmPersonEmail",
-    e."opened",
-    e."status"
-  FROM "Email" e
-  JOIN "CrmPersonEmail" cpe
-    ON cpe."id" = e."crmPersonEmailId"
-  WHERE cpe."crmPersonId" = ANY($1)
-)
-ORDER BY "createdAt" DESC;
-  `,
-          personIds
-        );
-
-        tmark("Fetched emailEntries", {
-          emails: emailEntries.length,
-        });
-
-        console.log(emailEntries);
-
         const participantRegistrations = await prisma.$queryRawUnsafe(
           `
   SELECT
@@ -670,7 +630,6 @@ ORDER BY "createdAt" DESC;
           personIds
         );
         tmark("Fetched volunteerRegistrations", {
-          emails: emailEntries.length,
           participantRegistrations: participantRegistrations.length,
           volunteerRegistrations: volunteerRegistrations.length,
         });
@@ -686,29 +645,6 @@ ORDER BY "createdAt" DESC;
       } else {
         tmark("Empty ledger map (no persons)");
       }
-
-      const emailMap = new Map();
-      const emailStatsMap = new Map();
-      for (const email of emailEntries) {
-        const personId = email.crmPersonId ?? email.crmPersonEmail?.crmPersonId;
-        if (!personId) continue;
-
-        const opened =
-          Boolean(email.opened) ||
-          String(email.status || "").toUpperCase() === "OPENED";
-
-        const stats = emailStatsMap.get(personId) || { sent: 0, opened: 0 };
-        stats.sent += 1;
-        if (opened) stats.opened += 1;
-        emailStatsMap.set(personId, stats);
-
-        if (!emailMap.has(personId)) {
-          emailMap.set(personId, email.createdAt);
-        }
-      }
-      tmark("Computed email stats", {
-        personsWithEmails: emailStatsMap.size,
-      });
 
       const participantAccumulator = new Map();
       for (const reg of participantRegistrations) {
@@ -908,23 +844,10 @@ ORDER BY "createdAt" DESC;
       const enrichedCrmPersons = crmPersons.map((person) => {
         const participantStats = normalizedParticipantMap.get(person.id);
         const volunteerStats = volunteerMap.get(person.id);
-        const emailStats = emailStatsMap.get(person.id) || {
-          sent: 0,
-          opened: 0,
-        };
-        const emailOpenRate =
-          emailStats.sent > 0 ? emailStats.opened / emailStats.sent : 0;
         return {
           ...person,
           fields: collapseCrmValues(person.fieldValues),
           lifetimeValue: ledgerMap.get(person.id) ?? 0,
-          lastEmailedAt: emailMap.get(person.id) ?? null,
-          emailStats: {
-            sent: emailStats.sent,
-            opened: emailStats.opened,
-            openRate: emailOpenRate,
-          },
-          emailOpenRate,
           participantStats: participantStats || {
             total: 0,
             finalized: 0,
