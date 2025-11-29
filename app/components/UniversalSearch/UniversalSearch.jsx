@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { FiSearch } from "react-icons/fi";
 import { useEventSearch } from "../../hooks/useEventSearch";
 import styles from "./universalSearch.module.css";
+import { handleSearchResultNavigation } from "./resultActions";
 
 const getIsMacLike = () => {
   if (typeof window === "undefined" || !window.navigator) {
@@ -13,7 +14,6 @@ const getIsMacLike = () => {
 
 export const UniversalSearch = ({
   eventId,
-  onResultSelected,
   placeholder = "Search anything across your event…",
   minChars = 3,
 }) => {
@@ -91,7 +91,7 @@ export const UniversalSearch = ({
 
   const handleSelect = (result) => {
     if (!result) return;
-    onResultSelected?.(result);
+    handleSearchResultNavigation({ result, eventId });
   };
 
   const handleKeyDown = (event) => {

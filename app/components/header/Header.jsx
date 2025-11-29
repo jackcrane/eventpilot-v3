@@ -70,12 +70,7 @@ export const Header = ({
         <div className={styles.headerActions}>
           {currentEventId && (
             <div className={styles.headerSearch}>
-              <UniversalSearch
-                eventId={currentEventId}
-                onResultSelected={(result) =>
-                  console.debug("Search result selected", result)
-                }
-              />
+              <UniversalSearch eventId={currentEventId} />
             </div>
           )}
           <Dropdown
