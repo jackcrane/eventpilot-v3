@@ -8,6 +8,7 @@ import { FormResponseRUD } from "../formResponseRUD/FormResponseRUD";
 import { TodoItemRUD } from "../TodoItemRUD/TodoItemRUD";
 import { TeamCRUD } from "../TeamCRUD/TeamCRUD";
 import { UpsellItemCRUD } from "../UpsellItemCRUD/UpsellItemCRUD";
+import { CouponCRUD } from "../CouponCRUD/CouponCRUD";
 import toast from "react-hot-toast";
 
 const getIsMacLike = () => {
@@ -127,6 +128,13 @@ export const UniversalSearch = ({
   } = useOffcanvas({
     offcanvasProps: { position: "end", size: 520, zIndex: 1090 },
   });
+  const {
+    offcanvas: couponOffcanvas,
+    OffcanvasElement: CouponOffcanvasElement,
+    close: closeCouponOffcanvas,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 520, zIndex: 1085 },
+  });
   const { confirm, ConfirmModal } = useConfirm({
     title: "Confirm",
     text: "Are you sure?",
@@ -205,12 +213,27 @@ export const UniversalSearch = ({
     [eventId, upsellOffcanvas, closeUpsellOffcanvas]
   );
 
+  const openCoupon = useCallback(
+    ({ resourceId }) => {
+      if (!eventId) {
+        toast.error("Unable to open coupon");
+        return;
+      }
+      couponOffcanvas({
+        content: (
+          <CouponCRUD coupon={{ id: resourceId }} onClose={closeCouponOffcanvas} eventId={eventId} />
+        ),
+      });
+    },
+    [eventId, couponOffcanvas, closeCouponOffcanvas]
+  );
+
   const handleSelect = (result) => {
     if (!result) return;
     handleSearchResultNavigation({
       result,
       eventId,
-      actions: { openVolunteer, openTodo, openTeam, openUpsell },
+      actions: { openVolunteer, openTodo, openTeam, openUpsell, openCoupon },
     });
   };
 
@@ -254,6 +277,7 @@ export const UniversalSearch = ({
       {TodoOffcanvasElement}
       {TeamOffcanvasElement}
       {UpsellOffcanvasElement}
+      {CouponOffcanvasElement}
       {ConfirmModal}
       <div className={`${styles.wrapper} dropdown`} ref={containerRef}>
         <div className="input-group input-group-flat">

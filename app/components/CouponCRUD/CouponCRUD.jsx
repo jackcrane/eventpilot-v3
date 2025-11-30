@@ -14,15 +14,23 @@ import { TzDateTime } from "../tzDateTime/tzDateTime";
 import { useEvent } from "../../hooks/useEvent";
 import { Row } from "../../util/Flex";
 
-export const CouponCRUD = ({ coupon, onClose, ...props }) => {
+export const CouponCRUD = ({
+  coupon,
+  onClose,
+  eventId: eventIdProp,
+  ...props
+}) => {
   if (coupon?.id) {
-    return <CouponEdit couponId={coupon.id} onClose={onClose} {...props} />;
+    return (
+      <CouponEdit couponId={coupon.id} onClose={onClose} eventId={eventIdProp} {...props} />
+    );
   }
-  return <CouponCreate onClose={onClose} {...props} />;
+  return <CouponCreate onClose={onClose} eventId={eventIdProp} {...props} />;
 };
 
-const CouponCreate = ({ onClose }) => {
-  const { eventId } = useParams();
+const CouponCreate = ({ onClose, eventId: eventIdProp }) => {
+  const params = useParams();
+  const eventId = eventIdProp ?? params.eventId;
   const { mutationLoading, createCoupon, validationError, schema } =
     useRegistrationCoupons({ eventId });
 
@@ -38,8 +46,9 @@ const CouponCreate = ({ onClose }) => {
   );
 };
 
-const CouponEdit = ({ couponId, onClose }) => {
-  const { eventId } = useParams();
+const CouponEdit = ({ couponId, onClose, eventId: eventIdProp }) => {
+  const params = useParams();
+  const eventId = eventIdProp ?? params.eventId;
   const {
     coupon,
     loading,

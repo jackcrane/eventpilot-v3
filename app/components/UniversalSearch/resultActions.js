@@ -36,6 +36,13 @@ const MODEL_HANDLERS = {
     }
     toast("No action supported");
   },
+  coupon: ({ actions, eventId, resourceId, result }) => {
+    if (actions?.openCoupon) {
+      actions.openCoupon({ eventId, resourceId, result });
+      return;
+    }
+    toast("No action supported");
+  },
   todo: ({ actions, eventId, resourceId, result }) => {
     if (actions?.openTodo) {
       actions.openTodo({ eventId, resourceId, result });
