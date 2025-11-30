@@ -6,21 +6,31 @@ import { useRegistrationTeams } from "../../hooks/useRegistrationTeams";
 import { useRegistrationTeam } from "../../hooks/useRegistrationTeam";
 import { useRegistrationFormRequirementPrompt } from "../../hooks/useRegistrationFormRequirementPrompt";
 
-export const TeamCRUD = ({ team, onClose, registerRequirementModal, ...props }) => {
+export const TeamCRUD = ({
+  team,
+  onClose,
+  registerRequirementModal,
+  eventId: eventIdProp,
+  ...props
+}) => {
   if (team?.id) {
-    return <TeamEdit teamId={team.id} onClose={onClose} {...props} />;
+    return (
+      <TeamEdit teamId={team.id} onClose={onClose} eventId={eventIdProp} {...props} />
+    );
   }
   return (
     <TeamCreate
       onClose={onClose}
       registerRequirementModal={registerRequirementModal}
+      eventId={eventIdProp}
       {...props}
     />
   );
 };
 
-const TeamCreate = ({ onClose, registerRequirementModal }) => {
-  const { eventId } = useParams();
+const TeamCreate = ({ onClose, registerRequirementModal, eventId: eventIdProp }) => {
+  const params = useParams();
+  const eventId = eventIdProp ?? params.eventId;
   const { mutationLoading, createTeam, validationError } =
     useRegistrationTeams({ eventId });
   const {
@@ -72,8 +82,9 @@ const TeamCreate = ({ onClose, registerRequirementModal }) => {
   );
 };
 
-const TeamEdit = ({ teamId, onClose }) => {
-  const { eventId } = useParams();
+const TeamEdit = ({ teamId, onClose, eventId: eventIdProp }) => {
+  const params = useParams();
+  const eventId = eventIdProp ?? params.eventId;
   const { team, loading, mutationLoading, validationError, updateTeam } =
     useRegistrationTeam({ eventId, teamId });
 

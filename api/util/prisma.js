@@ -1,6 +1,10 @@
 import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
 import chalk from "chalk";
+import { createSearchIndexMiddleware } from "./search/indexer.js";
+
+const prisma = new PrismaClient();
+
+prisma.$use(createSearchIndexMiddleware(prisma));
 
 prisma.$use(async (params, next) => {
   const before = Date.now();

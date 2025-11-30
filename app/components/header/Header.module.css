@@ -33,6 +33,20 @@
   align-items: center;
 }
 
+.headerActions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.headerSearch {
+  min-width: 280px;
+  max-width: 420px;
+}
+
 .headerTitle {
   font-size: 1rem;
   color: var(--tblr-text-color);

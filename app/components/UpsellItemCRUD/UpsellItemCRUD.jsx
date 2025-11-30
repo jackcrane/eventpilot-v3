@@ -11,24 +11,32 @@ export const UpsellItemCRUD = ({
   upsellItem,
   onClose,
   registerRequirementModal,
+  eventId: eventIdProp,
   ...props
 }) => {
   if (upsellItem?.id) {
     return (
-      <UpsellEdit upsellItemId={upsellItem.id} onClose={onClose} {...props} />
+      <UpsellEdit
+        upsellItemId={upsellItem.id}
+        onClose={onClose}
+        eventId={eventIdProp}
+        {...props}
+      />
     );
   }
   return (
     <UpsellCreate
       onClose={onClose}
       registerRequirementModal={registerRequirementModal}
+      eventId={eventIdProp}
       {...props}
     />
   );
 };
 
-const UpsellCreate = ({ onClose, registerRequirementModal }) => {
-  const { eventId } = useParams();
+const UpsellCreate = ({ onClose, registerRequirementModal, eventId: eventIdProp }) => {
+  const params = useParams();
+  const eventId = eventIdProp ?? params.eventId;
   const { mutationLoading, createUpsell, validationError } =
     useRegistrationUpsells({ eventId });
   const {
@@ -76,8 +84,9 @@ const UpsellCreate = ({ onClose, registerRequirementModal }) => {
   );
 };
 
-const UpsellEdit = ({ upsellItemId, onClose }) => {
-  const { eventId } = useParams();
+const UpsellEdit = ({ upsellItemId, onClose, eventId: eventIdProp }) => {
+  const params = useParams();
+  const eventId = eventIdProp ?? params.eventId;
   const { upsell, loading, mutationLoading, validationError, updateUpsell } =
     useRegistrationUpsell({ eventId, upsellItemId });
 
