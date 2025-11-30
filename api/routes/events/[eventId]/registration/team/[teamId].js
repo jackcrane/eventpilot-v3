@@ -12,7 +12,7 @@ export const get = [
       where: {
         id: teamId,
         eventId,
-        instanceId: req.instanceId,
+        // instanceId: req.instanceId,
         deleted: false,
       },
       include: {

@@ -6,6 +6,8 @@ import { handleSearchResultNavigation } from "./resultActions";
 import { useOffcanvas, useConfirm } from "tabler-react-2";
 import { FormResponseRUD } from "../formResponseRUD/FormResponseRUD";
 import { TodoItemRUD } from "../TodoItemRUD/TodoItemRUD";
+import { TeamCRUD } from "../TeamCRUD/TeamCRUD";
+import { UpsellItemCRUD } from "../UpsellItemCRUD/UpsellItemCRUD";
 import toast from "react-hot-toast";
 
 const getIsMacLike = () => {
@@ -111,6 +113,20 @@ export const UniversalSearch = ({
   } = useOffcanvas({
     offcanvasProps: { position: "end", size: 520, zIndex: 1095 },
   });
+  const {
+    offcanvas: teamOffcanvas,
+    OffcanvasElement: TeamOffcanvasElement,
+    close: closeTeamOffcanvas,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 520, zIndex: 1090 },
+  });
+  const {
+    offcanvas: upsellOffcanvas,
+    OffcanvasElement: UpsellOffcanvasElement,
+    close: closeUpsellOffcanvas,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 520, zIndex: 1090 },
+  });
   const { confirm, ConfirmModal } = useConfirm({
     title: "Confirm",
     text: "Are you sure?",
@@ -156,12 +172,45 @@ export const UniversalSearch = ({
     [eventId, todoOffcanvas, closeTodoOffcanvas]
   );
 
+  const openTeam = useCallback(
+    ({ resourceId }) => {
+      if (!eventId) {
+        toast.error("Unable to open team");
+        return;
+      }
+      teamOffcanvas({
+        content: (
+          <TeamCRUD team={{ id: resourceId }} onClose={closeTeamOffcanvas} />
+        ),
+      });
+    },
+    [eventId, teamOffcanvas, closeTeamOffcanvas]
+  );
+
+  const openUpsell = useCallback(
+    ({ resourceId }) => {
+      if (!eventId) {
+        toast.error("Unable to open upsell");
+        return;
+      }
+      upsellOffcanvas({
+        content: (
+          <UpsellItemCRUD
+            upsellItem={{ id: resourceId }}
+            onClose={closeUpsellOffcanvas}
+          />
+        ),
+      });
+    },
+    [eventId, upsellOffcanvas, closeUpsellOffcanvas]
+  );
+
   const handleSelect = (result) => {
     if (!result) return;
     handleSearchResultNavigation({
       result,
       eventId,
-      actions: { openVolunteer, openTodo },
+      actions: { openVolunteer, openTodo, openTeam, openUpsell },
     });
   };
 
@@ -203,6 +252,8 @@ export const UniversalSearch = ({
       {VolunteerOffcanvasElement}
       {VolunteerSubOffcanvasElement}
       {TodoOffcanvasElement}
+      {TeamOffcanvasElement}
+      {UpsellOffcanvasElement}
       {ConfirmModal}
       <div className={`${styles.wrapper} dropdown`} ref={containerRef}>
         <div className="input-group input-group-flat">

@@ -22,6 +22,20 @@ const MODEL_HANDLERS = {
     }
     toast("No action supported");
   },
+  team: ({ actions, eventId, resourceId, result }) => {
+    if (actions?.openTeam) {
+      actions.openTeam({ eventId, resourceId, result });
+      return;
+    }
+    toast("No action supported");
+  },
+  upsell: ({ actions, eventId, resourceId, result }) => {
+    if (actions?.openUpsell) {
+      actions.openUpsell({ eventId, resourceId, result });
+      return;
+    }
+    toast("No action supported");
+  },
   todo: ({ actions, eventId, resourceId, result }) => {
     if (actions?.openTodo) {
       actions.openTodo({ eventId, resourceId, result });
