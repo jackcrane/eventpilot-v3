@@ -29,7 +29,8 @@ const trackedActions = new Set([
   "updateMany",
 ]);
 
-export const withSearchIndexingDisabled = (callback) => disableContext.run(true, callback);
+export const withSearchIndexingDisabled = (callback) =>
+  disableContext.run(true, callback);
 
 const indexingDisabled = () => Boolean(disableContext.getStore());
 
@@ -54,7 +55,8 @@ const extractIdsFromWhere = (where) => {
   return [];
 };
 
-const toDocIds = (config, ids) => ids.map((id) => `${config.resourceType}:${id}`);
+const toDocIds = (config, ids) =>
+  ids.map((id) => `${config.resourceType}:${id}`);
 
 const fetchIdsForWhere = async (prisma, config, where) => {
   if (!where) {

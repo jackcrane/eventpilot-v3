@@ -217,7 +217,9 @@ export const SEARCH_RESOURCE_CONFIG = {
         record.fieldResponses?.map((response) => response.value)
       );
       return createSearchDocument("volunteer", record, {
-        title: linkedPerson?.name ?? volunteerNameFromResponses(record.fieldResponses),
+        title:
+          linkedPerson?.name ??
+          volunteerNameFromResponses(record.fieldResponses),
         subtitle: emailList[0],
         description: responseValues.slice(0, 3).join(" · ") || null,
         searchFields: [responseValues, emailList, phoneList],
