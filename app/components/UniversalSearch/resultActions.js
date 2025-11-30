@@ -15,19 +15,23 @@ const MODEL_HANDLERS = {
     }
     openTab(`/events/${eventId}/crm/${resourceId}`);
   },
-  volunteer: () => {
-    toast("No action supported");
-  },
-  todo: ({ eventId, resourceId }) => {
-    if (!eventId) {
-      toast.error("Unable to open todo");
+  volunteer: ({ actions, eventId, resourceId, result }) => {
+    if (actions?.openVolunteer) {
+      actions.openVolunteer({ eventId, resourceId, result });
       return;
     }
-    openTab(`/events/${eventId}/todos?todo=${resourceId ?? ""}`);
+    toast("No action supported");
+  },
+  todo: ({ actions, eventId, resourceId, result }) => {
+    if (actions?.openTodo) {
+      actions.openTodo({ eventId, resourceId, result });
+      return;
+    }
+    toast("No action supported");
   },
 };
 
-export const handleSearchResultNavigation = ({ result, eventId }) => {
+export const handleSearchResultNavigation = ({ result, eventId, actions }) => {
   if (!result) {
     return;
   }
@@ -36,5 +40,5 @@ export const handleSearchResultNavigation = ({ result, eventId }) => {
     toast("No action supported");
     return;
   }
-  handler({ eventId, resourceId: result.resourceId, result });
+  handler({ eventId, resourceId: result.resourceId, result, actions });
 };

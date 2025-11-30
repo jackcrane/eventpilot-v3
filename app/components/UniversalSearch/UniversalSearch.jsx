@@ -1,8 +1,12 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { FiSearch } from "react-icons/fi";
 import { useEventSearch } from "../../hooks/useEventSearch";
 import styles from "./universalSearch.module.css";
 import { handleSearchResultNavigation } from "./resultActions";
+import { useOffcanvas, useConfirm } from "tabler-react-2";
+import { FormResponseRUD } from "../formResponseRUD/FormResponseRUD";
+import { TodoItemRUD } from "../TodoItemRUD/TodoItemRUD";
+import toast from "react-hot-toast";
 
 const getIsMacLike = () => {
   if (typeof window === "undefined" || !window.navigator) {
@@ -88,10 +92,77 @@ export const UniversalSearch = ({
 
   const showResults = useMemo(() => isActive, [isActive]);
 
+  const {
+    offcanvas: volunteerOffcanvas,
+    OffcanvasElement: VolunteerOffcanvasElement,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 520, zIndex: 1100 },
+  });
+  const {
+    offcanvas: volunteerSubOffcanvas,
+    OffcanvasElement: VolunteerSubOffcanvasElement,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 470, zIndex: 1101 },
+  });
+  const {
+    offcanvas: todoOffcanvas,
+    OffcanvasElement: TodoOffcanvasElement,
+    close: closeTodoOffcanvas,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 520, zIndex: 1095 },
+  });
+  const { confirm, ConfirmModal } = useConfirm({
+    title: "Confirm",
+    text: "Are you sure?",
+    commitText: "Confirm",
+    cancelText: "Cancel",
+  });
+
+  const openVolunteer = useCallback(
+    ({ resourceId }) => {
+      if (!resourceId) {
+        toast.error("Unable to open volunteer");
+        return;
+      }
+      volunteerOffcanvas({
+        content: (
+          <FormResponseRUD
+            id={resourceId}
+            confirm={confirm}
+            subOffcanvas={volunteerSubOffcanvas}
+          />
+        ),
+      });
+    },
+    [volunteerOffcanvas, volunteerSubOffcanvas, confirm]
+  );
+
+  const openTodo = useCallback(
+    ({ resourceId }) => {
+      if (!eventId || !resourceId) {
+        toast.error("Unable to open todo");
+        return;
+      }
+      todoOffcanvas({
+        content: (
+          <TodoItemRUD
+            eventId={eventId}
+            todoId={resourceId}
+            onClose={closeTodoOffcanvas}
+          />
+        ),
+      });
+    },
+    [eventId, todoOffcanvas, closeTodoOffcanvas]
+  );
 
   const handleSelect = (result) => {
     if (!result) return;
-    handleSearchResultNavigation({ result, eventId });
+    handleSearchResultNavigation({
+      result,
+      eventId,
+      actions: { openVolunteer, openTodo },
+    });
   };
 
   const handleKeyDown = (event) => {
@@ -128,8 +199,13 @@ export const UniversalSearch = ({
     : placeholder;
 
   return (
-    <div className={`${styles.wrapper} dropdown`} ref={containerRef}>
-      <div className="input-group input-group-flat">
+    <>
+      {VolunteerOffcanvasElement}
+      {VolunteerSubOffcanvasElement}
+      {TodoOffcanvasElement}
+      {ConfirmModal}
+      <div className={`${styles.wrapper} dropdown`} ref={containerRef}>
+        <div className="input-group input-group-flat">
         <span className="input-group-text">
           <FiSearch size={16} aria-hidden="true" className="text-muted" />
         </span>
@@ -239,6 +315,7 @@ export const UniversalSearch = ({
           )}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
