@@ -1,9 +1,16 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { FiSearch } from "react-icons/fi";
 import { useEventSearch } from "../../hooks/useEventSearch";
 import styles from "./universalSearch.module.css";
 import { handleSearchResultNavigation } from "./resultActions";
-import { useOffcanvas, useConfirm } from "tabler-react-2";
+import { useOffcanvas, useConfirm, Typography } from "tabler-react-2";
 import { FormResponseRUD } from "../formResponseRUD/FormResponseRUD";
 import { TodoItemRUD } from "../TodoItemRUD/TodoItemRUD";
 import { TeamCRUD } from "../TeamCRUD/TeamCRUD";
@@ -16,12 +23,16 @@ const getIsMacLike = () => {
     return true;
   }
   const platform = window.navigator.platform?.toLowerCase?.() ?? "";
-  return platform.includes("mac") || platform.includes("iphone") || platform.includes("ipad");
+  return (
+    platform.includes("mac") ||
+    platform.includes("iphone") ||
+    platform.includes("ipad")
+  );
 };
 
 const DEFAULT_FILTER_ID = "all";
 const RESULT_FILTERS = [
-  { id: DEFAULT_FILTER_ID, label: "All" },
+  { id: DEFAULT_FILTER_ID, label: "Everything" },
   { id: "crmPerson", label: "CRM People" },
   { id: "team", label: "Teams" },
   { id: "volunteer", label: "Volunteers" },
@@ -116,8 +127,6 @@ export const UniversalSearch = ({
     RESULT_FILTERS.find((filter) => filter.id === activeFilter) ??
     RESULT_FILTERS[0];
   const isFilterAll = activeFilterMeta.id === DEFAULT_FILTER_ID;
-  const showFilters = trimmedQuery.length >= minChars;
-
   useEffect(() => {
     setActiveFilter(DEFAULT_FILTER_ID);
   }, [eventId]);
@@ -263,7 +272,11 @@ export const UniversalSearch = ({
       }
       couponOffcanvas({
         content: (
-          <CouponCRUD coupon={{ id: resourceId }} onClose={closeCouponOffcanvas} eventId={eventId} />
+          <CouponCRUD
+            coupon={{ id: resourceId }}
+            onClose={closeCouponOffcanvas}
+            eventId={eventId}
+          />
         ),
       });
     },
@@ -305,7 +318,8 @@ export const UniversalSearch = ({
     }
   };
 
-  const activeOptionId = activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined;
+  const activeOptionId =
+    activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined;
   const shortcutDisplay = isMacLike ? "⌘" : "Ctrl";
   const isDisabled = !eventId;
   const hintText = isDisabled
@@ -323,142 +337,161 @@ export const UniversalSearch = ({
       {ConfirmModal}
       <div className={`${styles.wrapper} dropdown`} ref={containerRef}>
         <div className="input-group input-group-flat">
-        <span className="input-group-text">
-          <FiSearch size={16} aria-hidden="true" className="text-muted" />
-        </span>
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onFocus={() => setIsActive(true)}
-          onKeyDown={handleKeyDown}
-          placeholder={hintText}
-          disabled={isDisabled}
-          className="form-control"
-          aria-label="Universal search"
-          aria-controls={showResults ? listboxId : undefined}
-          aria-expanded={showResults}
-        />
-        <span className="input-group-text" aria-hidden="true">
-          <span className={styles.shortcut}>
-            <kbd className="kbd">{shortcutDisplay}</kbd>
-            <kbd className="kbd">K</kbd>
+          <span className="input-group-text">
+            <FiSearch size={16} aria-hidden="true" className="text-muted" />
           </span>
-        </span>
-      </div>
-      {showResults && (
-        <div
-          className={`${styles.resultsPanel} dropdown-menu dropdown-menu-card dropdown-menu-end show`}
-          role="listbox"
-          id={listboxId}
-          aria-activedescendant={activeOptionId}
-        >
-          {showFilters && (
-            <div className={styles.filterTabsWrapper}>
-              <div
-                className={`nav nav-tabs ${styles.filterTabs}`}
-                role="tablist"
-              >
-                {RESULT_FILTERS.map((filter) => {
-                  const isActiveFilter = filter.id === activeFilter;
-                  return (
-                    <button
-                      key={filter.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={isActiveFilter}
-                      className={`nav-link ${isActiveFilter ? "active" : ""}`}
-                      onClick={() => setActiveFilter(filter.id)}
-                      aria-label={`Show ${filter.label} results`}
-                    >
-                      {filter.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          {loading && (
-            <div className={styles.emptyState} role="status">
-              <div className={styles.emptyTitle}>Searching…</div>
-              <div className={styles.emptyDescription}>
-                We’re looking across CRM, teams, registrations, and more.
-              </div>
-            </div>
-          )}
-          {!loading && trimmedQuery.length < minChars && (
-            <div className={styles.emptyState} role="status">
-              <div className={styles.emptyTitle}>
-                Enter at least {minChars} characters
-              </div>
-              <div className={styles.emptyDescription}>
-                Try searching by name, email, team code, or anything else
-                you track for this event.
-              </div>
-            </div>
-          )}
-          {!loading &&
-            trimmedQuery.length >= minChars &&
-            filteredResults.length === 0 && (
-              <div className={styles.emptyState} role="status">
-                <div className={styles.emptyTitle}>
-                  {isFilterAll
-                    ? `No results for “${debouncedQuery}”`
-                    : `No ${activeFilterMeta.label} results for “${debouncedQuery}”`}
-                </div>
-                <div className={styles.emptyDescription}>
-                  Refine your search or try a different keyword.
-                </div>
-              </div>
-            )}
-          {!loading && trimmedQuery.length >= minChars && visibleResults.length > 0 && (
-            <div className={`list-group list-group-flush ${styles.resultsScroll}`}>
-              {visibleResults.map((result, index) => {
-                return (
-                  <button
-                    key={`${result.resourceType}-${result.resourceId}`}
-                    type="button"
-                    className={`list-group-item list-group-item-action ${styles.resultItem} ${index === activeIndex ? "active" : ""}`}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => handleSelect(result)}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    role="option"
-                    aria-selected={index === activeIndex}
-                    id={`${listboxId}-option-${index}`}
-                    ref={(node) => {
-                      optionRefs.current[index] = node;
-                    }}
-                  >
-                    <div className="d-flex justify-content-between align-items-center">
-                      <span className="fw-semibold">
-                        {result.title || result.resourceId}
-                      </span>
-                    </div>
-                    <div className="d-flex gap-2 flex-wrap text-muted small mt-1">
-                      {result.resourceKind && (
-                        <span className="badge bg-blue-lt text-blue">
-                          {result.resourceKind}
-                        </span>
-                      )}
-                      {result.subtitle && <span>{result.subtitle}</span>}
-                    </div>
-                    {result.description && (
-                      <div className="text-muted small mt-1">
-                        {result.description}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-              {filteredResults.length > visibleResults.length && (
-                <div className="list-group-item text-muted small text-center">
-                  To view more results, refine your search.
-                </div>
-              )}
-            </div>
-          )}
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onFocus={() => setIsActive(true)}
+            onKeyDown={handleKeyDown}
+            placeholder={hintText}
+            disabled={isDisabled}
+            className="form-control"
+            aria-label="Universal search"
+            aria-controls={showResults ? listboxId : undefined}
+            aria-expanded={showResults}
+          />
+          <span className="input-group-text" aria-hidden="true">
+            <span className={styles.shortcut}>
+              <kbd className="kbd">{shortcutDisplay}</kbd>
+              <kbd className="kbd">K</kbd>
+            </span>
+          </span>
         </div>
-      )}
+        {showResults && (
+          <div
+            className={`${styles.resultsPanel} dropdown-menu dropdown-menu-card dropdown-menu-end show`}
+            role="listbox"
+            id={listboxId}
+            aria-activedescendant={activeOptionId}
+          >
+            <div className={styles.dropdownContent}>
+              <div className={styles.tabsColumn}>
+                <div
+                  className={`nav flex-column ${styles.verticalTabs}`}
+                  role="tablist"
+                  aria-label="Universal search filters"
+                >
+                  <Typography.Text className="mb-1">
+                    Search for...
+                  </Typography.Text>
+                  {RESULT_FILTERS.map((filter) => {
+                    const isActiveFilter = filter.id === activeFilter;
+                    return (
+                      <button
+                        key={filter.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={isActiveFilter}
+                        className={`badge ${
+                          isActiveFilter ? "bg-blue-lt" : ""
+                        }`}
+                        onClick={() => setActiveFilter(filter.id)}
+                        aria-label={`Show ${filter.label} results`}
+                        style={{
+                          justifyContent: "flex-start",
+                        }}
+                      >
+                        {filter.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className={styles.resultsColumn}>
+                {loading && (
+                  <div className={styles.emptyState} role="status">
+                    <div className={styles.emptyTitle}>Searching…</div>
+                    <div className={styles.emptyDescription}>
+                      We’re looking across CRM, teams, registrations, and more.
+                    </div>
+                  </div>
+                )}
+                {!loading && trimmedQuery.length < minChars && (
+                  <div className={styles.emptyState} role="status">
+                    <div className={styles.emptyTitle}>
+                      Enter at least {minChars} characters
+                    </div>
+                    <div className={styles.emptyDescription}>
+                      Try searching by name, email, team code, or anything else
+                      you track for this event.
+                    </div>
+                  </div>
+                )}
+                {!loading &&
+                  trimmedQuery.length >= minChars &&
+                  filteredResults.length === 0 && (
+                    <div className={styles.emptyState} role="status">
+                      <div className={styles.emptyTitle}>
+                        {isFilterAll
+                          ? `No results for “${debouncedQuery}”`
+                          : `No ${activeFilterMeta.label} results for “${debouncedQuery}”`}
+                      </div>
+                      <div className={styles.emptyDescription}>
+                        Refine your search or try a different keyword.
+                      </div>
+                    </div>
+                  )}
+                {!loading &&
+                  trimmedQuery.length >= minChars &&
+                  visibleResults.length > 0 && (
+                    <div
+                      className={`list-group list-group-flush ${styles.resultsScroll}`}
+                    >
+                      {visibleResults.map((result, index) => {
+                        return (
+                          <button
+                            key={`${result.resourceType}-${result.resourceId}`}
+                            type="button"
+                            className={`list-group-item list-group-item-action ${
+                              styles.resultItem
+                            } ${index === activeIndex ? "active" : ""}`}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => handleSelect(result)}
+                            onMouseEnter={() => setActiveIndex(index)}
+                            role="option"
+                            aria-selected={index === activeIndex}
+                            id={`${listboxId}-option-${index}`}
+                            ref={(node) => {
+                              optionRefs.current[index] = node;
+                            }}
+                          >
+                            <div className="d-flex justify-content-between align-items-center">
+                              <span className="fw-semibold">
+                                {result.title || result.resourceId}
+                              </span>
+                            </div>
+                            <div className="d-flex gap-2 flex-wrap text-muted small mt-1">
+                              {result.resourceKind && (
+                                <span className="badge bg-blue-lt text-blue">
+                                  {result.resourceKind}
+                                </span>
+                              )}
+                              {result.subtitle && (
+                                <span>{result.subtitle}</span>
+                              )}
+                            </div>
+                            {result.description && (
+                              <div className="text-muted small mt-1">
+                                {result.description}
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                      {filteredResults.length > visibleResults.length && (
+                        <div className="list-group-item text-muted small text-center">
+                          To view more results, refine your search.
+                        </div>
+                      )}
+                    </div>
+                  )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
