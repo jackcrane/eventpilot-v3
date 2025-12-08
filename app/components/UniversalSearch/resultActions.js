@@ -43,7 +43,11 @@ const MODEL_HANDLERS = {
     }
     toast("No action supported");
   },
-  email: ({ eventId, result }) => {
+  email: ({ actions, eventId, resourceId, result }) => {
+    if (actions?.openEmail && resourceId) {
+      actions.openEmail({ resourceId });
+      return;
+    }
     const conversationId = result?.conversationId;
     if (!eventId || !conversationId) {
       toast.error("Unable to open conversation");

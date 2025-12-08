@@ -16,6 +16,7 @@ import { TodoItemRUD } from "../TodoItemRUD/TodoItemRUD";
 import { TeamCRUD } from "../TeamCRUD/TeamCRUD";
 import { UpsellItemCRUD } from "../UpsellItemCRUD/UpsellItemCRUD";
 import { CouponCRUD } from "../CouponCRUD/CouponCRUD";
+import { EmailPreview } from "../emailPreview/emailPreview";
 import toast from "react-hot-toast";
 
 const escapeRegExp = (value = "") =>
@@ -268,6 +269,12 @@ export const UniversalSearch = ({
   } = useOffcanvas({
     offcanvasProps: { position: "end", size: 520, zIndex: 1085 },
   });
+  const {
+    offcanvas: emailOffcanvas,
+    OffcanvasElement: EmailOffcanvasElement,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 640, zIndex: 1097 },
+  });
   const { confirm, ConfirmModal } = useConfirm({
     title: "Confirm",
     text: "Are you sure?",
@@ -365,12 +372,32 @@ export const UniversalSearch = ({
     [eventId, couponOffcanvas, closeCouponOffcanvas]
   );
 
+  const openEmail = useCallback(
+    ({ resourceId }) => {
+      if (!resourceId) {
+        toast.error("Unable to open email");
+        return;
+      }
+      emailOffcanvas({
+        content: <EmailPreview emailId={resourceId} showIcon />,
+      });
+    },
+    [emailOffcanvas]
+  );
+
   const handleSelect = (result) => {
     if (!result) return;
     handleSearchResultNavigation({
       result,
       eventId,
-      actions: { openVolunteer, openTodo, openTeam, openUpsell, openCoupon },
+      actions: {
+        openVolunteer,
+        openTodo,
+        openTeam,
+        openUpsell,
+        openCoupon,
+        openEmail,
+      },
     });
   };
 
@@ -416,6 +443,7 @@ export const UniversalSearch = ({
       {TeamOffcanvasElement}
       {UpsellOffcanvasElement}
       {CouponOffcanvasElement}
+      {EmailOffcanvasElement}
       {ConfirmModal}
       <div className={`${styles.wrapper} dropdown`} ref={containerRef}>
         <div className="input-group input-group-flat">
