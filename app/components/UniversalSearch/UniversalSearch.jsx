@@ -18,6 +18,87 @@ import { UpsellItemCRUD } from "../UpsellItemCRUD/UpsellItemCRUD";
 import { CouponCRUD } from "../CouponCRUD/CouponCRUD";
 import toast from "react-hot-toast";
 
+const escapeRegExp = (value = "") =>
+  String(value).replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+
+const getHighlightedDescription = (description, query, maxLength = 150) => {
+  const text = String(description ?? "");
+  if (!text) return null;
+  const trimmedQuery = query?.trim();
+  const needsTruncation = text.length > maxLength;
+  const truncatedText = needsTruncation ? text.slice(0, maxLength) : text;
+
+  if (!trimmedQuery) {
+    return (
+      <>
+        {truncatedText}
+        {needsTruncation && <span className="text-muted">&hellip;</span>}
+      </>
+    );
+  }
+
+  const escapedQuery = escapeRegExp(trimmedQuery);
+  const matchRegex = new RegExp(escapedQuery, "i");
+  const match = matchRegex.exec(text);
+  let snippetStart = 0;
+  let snippetEnd = Math.min(maxLength, text.length);
+  let showStartEllipsis = false;
+  let showEndEllipsis = needsTruncation;
+
+  if (match?.index != null) {
+    const matchIndex = match.index;
+    const matchLength = match[0].length;
+    const availableContext = Math.max(maxLength - matchLength, 0);
+    const before = Math.floor(availableContext / 2);
+    const after = availableContext - before;
+    snippetStart = Math.max(matchIndex - before, 0);
+    snippetEnd = Math.min(matchIndex + matchLength + after, text.length);
+
+    if (snippetEnd - snippetStart < maxLength) {
+      snippetStart = Math.max(snippetEnd - maxLength, 0);
+    }
+
+    showStartEllipsis = snippetStart > 0;
+    showEndEllipsis = snippetEnd < text.length;
+  }
+
+  const snippet = text.slice(snippetStart, snippetEnd);
+  const highlightRegex = new RegExp(escapedQuery, "gi");
+  const nodes = [];
+  let lastIndex = 0;
+  let currentMatch;
+  while ((currentMatch = highlightRegex.exec(snippet)) !== null) {
+    const matchStart = currentMatch.index ?? 0;
+    if (matchStart > lastIndex) {
+      nodes.push(snippet.slice(lastIndex, matchStart));
+    }
+    nodes.push(
+      <span
+        key={`match-${matchStart}-${nodes.length}`}
+        className={styles.matchHighlight}
+      >
+        {currentMatch[0]}
+      </span>
+    );
+    lastIndex = matchStart + currentMatch[0].length;
+  }
+
+  if (lastIndex < snippet.length) {
+    nodes.push(snippet.slice(lastIndex));
+  }
+  if (!nodes.length) {
+    nodes.push(snippet);
+  }
+
+  return (
+    <>
+      {showStartEllipsis && <span className="text-muted">&hellip;</span>}
+      {nodes}
+      {showEndEllipsis && <span className="text-muted">&hellip;</span>}
+    </>
+  );
+};
+
 const getIsMacLike = () => {
   if (typeof window === "undefined" || !window.navigator) {
     return true;
@@ -445,6 +526,10 @@ export const UniversalSearch = ({
                       className={`list-group list-group-flush ${styles.resultsScroll}`}
                     >
                       {visibleResults.map((result, index) => {
+                        const descriptionNode = getHighlightedDescription(
+                          result.description,
+                          debouncedQuery
+                        );
                         return (
                           <button
                             key={`${result.resourceType}-${result.resourceId}`}
@@ -477,13 +562,9 @@ export const UniversalSearch = ({
                                 <span>{result.subtitle}</span>
                               )}
                             </div>
-                            {result.description && (
+                            {descriptionNode && (
                               <div className="text-muted small mt-1">
-                                DESC:{" "}
-                                {result.description.toString().slice(0, 150)}
-                                {result.description.toString().length > 150 && (
-                                  <span className="text-muted">&hellip;</span>
-                                )}
+                                {descriptionNode}
                               </div>
                             )}
                           </button>

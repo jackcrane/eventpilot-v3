@@ -73,6 +73,8 @@
 
 .resultItem {
   padding: 0.5rem 0.75rem;
+  border-left-width: 2px !important;
+  border-left-color: transparent;
 }
 
 .emptyState {
@@ -89,6 +91,12 @@
 .emptyDescription {
   font-size: 0.85rem;
   color: var(--tblr-muted, rgba(15, 23, 42, 0.7));
+}
+
+.matchHighlight {
+  background-color: var(--tblr-yellow-lt, #fef3c7);
+  border-radius: 0.15rem;
+  padding: 0 0.1rem;
 }
 
 @media (max-width: 768px) {
