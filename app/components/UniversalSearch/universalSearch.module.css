@@ -17,6 +17,36 @@
   margin-top: 0.4rem;
 }
 
+.filterTabsWrapper {
+  border-bottom: 1px solid var(--tblr-border, rgba(15, 23, 42, 0.15));
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+  background-color: var(--tblr-body, #fff);
+}
+
+.filterTabs {
+  border-bottom: none;
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 0;
+  margin-bottom: -0.35rem;
+}
+
+.filterTabs :global(.nav-link) {
+  white-space: nowrap;
+  padding: 2px 10px;
+  font-size: 0.85rem;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+
+.filterTabs :global(.nav-link.active) {
+  border-color: var(--tblr-primary);
+  background-color: var(--tblr-primary-lt);
+  color: var(--tblr-primary);
+}
+
 .resultsScroll {
   max-height: 360px;
   overflow-y: auto;

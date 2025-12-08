@@ -19,6 +19,23 @@ const getIsMacLike = () => {
   return platform.includes("mac") || platform.includes("iphone") || platform.includes("ipad");
 };
 
+const DEFAULT_FILTER_ID = "all";
+const RESULT_FILTERS = [
+  { id: DEFAULT_FILTER_ID, label: "All" },
+  { id: "crmPerson", label: "CRM People" },
+  { id: "team", label: "Teams" },
+  { id: "volunteer", label: "Volunteers" },
+  { id: "registration", label: "Registrations" },
+  { id: "todo", label: "Todos" },
+  { id: "upsell", label: "Upsells" },
+  { id: "coupon", label: "Coupons" },
+  { id: "campaign", label: "Campaigns" },
+  { id: "emailTemplate", label: "Templates" },
+  { id: "mailingList", label: "Email Lists" },
+  { id: "job", label: "Jobs" },
+  { id: "location", label: "Locations" },
+];
+
 export const UniversalSearch = ({
   eventId,
   placeholder = "Search anything across your event…",
@@ -35,6 +52,7 @@ export const UniversalSearch = ({
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isMacLike, setIsMacLike] = useState(getIsMacLike());
   const trimmedQuery = query.trim();
+  const [activeFilter, setActiveFilter] = useState(DEFAULT_FILTER_ID);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -78,12 +96,36 @@ export const UniversalSearch = ({
     eventId,
     query: debouncedQuery.length >= minChars ? debouncedQuery : "",
   });
-  const visibleResults = useMemo(() => results.slice(0, 15), [results]);
+  const filteredResults = useMemo(() => {
+    if (activeFilter === DEFAULT_FILTER_ID) {
+      return results;
+    }
+    return results.filter((result) => {
+      const resourceType = result.resourceType;
+      if (Array.isArray(resourceType)) {
+        return resourceType.includes(activeFilter);
+      }
+      return resourceType === activeFilter;
+    });
+  }, [results, activeFilter]);
+  const visibleResults = useMemo(
+    () => filteredResults.slice(0, 15),
+    [filteredResults]
+  );
+  const activeFilterMeta =
+    RESULT_FILTERS.find((filter) => filter.id === activeFilter) ??
+    RESULT_FILTERS[0];
+  const isFilterAll = activeFilterMeta.id === DEFAULT_FILTER_ID;
+  const showFilters = trimmedQuery.length >= minChars;
+
+  useEffect(() => {
+    setActiveFilter(DEFAULT_FILTER_ID);
+  }, [eventId]);
 
   useEffect(() => {
     setActiveIndex(visibleResults.length ? 0 : -1);
     optionRefs.current = [];
-  }, [visibleResults.length, debouncedQuery]);
+  }, [visibleResults.length, debouncedQuery, activeFilter]);
 
   useEffect(() => {
     if (activeIndex < 0) return;
@@ -311,6 +353,31 @@ export const UniversalSearch = ({
           id={listboxId}
           aria-activedescendant={activeOptionId}
         >
+          {showFilters && (
+            <div className={styles.filterTabsWrapper}>
+              <div
+                className={`nav nav-tabs ${styles.filterTabs}`}
+                role="tablist"
+              >
+                {RESULT_FILTERS.map((filter) => {
+                  const isActiveFilter = filter.id === activeFilter;
+                  return (
+                    <button
+                      key={filter.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActiveFilter}
+                      className={`nav-link ${isActiveFilter ? "active" : ""}`}
+                      onClick={() => setActiveFilter(filter.id)}
+                      aria-label={`Show ${filter.label} results`}
+                    >
+                      {filter.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {loading && (
             <div className={styles.emptyState} role="status">
               <div className={styles.emptyTitle}>Searching…</div>
@@ -332,10 +399,12 @@ export const UniversalSearch = ({
           )}
           {!loading &&
             trimmedQuery.length >= minChars &&
-            results.length === 0 && (
+            filteredResults.length === 0 && (
               <div className={styles.emptyState} role="status">
                 <div className={styles.emptyTitle}>
-                  No results for “{debouncedQuery}”
+                  {isFilterAll
+                    ? `No results for “${debouncedQuery}”`
+                    : `No ${activeFilterMeta.label} results for “${debouncedQuery}”`}
                 </div>
                 <div className={styles.emptyDescription}>
                   Refine your search or try a different keyword.
@@ -381,7 +450,7 @@ export const UniversalSearch = ({
                   </button>
                 );
               })}
-              {results.length > visibleResults.length && (
+              {filteredResults.length > visibleResults.length && (
                 <div className="list-group-item text-muted small text-center">
                   To view more results, refine your search.
                 </div>

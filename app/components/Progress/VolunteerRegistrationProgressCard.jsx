@@ -37,10 +37,10 @@ export const VolunteerRegistrationProgressCard = ({ completed = false }) => {
       <Typography.Text>
         Once you have built your form, volunteers will be able to visit{" "}
         <a
-          href={`https://${event.slug}.geteventpilot.com/volunteer`}
+          href={`https://${event?.slug}.geteventpilot.com/volunteer`}
           target="_blank"
         >
-          https://{event.slug}.geteventpilot.com/volunteer
+          https://{event?.slug}.geteventpilot.com/volunteer
         </a>{" "}
         to sign up to help with your event.
       </Typography.Text>
