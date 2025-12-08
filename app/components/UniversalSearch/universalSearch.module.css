@@ -33,6 +33,7 @@
   max-width: 130px;
   min-width: 130px;
   padding: 10px 0 10px 10px;
+  overflow: auto;
 }
 
 .verticalTabs {

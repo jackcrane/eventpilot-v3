@@ -41,6 +41,7 @@ const RESULT_FILTERS = [
   { id: "upsell", label: "Upsells" },
   { id: "coupon", label: "Coupons" },
   { id: "campaign", label: "Campaigns" },
+  { id: "email", label: "Emails" },
   { id: "emailTemplate", label: "Templates" },
   { id: "mailingList", label: "Email Lists" },
   { id: "job", label: "Jobs" },
@@ -415,8 +416,11 @@ export const UniversalSearch = ({
                       Enter at least {minChars} characters
                     </div>
                     <div className={styles.emptyDescription}>
-                      Try searching by name, email, team code, or anything else
-                      you track for this event.
+                      <Typography.Text>
+                        Try searching by name, email, team code, or anything
+                        else you track for this event.
+                      </Typography.Text>
+                      <Typography.Text>You are searching for</Typography.Text>
                     </div>
                   </div>
                 )}
@@ -475,7 +479,11 @@ export const UniversalSearch = ({
                             </div>
                             {result.description && (
                               <div className="text-muted small mt-1">
-                                {result.description}
+                                DESC:{" "}
+                                {result.description.toString().slice(0, 150)}
+                                {result.description.toString().length > 150 && (
+                                  <span className="text-muted">&hellip;</span>
+                                )}
                               </div>
                             )}
                           </button>

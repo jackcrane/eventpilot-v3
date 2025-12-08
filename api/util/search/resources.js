@@ -2,6 +2,25 @@ import { createSearchDocument } from "./createDocument.js";
 
 const cleanList = (values = []) => values.filter(Boolean);
 
+const stripHtmlTags = (value = "") =>
+  String(value || "")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const participantTokens = (participants = []) =>
+  (participants || []).flatMap((participant) => [
+    participant?.name,
+    participant?.email,
+  ]);
+
+const attachmentNames = (attachments = []) =>
+  (attachments || [])
+    .map((attachment) => attachment?.file?.originalname)
+    .filter(Boolean);
+
 const personContactValues = (record) => {
   const emailList = (record.emails ?? [])
     .filter((email) => !email.deleted)
@@ -94,6 +113,99 @@ export const SEARCH_RESOURCE_CONFIG = {
         searchFields: [record.subject],
         resourceKind: "Email Template",
       });
+    },
+  },
+  InboundEmail: {
+    client: "inboundEmail",
+    resourceType: "email",
+    resourceKind: "Inbox Email",
+    include: {
+      conversation: { select: { id: true, eventId: true } },
+      from: true,
+      to: true,
+      cc: true,
+      bcc: true,
+      attachments: { include: { file: true } },
+    },
+    build: (record) => {
+      const eventId = record.eventId ?? record.conversation?.eventId;
+      if (!eventId) {
+        return null;
+      }
+      const fromLabel = record.from?.email || record.from?.name;
+      const title =
+        record.subject || fromLabel || "Inbox Email";
+      const description =
+        record.strippedTextReply ||
+        record.textBody ||
+        stripHtmlTags(record.htmlBody);
+      const tokens = cleanList([
+        record.subject,
+        record.strippedTextReply,
+        record.textBody,
+        stripHtmlTags(record.htmlBody),
+        fromLabel,
+        ...participantTokens(record.to),
+        ...participantTokens(record.cc),
+        ...participantTokens(record.bcc),
+        ...attachmentNames(record.attachments),
+      ]);
+      return createSearchDocument(
+        "email",
+        { ...record, eventId },
+        {
+          title,
+          subtitle: fromLabel ?? null,
+          description,
+          searchFields: tokens,
+          resourceKind: "Inbox Email",
+          extra: {
+            conversationId:
+              record.conversationId ?? record.conversation?.id ?? null,
+          },
+        }
+      );
+    },
+  },
+  Email: {
+    client: "email",
+    resourceType: "email",
+    resourceKind: "Sent Email",
+    include: {
+      conversation: { select: { id: true, eventId: true } },
+      attachments: { include: { file: true } },
+    },
+    build: (record) => {
+      const eventId = record.conversation?.eventId;
+      if (!eventId) {
+        return null;
+      }
+      const title = record.subject || record.to || "Sent Email";
+      const description =
+        record.textBody || stripHtmlTags(record.htmlBody);
+      const tokens = cleanList([
+        record.subject,
+        record.textBody,
+        stripHtmlTags(record.htmlBody),
+        record.from,
+        record.to,
+        ...attachmentNames(record.attachments),
+      ]);
+      return createSearchDocument(
+        "email",
+        { ...record, eventId },
+        {
+          title,
+          subtitle: record.to ?? null,
+          description,
+          searchFields: tokens,
+          resourceKind: "Sent Email",
+          extra: {
+            conversationId:
+              record.conversationId ?? record.conversation?.id ?? null,
+          },
+        }
+      );
     },
   },
   Campaign: {

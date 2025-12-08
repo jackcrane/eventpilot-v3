@@ -43,6 +43,14 @@ const MODEL_HANDLERS = {
     }
     toast("No action supported");
   },
+  email: ({ eventId, result }) => {
+    const conversationId = result?.conversationId;
+    if (!eventId || !conversationId) {
+      toast.error("Unable to open conversation");
+      return;
+    }
+    openTab(`/events/${eventId}/conversations/${conversationId}`);
+  },
   todo: ({ actions, eventId, resourceId, result }) => {
     if (actions?.openTodo) {
       actions.openTodo({ eventId, resourceId, result });
