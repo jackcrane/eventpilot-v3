@@ -1,9 +1,10 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Input } from "tabler-react-2";
+import { Input, useOffcanvas, useConfirm } from "tabler-react-2";
 import { TableV2 } from "tabler-react-2/dist/table-v2";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
 import { Empty } from "../../../../../components/empty/Empty";
+import { FormResponseRUD } from "../../../../../components/formResponseRUD/FormResponseRUD";
 import { useParticipantRoster } from "../../../../../hooks/useParticipantRoster";
 import { useColumnConfig } from "../../../../../hooks/useColumnConfig";
 import { buildParticipantColumns } from "../../../../../util/roster/participantColumns";
@@ -11,6 +12,7 @@ import { ColumnsPicker } from "../../../../../components/columnsPicker/ColumnsPi
 import { Row } from "../../../../../util/Flex";
 import { Filters } from "../../../../../components/filters/Filters";
 import { useParticipantFilterDefinitions } from "../../../../../hooks/useParticipantFilterDefinitions";
+import { useRegistrationResponse } from "../../../../../hooks/useRegistrationResponse";
 
 export const RegistrationsPage = () => {
   const { eventId } = useParams();
@@ -39,13 +41,44 @@ export const RegistrationsPage = () => {
     filters: serverFilters,
   });
 
+  const { offcanvas, OffcanvasElement } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 500, zIndex: 1050 },
+  });
+  const { confirm, ConfirmModal } = useConfirm({
+    title: "Confirm",
+    text: "Are you sure?",
+    commitText: "Confirm",
+    cancelText: "Cancel",
+  });
+
+  const handleOpenDetails = useCallback(
+    (id) => {
+      if (!id) return;
+      offcanvas({
+        content: (
+          <FormResponseRUD
+            id={id}
+            confirm={confirm}
+            entityLabel="REGISTRANT"
+            responseHook={useRegistrationResponse}
+          />
+        ),
+      });
+    },
+    [offcanvas, confirm]
+  );
+
   const filterDefinitions = useParticipantFilterDefinitions({
     fields: roster.fields,
   });
 
   const baseColumns = useMemo(
-    () => buildParticipantColumns({ fields: roster.fields }),
-    [roster.fields]
+    () =>
+      buildParticipantColumns({
+        fields: roster.fields,
+        onOpenDetails: handleOpenDetails,
+      }),
+    [roster.fields, handleOpenDetails]
   );
 
   const storageKey = eventId ? `participant-roster:${eventId}` : null;
@@ -164,6 +197,8 @@ export const RegistrationsPage = () => {
 
   return (
     <EventPage title="Registrations" loading={false}>
+      {ConfirmModal}
+      {OffcanvasElement}
       {showInitialEmpty ? (
         <Empty gradient={false} />
       ) : (

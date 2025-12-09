@@ -64,10 +64,10 @@ export const groupByLocationAndJob = (responses) => {
   return result;
 };
 
-export const findSubmission = async (eventId, submissionId) => {
+export const findVolunteer = async (eventId, volunteerId) => {
   // Load the submission first so we can scope fields by instance
   const resp = await prisma.volunteerRegistration.findUnique({
-    where: { id: submissionId },
+    where: { id: volunteerId },
     include: {
       fieldResponses: {
         select: { fieldId: true, value: true, field: true },
@@ -96,7 +96,7 @@ export const findSubmission = async (eventId, submissionId) => {
   });
 
   if (!resp || resp.eventId !== eventId) {
-    throw new Error("Submission not found");
+    throw new Error("Volunteer not found");
   }
 
   // Fetch fields for the same instance as the submission to avoid cross-instance mismatches
@@ -234,14 +234,14 @@ export const findSubmission = async (eventId, submissionId) => {
 export const get = [
   verifyAuth(["manager", "dod:volunteer"]),
   async (req, res) => {
-    const { eventId, submissionId } = req.params;
+    const { eventId, volunteerId } = req.params;
 
     try {
-      const result = await findSubmission(eventId, submissionId);
+      const result = await findVolunteer(eventId, volunteerId);
       return res.json(result);
     } catch (error) {
       console.error(error);
-      const code = error.message === "Submission not found" ? 404 : 500;
+      const code = error.message === "Volunteer not found" ? 404 : 500;
       return res.status(code).json({ message: error.message });
     }
   },
@@ -253,7 +253,7 @@ export const get = [
 export const put = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const { submissionId } = req.params;
+    const { volunteerId } = req.params;
     const parse = bodySchema.safeParse(req.body);
     if (!parse.success) {
       return res.status(400).json({ message: serializeError(parse) });
@@ -262,13 +262,13 @@ export const put = [
 
     try {
       const from = await prisma.volunteerRegistration.findUnique({
-        where: { id: submissionId },
+        where: { id: volunteerId },
         include: { fieldResponses: true },
       });
 
       // Overwrite all existing fieldResponses for this submission
       const updated = await prisma.volunteerRegistration.update({
-        where: { id: submissionId },
+        where: { id: volunteerId },
         data: {
           fieldResponses: {
             deleteMany: {},
@@ -309,7 +309,7 @@ export const patch = [
   verifyAuth(["manager"]),
   async (req, res) => {
     try {
-      const { submissionId } = req.params;
+      const { volunteerId } = req.params;
       const parseResult = passedShiftSchema.safeParse(req.body.shifts);
       if (!parseResult.success) {
         return res.status(400).json({ message: parseResult.error });
@@ -317,7 +317,7 @@ export const patch = [
 
       const incomingShifts = parseResult.data; // array of { id, … }
       const registeredShifts = await prisma.volunteerShiftSignup.findMany({
-        where: { formResponseId: submissionId },
+        where: { formResponseId: volunteerId },
         select: { id: true, shiftId: true },
       });
 
@@ -333,7 +333,7 @@ export const patch = [
       const toCreate = incomingShifts
         .filter((i) => !registeredIds.includes(i.id))
         .map((i) => ({
-          formResponseId: submissionId,
+          formResponseId: volunteerId,
           shiftId: i.id,
         }));
 
@@ -370,18 +370,18 @@ export const patch = [
 export const del = [
   verifyAuth(["manager"]),
   async (req, res) => {
-    const { submissionId, eventId } = req.params;
+    const { volunteerId, eventId } = req.params;
     try {
       // Ensure it belongs to this event
       let resp = await prisma.volunteerRegistration.findUnique({
-        where: { id: submissionId },
+        where: { id: volunteerId },
       });
       if (!resp || resp.eventId !== eventId) {
         return res.status(404).json({ message: "Submission not found" });
       }
 
       resp = await prisma.volunteerRegistration.update({
-        where: { id: submissionId },
+        where: { id: volunteerId },
         data: { deleted: true },
       });
 
@@ -391,7 +391,7 @@ export const del = [
           userId: req.user.id,
           ip: req.ip,
           eventId: req.params.eventId,
-          formResponseId: submissionId,
+          formResponseId: volunteerId,
         },
       });
 

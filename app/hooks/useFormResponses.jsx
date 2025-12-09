@@ -15,7 +15,7 @@ const fetcher = (url) =>
  * @returns {{ responses: Array<Object>, loading: boolean, error: any }}
  */
 export const useFormResponses = (eventId) => {
-  const key = eventId ? `/api/events/${eventId}/submission` : null;
+  const key = eventId ? `/api/events/${eventId}/volunteers` : null;
 
   const { data, error, isLoading } = useSWR(key, fetcher);
 

@@ -124,7 +124,13 @@ export const Dg = ({ title, content, description }) => (
   </div>
 );
 
-export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
+export const FormResponseRUD = ({
+  id,
+  confirm,
+  subOffcanvas,
+  entityLabel = "VOLUNTEER",
+  responseHook = useFormResponse,
+}) => {
   const { eventId } = useParams();
   const {
     response,
@@ -138,7 +144,7 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
     deleteResponse,
     mutationLoading,
     deleteLoading,
-  } = useFormResponse(eventId, id);
+  } = responseHook(eventId, id);
 
   if (loading) return <div>Loading…</div>;
   if (error) return <div>Error: {error.message}</div>;
@@ -189,7 +195,9 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
 
   return (
     <div style={{ marginBottom: 100 }}>
-      <Typography.H5 className="mb-0 text-secondary">VOLUNTEER</Typography.H5>
+      <Typography.H5 className="mb-0 text-secondary">
+        {entityLabel}
+      </Typography.H5>
       <Typography.H1>{response.flat.name}</Typography.H1>
       <Row gap={1}>
         <span>
@@ -265,6 +273,7 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
                   shifts={shifts}
                   flat={response.flat}
                   submissionId={id}
+                  entityLabel={entityLabel}
                 />
               ),
             })
@@ -367,7 +376,13 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
   );
 };
 
-const Shifts = ({ eventId, shifts: passedShifts, flat, submissionId }) => {
+const Shifts = ({
+  eventId,
+  shifts: passedShifts,
+  flat,
+  submissionId,
+  entityLabel = "VOLUNTEER",
+}) => {
   const [shifts, setShifts] = useState(passedShifts);
   const { mutationLoading, updateShiftRegistrations } = useFormResponse(
     eventId,
@@ -384,7 +399,9 @@ const Shifts = ({ eventId, shifts: passedShifts, flat, submissionId }) => {
 
   return (
     <div style={{ position: "relative" }}>
-      <Typography.H5 className={"mb-0 text-secondary"}>VOLUNTEER</Typography.H5>
+      <Typography.H5 className={"mb-0 text-secondary"}>
+        {entityLabel}
+      </Typography.H5>
       <Typography.H1>{flat?.name}</Typography.H1>
       <ShiftFinder
         fromRUD={true}
