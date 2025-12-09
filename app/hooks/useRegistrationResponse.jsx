@@ -51,6 +51,9 @@ export const useRegistrationResponse = (eventId, registrationId) => {
   return {
     response: data?.registration ?? null,
     fields: data?.fields ?? [],
+    pii: data?.pii ?? null,
+    shifts: data?.shifts ?? [],
+    groupedShifts: data?.groupedShifts ?? [],
     loading: isLoading,
     error,
     updateResponse,
