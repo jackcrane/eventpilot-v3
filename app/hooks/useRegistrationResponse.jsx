@@ -48,8 +48,17 @@ export const useRegistrationResponse = (eventId, registrationId) => {
       .finally(() => setMutationLoading(false));
   };
 
+  const registration = data?.registration ?? null;
+  const response = registration
+    ? {
+        ...registration,
+        ...registration.resolvedResponses,
+        ...registration.responses,
+      }
+    : null;
+
   return {
-    response: data?.registration ?? null,
+    response,
     fields: data?.fields ?? [],
     pii: data?.pii ?? null,
     shifts: data?.shifts ?? [],
