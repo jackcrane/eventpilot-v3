@@ -59,6 +59,7 @@ export const RegistrationsPage = () => {
           <FormResponseRUD
             id={id}
             confirm={confirm}
+            interfaceType="participant"
             entityLabel="REGISTRANT"
             responseHook={useRegistrationResponse}
           />

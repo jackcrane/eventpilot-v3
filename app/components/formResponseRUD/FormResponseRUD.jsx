@@ -129,6 +129,7 @@ export const FormResponseRUD = ({
   confirm,
   subOffcanvas,
   entityLabel = "VOLUNTEER",
+  interfaceType = "volunteer",
   responseHook = useFormResponse,
 }) => {
   const { eventId } = useParams();
@@ -239,48 +240,90 @@ export const FormResponseRUD = ({
           </Button>
         </div>
       )}
-      <Util.Hr text="Shifts" />
-      <div>
-        {groupedShifts.map((location) => (
-          <div key={location.id}>
-            <Typography.H3>{location.name}</Typography.H3>
-            {location.jobs.map((job) => (
-              <div key={job.id} className="mb-2">
-                <Typography.H4 className={"mb-0"}>{job.name}</Typography.H4>
-                {job.shifts.map((shift) => (
-                  <Badge key={shift.id} style={{ marginRight: 8 }} outline>
-                    {moment(shift.startTime)
-                      .tz(utc(shift.startTimeTz))
-                      .format("h:mm a")}
-                    {" - "}
-                    {moment(shift.endTime)
-                      .tz(utc(shift.endTimeTz))
-                      .format("h:mm a")}
-                  </Badge>
+      {interfaceType !== "volunteer" && (
+        <>
+          <Util.Hr text="Registration" />
+          <div className="mb-3">
+            <Row gap={2} wrap>
+              <div>
+                <Typography.Text strong>Team</Typography.Text>
+                <Typography.Text>
+                  {response?.team?.name || "—"}
+                </Typography.Text>
+              </div>
+              <div>
+                <Typography.Text strong>Tier</Typography.Text>
+                <Typography.Text>
+                  {response?.registrationTier?.name || "—"}
+                </Typography.Text>
+              </div>
+              <div>
+                <Typography.Text strong>Period</Typography.Text>
+                <Typography.Text>
+                  {response?.registrationPeriod?.name ||
+                    response?.registrationPeriodPricing?.name ||
+                    "—"}
+                </Typography.Text>
+              </div>
+              <div>
+                <Typography.Text strong>Upsells</Typography.Text>
+                <Typography.Text>
+                  {(response?.upsells ?? [])
+                    .map((upsell) => upsell?.upsellItem?.name ?? null)
+                    .filter(Boolean)
+                    .join(", ") || "—"}
+                </Typography.Text>
+              </div>
+            </Row>
+          </div>
+        </>
+      )}
+      {interfaceType === "volunteer" && (
+        <>
+          <Util.Hr text="Shifts" />
+          <div>
+            {groupedShifts.map((location) => (
+              <div key={location.id}>
+                <Typography.H3>{location.name}</Typography.H3>
+                {location.jobs.map((job) => (
+                  <div key={job.id} className="mb-2">
+                    <Typography.H4 className={"mb-0"}>{job.name}</Typography.H4>
+                    {job.shifts.map((shift) => (
+                      <Badge key={shift.id} style={{ marginRight: 8 }} outline>
+                        {moment(shift.startTime)
+                          .tz(utc(shift.startTimeTz))
+                          .format("h:mm a")}
+                        {" - "}
+                        {moment(shift.endTime)
+                          .tz(utc(shift.endTimeTz))
+                          .format("h:mm a")}
+                      </Badge>
+                    ))}
+                  </div>
                 ))}
               </div>
             ))}
           </div>
-        ))}
-      </div>
-      {subOffcanvas && (
-        <Button
-          onClick={() =>
-            subOffcanvas({
-              content: (
-                <Shifts
-                  eventId={eventId}
-                  shifts={shifts}
-                  flat={response.flat}
-                  submissionId={id}
-                  entityLabel={entityLabel}
-                />
-              ),
-            })
-          }
-        >
-          View Shifts
-        </Button>
+          {subOffcanvas && (
+            <Button
+              onClick={() =>
+                subOffcanvas({
+                  content: (
+                    <Shifts
+                      eventId={eventId}
+                      shifts={shifts}
+                      flat={response.flat}
+                      submissionId={id}
+                      entityLabel={entityLabel}
+                    />
+                  ),
+                })
+              }
+            >
+              View Shifts
+            </Button>
+          )}
+        </>
       )}
       {/* <Util.Hr text="PII & Analytics" />
       <Typography.Text>
