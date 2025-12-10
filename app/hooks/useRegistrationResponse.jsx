@@ -22,7 +22,22 @@ export const useRegistrationResponse = (eventId, registrationId) => {
   const teamsKey = eventId ? `/api/events/${eventId}/registration/team` : null;
 
   const { data, error, isLoading, mutate } = useSWR(key, fetcher);
-  const { mutate: refresh } = useSWRConfig();
+  const { mutate: refresh, cache } = useSWRConfig();
+  const revalidateListEntries = async () => {
+    if (!listKey || !cache || typeof cache.keys !== "function") return;
+    const keys = [];
+    for (const entry of cache.keys()) {
+      if (
+        typeof entry === "string" &&
+        entry.startsWith(listKey) &&
+        entry !== undefined
+      ) {
+        keys.push(entry);
+      }
+    }
+    if (!keys.length) return;
+    await Promise.all(keys.map((entry) => refresh(entry)));
+  };
 
   const [mutationLoading, setMutationLoading] = useState(false);
   const [teamMutationLoading, setTeamMutationLoading] = useState(false);
@@ -38,6 +53,7 @@ export const useRegistrationResponse = (eventId, registrationId) => {
       if (!res.ok) throw new Error("Update failed");
       await mutate();
       if (listKey) await refresh(listKey);
+      await revalidateListEntries();
       return res.json();
     })();
 
@@ -62,6 +78,7 @@ export const useRegistrationResponse = (eventId, registrationId) => {
       await mutate();
       if (listKey) await refresh(listKey);
       if (teamsKey) await refresh(teamsKey);
+      await revalidateListEntries();
       return res.json();
     })();
 
