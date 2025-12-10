@@ -99,6 +99,11 @@
   padding: 0 0.1rem;
 }
 
+.instanceBadge {
+  background-color: var(--tblr-warning-lt, #fef3c7);
+  color: var(--tblr-warning, #d97706);
+}
+
 @media (max-width: 768px) {
   .shortcut {
     display: none;

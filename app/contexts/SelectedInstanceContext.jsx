@@ -87,6 +87,7 @@ export const SelectedInstanceProvider = ({ children }) => {
     <SelectedInstanceContext.Provider
       value={{
         instance: typeof instance === "object" ? instance : null,
+        instances,
         setInstance: (value) =>
           typeof value === "string"
             ? setInstanceDropdownValue({ id: value })

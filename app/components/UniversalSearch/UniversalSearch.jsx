@@ -8,6 +8,7 @@ import {
 } from "react";
 import { FiSearch } from "react-icons/fi";
 import { useEventSearch } from "../../hooks/useEventSearch";
+import { useSelectedInstance } from "../../contexts/SelectedInstanceContext";
 import styles from "./universalSearch.module.css";
 import { handleSearchResultNavigation } from "./resultActions";
 import { useOffcanvas, useConfirm, Typography } from "tabler-react-2";
@@ -190,18 +191,74 @@ export const UniversalSearch = ({
     eventId,
     query: debouncedQuery.length >= minChars ? debouncedQuery : "",
   });
-  const filteredResults = useMemo(() => {
-    if (activeFilter === DEFAULT_FILTER_ID) {
+  const { instance: selectedInstance, instances } = useSelectedInstance();
+  const selectedInstanceId = selectedInstance?.id ?? null;
+  const hasSelectedInstance = Boolean(selectedInstanceId);
+
+  const instanceNamesById = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(instances)) {
+      instances.forEach((entry) => {
+        if (!entry?.id) return;
+        const name =
+          typeof entry.name === "string" && entry.name.trim().length
+            ? entry.name
+            : null;
+        if (name) {
+          map.set(entry.id, name);
+        }
+      });
+    }
+    return map;
+  }, [instances]);
+
+  const prioritizedResults = useMemo(() => {
+    if (!results.length) {
       return results;
     }
-    return results.filter((result) => {
+    const decorated = results.map((result, index) => {
+      const instanceId = result.instanceId ?? null;
+      const shouldPenalize =
+        hasSelectedInstance &&
+        instanceId &&
+        instanceId !== selectedInstanceId;
+      const baseScore =
+        typeof result.score === "number" ? result.score : 0;
+      return {
+        result,
+        adjustedScore: baseScore - (shouldPenalize ? 0.05 : 0),
+        originalIndex: index,
+      };
+    });
+    return decorated
+      .sort((a, b) => {
+        if (b.adjustedScore !== a.adjustedScore) {
+          return b.adjustedScore - a.adjustedScore;
+        }
+        const scoreA =
+          typeof a.result.score === "number" ? a.result.score : 0;
+        const scoreB =
+          typeof b.result.score === "number" ? b.result.score : 0;
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA;
+        }
+        return a.originalIndex - b.originalIndex;
+      })
+      .map((entry) => entry.result);
+  }, [results, hasSelectedInstance, selectedInstanceId]);
+
+  const filteredResults = useMemo(() => {
+    if (activeFilter === DEFAULT_FILTER_ID) {
+      return prioritizedResults;
+    }
+    return prioritizedResults.filter((result) => {
       const resourceType = result.resourceType;
       if (Array.isArray(resourceType)) {
         return resourceType.includes(activeFilter);
       }
       return resourceType === activeFilter;
     });
-  }, [results, activeFilter]);
+  }, [prioritizedResults, activeFilter]);
   const visibleResults = useMemo(
     () => filteredResults.slice(0, 15),
     [filteredResults]
@@ -558,6 +615,20 @@ export const UniversalSearch = ({
                           result.description,
                           debouncedQuery
                         );
+                        const showInstanceBadge =
+                          Boolean(result.instanceId) &&
+                          hasSelectedInstance &&
+                          result.instanceId !== selectedInstanceId;
+                        const instanceName =
+                          showInstanceBadge && result.instanceId
+                            ? instanceNamesById.get(result.instanceId) ?? null
+                            : null;
+                        const instanceBadgeText = showInstanceBadge
+                          ? `Other instance${instanceName ? ` • ${instanceName}` : ""}`
+                          : null;
+                        const instanceBadgeTitle = showInstanceBadge
+                          ? `Result from ${instanceName ?? result.instanceId ?? "another instance"}`
+                          : undefined;
                         return (
                           <button
                             key={`${result.resourceType}-${result.resourceId}`}
@@ -584,6 +655,14 @@ export const UniversalSearch = ({
                               {result.resourceKind && (
                                 <span className="badge bg-blue-lt text-blue">
                                   {result.resourceKind}
+                                </span>
+                              )}
+                              {instanceBadgeText && (
+                                <span
+                                  className={`badge ${styles.instanceBadge}`}
+                                  title={instanceBadgeTitle}
+                                >
+                                  {instanceBadgeText}
                                 </span>
                               )}
                               {result.subtitle && (
