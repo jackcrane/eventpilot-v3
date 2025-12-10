@@ -1,23 +1,134 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { FiSearch } from "react-icons/fi";
 import { useEventSearch } from "../../hooks/useEventSearch";
 import styles from "./universalSearch.module.css";
 import { handleSearchResultNavigation } from "./resultActions";
-import { useOffcanvas, useConfirm } from "tabler-react-2";
+import { useOffcanvas, useConfirm, Typography } from "tabler-react-2";
 import { FormResponseRUD } from "../formResponseRUD/FormResponseRUD";
 import { TodoItemRUD } from "../TodoItemRUD/TodoItemRUD";
 import { TeamCRUD } from "../TeamCRUD/TeamCRUD";
 import { UpsellItemCRUD } from "../UpsellItemCRUD/UpsellItemCRUD";
 import { CouponCRUD } from "../CouponCRUD/CouponCRUD";
+import { EmailPreview } from "../emailPreview/emailPreview";
 import toast from "react-hot-toast";
+
+const escapeRegExp = (value = "") =>
+  String(value).replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+
+const getHighlightedDescription = (description, query, maxLength = 150) => {
+  const text = String(description ?? "");
+  if (!text) return null;
+  const trimmedQuery = query?.trim();
+  const needsTruncation = text.length > maxLength;
+  const truncatedText = needsTruncation ? text.slice(0, maxLength) : text;
+
+  if (!trimmedQuery) {
+    return (
+      <>
+        {truncatedText}
+        {needsTruncation && <span className="text-muted">&hellip;</span>}
+      </>
+    );
+  }
+
+  const escapedQuery = escapeRegExp(trimmedQuery);
+  const matchRegex = new RegExp(escapedQuery, "i");
+  const match = matchRegex.exec(text);
+  let snippetStart = 0;
+  let snippetEnd = Math.min(maxLength, text.length);
+  let showStartEllipsis = false;
+  let showEndEllipsis = needsTruncation;
+
+  if (match?.index != null) {
+    const matchIndex = match.index;
+    const matchLength = match[0].length;
+    const availableContext = Math.max(maxLength - matchLength, 0);
+    const before = Math.floor(availableContext / 2);
+    const after = availableContext - before;
+    snippetStart = Math.max(matchIndex - before, 0);
+    snippetEnd = Math.min(matchIndex + matchLength + after, text.length);
+
+    if (snippetEnd - snippetStart < maxLength) {
+      snippetStart = Math.max(snippetEnd - maxLength, 0);
+    }
+
+    showStartEllipsis = snippetStart > 0;
+    showEndEllipsis = snippetEnd < text.length;
+  }
+
+  const snippet = text.slice(snippetStart, snippetEnd);
+  const highlightRegex = new RegExp(escapedQuery, "gi");
+  const nodes = [];
+  let lastIndex = 0;
+  let currentMatch;
+  while ((currentMatch = highlightRegex.exec(snippet)) !== null) {
+    const matchStart = currentMatch.index ?? 0;
+    if (matchStart > lastIndex) {
+      nodes.push(snippet.slice(lastIndex, matchStart));
+    }
+    nodes.push(
+      <span
+        key={`match-${matchStart}-${nodes.length}`}
+        className={styles.matchHighlight}
+      >
+        {currentMatch[0]}
+      </span>
+    );
+    lastIndex = matchStart + currentMatch[0].length;
+  }
+
+  if (lastIndex < snippet.length) {
+    nodes.push(snippet.slice(lastIndex));
+  }
+  if (!nodes.length) {
+    nodes.push(snippet);
+  }
+
+  return (
+    <>
+      {showStartEllipsis && <span className="text-muted">&hellip;</span>}
+      {nodes}
+      {showEndEllipsis && <span className="text-muted">&hellip;</span>}
+    </>
+  );
+};
 
 const getIsMacLike = () => {
   if (typeof window === "undefined" || !window.navigator) {
     return true;
   }
   const platform = window.navigator.platform?.toLowerCase?.() ?? "";
-  return platform.includes("mac") || platform.includes("iphone") || platform.includes("ipad");
+  return (
+    platform.includes("mac") ||
+    platform.includes("iphone") ||
+    platform.includes("ipad")
+  );
 };
+
+const DEFAULT_FILTER_ID = "all";
+const RESULT_FILTERS = [
+  { id: DEFAULT_FILTER_ID, label: "Everything" },
+  { id: "crmPerson", label: "CRM People" },
+  { id: "team", label: "Teams" },
+  { id: "volunteer", label: "Volunteers" },
+  { id: "registration", label: "Registrations" },
+  { id: "todo", label: "Todos" },
+  { id: "upsell", label: "Upsells" },
+  { id: "coupon", label: "Coupons" },
+  { id: "campaign", label: "Campaigns" },
+  { id: "email", label: "Emails" },
+  { id: "emailTemplate", label: "Templates" },
+  { id: "mailingList", label: "Email Lists" },
+  { id: "job", label: "Jobs" },
+  { id: "location", label: "Locations" },
+];
 
 export const UniversalSearch = ({
   eventId,
@@ -35,6 +146,7 @@ export const UniversalSearch = ({
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isMacLike, setIsMacLike] = useState(getIsMacLike());
   const trimmedQuery = query.trim();
+  const [activeFilter, setActiveFilter] = useState(DEFAULT_FILTER_ID);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -78,12 +190,34 @@ export const UniversalSearch = ({
     eventId,
     query: debouncedQuery.length >= minChars ? debouncedQuery : "",
   });
-  const visibleResults = useMemo(() => results.slice(0, 15), [results]);
+  const filteredResults = useMemo(() => {
+    if (activeFilter === DEFAULT_FILTER_ID) {
+      return results;
+    }
+    return results.filter((result) => {
+      const resourceType = result.resourceType;
+      if (Array.isArray(resourceType)) {
+        return resourceType.includes(activeFilter);
+      }
+      return resourceType === activeFilter;
+    });
+  }, [results, activeFilter]);
+  const visibleResults = useMemo(
+    () => filteredResults.slice(0, 15),
+    [filteredResults]
+  );
+  const activeFilterMeta =
+    RESULT_FILTERS.find((filter) => filter.id === activeFilter) ??
+    RESULT_FILTERS[0];
+  const isFilterAll = activeFilterMeta.id === DEFAULT_FILTER_ID;
+  useEffect(() => {
+    setActiveFilter(DEFAULT_FILTER_ID);
+  }, [eventId]);
 
   useEffect(() => {
     setActiveIndex(visibleResults.length ? 0 : -1);
     optionRefs.current = [];
-  }, [visibleResults.length, debouncedQuery]);
+  }, [visibleResults.length, debouncedQuery, activeFilter]);
 
   useEffect(() => {
     if (activeIndex < 0) return;
@@ -134,6 +268,12 @@ export const UniversalSearch = ({
     close: closeCouponOffcanvas,
   } = useOffcanvas({
     offcanvasProps: { position: "end", size: 520, zIndex: 1085 },
+  });
+  const {
+    offcanvas: emailOffcanvas,
+    OffcanvasElement: EmailOffcanvasElement,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 640, zIndex: 1097 },
   });
   const { confirm, ConfirmModal } = useConfirm({
     title: "Confirm",
@@ -221,11 +361,28 @@ export const UniversalSearch = ({
       }
       couponOffcanvas({
         content: (
-          <CouponCRUD coupon={{ id: resourceId }} onClose={closeCouponOffcanvas} eventId={eventId} />
+          <CouponCRUD
+            coupon={{ id: resourceId }}
+            onClose={closeCouponOffcanvas}
+            eventId={eventId}
+          />
         ),
       });
     },
     [eventId, couponOffcanvas, closeCouponOffcanvas]
+  );
+
+  const openEmail = useCallback(
+    ({ resourceId }) => {
+      if (!resourceId) {
+        toast.error("Unable to open email");
+        return;
+      }
+      emailOffcanvas({
+        content: <EmailPreview emailId={resourceId} showIcon />,
+      });
+    },
+    [emailOffcanvas]
   );
 
   const handleSelect = (result) => {
@@ -233,7 +390,14 @@ export const UniversalSearch = ({
     handleSearchResultNavigation({
       result,
       eventId,
-      actions: { openVolunteer, openTodo, openTeam, openUpsell, openCoupon },
+      actions: {
+        openVolunteer,
+        openTodo,
+        openTeam,
+        openUpsell,
+        openCoupon,
+        openEmail,
+      },
     });
   };
 
@@ -263,7 +427,8 @@ export const UniversalSearch = ({
     }
   };
 
-  const activeOptionId = activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined;
+  const activeOptionId =
+    activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined;
   const shortcutDisplay = isMacLike ? "⌘" : "Ctrl";
   const isDisabled = !eventId;
   const hintText = isDisabled
@@ -278,118 +443,172 @@ export const UniversalSearch = ({
       {TeamOffcanvasElement}
       {UpsellOffcanvasElement}
       {CouponOffcanvasElement}
+      {EmailOffcanvasElement}
       {ConfirmModal}
       <div className={`${styles.wrapper} dropdown`} ref={containerRef}>
         <div className="input-group input-group-flat">
-        <span className="input-group-text">
-          <FiSearch size={16} aria-hidden="true" className="text-muted" />
-        </span>
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onFocus={() => setIsActive(true)}
-          onKeyDown={handleKeyDown}
-          placeholder={hintText}
-          disabled={isDisabled}
-          className="form-control"
-          aria-label="Universal search"
-          aria-controls={showResults ? listboxId : undefined}
-          aria-expanded={showResults}
-        />
-        <span className="input-group-text" aria-hidden="true">
-          <span className={styles.shortcut}>
-            <kbd className="kbd">{shortcutDisplay}</kbd>
-            <kbd className="kbd">K</kbd>
+          <span className="input-group-text">
+            <FiSearch size={16} aria-hidden="true" className="text-muted" />
           </span>
-        </span>
-      </div>
-      {showResults && (
-        <div
-          className={`${styles.resultsPanel} dropdown-menu dropdown-menu-card dropdown-menu-end show`}
-          role="listbox"
-          id={listboxId}
-          aria-activedescendant={activeOptionId}
-        >
-          {loading && (
-            <div className={styles.emptyState} role="status">
-              <div className={styles.emptyTitle}>Searching…</div>
-              <div className={styles.emptyDescription}>
-                We’re looking across CRM, teams, registrations, and more.
-              </div>
-            </div>
-          )}
-          {!loading && trimmedQuery.length < minChars && (
-            <div className={styles.emptyState} role="status">
-              <div className={styles.emptyTitle}>
-                Enter at least {minChars} characters
-              </div>
-              <div className={styles.emptyDescription}>
-                Try searching by name, email, team code, or anything else
-                you track for this event.
-              </div>
-            </div>
-          )}
-          {!loading &&
-            trimmedQuery.length >= minChars &&
-            results.length === 0 && (
-              <div className={styles.emptyState} role="status">
-                <div className={styles.emptyTitle}>
-                  No results for “{debouncedQuery}”
-                </div>
-                <div className={styles.emptyDescription}>
-                  Refine your search or try a different keyword.
-                </div>
-              </div>
-            )}
-          {!loading && trimmedQuery.length >= minChars && visibleResults.length > 0 && (
-            <div className={`list-group list-group-flush ${styles.resultsScroll}`}>
-              {visibleResults.map((result, index) => {
-                return (
-                  <button
-                    key={`${result.resourceType}-${result.resourceId}`}
-                    type="button"
-                    className={`list-group-item list-group-item-action ${styles.resultItem} ${index === activeIndex ? "active" : ""}`}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => handleSelect(result)}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    role="option"
-                    aria-selected={index === activeIndex}
-                    id={`${listboxId}-option-${index}`}
-                    ref={(node) => {
-                      optionRefs.current[index] = node;
-                    }}
-                  >
-                    <div className="d-flex justify-content-between align-items-center">
-                      <span className="fw-semibold">
-                        {result.title || result.resourceId}
-                      </span>
-                    </div>
-                    <div className="d-flex gap-2 flex-wrap text-muted small mt-1">
-                      {result.resourceKind && (
-                        <span className="badge bg-blue-lt text-blue">
-                          {result.resourceKind}
-                        </span>
-                      )}
-                      {result.subtitle && <span>{result.subtitle}</span>}
-                    </div>
-                    {result.description && (
-                      <div className="text-muted small mt-1">
-                        {result.description}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-              {results.length > visibleResults.length && (
-                <div className="list-group-item text-muted small text-center">
-                  To view more results, refine your search.
-                </div>
-              )}
-            </div>
-          )}
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onFocus={() => setIsActive(true)}
+            onKeyDown={handleKeyDown}
+            placeholder={hintText}
+            disabled={isDisabled}
+            className="form-control"
+            aria-label="Universal search"
+            aria-controls={showResults ? listboxId : undefined}
+            aria-expanded={showResults}
+          />
+          <span className="input-group-text" aria-hidden="true">
+            <span className={styles.shortcut}>
+              <kbd className="kbd">{shortcutDisplay}</kbd>
+              <kbd className="kbd">K</kbd>
+            </span>
+          </span>
         </div>
-      )}
+        {showResults && (
+          <div
+            className={`${styles.resultsPanel} dropdown-menu dropdown-menu-card dropdown-menu-end show`}
+            role="listbox"
+            id={listboxId}
+            aria-activedescendant={activeOptionId}
+          >
+            <div className={styles.dropdownContent}>
+              <div className={styles.tabsColumn}>
+                <div
+                  className={`nav flex-column ${styles.verticalTabs}`}
+                  role="tablist"
+                  aria-label="Universal search filters"
+                >
+                  <Typography.Text className="mb-1">
+                    Search for...
+                  </Typography.Text>
+                  {RESULT_FILTERS.map((filter) => {
+                    const isActiveFilter = filter.id === activeFilter;
+                    return (
+                      <button
+                        key={filter.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={isActiveFilter}
+                        className={`badge ${
+                          isActiveFilter ? "bg-blue-lt" : ""
+                        }`}
+                        onClick={() => setActiveFilter(filter.id)}
+                        aria-label={`Show ${filter.label} results`}
+                        style={{
+                          justifyContent: "flex-start",
+                        }}
+                      >
+                        {filter.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className={styles.resultsColumn}>
+                {loading && (
+                  <div className={styles.emptyState} role="status">
+                    <div className={styles.emptyTitle}>Searching…</div>
+                    <div className={styles.emptyDescription}>
+                      We’re looking across CRM, teams, registrations, and more.
+                    </div>
+                  </div>
+                )}
+                {!loading && trimmedQuery.length < minChars && (
+                  <div className={styles.emptyState} role="status">
+                    <div className={styles.emptyTitle}>
+                      Enter at least {minChars} characters
+                    </div>
+                    <div className={styles.emptyDescription}>
+                      <Typography.Text>
+                        Try searching by name, email, team code, or anything
+                        else you track for this event.
+                      </Typography.Text>
+                      <Typography.Text>You are searching for</Typography.Text>
+                    </div>
+                  </div>
+                )}
+                {!loading &&
+                  trimmedQuery.length >= minChars &&
+                  filteredResults.length === 0 && (
+                    <div className={styles.emptyState} role="status">
+                      <div className={styles.emptyTitle}>
+                        {isFilterAll
+                          ? `No results for “${debouncedQuery}”`
+                          : `No ${activeFilterMeta.label} results for “${debouncedQuery}”`}
+                      </div>
+                      <div className={styles.emptyDescription}>
+                        Refine your search or try a different keyword.
+                      </div>
+                    </div>
+                  )}
+                {!loading &&
+                  trimmedQuery.length >= minChars &&
+                  visibleResults.length > 0 && (
+                    <div
+                      className={`list-group list-group-flush ${styles.resultsScroll}`}
+                    >
+                      {visibleResults.map((result, index) => {
+                        const descriptionNode = getHighlightedDescription(
+                          result.description,
+                          debouncedQuery
+                        );
+                        return (
+                          <button
+                            key={`${result.resourceType}-${result.resourceId}`}
+                            type="button"
+                            className={`list-group-item list-group-item-action ${
+                              styles.resultItem
+                            } ${index === activeIndex ? "active" : ""}`}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => handleSelect(result)}
+                            onMouseEnter={() => setActiveIndex(index)}
+                            role="option"
+                            aria-selected={index === activeIndex}
+                            id={`${listboxId}-option-${index}`}
+                            ref={(node) => {
+                              optionRefs.current[index] = node;
+                            }}
+                          >
+                            <div className="d-flex justify-content-between align-items-center">
+                              <span className="fw-semibold">
+                                {result.title || result.resourceId}
+                              </span>
+                            </div>
+                            <div className="d-flex gap-2 flex-wrap text-muted small mt-1">
+                              {result.resourceKind && (
+                                <span className="badge bg-blue-lt text-blue">
+                                  {result.resourceKind}
+                                </span>
+                              )}
+                              {result.subtitle && (
+                                <span>{result.subtitle}</span>
+                              )}
+                            </div>
+                            {descriptionNode && (
+                              <div className="text-muted small mt-1">
+                                {descriptionNode}
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                      {filteredResults.length > visibleResults.length && (
+                        <div className="list-group-item text-muted small text-center">
+                          To view more results, refine your search.
+                        </div>
+                      )}
+                    </div>
+                  )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

@@ -1,42 +1,115 @@
 import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
-import { solrSearch, isSolrConfigured } from "../../../util/search/solrClient.js";
+import {
+  solrSearch,
+  isSolrConfigured,
+} from "../../../util/search/solrClient.js";
+
+const stripHtml = (value = "") =>
+  String(value || "")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const buildEmailResult = (record, direction) => {
+  const isInbound = direction === "inbound";
+  const subject = record.subject || null;
+  const subtitle = isInbound
+    ? record.from?.email || record.from?.name
+    : record.to;
+  const title =
+    subject || subtitle || (isInbound ? "Inbox Email" : "Sent Email");
+  const description =
+    (isInbound
+      ? record.strippedTextReply ||
+        record.textBody ||
+        stripHtml(record.htmlBody)
+      : record.textBody || stripHtml(record.htmlBody)) || null;
+
+  return {
+    model: isInbound ? "inboundEmail" : "email",
+    resourceType: "email",
+    resourceKind: isInbound ? "Inbox Email" : "Sent Email",
+    resourceId: record.id,
+    instanceId: null,
+    title,
+    subtitle: subtitle || null,
+    description,
+    score: 0,
+    conversationId: record.conversationId ?? null,
+  };
+};
 
 const legacySearch = async (eventId, q) => {
   const filter = { contains: q, mode: "insensitive" };
-  const [locations, jobs, shifts, volunteers] = await Promise.all([
-    prisma.location.findMany({
-      where: {
-        eventId,
-        OR: [
-          { name: filter },
-          { description: filter },
-          { address: filter },
-          { city: filter },
-          { state: filter },
-        ],
-        deleted: false,
-      },
-    }),
-    prisma.job.findMany({
-      where: {
-        eventId,
-        OR: [{ name: filter }, { description: filter }],
-        deleted: false,
-      },
-    }),
-    prisma.shift.findMany({
-      where: {
-        eventId,
-      },
-    }),
-    prisma.volunteerRegistration.findMany({
-      where: { eventId, deleted: false },
-      include: {
-        fieldResponses: { where: { value: filter } },
-      },
-    }),
-  ]);
+  const [locations, jobs, shifts, volunteers, inboundEmails, outboundEmails] =
+    await Promise.all([
+      prisma.location.findMany({
+        where: {
+          eventId,
+          OR: [
+            { name: filter },
+            { description: filter },
+            { address: filter },
+            { city: filter },
+            { state: filter },
+          ],
+          deleted: false,
+        },
+      }),
+      prisma.job.findMany({
+        where: {
+          eventId,
+          OR: [{ name: filter }, { description: filter }],
+          deleted: false,
+        },
+      }),
+      prisma.shift.findMany({
+        where: {
+          eventId,
+        },
+      }),
+      prisma.volunteerRegistration.findMany({
+        where: { eventId, deleted: false },
+        include: {
+          fieldResponses: { where: { value: filter } },
+        },
+      }),
+      prisma.inboundEmail.findMany({
+        where: {
+          eventId,
+          OR: [
+            { subject: filter },
+            { textBody: filter },
+            { htmlBody: filter },
+            { strippedTextReply: filter },
+            { from: { is: { email: filter } } },
+            { from: { is: { name: filter } } },
+          ],
+        },
+        include: {
+          from: true,
+        },
+        orderBy: { receivedAt: "desc" },
+        take: 20,
+      }),
+      prisma.email.findMany({
+        where: {
+          conversation: { is: { eventId } },
+          OR: [
+            { subject: filter },
+            { textBody: filter },
+            { htmlBody: filter },
+            { from: filter },
+            { to: filter },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+    ]);
 
   return [
     ...locations.map((record) => ({
@@ -81,6 +154,8 @@ const legacySearch = async (eventId, q) => {
         description: "",
         score: 0,
       })),
+    ...inboundEmails.map((record) => buildEmailResult(record, "inbound")),
+    ...outboundEmails.map((record) => buildEmailResult(record, "outbound")),
   ];
 };
 

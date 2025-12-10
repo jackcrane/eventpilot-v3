@@ -36,6 +36,58 @@ const indexingDisabled = () => Boolean(disableContext.getStore());
 
 const getConfig = (modelName) => SEARCH_RESOURCE_CONFIG[modelName];
 
+const resolveRequestedModels = (values) => {
+  if (!values) {
+    return null;
+  }
+  const entries = Array.isArray(values) ? values : [values];
+  const normalized = entries
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean);
+  if (!normalized.length) {
+    return null;
+  }
+  const available = Object.keys(SEARCH_RESOURCE_CONFIG);
+  const matches = [];
+  const unknown = [];
+  for (const value of normalized) {
+    const lower = value.toLowerCase();
+    const bare = lower.endsWith("s") ? lower.slice(0, -1) : lower;
+    const candidates = available.filter((model) => {
+      const config = getConfig(model);
+      const type = (config?.resourceType ?? "").toLowerCase();
+      const modelLower = model.toLowerCase();
+      return (
+        modelLower === lower ||
+        modelLower === bare ||
+        type === lower ||
+        type === bare
+      );
+    });
+    if (candidates.length) {
+      for (const candidate of candidates) {
+        if (!matches.includes(candidate)) {
+          matches.push(candidate);
+        }
+      }
+    } else {
+      unknown.push(value);
+    }
+  }
+  if (unknown.length) {
+    console.warn(`[search] No matching search models for: ${unknown.join(", ")}`);
+  }
+  return matches;
+};
+
+const buildResourceTypeQuery = (resourceType) => {
+  if (!resourceType) {
+    return null;
+  }
+  const escaped = String(resourceType).replace(/"/g, '\\"');
+  return `resourceType:"${escaped}"`;
+};
+
 const extractIdsFromWhere = (where) => {
   if (!where) {
     return [];
@@ -222,13 +274,64 @@ const iterateAllRecords = async (prisma, config, handler) => {
   }
 };
 
-export const rebuildSearchIndex = async (prisma) => {
+export const rebuildSearchIndex = async (prisma, options = {}) => {
   if (!isSolrConfigured()) {
     throw new Error("SOLR is not configured; cannot rebuild search index");
   }
+  const requestedModels = resolveRequestedModels(options.models);
+  const hasRequestedModels =
+    Array.isArray(options.models) && options.models.length > 0
+      ? true
+      : Boolean(options.models);
+  if (hasRequestedModels && (!requestedModels || !requestedModels.length)) {
+    const original = Array.isArray(options.models)
+      ? options.models.join(", ")
+      : String(options.models);
+    throw new Error(
+      `[search] No searchable models matched: ${original || "unknown"}`
+    );
+  }
+
+  const modelsToProcess =
+    requestedModels && requestedModels.length
+      ? requestedModels
+      : Object.keys(SEARCH_RESOURCE_CONFIG);
+  if (!modelsToProcess.length) {
+    return {};
+  }
+
+  if (requestedModels && requestedModels.length) {
+    console.log(
+      `[search] Rebuilding search index for models: ${modelsToProcess.join(
+        ", "
+      )}`
+    );
+  }
+
+  if (hasRequestedModels) {
+    const resourceTypesToDelete = Array.from(
+      new Set(
+        modelsToProcess
+          .map((model) => getConfig(model)?.resourceType)
+          .filter(Boolean)
+      )
+    );
+    for (const resourceType of resourceTypesToDelete) {
+      const query = buildResourceTypeQuery(resourceType);
+      if (query) {
+        await solrDeleteByQuery(query);
+      }
+    }
+  } else {
+    await solrDeleteByQuery("*:*", { commit: true });
+  }
+
   const totals = {};
-  await solrDeleteByQuery("*:*", { commit: true });
-  for (const [model, config] of Object.entries(SEARCH_RESOURCE_CONFIG)) {
+  for (const model of modelsToProcess) {
+    const config = getConfig(model);
+    if (!config) {
+      continue;
+    }
     let inserted = 0;
     await iterateAllRecords(prisma, config, async (records) => {
       const docs = records

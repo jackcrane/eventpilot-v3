@@ -12,9 +12,58 @@
 
 .resultsPanel {
   display: block;
-  width: 100%;
   padding: 0;
   margin-top: 0.4rem;
+  max-height: 360px;
+  overflow: hidden;
+  left: -130px;
+  right: 0;
+}
+
+.dropdownContent {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  max-height: 360px;
+  box-sizing: border-box;
+}
+
+.tabsColumn {
+  flex-basis: 130px;
+  max-width: 130px;
+  min-width: 130px;
+  padding: 10px 0 10px 10px;
+  overflow: auto;
+}
+
+.verticalTabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.verticalTabs :global(.nav-link) {
+  text-align: left;
+  border-radius: 0.35rem;
+  padding: 0.15rem 0.7rem;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  border: 1px solid transparent;
+  color: var(--tblr-heading-color, #0f172a);
+  background: var(--tblr-muted-strong, #f8fafc);
+  box-shadow: none;
+}
+
+.verticalTabs :global(.nav-link.active) {
+  border-color: var(--tblr-primary, rgba(26, 150, 255, 0.4));
+  background-color: var(--tblr-primary, rgba(26, 150, 255, 0.08));
+  color: var(--tblr-primary, rgba(26, 150, 255, 1));
+}
+
+.resultsColumn {
+  flex: 1;
+  min-width: 0;
+  min-width: 200px;
 }
 
 .resultsScroll {
@@ -24,10 +73,12 @@
 
 .resultItem {
   padding: 0.5rem 0.75rem;
+  border-left-width: 2px !important;
+  border-left-color: transparent;
 }
 
 .emptyState {
-  padding: 1.25rem 1.5rem;
+  padding: 12px;
   text-align: center;
 }
 
@@ -40,6 +91,12 @@
 .emptyDescription {
   font-size: 0.85rem;
   color: var(--tblr-muted, rgba(15, 23, 42, 0.7));
+}
+
+.matchHighlight {
+  background-color: var(--tblr-yellow-lt, #fef3c7);
+  border-radius: 0.15rem;
+  padding: 0 0.1rem;
 }
 
 @media (max-width: 768px) {
