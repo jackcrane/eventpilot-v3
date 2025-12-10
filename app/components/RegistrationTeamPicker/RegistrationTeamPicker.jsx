@@ -25,6 +25,7 @@ export const RegistrationTeamPicker = ({
   showCodeInput = true,
   showConfirmation = true,
   disableUnavailable = true,
+  includeNoneOption = false,
 }) => {
   const { teams: publicTeams, loading: publicLoading } = usePublicTeams({
     eventId,
@@ -45,21 +46,29 @@ export const RegistrationTeamPicker = ({
     [availableTeams, showPublicOnly]
   );
 
-  const items = useMemo(
-    () =>
-      visibleTeams.map((t) => ({
-        id: t.id,
-        value: t.id,
-        label: t.name,
-        disabled: disableUnavailable ? !t.available : false,
-      })),
-    [visibleTeams, disableUnavailable]
-  );
+  const items = useMemo(() => {
+    const teamItems = visibleTeams.map((t) => ({
+      id: t.id,
+      value: t.id,
+      label: t.name,
+      disabled: disableUnavailable ? !t.available : false,
+    }));
+    if (includeNoneOption) {
+      return [{ id: null, value: null, label: "None" }, ...teamItems];
+    }
+    return teamItems;
+  }, [visibleTeams, disableUnavailable, includeNoneOption]);
 
   const handleSelect = (sel) => {
-    const id = sel?.value ?? sel?.id ?? null;
-    if (!id) return;
-    const team = visibleTeams.find((t) => t.id === id);
+    const selectedId = sel?.value ?? sel?.id;
+    if (selectedId === undefined) return;
+    if (selectedId === null) {
+      setConfirmedTeam(null);
+      onChange?.({ id: null, code: "" });
+      onTeamSelection?.({ team: null, code: "", status: "clear" });
+      return;
+    }
+    const team = visibleTeams.find((t) => t.id === selectedId);
     if (!team?.available) {
       toast.error("That team is full");
       setConfirmedTeam(null);

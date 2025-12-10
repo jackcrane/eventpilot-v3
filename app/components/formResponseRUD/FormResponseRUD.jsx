@@ -161,9 +161,14 @@ export const FormResponseRUD = ({
   const handleTeamSelection = useCallback(
     ({ team }) => {
       setTeamPickerValue(team ? { id: team.id } : null);
-      if (team?.id && team.id !== currentTeamId) {
-        assignTeam({ teamId: team.id });
+      if (!team) {
+        if (currentTeamId) {
+          assignTeam({ teamId: null });
+        }
+        return;
       }
+      if (team.id === currentTeamId) return;
+      assignTeam({ teamId: team.id });
     },
     [assignTeam, currentTeamId]
   );
@@ -299,17 +304,18 @@ export const FormResponseRUD = ({
           </div>
           <Util.Hr text="Team assignment" />
           <div className="mb-3">
-            <RegistrationTeamPicker
-              eventId={eventId}
-              teams={teams ?? []}
-              loading={teamsLoading}
-              showPublicOnly={false}
-              value={teamPickerValue}
-              onTeamSelection={handleTeamSelection}
-              showCodeInput={false}
-              showConfirmation={false}
-              disableUnavailable={false}
-            />
+                <RegistrationTeamPicker
+                  eventId={eventId}
+                  teams={teams ?? []}
+                  loading={teamsLoading}
+                  showPublicOnly={false}
+                  value={teamPickerValue}
+                  onTeamSelection={handleTeamSelection}
+                  showCodeInput={false}
+                  showConfirmation={false}
+                  disableUnavailable={false}
+                  includeNoneOption
+                />
             <Typography.Text className="text-muted d-block mt-2">
               Reassign or remove this registrant's team membership.
             </Typography.Text>
