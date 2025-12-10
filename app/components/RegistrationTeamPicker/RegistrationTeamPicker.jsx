@@ -24,6 +24,7 @@ export const RegistrationTeamPicker = ({
   onTeamSelection,
   showCodeInput = true,
   showConfirmation = true,
+  disableUnavailable = true,
 }) => {
   const { teams: publicTeams, loading: publicLoading } = usePublicTeams({
     eventId,
@@ -50,9 +51,9 @@ export const RegistrationTeamPicker = ({
         id: t.id,
         value: t.id,
         label: t.name,
-        disabled: !t.available,
+        disabled: disableUnavailable ? !t.available : false,
       })),
-    [visibleTeams]
+    [visibleTeams, disableUnavailable]
   );
 
   const handleSelect = (sel) => {
@@ -125,11 +126,12 @@ export const RegistrationTeamPicker = ({
     );
   }
 
+  const selectedId = value?.id ?? value?.value ?? value?.teamId ?? null;
   const dropdownElement = (
     <DropdownInput
       items={items}
       prompt={showPublicOnly ? "Pick a public team" : "Pick a team"}
-      value={value?.id ? { value: value.id } : undefined}
+      value={selectedId ? { id: selectedId } : undefined}
       onChange={handleSelect}
       aprops={{
         style: {
@@ -162,7 +164,7 @@ export const RegistrationTeamPicker = ({
       <label className={`form-label ${required ? "required" : ""}`}>
         {label || "Team"}
       </label>
-      {visibleTeams.filter((t) => t.available).length > 0 ? (
+      {visibleTeams.length > 0 ? (
         <Row gap={2} align="center">
           {dropdownElement}
           {showCodeInput && (

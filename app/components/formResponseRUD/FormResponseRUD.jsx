@@ -146,7 +146,6 @@ export const FormResponseRUD = ({
     updateResponse,
     assignTeam,
     mutationLoading,
-    teamMutationLoading,
     deleteResponse,
     deleteLoading,
   } = responseHook(eventId, id);
@@ -154,40 +153,20 @@ export const FormResponseRUD = ({
 
   const currentTeamId = response?.team?.id ?? null;
   const [teamPickerValue, setTeamPickerValue] = useState(null);
-  const [selectedTeam, setSelectedTeam] = useState(null);
-  const [teamPickerResetToken, setTeamPickerResetToken] = useState(0);
 
   useEffect(() => {
     setTeamPickerValue(currentTeamId ? { id: currentTeamId } : null);
-    setSelectedTeam(null);
   }, [currentTeamId]);
 
-  const handleTeamSelection = useCallback(({ team }) => {
-    setTeamPickerValue(team ? { id: team.id } : null);
-    setSelectedTeam(team ?? null);
-  }, []);
-
-  const handleClearTeam = useCallback(async () => {
-    if (!currentTeamId) return;
-    setTeamPickerValue(null);
-    setSelectedTeam(null);
-    setTeamPickerResetToken((token) => token + 1);
-    await assignTeam({ teamId: null });
-  }, [assignTeam, currentTeamId]);
-
-  const pendingAssignment =
-    Boolean(selectedTeam && selectedTeam.id && selectedTeam.id !== currentTeamId);
-
-  const handleApplyTeamChange = useCallback(async () => {
-    if (!pendingAssignment) return;
-    await assignTeam({ teamId: selectedTeam.id });
-    setSelectedTeam(null);
-    setTeamPickerResetToken((token) => token + 1);
-  }, [assignTeam, pendingAssignment, selectedTeam]);
-
-  const teamActionLabel = selectedTeam?.name
-    ? `Assign ${selectedTeam.name}`
-    : "Assign team";
+  const handleTeamSelection = useCallback(
+    ({ team }) => {
+      setTeamPickerValue(team ? { id: team.id } : null);
+      if (team?.id && team.id !== currentTeamId) {
+        assignTeam({ teamId: team.id });
+      }
+    },
+    [assignTeam, currentTeamId]
+  );
 
   if (loading) return <div>Loading…</div>;
   if (error) return <div>Error: {error.message}</div>;
@@ -320,51 +299,20 @@ export const FormResponseRUD = ({
           </div>
           <Util.Hr text="Team assignment" />
           <div className="mb-3">
-            <Row gap={2} align="flex-start">
-              <div style={{ flex: 1 }}>
-                <RegistrationTeamPicker
-                  key={`team-picker-${teamPickerResetToken}`}
-                  eventId={eventId}
-                  teams={teams ?? []}
-                  loading={teamsLoading}
-                  showPublicOnly={false}
-                  value={teamPickerValue}
-                  onTeamSelection={handleTeamSelection}
-                  showCodeInput={false}
-                  showConfirmation={false}
-                />
-                <Typography.Text className="text-muted d-block mt-2">
-                  Reassign or remove this registrant's team membership.
-                </Typography.Text>
-              </div>
-              <div
-                className="d-flex flex-column gap-2"
-                style={{ minWidth: 190 }}
-              >
-                {pendingAssignment && (
-                  <Button
-                    onClick={handleApplyTeamChange}
-                    loading={teamMutationLoading}
-                  >
-                    {teamActionLabel}
-                  </Button>
-                )}
-                {!pendingAssignment && (
-                  <Button
-                    onClick={handleClearTeam}
-                    disabled={!currentTeamId}
-                    loading={teamMutationLoading}
-                  >
-                    Clear current team
-                  </Button>
-                )}
-              </div>
-            </Row>
-            {pendingAssignment && selectedTeam?.name && (
-              <Typography.Text className="text-muted mt-2">
-                {`The registrant will join ${selectedTeam.name}.`}
-              </Typography.Text>
-            )}
+            <RegistrationTeamPicker
+              eventId={eventId}
+              teams={teams ?? []}
+              loading={teamsLoading}
+              showPublicOnly={false}
+              value={teamPickerValue}
+              onTeamSelection={handleTeamSelection}
+              showCodeInput={false}
+              showConfirmation={false}
+              disableUnavailable={false}
+            />
+            <Typography.Text className="text-muted d-block mt-2">
+              Reassign or remove this registrant's team membership.
+            </Typography.Text>
           </div>
         </>
       )}
