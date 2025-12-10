@@ -39,9 +39,9 @@ export const FieldItemPreview = ({
             )}
             <div style={{ flex: 1 }} />
             <Row gap={0.5} align="center" style={{ opacity: 0.5 }}>
-              <Icon i={typeDef.icon} size={14} color={typeDef.iconColor} />
+              <Icon i={typeDef?.icon} size={14} color={typeDef?.iconColor} />
               <Typography.Text className="mb-0">
-                {typeDef.label}
+                {typeDef?.label}
               </Typography.Text>
             </Row>
             <Button variant="danger" outline onClick={onDelete} size="sm">

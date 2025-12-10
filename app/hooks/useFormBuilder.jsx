@@ -29,7 +29,7 @@ export const useFormBuilder = (eventId) => {
     setMutationLoading(true);
     const pii = await getPII();
     try {
-      const url = `/api/events/${eventId}/submission`;
+      const url = `/api/events/${eventId}/volunteers`;
       // Read rrweb session id from sessionStorage if available
       let sessionId = null;
       try {

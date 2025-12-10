@@ -10,6 +10,33 @@ const flattenResponse = (response) => ({
   [response.fieldId]: response.value,
 });
 
+const normalizeRegistrationFieldType = (value) => {
+  const raw = (value || "").toUpperCase();
+  switch (raw) {
+    case "TEXT":
+      return "text";
+    case "EMAIL":
+      return "email";
+    case "TEXTAREA":
+      return "textarea";
+    case "RICHTEXT":
+      return "richtext";
+    case "CHECKBOX":
+      return "checkbox";
+    case "DROPDOWN":
+      return "dropdown";
+    case "REGISTRATIONTIER":
+      return "registrationtier";
+    case "UPSELLS":
+      return "upsells";
+    case "TEAM":
+      return "team";
+    default:
+      if (!value) return value;
+      return value.toString().toLowerCase();
+  }
+};
+
 export const normalizeForSearch = (value) => {
   if (value === undefined || value === null) return "";
   if (typeof value === "string") return value;
@@ -33,8 +60,9 @@ export const normalizeForSearch = (value) => {
 
 export const formatResponseValue = (field, response) => {
   if (!field) return response.value ?? null;
+  const type = (field.type || "").toUpperCase();
 
-  switch (field.type) {
+  switch (type) {
     case "DROPDOWN": {
       const match = (field.options || []).find((option) => {
         if (option.deleted) return false;
@@ -85,12 +113,17 @@ export const getOrderedFields = async (eventId, instanceId) => {
 
   const priority = { participantName: 0, participantEmail: 1 };
 
-  return fields.sort((a, b) => {
+  const sorted = fields.sort((a, b) => {
     const aRank = priority[a.fieldType] ?? 2;
     const bRank = priority[b.fieldType] ?? 2;
     if (aRank !== bRank) return aRank - bRank;
     return a.order - b.order;
   });
+
+  return sorted.map((field) => ({
+    ...field,
+    type: normalizeRegistrationFieldType(field.type),
+  }));
 };
 
 export const get = [

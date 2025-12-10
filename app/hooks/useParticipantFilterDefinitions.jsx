@@ -1,4 +1,4 @@
 import { useFieldFilterDefinitions } from "./useFieldFilterDefinitions";
 
-export const useVolunteerFilterDefinitions = (props) =>
+export const useParticipantFilterDefinitions = (props) =>
   useFieldFilterDefinitions(props);

@@ -2,10 +2,9 @@ import { prisma } from "#prisma";
 import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { verifyAuth } from "#verifyAuth";
-import { formatFormResponse } from "./[submissionId]";
+import { formatFormResponse, findVolunteer } from "../volunteers/[volunteerId]";
 import { LogType } from "@prisma/client";
 import { sendEmail } from "#postmark";
-import { findSubmission } from "./[submissionId]";
 import { render } from "@react-email/render";
 import VolunteerFormResponseThankYouEmail from "#emails/volunteer-form-response-thank-you.jsx";
 import { reportApiError } from "#util/reportApiError.js";
@@ -59,7 +58,7 @@ export const post = async (req, res) => {
       });
     }
 
-    const fullSubmission = await findSubmission(
+    const fullSubmission = await findVolunteer(
       formResponse.eventId,
       formResponse.id
     );

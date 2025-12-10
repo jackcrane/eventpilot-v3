@@ -4,7 +4,7 @@ import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { LogType } from "@prisma/client";
 import { sendEmail } from "#postmark";
-import { findSubmission } from "./index.js";
+import { findVolunteer } from "./index.js";
 import { render } from "@react-email/render";
 import VolunteerShiftCheckInEmail from "#emails/volunteer-shift-check-in.jsx";
 import { createRequire } from "module";
@@ -81,11 +81,11 @@ export const patch = [
     }
 
     const { checkIns } = parseResult.data;
-    const { submissionId, eventId } = req.params;
+    const { volunteerId, eventId } = req.params;
 
     try {
       const submission = await prisma.volunteerRegistration.findUnique({
-        where: { id: submissionId },
+        where: { id: volunteerId },
         select: {
           eventId: true,
           instanceId: true,
@@ -113,7 +113,7 @@ export const patch = [
 
       const signups = await prisma.volunteerShiftSignup.findMany({
         where: {
-          formResponseId: submissionId,
+          formResponseId: volunteerId,
           shiftId: { in: requestedShiftIds },
         },
         select: {
@@ -220,7 +220,7 @@ export const patch = [
           ip: req.ip,
           eventId,
           instanceId: signup.shift.instanceId,
-          formResponseId: submissionId,
+          formResponseId: volunteerId,
           shiftId: signup.shift.id,
           jobId: signup.shift.jobId,
           locationId: signup.shift.locationId,
@@ -256,7 +256,7 @@ export const patch = [
 
       if (newlyCheckedIn.length) {
         try {
-          const submissionDetail = await findSubmission(eventId, submissionId);
+          const submissionDetail = await findVolunteer(eventId, volunteerId);
           const recipientEmail = submissionDetail?.response?.flat?.email;
           if (recipientEmail) {
             const volunteerName = submissionDetail?.response?.flat?.name;

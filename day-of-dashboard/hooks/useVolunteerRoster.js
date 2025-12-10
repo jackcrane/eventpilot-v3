@@ -31,7 +31,7 @@ export const useVolunteerRoster = () => {
   const key = useMemo(() => {
     if (!account?.eventId || !token) return null;
     return [
-      `/api/events/${account.eventId}/submission`,
+      `/api/events/${account.eventId}/volunteers`,
       token,
       account.instanceId ?? null,
     ];

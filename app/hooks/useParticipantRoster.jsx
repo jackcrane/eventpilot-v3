@@ -8,25 +8,72 @@ const fetcher = (url) =>
     return res.json();
   });
 
-const buildKey = ({ eventId, page, size, orderBy, order }) => {
+const buildKey = ({
+  eventId,
+  page,
+  size,
+  orderBy,
+  order,
+  search,
+  filters,
+}) => {
   if (!eventId) return null;
   const params = new URLSearchParams();
   params.set("page", String(page));
   params.set("size", String(size));
   if (orderBy) params.set("orderBy", orderBy);
   if (order) params.set("order", order);
+  if (search) params.set("q", search);
+  if (filters) params.set("filters", filters);
   return `/api/events/${eventId}/registration/registrations?${params.toString()}`;
 };
 
-export const useParticipantRoster = ({ eventId, initialPageSize = 25 } = {}) => {
+export const useParticipantRoster = ({
+  eventId,
+  initialPageSize = 25,
+  search = "",
+  filters = [],
+} = {}) => {
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(initialPageSize);
   const [orderBy, setOrderBy] = useState("createdAt");
   const [order, setOrder] = useState("desc");
 
+  const normalizedSearch = useMemo(() => {
+    if (typeof search !== "string") return "";
+    return search.trim();
+  }, [search]);
+
+  const serializedFilters = useMemo(() => {
+    if (!Array.isArray(filters) || !filters.length) return "";
+    try {
+      return JSON.stringify(filters);
+    } catch (error) {
+      console.warn("Failed to serialize registration filters", error);
+      return "";
+    }
+  }, [filters]);
+
   const key = useMemo(
-    () => buildKey({ eventId, page, size, orderBy, order }),
-    [eventId, page, size, orderBy, order]
+    () =>
+      buildKey({
+        eventId,
+        page,
+        size,
+        orderBy,
+        order,
+        search: normalizedSearch,
+        filters: serializedFilters,
+      }),
+    [
+      eventId,
+      page,
+      size,
+      orderBy,
+      order,
+      normalizedSearch,
+      serializedFilters,
+    ]
   );
 
   const { data, error, isLoading, isValidating, mutate } = useSWR(key, fetcher, {

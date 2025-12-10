@@ -19,7 +19,7 @@ export const useVolunteerDetail = (volunteerId) => {
   const key = useMemo(() => {
     if (!volunteerId || !account?.eventId || !token) return null;
     return [
-      `/api/events/${account.eventId}/submission/${volunteerId}`,
+      `/api/events/${account.eventId}/volunteers/${volunteerId}`,
       token,
       account.instanceId ?? null,
     ];

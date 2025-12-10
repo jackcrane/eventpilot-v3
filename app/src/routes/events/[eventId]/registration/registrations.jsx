@@ -1,21 +1,85 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { Input, useOffcanvas, useConfirm } from "tabler-react-2";
 import { TableV2 } from "tabler-react-2/dist/table-v2";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
 import { Empty } from "../../../../../components/empty/Empty";
+import { FormResponseRUD } from "../../../../../components/formResponseRUD/FormResponseRUD";
 import { useParticipantRoster } from "../../../../../hooks/useParticipantRoster";
 import { useColumnConfig } from "../../../../../hooks/useColumnConfig";
 import { buildParticipantColumns } from "../../../../../util/roster/participantColumns";
 import { ColumnsPicker } from "../../../../../components/columnsPicker/ColumnsPicker";
 import { Row } from "../../../../../util/Flex";
+import { Filters } from "../../../../../components/filters/Filters";
+import { useParticipantFilterDefinitions } from "../../../../../hooks/useParticipantFilterDefinitions";
+import { useRegistrationResponse } from "../../../../../hooks/useRegistrationResponse";
 
 export const RegistrationsPage = () => {
   const { eventId } = useParams();
-  const roster = useParticipantRoster({ eventId });
+  const [searchInput, setSearchInput] = useState("");
+  const [filterState, setFilterState] = useState([]);
+
+  const searchQuery = useMemo(() => searchInput.trim(), [searchInput]);
+
+  const serverFilters = useMemo(
+    () =>
+      (filterState || [])
+        .map((entry) => {
+          const path = entry?.field?.path || entry?.field?.label;
+          const operation = entry?.operation;
+          if (!path || !operation) return null;
+          const value = entry?.value ?? null;
+          return { path, operation, value };
+        })
+        .filter(Boolean),
+    [filterState]
+  );
+
+  const roster = useParticipantRoster({
+    eventId,
+    search: searchQuery,
+    filters: serverFilters,
+  });
+
+  const { offcanvas, OffcanvasElement } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 500, zIndex: 1050 },
+  });
+  const { confirm, ConfirmModal } = useConfirm({
+    title: "Confirm",
+    text: "Are you sure?",
+    commitText: "Confirm",
+    cancelText: "Cancel",
+  });
+
+  const handleOpenDetails = useCallback(
+    (id) => {
+      if (!id) return;
+      offcanvas({
+        content: (
+          <FormResponseRUD
+            id={id}
+            confirm={confirm}
+            interfaceType="participant"
+            entityLabel="REGISTRANT"
+            responseHook={useRegistrationResponse}
+          />
+        ),
+      });
+    },
+    [offcanvas, confirm]
+  );
+
+  const filterDefinitions = useParticipantFilterDefinitions({
+    fields: roster.fields,
+  });
 
   const baseColumns = useMemo(
-    () => buildParticipantColumns({ fields: roster.fields }),
-    [roster.fields]
+    () =>
+      buildParticipantColumns({
+        fields: roster.fields,
+        onOpenDetails: handleOpenDetails,
+      }),
+    [roster.fields, handleOpenDetails]
   );
 
   const storageKey = eventId ? `participant-roster:${eventId}` : null;
@@ -105,16 +169,55 @@ export const RegistrationsPage = () => {
     [roster]
   );
 
-  const showEmpty =
-    !roster.loading && !roster.validating && Number(roster.total) === 0;
+  const handleSearchChange = useCallback(
+    (value) => {
+      const nextValue =
+        typeof value === "string"
+          ? value
+          : (value?.target?.value ?? "");
+      setSearchInput(nextValue);
+      roster.setPage(1);
+    },
+    [roster]
+  );
+
+  const handleFilterChange = useCallback(
+    (next) => {
+      setFilterState(next || []);
+      roster.setPage(1);
+    },
+    [roster]
+  );
+
+  const isFiltering = Boolean(searchQuery) || serverFilters.length > 0;
+  const showInitialEmpty =
+    !roster.loading &&
+    !roster.validating &&
+    Number(roster.total) === 0 &&
+    !isFiltering;
 
   return (
     <EventPage title="Registrations" loading={false}>
-      {showEmpty ? (
+      {ConfirmModal}
+      {OffcanvasElement}
+      {showInitialEmpty ? (
         <Empty gradient={false} />
       ) : (
         <div className="d-flex flex-column gap-3">
-          <Row justify="flex-end" align="center">
+          <Row justify="space-between" align="center" wrap>
+            <Row gap={1} align="center" wrap style={{ flex: 1, minWidth: 280 }}>
+              <Input
+                placeholder="Search registrations..."
+                value={searchInput}
+                onChange={handleSearchChange}
+                style={{ minWidth: 220 }}
+                className="mb-0"
+              />
+              <Filters
+                fields={filterDefinitions}
+                onFilterChange={handleFilterChange}
+              />
+            </Row>
             <ColumnsPicker
               columns={columnConfig}
               onColumnsChange={setColumnConfig}

@@ -28,7 +28,7 @@ export const useVolunteerShiftCheckins = (volunteerId) => {
   const key = useMemo(() => {
     if (!volunteerId || !account?.eventId || !token) return null;
     return [
-      `/api/events/${account.eventId}/submission/${volunteerId}/checkins`,
+      `/api/events/${account.eventId}/volunteers/${volunteerId}/checkins`,
       token,
       account.instanceId ?? null,
     ];

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useFormResponse } from "../../hooks/useFormResponse";
+import { useRegistrationTeams } from "../../hooks/useRegistrationTeams";
 import { Typography, Util, Button, Badge, useOffcanvas } from "tabler-react-2";
 import { FormConsumer } from "../formConsumer/FormConsumer";
 import { Row } from "../../util/Flex";
@@ -9,6 +10,7 @@ import { Icon } from "../../util/Icon";
 import { utc } from "../tzDateTime/valueToUtc";
 import moment from "moment-timezone";
 import { ShiftFinder } from "../shiftFinder/ShiftFinder";
+import { RegistrationTeamPicker } from "../RegistrationTeamPicker/RegistrationTeamPicker";
 
 const STATE_TO_CODE = {
   alaska: "AK",
@@ -124,7 +126,14 @@ export const Dg = ({ title, content, description }) => (
   </div>
 );
 
-export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
+export const FormResponseRUD = ({
+  id,
+  confirm,
+  subOffcanvas,
+  entityLabel = "VOLUNTEER",
+  interfaceType = "volunteer",
+  responseHook = useFormResponse,
+}) => {
   const { eventId } = useParams();
   const {
     response,
@@ -135,10 +144,34 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
     error,
     groupedShifts,
     updateResponse,
-    deleteResponse,
+    assignTeam,
     mutationLoading,
+    deleteResponse,
     deleteLoading,
-  } = useFormResponse(eventId, id);
+  } = responseHook(eventId, id);
+  const { teams, loading: teamsLoading } = useRegistrationTeams({ eventId });
+
+  const currentTeamId = response?.team?.id ?? null;
+  const [teamPickerValue, setTeamPickerValue] = useState(null);
+
+  useEffect(() => {
+    setTeamPickerValue(currentTeamId ? { id: currentTeamId } : null);
+  }, [currentTeamId]);
+
+  const handleTeamSelection = useCallback(
+    ({ team }) => {
+      setTeamPickerValue(team ? { id: team.id } : null);
+      if (!team) {
+        if (currentTeamId) {
+          assignTeam({ teamId: null });
+        }
+        return;
+      }
+      if (team.id === currentTeamId) return;
+      assignTeam({ teamId: team.id });
+    },
+    [assignTeam, currentTeamId]
+  );
 
   if (loading) return <div>Loading…</div>;
   if (error) return <div>Error: {error.message}</div>;
@@ -189,7 +222,9 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
 
   return (
     <div style={{ marginBottom: 100 }}>
-      <Typography.H5 className="mb-0 text-secondary">VOLUNTEER</Typography.H5>
+      <Typography.H5 className="mb-0 text-secondary">
+        {entityLabel}
+      </Typography.H5>
       <Typography.H1>{response.flat.name}</Typography.H1>
       <Row gap={1}>
         <span>
@@ -231,47 +266,108 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
           </Button>
         </div>
       )}
-      <Util.Hr text="Shifts" />
-      <div>
-        {groupedShifts.map((location) => (
-          <div key={location.id}>
-            <Typography.H3>{location.name}</Typography.H3>
-            {location.jobs.map((job) => (
-              <div key={job.id} className="mb-2">
-                <Typography.H4 className={"mb-0"}>{job.name}</Typography.H4>
-                {job.shifts.map((shift) => (
-                  <Badge key={shift.id} style={{ marginRight: 8 }} outline>
-                    {moment(shift.startTime)
-                      .tz(utc(shift.startTimeTz))
-                      .format("h:mm a")}
-                    {" - "}
-                    {moment(shift.endTime)
-                      .tz(utc(shift.endTimeTz))
-                      .format("h:mm a")}
-                  </Badge>
+      {interfaceType !== "volunteer" && (
+        <>
+          <Util.Hr text="Registration" />
+          <div className="mb-3">
+            <Row gap={2} wrap>
+              <div>
+                <Typography.Text strong>Team</Typography.Text>
+                <Typography.Text>
+                  {response?.team?.name || "—"}
+                </Typography.Text>
+              </div>
+              <div>
+                <Typography.Text strong>Tier</Typography.Text>
+                <Typography.Text>
+                  {response?.registrationTier?.name || "—"}
+                </Typography.Text>
+              </div>
+              <div>
+                <Typography.Text strong>Period</Typography.Text>
+                <Typography.Text>
+                  {response?.registrationPeriod?.name ||
+                    response?.registrationPeriodPricing?.name ||
+                    "—"}
+                </Typography.Text>
+              </div>
+              <div>
+                <Typography.Text strong>Upsells</Typography.Text>
+                <Typography.Text>
+                  {(response?.upsells ?? [])
+                    .map((upsell) => upsell?.upsellItem?.name ?? null)
+                    .filter(Boolean)
+                    .join(", ") || "—"}
+                </Typography.Text>
+              </div>
+            </Row>
+          </div>
+          <Util.Hr text="Team assignment" />
+          <div className="mb-3">
+                <RegistrationTeamPicker
+                  eventId={eventId}
+                  teams={teams ?? []}
+                  loading={teamsLoading}
+                  showPublicOnly={false}
+                  value={teamPickerValue}
+                  onTeamSelection={handleTeamSelection}
+                  showCodeInput={false}
+                  showConfirmation={false}
+                  disableUnavailable={false}
+                  includeNoneOption
+                />
+            <Typography.Text className="text-muted d-block mt-2">
+              Reassign or remove this registrant's team membership.
+            </Typography.Text>
+          </div>
+        </>
+      )}
+      {interfaceType === "volunteer" && (
+        <>
+          <Util.Hr text="Shifts" />
+          <div>
+            {groupedShifts.map((location) => (
+              <div key={location.id}>
+                <Typography.H3>{location.name}</Typography.H3>
+                {location.jobs.map((job) => (
+                  <div key={job.id} className="mb-2">
+                    <Typography.H4 className={"mb-0"}>{job.name}</Typography.H4>
+                    {job.shifts.map((shift) => (
+                      <Badge key={shift.id} style={{ marginRight: 8 }} outline>
+                        {moment(shift.startTime)
+                          .tz(utc(shift.startTimeTz))
+                          .format("h:mm a")}
+                        {" - "}
+                        {moment(shift.endTime)
+                          .tz(utc(shift.endTimeTz))
+                          .format("h:mm a")}
+                      </Badge>
+                    ))}
+                  </div>
                 ))}
               </div>
             ))}
           </div>
-        ))}
-      </div>
-      {subOffcanvas && (
-        <Button
-          onClick={() =>
-            subOffcanvas({
-              content: (
-                <Shifts
-                  eventId={eventId}
-                  shifts={shifts}
-                  flat={response.flat}
-                  submissionId={id}
-                />
-              ),
-            })
-          }
-        >
-          View Shifts
-        </Button>
+          {subOffcanvas && (
+            <Button
+              onClick={() =>
+                subOffcanvas({
+                  content: (
+                    <Shifts
+                      eventId={eventId}
+                      shifts={shifts}
+                      flat={response.flat}
+                      submissionId={id}
+                      entityLabel={entityLabel}
+                    />
+                  ),
+                })
+              }
+            >
+              View Shifts
+            </Button>
+          )}
+        </>
       )}
       {/* <Util.Hr text="PII & Analytics" />
       <Typography.Text>
@@ -367,7 +463,13 @@ export const FormResponseRUD = ({ id, confirm, subOffcanvas }) => {
   );
 };
 
-const Shifts = ({ eventId, shifts: passedShifts, flat, submissionId }) => {
+const Shifts = ({
+  eventId,
+  shifts: passedShifts,
+  flat,
+  submissionId,
+  entityLabel = "VOLUNTEER",
+}) => {
   const [shifts, setShifts] = useState(passedShifts);
   const { mutationLoading, updateShiftRegistrations } = useFormResponse(
     eventId,
@@ -384,7 +486,9 @@ const Shifts = ({ eventId, shifts: passedShifts, flat, submissionId }) => {
 
   return (
     <div style={{ position: "relative" }}>
-      <Typography.H5 className={"mb-0 text-secondary"}>VOLUNTEER</Typography.H5>
+      <Typography.H5 className={"mb-0 text-secondary"}>
+        {entityLabel}
+      </Typography.H5>
       <Typography.H1>{flat?.name}</Typography.H1>
       <ShiftFinder
         fromRUD={true}

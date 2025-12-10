@@ -307,7 +307,7 @@ const generateRegistration = async () => {
   };
 
   const res = await fetch(
-    "http://localhost:3000/api/events/flying-pig/submission",
+    "http://localhost:3000/api/events/flying-pig/volunteers",
     {
       method: "POST",
       headers: {

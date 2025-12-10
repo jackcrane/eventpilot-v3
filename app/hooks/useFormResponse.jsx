@@ -10,15 +10,15 @@ const fetcher = (url) =>
     return res.json();
   });
 
-export const useFormResponse = (eventId, submissionId) => {
+export const useFormResponse = (eventId, volunteerId) => {
   if (!eventId) throw new Error("useFormResponse requires an eventId");
-  if (!submissionId) throw new Error("useFormResponse requires a submissionId");
+  if (!volunteerId) throw new Error("useFormResponse requires a volunteerId");
 
   const key =
-    eventId && submissionId
-      ? `/api/events/${eventId}/submission/${submissionId}`
+    eventId && volunteerId
+      ? `/api/events/${eventId}/volunteers/${volunteerId}`
       : null;
-  const listKey = eventId ? `/api/events/${eventId}/submission` : null;
+  const listKey = eventId ? `/api/events/${eventId}/volunteers` : null;
 
   const { data, error, isLoading, mutate } = useSWR(key, fetcher);
   const { mutate: refreshList } = useSWRConfig();

@@ -1,4 +1,5 @@
-import { Badge } from "tabler-react-2";
+import { Badge, Button } from "tabler-react-2";
+import { Icon } from "../../util/Icon";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   year: "numeric",
@@ -32,7 +33,7 @@ const formatList = (value) => {
   return value.join(", ");
 };
 
-export const buildParticipantColumns = ({ fields = [] }) => {
+export const buildParticipantColumns = ({ fields = [], onOpenDetails } = {}) => {
   const nameField = fields.find(
     (field) => field?.fieldType === "participantName"
   );
@@ -42,9 +43,36 @@ export const buildParticipantColumns = ({ fields = [] }) => {
 
   const columns = [
     {
+      id: "details",
+      label: "Details",
+      order: 1,
+      show: true,
+      enableSorting: false,
+      column: {
+        id: "details",
+        header: () => "Details",
+        cell: ({ row }) => (
+          <Button
+            size="sm"
+            variant="light"
+            disabled={typeof onOpenDetails !== "function"}
+            icon={<Icon i="info-circle" />}
+            onClick={() =>
+              typeof onOpenDetails === "function"
+                ? onOpenDetails(row?.original?.id)
+                : undefined
+            }
+          >
+            View
+          </Button>
+        ),
+        size: 90,
+      },
+    },
+    {
       id: "name",
       label: "Name",
-      order: 1,
+      order: 2,
       show: true,
       enableSorting: Boolean(nameField),
       orderBy: nameField ? `field:${nameField.id}` : null,
@@ -58,7 +86,7 @@ export const buildParticipantColumns = ({ fields = [] }) => {
     {
       id: "email",
       label: "Email",
-      order: 2,
+      order: 3,
       show: true,
       enableSorting: Boolean(emailField),
       orderBy: emailField ? `field:${emailField.id}` : null,
@@ -72,7 +100,7 @@ export const buildParticipantColumns = ({ fields = [] }) => {
     {
       id: "tier",
       label: "Tier",
-      order: 3,
+      order: 4,
       show: true,
       enableSorting: true,
       orderBy: "tier",
@@ -86,7 +114,7 @@ export const buildParticipantColumns = ({ fields = [] }) => {
     {
       id: "period",
       label: "Period",
-      order: 4,
+      order: 5,
       show: true,
       enableSorting: true,
       orderBy: "period",
@@ -101,7 +129,7 @@ export const buildParticipantColumns = ({ fields = [] }) => {
     {
       id: "team",
       label: "Team",
-      order: 5,
+      order: 6,
       show: true,
       enableSorting: true,
       orderBy: "team",
@@ -115,7 +143,7 @@ export const buildParticipantColumns = ({ fields = [] }) => {
     {
       id: "finalized",
       label: "Finalized",
-      order: 6,
+      order: 7,
       show: true,
       enableSorting: true,
       orderBy: "finalized",
@@ -139,7 +167,7 @@ export const buildParticipantColumns = ({ fields = [] }) => {
     {
       id: "upsells",
       label: "Upsells",
-      order: 7,
+      order: 8,
       show: true,
       enableSorting: false,
       column: {
@@ -152,7 +180,7 @@ export const buildParticipantColumns = ({ fields = [] }) => {
     {
       id: "coupon",
       label: "Coupon",
-      order: 8,
+      order: 9,
       show: false,
       enableSorting: false,
       column: {
@@ -165,7 +193,7 @@ export const buildParticipantColumns = ({ fields = [] }) => {
     {
       id: "priceSnapshot",
       label: "Price",
-      order: 9,
+      order: 10,
       show: false,
       enableSorting: true,
       orderBy: "priceSnapshot",
@@ -179,7 +207,7 @@ export const buildParticipantColumns = ({ fields = [] }) => {
     {
       id: "createdAt",
       label: "Registered",
-      order: 10,
+      order: 11,
       show: true,
       enableSorting: true,
       orderBy: "createdAt",
@@ -193,7 +221,7 @@ export const buildParticipantColumns = ({ fields = [] }) => {
     {
       id: "updatedAt",
       label: "Updated",
-      order: 11,
+      order: 12,
       show: false,
       enableSorting: true,
       orderBy: "updatedAt",

@@ -29,9 +29,14 @@ export const get = [
       const registration = await prisma.registration.findUnique({
         where: { id: registrationId },
         include: {
+          team: { select: { id: true, name: true } },
           registrationTier: {
             select: { id: true, name: true },
           },
+          registrationPeriod: { select: { id: true, name: true } },
+        registrationPeriodPricing: {
+          select: { id: true, price: true, registrationPeriodId: true },
+        },
           upsells: {
             include: {
               upsellItem: {
@@ -159,6 +164,9 @@ export const get = [
           checkedInAt: registration.checkedInAt,
           checkedInBy: registration.checkedInBy,
           registrationTier: registration.registrationTier,
+          registrationPeriod: registration.registrationPeriod,
+          registrationPeriodPricing: registration.registrationPeriodPricing,
+          team: registration.team,
           upsells: registration.upsells,
           fieldResponses: registration.fieldResponses,
           responses: rawResponses,

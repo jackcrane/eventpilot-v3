@@ -1,0 +1,116 @@
+import { useState } from "react";
+import useSWR, { useSWRConfig } from "swr";
+import { authFetch } from "../util/url";
+import toast from "react-hot-toast";
+
+const fetcher = (url) =>
+  authFetch(url).then((res) => {
+    if (!res.ok) throw new Error("Failed to load registration");
+    return res.json();
+  });
+
+export const useRegistrationResponse = (eventId, registrationId) => {
+  if (!eventId) throw new Error("useRegistrationResponse requires an eventId");
+  if (!registrationId)
+    throw new Error("useRegistrationResponse requires a registrationId");
+
+  const key =
+    eventId && registrationId
+      ? `/api/events/${eventId}/registration/${registrationId}`
+      : null;
+  const listKey = eventId ? `/api/events/${eventId}/registration/registrations` : null;
+  const teamsKey = eventId ? `/api/events/${eventId}/registration/team` : null;
+
+  const { data, error, isLoading, mutate } = useSWR(key, fetcher);
+  const { mutate: refresh, cache } = useSWRConfig();
+  const revalidateListEntries = async () => {
+    if (!listKey || !cache || typeof cache.keys !== "function") return;
+    const keys = [];
+    for (const entry of cache.keys()) {
+      if (
+        typeof entry === "string" &&
+        entry.startsWith(listKey) &&
+        entry !== undefined
+      ) {
+        keys.push(entry);
+      }
+    }
+    if (!keys.length) return;
+    await Promise.all(keys.map((entry) => refresh(entry)));
+  };
+
+  const [mutationLoading, setMutationLoading] = useState(false);
+  const [teamMutationLoading, setTeamMutationLoading] = useState(false);
+
+  const updateResponse = (values) => {
+    setMutationLoading(true);
+    const promise = (async () => {
+      const res = await authFetch(key, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ values }),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      await mutate();
+      if (listKey) await refresh(listKey);
+      await revalidateListEntries();
+      return res.json();
+    })();
+
+    return toast
+      .promise(promise, {
+        loading: "Updating response…",
+        success: "Response updated",
+        error: "Update failed",
+      })
+      .finally(() => setMutationLoading(false));
+  };
+
+  const assignTeam = ({ teamId = null, teamCode = null }) => {
+    setTeamMutationLoading(true);
+    const promise = (async () => {
+      const res = await authFetch(`${key}/team`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId, teamCode }),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      await mutate();
+      if (listKey) await refresh(listKey);
+      if (teamsKey) await refresh(teamsKey);
+      await revalidateListEntries();
+      return res.json();
+    })();
+
+    return toast
+      .promise(promise, {
+        loading: "Updating team…",
+        success: "Team updated",
+        error: "Failed to update team",
+      })
+      .finally(() => setTeamMutationLoading(false));
+  };
+
+  const registration = data?.registration ?? null;
+  const response = registration
+    ? {
+        ...registration,
+        ...registration.resolvedResponses,
+        ...registration.responses,
+      }
+    : null;
+
+  return {
+    response,
+    fields: data?.fields ?? [],
+    pii: data?.pii ?? null,
+    shifts: data?.shifts ?? [],
+    groupedShifts: data?.groupedShifts ?? [],
+    loading: isLoading,
+    error,
+    updateResponse,
+    assignTeam,
+    mutationLoading,
+    teamMutationLoading,
+  };
+};
