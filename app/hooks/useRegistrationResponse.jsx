@@ -19,11 +19,13 @@ export const useRegistrationResponse = (eventId, registrationId) => {
       ? `/api/events/${eventId}/registration/${registrationId}`
       : null;
   const listKey = eventId ? `/api/events/${eventId}/registration/registrations` : null;
+  const teamsKey = eventId ? `/api/events/${eventId}/registration/team` : null;
 
   const { data, error, isLoading, mutate } = useSWR(key, fetcher);
   const { mutate: refresh } = useSWRConfig();
 
   const [mutationLoading, setMutationLoading] = useState(false);
+  const [teamMutationLoading, setTeamMutationLoading] = useState(false);
 
   const updateResponse = (values) => {
     setMutationLoading(true);
@@ -48,6 +50,30 @@ export const useRegistrationResponse = (eventId, registrationId) => {
       .finally(() => setMutationLoading(false));
   };
 
+  const assignTeam = ({ teamId = null, teamCode = null }) => {
+    setTeamMutationLoading(true);
+    const promise = (async () => {
+      const res = await authFetch(`${key}/team`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId, teamCode }),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      await mutate();
+      if (listKey) await refresh(listKey);
+      if (teamsKey) await refresh(teamsKey);
+      return res.json();
+    })();
+
+    return toast
+      .promise(promise, {
+        loading: "Updating team…",
+        success: "Team updated",
+        error: "Failed to update team",
+      })
+      .finally(() => setTeamMutationLoading(false));
+  };
+
   const registration = data?.registration ?? null;
   const response = registration
     ? {
@@ -66,6 +92,8 @@ export const useRegistrationResponse = (eventId, registrationId) => {
     loading: isLoading,
     error,
     updateResponse,
+    assignTeam,
     mutationLoading,
+    teamMutationLoading,
   };
 };

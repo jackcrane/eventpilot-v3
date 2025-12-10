@@ -18,41 +18,59 @@ export const RegistrationTeamPicker = ({
   onChange,
   label = "Team",
   required = false,
+  teams: overrideTeams,
+  loading: loadingProp,
+  showPublicOnly = true,
+  onTeamSelection,
+  showCodeInput = true,
+  showConfirmation = true,
 }) => {
-  const { teams, loading } = usePublicTeams({ eventId });
+  const { teams: publicTeams, loading: publicLoading } = usePublicTeams({
+    eventId,
+  });
   const [code, setCode] = useState("");
   const [confirmedTeam, setConfirmedTeam] = useState(null);
   const { lookup, loading: lookupLoading, reset: resetLookup } =
     useTeamCodeLookup({ eventId });
 
-  const publicTeams = useMemo(
-    () => (teams || []).filter((t) => t.public),
-    [teams]
+  const availableTeams = overrideTeams ?? publicTeams ?? [];
+  const loading = overrideTeams ? Boolean(loadingProp) : publicLoading;
+
+  const visibleTeams = useMemo(
+    () =>
+      showPublicOnly
+        ? availableTeams.filter((team) => team.public)
+        : availableTeams,
+    [availableTeams, showPublicOnly]
   );
 
   const items = useMemo(
     () =>
-      publicTeams.map((t) => ({
+      visibleTeams.map((t) => ({
         id: t.id,
         value: t.id,
         label: t.name,
         disabled: !t.available,
       })),
-    [publicTeams]
+    [visibleTeams]
   );
 
   const handleSelect = (sel) => {
     const id = sel?.value ?? sel?.id ?? null;
     if (!id) return;
-    const team = publicTeams.find((t) => t.id === id);
+    const team = visibleTeams.find((t) => t.id === id);
     if (!team?.available) {
       toast.error("That team is full");
       setConfirmedTeam(null);
       onChange?.({ id: null, code: "" });
+      onTeamSelection?.({ team: null, code: "", status: "clear" });
       return;
     }
-    setConfirmedTeam(team || { id, name: "Selected team" });
+    const confirmed = team || { id, name: "Selected team" };
+    if (showConfirmation) setConfirmedTeam(confirmed);
     onChange?.({ id, code: "" });
+    if (!showConfirmation) setConfirmedTeam(null);
+    onTeamSelection?.({ team: confirmed, code: "", status: "select" });
   };
 
   const handleLookup = async () => {
@@ -67,9 +85,14 @@ export const RegistrationTeamPicker = ({
         onChange?.({ id: null, code: "" });
         return;
       }
-      setConfirmedTeam(data.team);
+      if (showConfirmation) setConfirmedTeam(data.team);
       // For code-join, keep id null so server uses code path (allows private teams)
       onChange?.({ id: null, code: entered });
+      onTeamSelection?.({
+        team: data.team,
+        code: entered,
+        status: "lookup",
+      });
     } else {
       toast.error("Invalid team code");
     }
@@ -77,7 +100,7 @@ export const RegistrationTeamPicker = ({
 
   if (loading) return <div>Loading...</div>;
 
-  if (confirmedTeam) {
+  if (showConfirmation && confirmedTeam) {
     return (
       <Alert variant="secondary" title="Team selected">
         <Row gap={1} justify="space-between" align="center">
@@ -92,6 +115,7 @@ export const RegistrationTeamPicker = ({
               setCode("");
               resetLookup();
               onChange?.({ id: null, code: "" });
+              onTeamSelection?.({ team: null, code: "", status: "clear" });
             }}
           >
             Undo
@@ -101,56 +125,61 @@ export const RegistrationTeamPicker = ({
     );
   }
 
+  const dropdownElement = (
+    <DropdownInput
+      items={items}
+      prompt={showPublicOnly ? "Pick a public team" : "Pick a team"}
+      value={value?.id ? { value: value.id } : undefined}
+      onChange={handleSelect}
+      aprops={{
+        style: {
+          flex: 1,
+          textAlign: "left",
+          justifyContent: "space-between",
+        },
+      }}
+      style={{ flex: 1, display: "flex" }}
+    />
+  );
+
+  const codeInputElement = (
+    <Row gap={1} align="center" style={{ flex: 1 }}>
+      <Input
+        placeholder="Enter team code"
+        value={code}
+        onChange={setCode}
+        className="mb-0"
+        style={{ flex: 1 }}
+      />
+      <Button onClick={handleLookup} loading={lookupLoading}>
+        Join
+      </Button>
+    </Row>
+  );
+
   return (
     <div>
       <label className={`form-label ${required ? "required" : ""}`}>
         {label || "Team"}
       </label>
-      {publicTeams.filter((t) => t.available).length > 0 ? (
-        <>
-          <Row gap={2} align="center">
-            <DropdownInput
-              items={items}
-              prompt="Pick a public team"
-              value={value?.id ? { value: value.id } : undefined}
-              onChange={handleSelect}
-              aprops={{
-                style: {
-                  flex: 1,
-                  textAlign: "left",
-                  justifyContent: "space-between",
-                },
-              }}
-              style={{ flex: 1, display: "flex" }}
-            />
-            <Typography.Text className="mb-0">or</Typography.Text>
-            <Row gap={1} align="center" style={{ flex: 1 }}>
-              <Input
-                placeholder="Enter team code"
-                value={code}
-                onChange={setCode}
-                className="mb-0"
-                style={{ flex: 1 }}
-              />
-              <Button onClick={handleLookup} loading={lookupLoading}>
-                Join
-              </Button>
-            </Row>
-          </Row>
-        </>
-      ) : (
-        <Row gap={1} align="center">
-          <Input
-            placeholder="Enter team code"
-            value={code}
-            onChange={setCode}
-            className="mb-0"
-            style={{ flex: 1 }}
-          />
-          <Button onClick={handleLookup} loading={lookupLoading}>
-            Join
-          </Button>
+      {visibleTeams.filter((t) => t.available).length > 0 ? (
+        <Row gap={2} align="center">
+          {dropdownElement}
+          {showCodeInput && (
+            <>
+              <Typography.Text className="mb-0">or</Typography.Text>
+              {codeInputElement}
+            </>
+          )}
         </Row>
+      ) : showCodeInput ? (
+        <Row gap={1} align="center">
+          {codeInputElement}
+        </Row>
+      ) : (
+        <Typography.Text className="text-muted">
+          No teams available.
+        </Typography.Text>
       )}
     </div>
   );
