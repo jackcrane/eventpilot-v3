@@ -18,6 +18,7 @@ import { TeamCRUD } from "../TeamCRUD/TeamCRUD";
 import { UpsellItemCRUD } from "../UpsellItemCRUD/UpsellItemCRUD";
 import { CouponCRUD } from "../CouponCRUD/CouponCRUD";
 import { EmailPreview } from "../emailPreview/emailPreview";
+import { useRegistrationResponse } from "../../hooks/useRegistrationResponse";
 import toast from "react-hot-toast";
 
 const escapeRegExp = (value = "") =>
@@ -332,6 +333,12 @@ export const UniversalSearch = ({
   } = useOffcanvas({
     offcanvasProps: { position: "end", size: 640, zIndex: 1097 },
   });
+  const {
+    offcanvas: registrationOffcanvas,
+    OffcanvasElement: RegistrationOffcanvasElement,
+  } = useOffcanvas({
+    offcanvasProps: { position: "end", size: 520, zIndex: 1093 },
+  });
   const { confirm, ConfirmModal } = useConfirm({
     title: "Confirm",
     text: "Are you sure?",
@@ -442,6 +449,27 @@ export const UniversalSearch = ({
     [emailOffcanvas]
   );
 
+  const openRegistration = useCallback(
+    ({ resourceId }) => {
+      if (!resourceId) {
+        toast.error("Unable to open registrant");
+        return;
+      }
+      registrationOffcanvas({
+        content: (
+          <FormResponseRUD
+            id={resourceId}
+            confirm={confirm}
+            interfaceType="participant"
+            entityLabel="REGISTRANT"
+            responseHook={useRegistrationResponse}
+          />
+        ),
+      });
+    },
+    [registrationOffcanvas, confirm]
+  );
+
   const handleSelect = (result) => {
     if (!result) return;
     handleSearchResultNavigation({
@@ -454,6 +482,7 @@ export const UniversalSearch = ({
         openUpsell,
         openCoupon,
         openEmail,
+        openRegistration,
       },
     });
   };
@@ -501,6 +530,7 @@ export const UniversalSearch = ({
       {UpsellOffcanvasElement}
       {CouponOffcanvasElement}
       {EmailOffcanvasElement}
+      {RegistrationOffcanvasElement}
       {ConfirmModal}
       <div className={`${styles.wrapper} dropdown`} ref={containerRef}>
         <div className="input-group input-group-flat">

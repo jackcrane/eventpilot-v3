@@ -55,6 +55,13 @@ const MODEL_HANDLERS = {
     }
     openTab(`/events/${eventId}/conversations/${conversationId}`);
   },
+  registration: ({ actions, resourceId }) => {
+    if (actions?.openRegistration && resourceId) {
+      actions.openRegistration({ resourceId });
+      return;
+    }
+    toast("No action supported");
+  },
   todo: ({ actions, eventId, resourceId, result }) => {
     if (actions?.openTodo) {
       actions.openTodo({ eventId, resourceId, result });
