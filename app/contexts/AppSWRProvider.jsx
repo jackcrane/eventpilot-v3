@@ -36,33 +36,64 @@ const createLocalStorageProvider = () => {
     }
   };
 
+  // Batch persistence so we don't stringify the entire cache on every SWR write.
+  let persistHandle = null;
+  const schedulePersist = () => {
+    if (persistHandle) return;
+
+    const run = () => {
+      persistHandle = null;
+      persist();
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      persistHandle = window.requestIdleCallback(run, { timeout: 1000 });
+    } else {
+      persistHandle = window.setTimeout(run, 250);
+    }
+  };
+
+  const cancelScheduledPersist = () => {
+    if (!persistHandle) return;
+    if (typeof window.cancelIdleCallback === "function") {
+      window.cancelIdleCallback(persistHandle);
+    } else {
+      window.clearTimeout(persistHandle);
+    }
+    persistHandle = null;
+  };
+
   const originalSet = map.set.bind(map);
   map.set = (key, value) => {
     const result = originalSet(key, value);
-    persist();
+    schedulePersist();
     return result;
   };
 
   const originalDelete = map.delete.bind(map);
   map.delete = (key) => {
     const result = originalDelete(key);
-    persist();
+    schedulePersist();
     return result;
   };
 
   const originalClear = map.clear.bind(map);
   map.clear = () => {
     originalClear();
-    persist();
+    schedulePersist();
   };
 
   const handleVisibilityChange = () => {
     if (document.visibilityState === "hidden") {
+      cancelScheduledPersist();
       persist();
     }
   };
 
-  window.addEventListener("beforeunload", persist);
+  window.addEventListener("beforeunload", () => {
+    cancelScheduledPersist();
+    persist();
+  });
   if (typeof document !== "undefined") {
     document.addEventListener("visibilitychange", handleVisibilityChange);
   }
