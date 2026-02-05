@@ -174,6 +174,7 @@ export const EventCrmPage = ({ eventId }) => {
 
   const lastManualPaginationRef = useRef({ ...paginationState });
   const wasUsingAiRef = useRef(false);
+  const lastAiFetchSigRef = useRef(null);
 
   const aiState = useCrmAiState({
     eventId,
@@ -430,6 +431,14 @@ export const EventCrmPage = ({ eventId }) => {
       (current.orderBy || "") === (paginationState.orderBy || "") &&
       (current.order || "") === (paginationState.order || "");
     if (matches && !segmentLoading) return;
+
+    // Prevent runaway loops: only run once per (ast + pagination) combo.
+    const sig = JSON.stringify({
+      ast: filter,
+      pagination: paginationState,
+    });
+    if (sig === lastAiFetchSigRef.current) return;
+    lastAiFetchSigRef.current = sig;
 
     let cancelled = false;
     (async () => {
