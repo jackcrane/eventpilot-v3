@@ -53,10 +53,26 @@ function runPsql(dbUrl, args) {
 }
 
 function runPrismaMigrate(dbUrl) {
-  const result = spawnSync("npx", ["prisma", "migrate", "deploy"], {
+  const repoRoot = path.resolve(process.cwd(), "..");
+  const prismaBinName = process.platform === "win32" ? "prisma.cmd" : "prisma";
+  const prismaPath = path.resolve(
+    repoRoot,
+    "api",
+    "node_modules",
+    ".bin",
+    prismaBinName,
+  );
+
+  if (!fs.existsSync(prismaPath)) {
+    throw new Error(
+      `Prisma CLI not found at ${prismaPath}. Install api dependencies first.`,
+    );
+  }
+
+  const result = spawnSync(prismaPath, ["migrate", "deploy"], {
     stdio: "ignore",
     env: { ...process.env, DATABASE_URL: dbUrl },
-    cwd: path.resolve(process.cwd(), "web-api"),
+    cwd: path.resolve(repoRoot, "api"),
   });
 
   if (result.error) {
