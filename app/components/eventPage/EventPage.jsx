@@ -19,7 +19,7 @@ export const EventPage = ({
   showHr = true,
 }) => {
   const { eventId } = useParams();
-  const { event, loading: eventLoading } = useEvent({ eventId });
+  const { event, loading: eventLoading, notFound } = useEvent({ eventId });
   const { pathname } = useLocation();
 
   const openUrl = (url) => window.open(url, "_blank");
@@ -37,6 +37,25 @@ export const EventPage = ({
         <Loading gradient={false} />
       </Page>
     );
+
+  if (notFound) {
+    return (
+      <Page title="Event Not Found">
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "70vh",
+          }}
+        >
+          <Typography.H1>404</Typography.H1>
+          <Typography.Text>Event not found</Typography.Text>
+        </div>
+      </Page>
+    );
+  }
 
   // helper to test exact match
   const isActive = (href) => pathname === href;

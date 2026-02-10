@@ -4,7 +4,25 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { useConfirm } from "tabler-react-2";
 
-const fetcher = (url) => authFetch(url).then((r) => r.json());
+const fetcher = async (url) => {
+  const res = await authFetch(url);
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    data = null;
+  }
+  if (res.status === 404) {
+    return { event: null, notFound: true };
+  }
+  if (!res.ok) {
+    const err = new Error(data?.error || "Request failed");
+    err.status = res.status;
+    err.info = data;
+    throw err;
+  }
+  return data;
+};
 
 export const useEvent = ({ eventId, refreshInterval = 0 }) => {
   const key = `/api/events/${eventId}`;
@@ -77,6 +95,7 @@ export const useEvent = ({ eventId, refreshInterval = 0 }) => {
 
   return {
     event: data?.event,
+    notFound: data?.notFound,
     loading: isLoading,
     updateEvent,
     mutationLoading,
