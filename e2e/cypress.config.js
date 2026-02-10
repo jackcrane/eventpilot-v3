@@ -13,10 +13,39 @@ dotenv.config();
 const client = new pg.Client({
   connectionString: process.env.DATABASE_URL,
 });
+import { z } from "zod";
 
 registerCommand("sql", (query) => {
   return [`cy.task('sql', ${JSON.stringify(query)})`];
 });
+
+registerCommand(
+  "authenticateUser",
+  (options) => {
+    const encodedOptions = JSON.stringify(options);
+    const emailLabel = JSON.stringify(options.email);
+
+    return [
+      `cy.task('authenticateUser', ${encodedOptions}).then((token) => {
+        if (!token) {
+          throw new Error('authenticateUser task returned invalid token');
+        }
+
+        cy.window().then((win) => {
+          win.localStorage.setItem('token', token);
+        });
+
+        cy.log('Authenticated as ' + ${emailLabel});
+      });`,
+    ];
+  },
+  {
+    schema: z.object({
+      email: z.string().min(1, "email is required"),
+      password: z.string().min(1, "password is required"),
+    }),
+  },
+);
 
 generateJsonSchema();
 
@@ -140,16 +169,13 @@ export default defineConfig({
     requestTimeout: 8000,
     responseTimeout: 8000,
     supportFile: false,
-    async setupNodeEvents(on) {
+    async setupNodeEvents(on, config) {
       await client.connect();
 
       yamlPreprocessor(on);
+      const resolvedBaseUrl = config?.baseUrl || DEFAULT_BASE_URL;
 
       on("task", {
-        authenticateUser: async ({ username, password }) => {
-          // TODO: Implement
-        },
-
         "db:seed": (relativeSqlPath) => {
           const dbUrl = process.env.DATABASE_URL;
 
@@ -178,6 +204,43 @@ export default defineConfig({
           runPsql(dbUrl, ["-f", sqlFilePath]);
 
           return null;
+        },
+
+        authenticateUser: async ({ email, password }) => {
+          if (!email || !password) {
+            throw new Error(
+              `authenticateUser requires both email and password`,
+            );
+          }
+
+          const loginUrl = new URL("/api/auth/login", resolvedBaseUrl);
+          const response = await fetch(loginUrl, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify({
+              email,
+              password,
+            }),
+          });
+
+          let body = null;
+          try {
+            body = await response.json();
+          } catch {
+            // handled below
+          }
+
+          if (!response.ok || !body?.token) {
+            const statusText = response.statusText || "";
+            throw new Error(
+              `Failed to authenticate user ${email}: ${response.status} ${statusText}`.trim(),
+            );
+          }
+
+          return body.token;
         },
       });
     },

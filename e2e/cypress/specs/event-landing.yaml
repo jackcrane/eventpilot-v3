@@ -1,0 +1,45 @@
+name: Ensure event landing page shows default state correctly
+seedFile: cypress/fixtures/db/created-event.sql
+skip: true
+steps:
+  - setViewport:
+      width: 1280
+      height: 720
+  - authenticateUser:
+      email: test@eventpilot-test.com
+      password: Password
+  - open: /events/cmhkuuh7n0005qryc1qvb3ama
+  - waitFor: 1000
+  - assertVisible: "This is your event homepage."
+  # Make sure remaining steps are seeded correctly
+  - assertVisible:
+      text: "Build the form"
+      allowScroll: true
+  - assertVisible:
+      text: "Set up locations"
+      allowScroll: true
+  - assertVisible:
+      text: "Set up jobs"
+      allowScroll: true
+  - assertVisible:
+      text: "Set up shifts"
+      allowScroll: true
+  - assertVisible:
+      text: "Configure pricing"
+      allowScroll: true
+  - assertVisible:
+      text: "Add a coupon"
+      allowScroll: true
+  - assertVisible:
+      text: "Create teams"
+      allowScroll: true
+  - assertVisible:
+      text: "Get set up with Stripe"
+      allowScroll: true
+  - assertVisible:
+      text: "Connect Google"
+      allowScroll: true
+  - assertVisible: "Volunteer Registration is not enabled"
+  - assertVisible: "Participant Registration is not enabled"
+  - assertVisible: "No volunteer registrations yet"
+  - assertVisible: "No participant registrations yet"

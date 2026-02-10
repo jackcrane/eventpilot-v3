@@ -23,7 +23,7 @@ export const Events = () => {
           <Button
             onClick={() => navigate("/events/new")}
             className="mb-3"
-            data-cy-id="create-event"
+            data-cy="create-event"
           >
             Create Event
           </Button>

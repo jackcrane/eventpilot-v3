@@ -88,7 +88,7 @@ export const NewEventPage = () => {
         stripe_customerId: undefined,
       });
     },
-    [event, schema]
+    [event, schema],
   );
 
   const ensureDraft = useCallback(async () => {
@@ -185,7 +185,11 @@ export const NewEventPage = () => {
             <Util.Hr className="mt-4" />
             <Util.Row align="center" gap={2}>
               {stage > 0 && (
-                <Button onClick={() => setStage(stage - 1)} className="mt-3">
+                <Button
+                  onClick={() => setStage(stage - 1)}
+                  className="mt-3"
+                  data-cy="previous"
+                >
                   <Util.Row align="center" gap={1}>
                     <Icon i={"arrow-left"} size={16} />
                     Previous
@@ -193,7 +197,11 @@ export const NewEventPage = () => {
                 </Button>
               )}
               {stage < 6 && (
-                <Button onClick={() => setStage(stage + 1)} className="mt-3">
+                <Button
+                  onClick={() => setStage(stage + 1)}
+                  className="mt-3"
+                  data-cy="next"
+                >
                   <Util.Row align="center" gap={1}>
                     Next
                     <Icon i={"arrow-right"} size={16} />
@@ -228,8 +236,8 @@ const EventBasicInfo = ({ event = {}, onChangeEvent }) => {
           event.name?.length < 2
             ? `${2 - event.name.length} characters left`
             : event.name?.length > 50
-            ? `${event.name.length - 50} characters too long`
-            : null
+              ? `${event.name.length - 50} characters too long`
+              : null
         }
       />
       <Input
@@ -242,8 +250,8 @@ const EventBasicInfo = ({ event = {}, onChangeEvent }) => {
           event.description?.length < 10
             ? `${10 - event.description.length} characters left`
             : event.description?.length > 255
-            ? `${event.description.length - 255} characters too long`
-            : null
+              ? `${event.description.length - 255} characters too long`
+              : null
         }
         required
       />
@@ -288,8 +296,8 @@ const InstanceInfo = ({ event = {}, onChangeEvent }) => {
           event.instance?.name?.length < 2
             ? `${2 - event.instance?.name?.length} characters left`
             : event.instance?.name?.length > 50
-            ? `${event.instance?.name?.length - 50} characters too long`
-            : null
+              ? `${event.instance?.name?.length - 50} characters too long`
+              : null
         }
       />
       <TzDateTime
@@ -374,7 +382,7 @@ const EventAssets = ({ event = {}, onChangeEvent }) => {
         value={event.logo}
         hint="A logo for your event. This is required, and should be a square image at least 200px by 200px."
         accept="image/*"
-        data-cy-id="logo"
+        data-cy="logo"
         alertCyId={"logo-alert"}
       />
       <Dropzone
@@ -391,7 +399,7 @@ const EventAssets = ({ event = {}, onChangeEvent }) => {
         }
         hint="A banner image for your event. This is required, and should be a rectangular image. It will be shown across the top of your webpages."
         accept="image/*"
-        data-cy-id="banner"
+        data-cy="banner"
         alertCyId={"banner-alert"}
       />
 
@@ -831,16 +839,16 @@ const EventBillingSetup = ({ eventId, eventDraft }) => {
                 defaultSet
                   ? "Default payment method set"
                   : hasMethod
-                  ? "Payment method added"
-                  : "No payment method on file"
+                    ? "Payment method added"
+                    : "No payment method on file"
               }
             >
               <Typography.Text className="mb-0">
                 {defaultSet
                   ? "You're all set. You can continue to your event dashboard."
                   : hasMethod
-                  ? "Select a default card by clicking 'Submit' in the form, then continue."
-                  : "Add a card to start your subscription and continue."}
+                    ? "Select a default card by clicking 'Submit' in the form, then continue."
+                    : "Add a card to start your subscription and continue."}
               </Typography.Text>
             </Alert>
 

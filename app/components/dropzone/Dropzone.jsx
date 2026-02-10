@@ -56,7 +56,7 @@ export const Dropzone = ({
           variant="success"
           className="mb-3"
           title="Existing File"
-          data-cy-id={alertCyId}
+          data-cy={alertCyId}
         >
           <Typography.Text>A file is uploaded for this field.</Typography.Text>
           <img
@@ -82,7 +82,7 @@ export const Dropzone = ({
           inputProps={{
             multiple: true,
             accept,
-            "data-cy-id": props["data-cy-id"],
+            "data-cy": props["data-cy"],
           }}
           onRawChange={handleFileChange}
           className="mb-0"
