@@ -78,7 +78,7 @@ steps:
       text: "Existing File"
   - selectFile:
       selector: "input[data-cy='banner']"
-      filePath: "cypress/fixtures/files/banner.jpg"
+      filePath: "cypress/fixtures/files/banner.png"
   - assertContains:
       selector: "[data-cy='banner-alert']"
       text: "Existing File"
