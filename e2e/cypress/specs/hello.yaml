@@ -1,0 +1,28 @@
+name: Login
+seedFile: cypress/fixtures/db/login.sql
+steps:
+  - setViewport:
+      width: 1280
+      height: 720
+  - open: /
+  - waitFor: 1000
+  - assertVisible:
+      text: "Simplifying event management for every organizer"
+      exact: false
+  - log: "Reached the home page"
+  - tapOn:
+      text: "Login"
+  - waitFor: 3000
+  - typeText:
+      text: "test@eventpilot-test.com"
+      selector: "[placeholder='Email']"
+  - typeText:
+      text: "Password"
+      selector: "[placeholder='Password']"
+      submit: true
+  - waitFor: 4000
+  - assertVisible:
+      text: "Test account"
+  - assertVisible:
+      text: "No events yet!"
+  - takeScreenshot:
