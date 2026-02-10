@@ -58,8 +58,8 @@ export const upload =
         } else {
           return cb(
             new Error(
-              `Invalid file type. Allowed: ${allowedMimeTypes.join(", ")}`
-            )
+              `Invalid file type. Allowed: ${allowedMimeTypes.join(", ")}`,
+            ),
           );
         }
       },
@@ -95,7 +95,7 @@ export const upload =
               new HeadObjectCommand({
                 Bucket: process.env.AWS_BUCKET,
                 Key: key,
-              })
+              }),
             );
             const len = Number(head?.ContentLength || 0);
             if (Number.isFinite(len) && len > 0) resolvedSize = len;

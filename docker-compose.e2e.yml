@@ -23,11 +23,16 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_DOMAIN: minio
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
       - minio:/data
+    networks:
+      default:
+        aliases:
+          - eventpilot-e2e.minio
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
       interval: 5s
@@ -39,12 +44,14 @@ services:
     depends_on:
       minio:
         condition: service_healthy
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      set -e;
-      mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}";
-      mc mb -p local/eventpilot-e2e || true;
-      mc anonymous set download local/eventpilot-e2e || true
+    entrypoint: ["/bin/sh"]
+    command:
+      - "-c"
+      - >
+        set -e;
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD";
+        mc mb --ignore-existing local/eventpilot-e2e;
+        mc anonymous set download local/eventpilot-e2e
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
