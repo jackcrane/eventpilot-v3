@@ -1,5 +1,5 @@
 name: Login
-seedFile: cypress/fixtures/db/login.sql
+seedFile: fixtures/db/login.sql
 steps:
   - setViewport:
       width: 1280

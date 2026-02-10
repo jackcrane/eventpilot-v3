@@ -12,7 +12,8 @@ WORKDIR /app
 COPY ./app/ ./
 
 # Install dependencies for the frontend
-RUN yarn install
+RUN yarn install --ignore-optional
+RUN node -e "const { arch, platform } = process; if (platform !== 'linux') process.exit(0); const pkg = arch === 'arm64' ? '@rollup/rollup-linux-arm64-gnu' : arch === 'x64' ? '@rollup/rollup-linux-x64-gnu' : ''; if (!pkg) process.exit(0); require('child_process').execSync('yarn add -D ' + pkg, { stdio: 'inherit' });"
 
 # Make sure NODE_ENV is set to production
 ENV NODE_ENV=production
@@ -24,7 +25,7 @@ WORKDIR /api/react-email
 
 COPY ./api/react-email/ ./
 
-RUN yarn install
+RUN yarn install --ignore-optional
 
 # Set the working directory to /api for the backend
 WORKDIR /api
@@ -33,11 +34,10 @@ WORKDIR /api
 COPY ./api/ ./
 
 # Install dependencies for the backend
-RUN yarn install
+RUN yarn install --ignore-optional
 
 # Build Prisma (assumes you have a Prisma setup)
 RUN npx prisma generate
-RUN npx prisma migrate deploy
 
 # Expose the required port for the backend
 EXPOSE 3000

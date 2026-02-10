@@ -9,19 +9,14 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import dotenv from "dotenv";
 import pg from "pg";
+dotenv.config();
 const client = new pg.Client({
   connectionString: process.env.DATABASE_URL,
 });
 
-registerCommand(
-  "sql",
-  (query) => {
-    return [`cy.task('sql', ${JSON.stringify(query)})`];
-  },
-  {
-    schema: z.string().min(1),
-  },
-);
+registerCommand("sql", (query) => {
+  return [`cy.task('sql', ${JSON.stringify(query)})`];
+});
 
 generateJsonSchema();
 
@@ -133,7 +128,6 @@ export default defineConfig({
       await client.connect();
 
       yamlPreprocessor(on);
-      const resolvedBaseUrl = config?.baseUrl || DEFAULT_BASE_URL;
 
       on("task", {
         authenticateUser: async ({ username, password }) => {
