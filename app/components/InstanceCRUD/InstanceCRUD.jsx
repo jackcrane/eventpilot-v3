@@ -77,7 +77,7 @@ export const InstanceCRUD = ({
     const preselectedId = instanceDropdownValue?.id;
     if (!state.templateInstanceId && preselectedId) {
       setState((s) =>
-        s.templateInstanceId ? s : { ...s, templateInstanceId: preselectedId }
+        s.templateInstanceId ? s : { ...s, templateInstanceId: preselectedId },
       );
     }
   }, [isEdit, instanceDropdownValue?.id, state.templateInstanceId]);
@@ -167,7 +167,7 @@ export const InstanceCRUD = ({
   if (currentLoading && isEdit) return null;
 
   return (
-    <div>
+    <div data-cy="instance-crud">
       <Typography.H5 className="mb-0 text-secondary">INSTANCES</Typography.H5>
       <Typography.H1>
         {isEdit ? "Edit instance" : "Create a new instance"}

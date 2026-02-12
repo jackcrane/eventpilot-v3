@@ -113,4 +113,6 @@ steps:
   - tapOn:
       text: "Create Event"
   - waitFor: 3000
-  - assertVisible: This is your event homepage.
+  - assertVisible:
+      text: "This is your event homepage."
+      allowScroll: true

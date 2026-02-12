@@ -1,5 +1,5 @@
 name: Create Locations, Jobs, and Shifts
-seedFile: cypress/fixtures/db/created-event.sql
+seedFile: fixtures/db/created-event.sql
 steps:
   - setViewport:
       width: 1280
@@ -34,14 +34,14 @@ steps:
       exact: true
   - tapOn:
       text: "Copy from Start Time"
-      parentSelector: ".tour__location-crud"
+      parentCy: location-crud
   - waitFor: 70
   - typeText:
       text: "12:00"
-      selector: "[data-cy='End Time and Date-time']"
+      dataCy: "End Time and Date-time"
   - tapOn:
       text: "Create Location"
-      parentSelector: ".tour__location-crud"
+      parentCy: location-crud
   # First job
   - tapOn:
       text: "Create Job"
@@ -57,7 +57,7 @@ steps:
       text: "Other"
       parentSelector: ".tour__job-crud"
   - tapOn:
-      text: "Create a Shift"
+      text: "Create a shift"
       allowScroll: true
   - tapOn:
       text: "Copy from Start Time"
@@ -69,10 +69,10 @@ steps:
       parentSelector: ".tour__job-crud"
       allowScroll: true
   - tapOn:
-      text: "Create another Shift"
+      text: "Create another shift"
       allowScroll: true
   - tapOn:
-      text: "Create another Shift"
+      text: "Create another shift"
       allowScroll: true
   - tapOn:
       text: "Create Job"
@@ -91,33 +91,33 @@ steps:
       exact: true
   - tapOn:
       text: "Must be over 21"
-      parentSelector: ".tour__job-crud"
+      parentCy: job-crud
   - tapOn:
-      text: "Create a Shift"
+      text: "Create a shift"
       allowScroll: true
   - tapOn:
       text: "Copy from Start Time"
-      parentSelector: ".tour__job-crud"
+      parentCy: job-crud
       allowScroll: true
   - typeText:
       text: "07:00"
       selector: "[data-cy='End Time-time']"
-      parentSelector: ".tour__job-crud"
+      parentCy: job-crud
       allowScroll: true
   - tapOn:
-      text: "Create another Shift"
+      text: "Create another shift"
       allowScroll: true
   - tapOn:
-      text: "Create another Shift"
+      text: "Create another shift"
       allowScroll: true
   - tapOn:
-      text: "Create another Shift"
+      text: "Create another shift"
       allowScroll: true
   - tapOn:
-      text: "Create another Shift"
+      text: "Create another shift"
       allowScroll: true
   - tapOn:
-      text: "Create another Shift"
+      text: "Create another shift"
       allowScroll: true
   - tapOn:
       text: "Create Job"
