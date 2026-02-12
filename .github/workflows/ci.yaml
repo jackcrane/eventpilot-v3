@@ -8,40 +8,6 @@ on:
   pull_request:
 
 jobs:
-  # test:
-  #   runs-on: ubuntu-latest
-
-  #   steps:
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v3
-
-  #     - name: Set up Node.js
-  #       uses: actions/setup-node@v3
-  #       with:
-  #         node-version: "lts/*"
-
-  #     - name: Install Docker Compose
-  #       run: |
-  #         sudo apt-get update
-  #         sudo apt-get install -y docker-compose
-
-  #     - name: Install Dependencies
-  #       working-directory: ./api
-  #       run: yarn install
-
-  #     - name: Run Integration Tests
-  #       working-directory: ./api
-  #       env:
-  #         DATABASE_URL: postgres://postgres:postgres@localhost:5432/sluop-test
-  #         JWT_SECRET: TEST_JWT_SECRET
-  #         BASE_URL: "http://localhost:5173"
-  #       run: yarn test --coverage
-
-  #     - name: Upload coverage reports to Codecov
-  #       uses: codecov/codecov-action@v5
-  #       with:
-  #         token: ${{ secrets.CODECOV_TOKEN }}
-
   lint:
     runs-on: ubuntu-latest
 
@@ -69,6 +35,45 @@ jobs:
       # - name: Run frontend lint
       #   working-directory: ./app
       #   run: yarn lint
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "lts/*"
+
+      - name: Install Postgres Client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Install backend Dependencies
+        working-directory: ./api
+        run: yarn install
+
+      - name: Install E2E Dependencies
+        working-directory: ./e2e
+        run: yarn install
+
+      - name: Start E2E Services
+        run: docker compose -f docker-compose.e2e.yml up -d --build
+
+      - name: Wait for app
+        run: ./api/scripts/wait-for-it.sh localhost:3000 -t 180
+
+      - name: Run Cypress E2E
+        working-directory: ./e2e
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/eventpilot_e2e?schema=public
+        run: npx cypress run
 
   docker:
     runs-on: ubuntu-latest
