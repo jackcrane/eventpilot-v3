@@ -67,8 +67,25 @@ jobs:
         working-directory: ./e2e
         run: npm install --no-save cypress@15.10.0
 
+      - name: Write E2E Compose Override
+        run: |
+          cat > /tmp/docker-compose.e2e.override.yml <<EOF
+          services:
+            app:
+              environment:
+                POSTMARK_API_TOKEN: "${POSTMARK_API_TOKEN}"
+                STRIPE_EVENT_SUBSCRIPTION_PRICE_ID: "${STRIPE_EVENT_SUBSCRIPTION_PRICE_ID}"
+                STRIPE_SK: "${STRIPE_SK_E2E}"
+                VITE_STRIPE_PK: "${STRIPE_PK_E2E}"
+          EOF
+        env:
+          POSTMARK_API_TOKEN: ${{ secrets.POSTMARK_API_TOKEN }}
+          STRIPE_EVENT_SUBSCRIPTION_PRICE_ID: ${{ secrets.STRIPE_EVENT_SUBSCRIPTION_PRICE_ID }}
+          STRIPE_SK_E2E: ${{ secrets.STRIPE_SK_E2E }}
+          STRIPE_PK_E2E: ${{ secrets.STRIPE_PK_E2E }}
+
       - name: Start E2E Services
-        run: docker compose -f docker-compose.e2e.yml up -d --build
+        run: docker compose -f docker-compose.e2e.yml -f /tmp/docker-compose.e2e.override.yml up -d --build
 
       - name: Check E2E Containers
         run: docker compose -f docker-compose.e2e.yml ps
