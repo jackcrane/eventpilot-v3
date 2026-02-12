@@ -47,6 +47,26 @@ registerCommand(
   },
 );
 
+registerCommand(
+  "fillStripeElementsInput",
+  ({ field, value }) => {
+    return [
+      `cy.get('iframe[name^="__privateStripeFrame"]')`,
+      `  .its("0.contentDocument.body")`,
+      `  .should("not.be.empty")`,
+      `  .then(cy.wrap)`,
+      `  .find(\`input[id="payment-${field}Input"]\`)`,
+      `  .type(${value});`,
+    ];
+  },
+  {
+    schema: z.object({
+      field: z.string(),
+      value: z.string(),
+    }),
+  },
+);
+
 generateJsonSchema();
 
 function sanitizeDbUrlForPsql(dbUrl) {

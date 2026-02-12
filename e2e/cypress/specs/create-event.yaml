@@ -82,11 +82,35 @@ steps:
   - assertContains:
       selector: "[data-cy='banner-alert']"
       text: "Existing File"
-  - takeScreenshot:
-      name: "event-assets"
   - tapOn:
       dataCy: next
   - assertVisible:
       text: "Billing"
-  - assertNotVisible: "Saving event draft"
-  - takeScreenshot:
+  - waitFor: 5000
+  ##############################################################################
+  - fillStripeElementsInput:
+      field: number
+      value: "4242424242424242"
+  - fillStripeElementsInput:
+      field: expiry
+      value: "429" # 4/29
+  - fillStripeElementsInput:
+      field: cvc
+      value: "123"
+  - fillStripeElementsInput:
+      field: postalCode
+      value: "12345"
+  - tapOn:
+      text: "Add payment method"
+      allowScroll: true
+  - assertVisible: "Payment method added"
+  - assertVisible: "A payment method has been added. You can proceed to the next step."
+  - assertVisible: "Replace card"
+  - tapOn:
+      dataCy: next
+  - tapOn:
+      dataCy: next
+  - tapOn:
+      text: "Create Event"
+  - waitFor: 3000
+  - assertVisible: This is your event homepage.
