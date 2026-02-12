@@ -102,6 +102,12 @@ jobs:
           echo "App did not become ready in time."
           exit 1
 
+      - name: Start App Log Tail
+        run: |
+          mkdir -p ./e2e/artifacts
+          nohup docker compose -f docker-compose.e2e.yml logs -f --no-color app > ./e2e/artifacts/app.log 2>&1 &
+          echo $! > /tmp/app-log-tail.pid
+
       - name: Dump E2E Logs
         if: failure()
         continue-on-error: true
@@ -116,6 +122,24 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/eventpilot_e2e?schema=public
         run: npx cypress run
+
+      - name: Stop App Log Tail
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -f /tmp/app-log-tail.pid ]; then
+            kill "$(cat /tmp/app-log-tail.pid)" || true
+          fi
+
+      - name: Upload E2E Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs
+          path: |
+            e2e/artifacts/app.log
+            e2e/cypress/screenshots
+            e2e/cypress/videos
 
   docker:
     runs-on: ubuntu-latest
