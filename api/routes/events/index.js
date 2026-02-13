@@ -6,6 +6,7 @@ import { stripe, isStripeMock } from "#stripe";
 import { eventSchema } from "./[eventId]";
 import { zerialize } from "zodex";
 import { reportApiError } from "#util/reportApiError.js";
+import { e2eLog } from "#util/log.js";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -62,13 +63,29 @@ export const post = [
     let event;
     let subscription;
     try {
+      e2eLog("POST /api/events started", {
+        requestId: req.id,
+        userId: req.user?.id,
+        finalized: req.body?.finalized,
+        hasInstance: Boolean(req.body?.instance),
+      });
+
       const result = eventSchema.safeParse(req.body);
 
       if (!result.success) {
+        e2eLog("POST /api/events validation failed", {
+          requestId: req.id,
+          userId: req.user?.id,
+          issues: result.error?.issues,
+        });
         return res.status(400).json({ message: serializeError(result) });
       }
 
       if (!result.data.instance) {
+        e2eLog("POST /api/events missing required instance", {
+          requestId: req.id,
+          userId: req.user?.id,
+        });
         return res.status(400).json({ message: "Instance is required" });
       }
 
@@ -118,7 +135,20 @@ export const post = [
         },
       });
 
+      e2eLog("POST /api/events draft created", {
+        requestId: req.id,
+        userId: req.user?.id,
+        eventId: event?.id,
+        shouldFinalize,
+        isStripeMock,
+      });
+
       if (!shouldFinalize) {
+        e2eLog("POST /api/events returning draft (finalize skipped)", {
+          requestId: req.id,
+          userId: req.user?.id,
+          eventId: event?.id,
+        });
         return res.json({
           event,
         });
@@ -159,6 +189,13 @@ export const post = [
               eventId: event.id,
             },
           ],
+        });
+        e2eLog("POST /api/events finalized in Stripe mock mode", {
+          requestId: req.id,
+          userId: req.user?.id,
+          eventId: event?.id,
+          customerId,
+          subscriptionId,
         });
       } else {
         if (customerId) {
@@ -247,12 +284,28 @@ export const post = [
                 customer: customerId,
               });
             } else if (pmCustomer !== customerId) {
+              e2eLog(
+                "POST /api/events payment method belongs to a different customer",
+                {
+                  requestId: req.id,
+                  userId: req.user?.id,
+                  eventId: event?.id,
+                  paymentMethodCustomer: pmCustomer,
+                  customerId,
+                }
+              );
               return res.status(400).json({
                 message:
                   "Payment method is not attached to the selected customer. Please add a new card in the wizard and try again.",
               });
             }
           } catch (e) {
+            e2eLog("POST /api/events invalid payment method", {
+              requestId: req.id,
+              userId: req.user?.id,
+              eventId: event?.id,
+              error: e?.message || e,
+            });
             return res
               .status(400)
               .json({ message: e?.message || "Invalid payment method" });
@@ -305,18 +358,43 @@ export const post = [
             // },
           ],
         });
+        e2eLog("POST /api/events subscription created", {
+          requestId: req.id,
+          userId: req.user?.id,
+          eventId: event?.id,
+          customerId,
+          subscriptionId: subscription?.id,
+          subscriptionStatus: subscription?.status,
+        });
       }
 
+      e2eLog("POST /api/events success", {
+        requestId: req.id,
+        userId: req.user?.id,
+        eventId: event?.id,
+      });
       res.json({
         event,
       });
     } catch (e) {
+      e2eLog("POST /api/events failed", {
+        requestId: req.id,
+        userId: req.user?.id,
+        eventId: event?.id,
+        subscriptionId: subscription?.id,
+        error: e?.message || e,
+      });
       console.log(e);
 
       // Best-effort cleanup if one side failed
       try {
         if (event?.id) {
           await prisma.event.delete({ where: { id: event.id } });
+          e2eLog("POST /api/events cleanup removed event", {
+            requestId: req.id,
+            userId: req.user?.id,
+            eventId: event?.id,
+          });
         }
       } catch (e) {
         void e;
@@ -324,6 +402,11 @@ export const post = [
       try {
         if (subscription?.id) {
           await stripe.subscriptions.cancel(subscription.id);
+          e2eLog("POST /api/events cleanup canceled subscription", {
+            requestId: req.id,
+            userId: req.user?.id,
+            subscriptionId: subscription?.id,
+          });
         }
       } catch (e) {
         void e;
