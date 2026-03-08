@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -20,7 +21,10 @@ const RosterList = ({
   errorText,
   data = [],
   loading = false,
+  loadingMore = false,
+  hasMore = false,
   onRefresh,
+  onEndReached,
   emptyTitle,
   emptySubtitle,
   getRowData,
@@ -89,7 +93,10 @@ const RosterList = ({
 
   const refreshControl = onRefresh
     ? (
-        <RefreshControl refreshing={Boolean(loading)} onRefresh={onRefresh} />
+        <RefreshControl
+          refreshing={Boolean(loading && safeData.length > 0)}
+          onRefresh={onRefresh}
+        />
       )
     : undefined;
 
@@ -105,6 +112,8 @@ const RosterList = ({
         bounces
         alwaysBounceVertical
         overScrollMode="always"
+        onEndReached={hasMore ? onEndReached : undefined}
+        onEndReachedThreshold={0.6}
         ListHeaderComponent={
           <View style={rosterListStyles.header}>
             {title ? <Text style={rosterListStyles.title}>{title}</Text> : null}
@@ -129,7 +138,11 @@ const RosterList = ({
         ItemSeparatorComponent={() => <View style={rosterListStyles.separator} />}
         renderItem={renderItem}
         ListEmptyComponent={
-          !loading ? (
+          loading ? (
+            <View style={rosterListStyles.emptyState}>
+              <ActivityIndicator color={DayOfColors.light.text} />
+            </View>
+          ) : (
             <View style={rosterListStyles.emptyState}>
               {emptyTitle ? (
                 <Text style={rosterListStyles.emptyTitle}>{emptyTitle}</Text>
@@ -139,6 +152,13 @@ const RosterList = ({
                   {emptySubtitle}
                 </Text>
               ) : null}
+            </View>
+          )
+        }
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={rosterListStyles.footerLoader}>
+              <ActivityIndicator color={DayOfColors.light.text} />
             </View>
           ) : null
         }
@@ -218,6 +238,11 @@ export const rosterListStyles = StyleSheet.create({
     marginLeft: 20,
     height: StyleSheet.hairlineWidth,
     backgroundColor: DayOfColors.light.border,
+  },
+  footerLoader: {
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyState: {
     alignItems: "center",

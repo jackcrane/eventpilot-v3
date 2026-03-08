@@ -246,15 +246,15 @@ const VolunteerScreen = () => {
   const hasPermission = permissions.includes("VOLUNTEER_CHECK_IN");
   const [search, setSearch] = useState("");
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
-  const { volunteers, loading, error, refetch } = useVolunteerRoster();
-
-  const filteredVolunteers = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return volunteers;
-    return volunteers.filter((volunteer) =>
-      volunteer.searchText.includes(term)
-    );
-  }, [search, volunteers]);
+  const {
+    volunteers,
+    loading,
+    loadingMore,
+    hasMore,
+    error,
+    refetch,
+    loadMore,
+  } = useVolunteerRoster({ search });
 
   const getVolunteerRowData = useCallback(
     (item) => ({
@@ -291,11 +291,18 @@ const VolunteerScreen = () => {
         errorText={
           error ? "Unable to load volunteers. Pull to refresh." : undefined
         }
-        data={filteredVolunteers}
+        data={volunteers}
         loading={loading}
+        loadingMore={loadingMore}
+        hasMore={hasMore}
         onRefresh={refetch}
-        emptyTitle="No volunteers yet"
-        emptySubtitle="Volunteers will appear here once they register."
+        onEndReached={loadMore}
+        emptyTitle={search.trim() ? "No volunteers found" : "No volunteers yet"}
+        emptySubtitle={
+          search.trim()
+            ? "Try a different search term."
+            : "Volunteers will appear here once they register."
+        }
         getRowData={getVolunteerRowData}
         onSelectItem={setSelectedVolunteer}
       />

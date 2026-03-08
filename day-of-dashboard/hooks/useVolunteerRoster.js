@@ -1,8 +1,11 @@
-import { useMemo } from 'react';
-import useSWR from 'swr';
+import { useEffect, useMemo, useState } from 'react';
+import useSWRInfinite from 'swr/infinite';
 
 import { dayOfAuthFetch, dayOfJson } from '../utils/apiClient';
 import { useDayOfSessionContext } from '../contexts/DayOfSessionContext';
+
+const PAGE_SIZE = 25;
+const SEARCH_DEBOUNCE_MS = 300;
 
 const fetchVolunteerRoster = async ([url, token, instanceId]) => {
   const response = await dayOfAuthFetch(
@@ -36,31 +39,84 @@ const resolveFieldId = (fields, predicate) => {
   return match ? match.id : null;
 };
 
-export const useVolunteerRoster = () => {
-  const { account, token } = useDayOfSessionContext();
+const buildRosterPath = ({ eventId, page, search }) => {
+  const params = new URLSearchParams();
+  params.set('page', String(page));
+  params.set('size', String(PAGE_SIZE));
+  if (search) params.set('q', search);
+  return `/api/events/${eventId}/volunteers?${params.toString()}`;
+};
 
-  const key = useMemo(() => {
-    if (!account?.eventId || !token) return null;
-    return [
-      `/api/events/${account.eventId}/volunteers`,
-      token,
-      account.instanceId ?? null,
-    ];
-  }, [account?.eventId, account?.instanceId, token]);
+export const useVolunteerRoster = ({ search = '' } = {}) => {
+  const { account, token } = useDayOfSessionContext();
+  const normalizedSearch = useMemo(() => search.trim(), [search]);
+  const [debouncedSearch, setDebouncedSearch] = useState(normalizedSearch);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearch(normalizedSearch);
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [normalizedSearch]);
 
   const {
     data,
     isLoading,
     error,
     mutate,
-  } = useSWR(key, fetchVolunteerRoster, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-    shouldRetryOnError: false,
-  });
+    isValidating,
+    size,
+    setSize,
+  } = useSWRInfinite(
+    (pageIndex, previousPageData) => {
+      if (!account?.eventId || !token) return null;
+      if (previousPageData) {
+        const previousRows =
+          previousPageData?.rows ?? previousPageData?.responses ?? [];
+        const previousTotal = previousPageData?.meta?.total ?? 0;
+        const loadedCount = pageIndex * PAGE_SIZE;
 
-  const fields = data?.fields ?? [];
-  const rows = data?.rows ?? data?.responses ?? [];
+        if (!previousRows.length || loadedCount >= previousTotal) {
+          return null;
+        }
+      }
+
+      return [
+        buildRosterPath({
+          eventId: account.eventId,
+          page: pageIndex + 1,
+          search: debouncedSearch,
+        }),
+        token,
+        account.instanceId ?? null,
+      ];
+    },
+    fetchVolunteerRoster,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      shouldRetryOnError: false,
+      revalidateFirstPage: false,
+    }
+  );
+
+  useEffect(() => {
+    void setSize(1);
+  }, [debouncedSearch, setSize]);
+
+  const pages = data ?? [];
+  const firstPage = pages[0] ?? null;
+  const fields = firstPage?.fields ?? [];
+  const rows = useMemo(
+    () =>
+      pages.flatMap((page) => {
+        if (!page) return [];
+        return page?.rows ?? page?.responses ?? [];
+      }),
+    [pages]
+  );
+  const total = firstPage?.meta?.total ?? 0;
 
   const nameFieldId = useMemo(
     () =>
@@ -149,11 +205,20 @@ export const useVolunteerRoster = () => {
     });
   }, [emailFieldId, nameFieldId, phoneFieldId, rows]);
 
+  const loadingMore = Boolean(pages.length) && isValidating && size > pages.length;
+  const hasMore = volunteers.length < total;
+
   return {
     fields,
     volunteers,
     loading: isLoading,
+    loadingMore,
+    hasMore,
     error,
     refetch: mutate,
+    loadMore: () => {
+      if (loadingMore || !hasMore) return Promise.resolve();
+      return setSize(size + 1);
+    },
   };
 };
