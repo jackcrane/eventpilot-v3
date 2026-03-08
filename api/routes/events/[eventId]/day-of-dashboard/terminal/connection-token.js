@@ -56,7 +56,7 @@ const resolveEventAccess = async (req) => {
       assignedStripeLocationId:
         account.provisioner?.stripeLocation?.stripeLocationId?.trim() || null,
       assignedLocationDeleted: Boolean(
-        account.provisioner?.stripeLocation?.deleted
+        account.provisioner?.stripeLocation?.deleted,
       ),
     };
   }
@@ -83,86 +83,100 @@ const resolveEventAccess = async (req) => {
 export const post = [
   verifyAuth(["manager", "dod:pointOfSale"]),
   async (req, res) => {
-    const event = await resolveEventAccess(req);
-    if (!event) {
-      return res
-        .status(403)
-        .json({ message: "Access forbidden: event mismatch" });
-    }
-
-    const parseResult = requestSchema.safeParse(req.body ?? {});
-    if (!parseResult.success) {
-      return res.status(400).json({ message: serializeError(parseResult) });
-    }
-
-    const requestedLocationId = parseResult.data?.locationId?.trim() || null;
-    const connectedAccountId =
-      event.stripeConnectedAccountId?.trim() || null;
-    let locationIdToUse = null;
-
-    if (event.type === "dayOf") {
-      if (event.assignedLocationDeleted) {
-        return res.status(400).json({
-          message:
-            "The assigned Stripe Terminal address has been removed. Update the provisioner before requesting a token.",
-        });
+    try {
+      const event = await resolveEventAccess(req);
+      if (!event) {
+        return res
+          .status(403)
+          .json({ message: "Access forbidden: event mismatch" });
       }
-      const assigned = event.assignedStripeLocationId;
-      if (!assigned) {
-        return res.status(400).json({
-          message:
-            "Assign a Stripe Terminal address to this provisioner before requesting a token.",
-        });
+
+      const parseResult = requestSchema.safeParse(req.body ?? {});
+      if (!parseResult.success) {
+        return res.status(400).json({ message: serializeError(parseResult) });
       }
-      if (requestedLocationId && requestedLocationId !== assigned) {
-        return res.status(400).json({
-          message:
-            "Stripe Terminal location mismatch. Use the address assigned to your provisioner.",
-        });
-      }
-      locationIdToUse = assigned;
-    } else {
-      if (requestedLocationId) {
-        const managerLocation = await prisma.stripeLocation.findFirst({
-          where: {
-            eventId: event.id,
-            stripeLocationId: requestedLocationId,
-            deleted: false,
-          },
-          select: { stripeLocationId: true },
-        });
-        if (!managerLocation) {
+
+      const requestedLocationId = parseResult.data?.locationId?.trim() || null;
+      const connectedAccountId = event.stripeConnectedAccountId?.trim() || null;
+      let locationIdToUse = null;
+
+      if (event.type === "dayOf") {
+        if (event.assignedLocationDeleted) {
           return res.status(400).json({
             message:
-              "The requested Stripe Terminal address is not available for this event.",
+              "The assigned Stripe Terminal address has been removed. Update the provisioner before requesting a token.",
           });
         }
-        locationIdToUse = managerLocation.stripeLocationId;
-      } else {
-        return res.status(400).json({
-          message:
-            "Specify a Stripe Terminal address when generating a connection token.",
-        });
-      }
-    }
-
-    try {
-      const token = await stripe.terminal.connectionTokens.create(
-        {
-          location: locationIdToUse,
-        },
-        {
-          ...(connectedAccountId ? { stripeAccount: connectedAccountId } : {}),
+        const assigned = event.assignedStripeLocationId;
+        if (!assigned) {
+          return res.status(400).json({
+            message:
+              "Assign a Stripe Terminal address to this provisioner before requesting a token.",
+          });
         }
-      );
+        if (requestedLocationId && requestedLocationId !== assigned) {
+          return res.status(400).json({
+            message:
+              "Stripe Terminal location mismatch. Use the address assigned to your provisioner.",
+          });
+        }
+        locationIdToUse = assigned;
+      } else {
+        if (requestedLocationId) {
+          const managerLocation = await prisma.stripeLocation.findFirst({
+            where: {
+              eventId: event.id,
+              stripeLocationId: requestedLocationId,
+              deleted: false,
+            },
+            select: { stripeLocationId: true },
+          });
+          if (!managerLocation) {
+            return res.status(400).json({
+              message:
+                "The requested Stripe Terminal address is not available for this event.",
+            });
+          }
+          locationIdToUse = managerLocation.stripeLocationId;
+        } else {
+          return res.status(400).json({
+            message:
+              "Specify a Stripe Terminal address when generating a connection token.",
+          });
+        }
+      }
 
-      return res.json({
-        secret: token.secret,
-        expiresAt: token.expires_at ?? null,
-        locationId: locationIdToUse,
-      });
+      try {
+        const token = await stripe.terminal.connectionTokens.create(
+          {
+            location: locationIdToUse,
+          },
+          {
+            ...(connectedAccountId
+              ? { stripeAccount: connectedAccountId }
+              : {}),
+          },
+        );
+
+        return res.json({
+          secret: token.secret,
+          expiresAt: token.expires_at ?? null,
+          locationId: locationIdToUse,
+        });
+      } catch (error) {
+        console.error(
+          "Failed to create Stripe Terminal connection token",
+          error,
+        );
+        return res
+          .status(500)
+          .json({ message: "Failed to create connection token" });
+      }
     } catch (error) {
-      console.error("Failed to create Stripe Terminal connection token", error);
+      console.error(
+        "Failed to create Stripe Terminal connection token (Outer)",
+        error,
+      );
       return res
         .status(500)
         .json({ message: "Failed to create connection token" });

@@ -9,7 +9,8 @@ export class DayOfApiError extends Error {
   }
 }
 
-const DEFAULT_DEV_BASE_URL = "http://192.168.1.97:3000";
+// const DEFAULT_DEV_BASE_URL = "http://172.20.10.2:3000";
+const DEFAULT_DEV_BASE_URL = "https://geteventpilot.com";
 
 const resolveBaseUrl = () => {
   const explicit =
@@ -50,8 +51,8 @@ const parseErrorResponse = async (response) => {
       typeof data?.message === "string"
         ? data.message
         : Array.isArray(data?.message)
-        ? data.message.join(", ")
-        : "Request failed";
+          ? data.message.join(", ")
+          : "Request failed";
     throw new DayOfApiError(response.status, message, data);
   } catch (error) {
     if (error instanceof DayOfApiError) {
@@ -60,7 +61,7 @@ const parseErrorResponse = async (response) => {
     throw new DayOfApiError(
       response.status,
       response.statusText || "Request failed",
-      null
+      null,
     );
   }
 };
@@ -97,7 +98,7 @@ export const dayOfPublicFetch = async (path, options) => {
     logFetchFailure(
       url,
       response.status,
-      new Error(response.statusText || "Request failed")
+      new Error(response.statusText || "Request failed"),
     );
     await parseErrorResponse(response);
   }
@@ -130,7 +131,7 @@ export const dayOfAuthFetch = async (path, auth, options) => {
     logFetchFailure(
       url,
       response.status,
-      new Error(response.statusText || "Request failed")
+      new Error(response.statusText || "Request failed"),
     );
     await parseErrorResponse(response);
   }
