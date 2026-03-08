@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "EventPilot Day-of Dashboard",
-    "slug": "day-of-dashboard",
+    "slug": "day-of-dashboard__int-01",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.geteventpilot.dayofdashboard",
+      "bundleIdentifier": "com.geteventpilot.dayofdashboard_int_01",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -41,9 +41,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#0053a7",
           "dark": {
-            "backgroundColor": "#ffffff"
+            "backgroundColor": "#0053a7"
           }
         }
       ],

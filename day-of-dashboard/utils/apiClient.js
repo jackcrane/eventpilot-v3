@@ -9,7 +9,7 @@ export class DayOfApiError extends Error {
   }
 }
 
-const DEFAULT_DEV_BASE_URL = "http://192.168.1.113:3000";
+const DEFAULT_DEV_BASE_URL = "http://192.168.1.97:3000";
 
 const resolveBaseUrl = () => {
   const explicit =
@@ -94,7 +94,11 @@ export const dayOfPublicFetch = async (path, options) => {
   }
 
   if (!response.ok) {
-    logFetchFailure(url, response.status, new Error(response.statusText || "Request failed"));
+    logFetchFailure(
+      url,
+      response.status,
+      new Error(response.statusText || "Request failed")
+    );
     await parseErrorResponse(response);
   }
 
@@ -123,7 +127,11 @@ export const dayOfAuthFetch = async (path, auth, options) => {
   }
 
   if (!response.ok) {
-    logFetchFailure(url, response.status, new Error(response.statusText || "Request failed"));
+    logFetchFailure(
+      url,
+      response.status,
+      new Error(response.statusText || "Request failed")
+    );
     await parseErrorResponse(response);
   }
 

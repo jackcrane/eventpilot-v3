@@ -13,6 +13,10 @@ import { useStripeTerminal } from "@stripe/stripe-terminal-react-native";
 
 import { useDayOfSessionContext } from "../contexts/DayOfSessionContext";
 import { dayOfAuthFetch, dayOfJson } from "../utils/apiClient";
+import {
+  isProximityReaderDiscoveryAvailable,
+  presentHowToTapGuidance,
+} from "../utils/proximityReaderDiscovery";
 
 const DEFAULT_MERCHANT_NAME = "EventPilot POS";
 const MINIMUM_IOS_MAJOR = 16;
@@ -189,6 +193,9 @@ const useTapToPayState = () => {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [lastPaymentIntent, setLastPaymentIntent] = useState(null);
   const discoveredReadersRef = useRef([]);
+  const [discoveryAvailable, setDiscoveryAvailable] = useState(false);
+  const discoveryPresentedRef = useRef(false);
+  const discoveryAccountRef = useRef(null);
 
   const merchantDisplayName = useMemo(() => {
     const eventName =
@@ -286,6 +293,67 @@ const useTapToPayState = () => {
       throw new Error("POS session is not ready yet");
     }
   }, [account?.eventId, token]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const available = await isProximityReaderDiscoveryAvailable();
+        if (!cancelled) {
+          setDiscoveryAvailable(Boolean(available));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setDiscoveryAvailable(false);
+        }
+        console.log("[POS][useTapToPay] discovery:availabilityError", error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const accountId = account?.id ?? null;
+    if (discoveryAccountRef.current !== accountId) {
+      discoveryAccountRef.current = accountId;
+      discoveryPresentedRef.current = false;
+      console.log("[POS][useTapToPay] discovery:reset", { accountId });
+    }
+  }, [account?.id]);
+
+  const showTapToPayDiscovery = useCallback(async () => {
+    if (!discoveryAvailable) {
+      throw new Error("Tap to Pay guidance is not available on this device.");
+    }
+
+    try {
+      const presented = await presentHowToTapGuidance();
+      if (presented !== false) {
+        discoveryPresentedRef.current = true;
+      }
+      console.log("[POS][useTapToPay] discovery:presented");
+      return presented !== false;
+    } catch (error) {
+      console.log("[POS][useTapToPay] discovery:presentError", error);
+      throw error;
+    }
+  }, [discoveryAvailable]);
+
+  const maybePresentDiscovery = useCallback(async () => {
+    if (discoveryPresentedRef.current) {
+      return;
+    }
+    if (!discoveryAvailable) {
+      return;
+    }
+    try {
+      await showTapToPayDiscovery();
+    } catch (error) {
+      console.log("[POS][useTapToPay] discovery:autoPresentFailed", error);
+    }
+  }, [discoveryAvailable, showTapToPayDiscovery]);
 
   const isOsVersionSupported = useMemo(() => {
     if (Platform.OS !== "ios") {
@@ -401,6 +469,7 @@ const useTapToPayState = () => {
 
       setInitialized(true);
       console.log("[POS][useTapToPay] initializeTerminal:success");
+      maybePresentDiscovery();
       return { success: true };
     } catch (error) {
       console.log("[POS][useTapToPay] initializeTerminal:exception", error);
@@ -421,6 +490,7 @@ const useTapToPayState = () => {
     merchantDisplayName,
     setTapToPayUxConfiguration,
     account?.eventId,
+    maybePresentDiscovery,
   ]);
 
   const startTapToPay = useCallback(
@@ -805,6 +875,8 @@ const useTapToPayState = () => {
     merchantDisplayName,
     defaultLocationId: defaultTerminalLocationId,
     tapToPaySupported,
+    tapToPayDiscoveryAvailable: discoveryAvailable,
+    showTapToPayDiscovery,
   };
 };
 
