@@ -4,6 +4,7 @@ import {
   registerCommand,
   generateJsonSchema,
 } from "cypress-yaml-plugin";
+import Stripe from "../api/node_modules/stripe/esm/stripe.esm.node.js";
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -18,6 +19,7 @@ import { z } from "zod";
 const DEFAULT_BASE_URL = "http://localhost:3000";
 const DEFAULT_BILLING_ASSERTION_TIMEOUT_MS = 20000;
 const DEFAULT_BILLING_ASSERTION_INTERVAL_MS = 1000;
+let stripeClient = null;
 
 registerCommand("sql", (query) => {
   return [`cy.task('sql', ${JSON.stringify(query)})`];
@@ -241,8 +243,19 @@ async function authenticateAgainstBaseUrl(baseUrl, { email, password }) {
 }
 
 async function listPaidInvoiceTotalForEvent({ customerId, subscriptionId }) {
-  const { stripe } = await import("../api/util/stripe.js");
-  const invoices = await stripe.invoices.list({
+  if (!stripeClient) {
+    const stripeSecretKey = process.env.STRIPE_SK;
+
+    if (!stripeSecretKey) {
+      throw new Error(
+        "billing:assertEventChargedAmount requires STRIPE_SK in the Cypress environment",
+      );
+    }
+
+    stripeClient = new Stripe(stripeSecretKey);
+  }
+
+  const invoices = await stripeClient.invoices.list({
     customer: customerId,
     ...(subscriptionId ? { subscription: subscriptionId } : {}),
     limit: 100,
@@ -251,6 +264,25 @@ async function listPaidInvoiceTotalForEvent({ customerId, subscriptionId }) {
   return (invoices?.data || [])
     .filter((invoice) => invoice?.status === "paid")
     .reduce((sum, invoice) => sum + Number(invoice?.amount_paid || 0), 0);
+}
+
+async function assertSingleEventBySlug(slug) {
+  const eventResult = await client.query(
+    `
+      SELECT e.id, e."stripe_customerId", e."stripe_subscriptionId"
+      FROM "Event" e
+      WHERE e.slug = $1
+    `,
+    [slug],
+  );
+
+  if (eventResult.rowCount !== 1) {
+    throw new Error(
+      `Expected to find 1 event with slug ${slug}, but found ${eventResult.rowCount}`,
+    );
+  }
+
+  return eventResult.rows[0];
 }
 
 export default defineConfig({
@@ -335,32 +367,21 @@ export default defineConfig({
           let lastObservedAmountCents = null;
 
           while (Date.now() <= deadline) {
-            const eventResult = await client.query(
-              `
-                SELECT e.id, e."stripe_customerId", e."stripe_subscriptionId"
-                FROM "Event" e
-                WHERE e.slug = $1
-              `,
-              [slug],
-            );
+            const event = await assertSingleEventBySlug(slug);
 
-            if (eventResult.rowCount === 1) {
-              const event = eventResult.rows[0];
+            if (!event.stripe_customerId) {
+              throw new Error(
+                `Event ${slug} does not have a stripe_customerId yet`,
+              );
+            }
 
-              if (!event.stripe_customerId) {
-                throw new Error(
-                  `Event ${slug} does not have a stripe_customerId yet`,
-                );
-              }
+            lastObservedAmountCents = await listPaidInvoiceTotalForEvent({
+              customerId: event.stripe_customerId,
+              subscriptionId: event.stripe_subscriptionId || null,
+            });
 
-              lastObservedAmountCents = await listPaidInvoiceTotalForEvent({
-                customerId: event.stripe_customerId,
-                subscriptionId: event.stripe_subscriptionId || null,
-              });
-
-              if (lastObservedAmountCents === expectedAmountCents) {
-                return lastObservedAmountCents;
-              }
+            if (lastObservedAmountCents === expectedAmountCents) {
+              return lastObservedAmountCents;
             }
 
             await sleep(intervalMs);
