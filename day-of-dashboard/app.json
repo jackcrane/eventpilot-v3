@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "EventPilot Day-of Dashboard",
-    "slug": "day-of-dashboard__int-01",
+    "slug": "day-of-dashboard",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
