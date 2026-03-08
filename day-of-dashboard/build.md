@@ -12,3 +12,7 @@ Build & install the Dev Client to your iPhone from Xcode (Development profile)
 
 Then to restart and re-launch the app:
 npx expo start --dev-client
+
+
+
+Finally to build and ship, use xcode.
