@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.geteventpilot.dayofdashboard_int_01",
+      "bundleIdentifier": "com.geteventpilot.dayofdashboard",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
