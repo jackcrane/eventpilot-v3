@@ -110,7 +110,11 @@ export const LocationCRUD = ({ value, close }) => {
       : [""];
 
   return (
-    <div style={{ marginBottom: 100 }} className="tour__location-crud">
+    <div
+      style={{ marginBottom: 100 }}
+      className="tour__location-crud"
+      data-cy="location-crud"
+    >
       <Typography.H5 className="mb-0 text-secondary">LOCATION</Typography.H5>
       <Typography.H1>
         {isEdit ? "Edit Location" : "Create a new Location"}
@@ -133,8 +137,8 @@ export const LocationCRUD = ({ value, close }) => {
             {formState.description.length < 10
               ? `At least ${10 - formState.description.length} more characters`
               : formState.description.length > 200
-              ? "No more than 200 characters"
-              : null}
+                ? "No more than 200 characters"
+                : null}
           </span>
         </label>
         <textarea

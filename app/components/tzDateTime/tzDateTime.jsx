@@ -109,7 +109,7 @@ export const TzDateTime = ({
           noMargin
           style={{ flex: 1 }}
           invalid={!dateTimeValid}
-          data-cy-id={`${label}-date`}
+          data-cy={`${label}-date`}
         />
         <Input
           type="time"
@@ -119,7 +119,7 @@ export const TzDateTime = ({
           prependedText="Time"
           noMargin
           invalid={!dateTimeValid}
-          data-cy-id={`${label}-time`}
+          data-cy={`${label}-time`}
         />
         <DropdownInput
           prompt="Select a tz"
@@ -133,7 +133,7 @@ export const TzDateTime = ({
           value={tzState}
           onChange={(item) => {
             const newTz =
-              typeof item === "string" ? item : item.value ?? item.id;
+              typeof item === "string" ? item : (item.value ?? item.id);
             setTzState(newTz);
           }}
           noMargin
@@ -166,7 +166,7 @@ export const TzPicker = ({ value, onChange, ...props }) => {
 
   // Remove duplicate timezones by abbr
   const uniqueTz = timezones.filter(
-    (t, i, a) => a.findIndex((t2) => t2.abbr === t.abbr) === i
+    (t, i, a) => a.findIndex((t2) => t2.abbr === t.abbr) === i,
   );
 
   return (

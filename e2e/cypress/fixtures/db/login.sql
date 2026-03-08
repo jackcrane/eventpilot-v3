@@ -89,4 +89,3 @@ INSERT INTO public."Logs" VALUES
 --
 
 \unrestrict NexoPLfAi56YLN1j47MzvX6PnBdkYsYa00WgAEWRSHpMiRTExhXcmpmAfYwM8aN
-

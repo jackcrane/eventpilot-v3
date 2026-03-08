@@ -4,11 +4,12 @@ import {
   useElements,
   Elements,
 } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
 import { useState, useEffect } from "react";
 import { Button, Typography } from "tabler-react-2";
 import { Alert } from "tabler-react-2/dist/alert";
 import Confetti from "react-confetti";
+import { useStripeConfig } from "../../hooks/useStripeConfig";
+import { getStripePromise } from "../../util/stripe";
 
 export const PaymentElement = ({
   paymentIntentClientSecret,
@@ -16,21 +17,46 @@ export const PaymentElement = ({
   onError = () => {},
   total,
   eventStripeConnectedAccountId,
-}) => (
-  <Elements
-    stripe={loadStripe(import.meta.env.VITE_STRIPE_PK, {
-      stripeAccount: eventStripeConnectedAccountId,
-    })}
-    options={{ clientSecret: paymentIntentClientSecret }}
-  >
-    <_PaymentElement
-      paymentIntentClientSecret={paymentIntentClientSecret}
-      onFinish={onFinish}
-      onError={onError}
-      total={total}
-    />
-  </Elements>
-);
+}) => {
+  const {
+    publishableKey,
+    loading: configLoading,
+    error: configError,
+  } = useStripeConfig();
+  const stripePromise = getStripePromise(publishableKey, {
+    stripeAccount: eventStripeConnectedAccountId,
+  });
+  const elementsKey = `${paymentIntentClientSecret || ""}:${
+    eventStripeConnectedAccountId || ""
+  }`;
+
+  if (configLoading || !paymentIntentClientSecret) {
+    return <Typography.Text>Loading payment form…</Typography.Text>;
+  }
+
+  if (configError || !stripePromise) {
+    return (
+      <Alert variant="danger" title="Payment unavailable">
+        Failed to load Stripe configuration.
+      </Alert>
+    );
+  }
+
+  return (
+    <Elements
+      key={elementsKey}
+      stripe={stripePromise}
+      options={{ clientSecret: paymentIntentClientSecret }}
+    >
+      <_PaymentElement
+        paymentIntentClientSecret={paymentIntentClientSecret}
+        onFinish={onFinish}
+        onError={onError}
+        total={total}
+      />
+    </Elements>
+  );
+};
 
 const _PaymentElement = ({
   paymentIntentClientSecret,

@@ -144,7 +144,7 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
         const durations = shifts.map((s) =>
           s.startTime && s.endTime
             ? moment(s.endTime).diff(moment(s.startTime))
-            : null
+            : null,
         );
         const allHaveDuration = durations.every((d) => d != null);
         const allSameDuration =
@@ -188,7 +188,7 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
           endTime,
           endTimeTz,
           id,
-        })
+        }),
       ),
     };
 
@@ -199,7 +199,11 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
   };
 
   return (
-    <div style={{ marginBottom: 100 }} className={"tour__job-crud"}>
+    <div
+      style={{ marginBottom: 100 }}
+      className={"tour__job-crud"}
+      data-cy="job-crud"
+    >
       <Typography.H5 className="mb-0 text-secondary">JOBS</Typography.H5>
       <Typography.H1>{value ? "Edit Job" : "Create a new Job"}</Typography.H1>
       <Util.Hr text="Basic Info" />
@@ -290,8 +294,8 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
                 s.capacity === null
                   ? "(inherited)"
                   : s.capacity === 0
-                  ? "Unlimited"
-                  : ""
+                    ? "Unlimited"
+                    : ""
               }
               required
               className="mb-2"
@@ -383,7 +387,7 @@ export const JobCRUD = ({ value, defaultLocation, onFinish }) => {
                       which is{" "}
                       {moment(s.startTime).from(
                         moment(location.startTime),
-                        true
+                        true,
                       )}{" "}
                       before the location starts.
                     </u>

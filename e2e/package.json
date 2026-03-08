@@ -1,18 +1,18 @@
 {
-  "name": "eventpilot-e2e",
-  "private": true,
+  "name": "e2e",
+  "version": "1.0.0",
+  "main": "cypress.config.js",
   "scripts": {
-    "precypress": "node scripts/generateYamlSpecs.js",
-    "precypress:open": "node scripts/generateYamlSpecs.js",
-    "preverify": "node scripts/generateYamlSpecs.js",
-    "regenerate": "node scripts/generateYamlSpecs.js",
-    "cypress": "cypress run",
-    "cypress:open": "cypress open",
-    "verify": "cypress verify"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "devDependencies": {
-    "cypress": "13.13.1",
-    "is-ci": "3.0.1",
-    "js-yaml": "^4.1.0"
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "cypress-yaml-plugin": "^0.1.14",
+    "dotenv": "^17.2.4",
+    "pg": "^8.18.0",
+    "zod": "^3.25.76"
   }
 }

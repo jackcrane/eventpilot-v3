@@ -8,40 +8,6 @@ on:
   pull_request:
 
 jobs:
-  # test:
-  #   runs-on: ubuntu-latest
-
-  #   steps:
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v3
-
-  #     - name: Set up Node.js
-  #       uses: actions/setup-node@v3
-  #       with:
-  #         node-version: "lts/*"
-
-  #     - name: Install Docker Compose
-  #       run: |
-  #         sudo apt-get update
-  #         sudo apt-get install -y docker-compose
-
-  #     - name: Install Dependencies
-  #       working-directory: ./api
-  #       run: yarn install
-
-  #     - name: Run Integration Tests
-  #       working-directory: ./api
-  #       env:
-  #         DATABASE_URL: postgres://postgres:postgres@localhost:5432/sluop-test
-  #         JWT_SECRET: TEST_JWT_SECRET
-  #         BASE_URL: "http://localhost:5173"
-  #       run: yarn test --coverage
-
-  #     - name: Upload coverage reports to Codecov
-  #       uses: codecov/codecov-action@v5
-  #       with:
-  #         token: ${{ secrets.CODECOV_TOKEN }}
-
   lint:
     runs-on: ubuntu-latest
 
@@ -69,6 +35,113 @@ jobs:
       # - name: Run frontend lint
       #   working-directory: ./app
       #   run: yarn lint
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "lts/*"
+
+      - name: Install Postgres Client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Install backend Dependencies
+        working-directory: ./api
+        run: yarn install
+
+      - name: Install E2E Dependencies
+        working-directory: ./e2e
+        run: yarn install
+
+      - name: Install Cypress (no lockfile)
+        working-directory: ./e2e
+        run: npm install --no-save cypress@15.10.0
+
+      - name: Write E2E Compose Override
+        run: |
+          cat > /tmp/docker-compose.e2e.override.yml <<EOF
+          services:
+            app:
+              environment:
+                POSTMARK_API_TOKEN: "${POSTMARK_API_TOKEN}"
+                STRIPE_EVENT_SUBSCRIPTION_PRICE_ID: "${STRIPE_EVENT_SUBSCRIPTION_PRICE_ID}"
+                STRIPE_SK: "${STRIPE_SK_E2E}"
+                STRIPE_PK: "${STRIPE_PK_E2E}"
+                VITE_STRIPE_PK: "${STRIPE_PK_E2E}"
+          EOF
+        env:
+          POSTMARK_API_TOKEN: ${{ secrets.POSTMARK_API_TOKEN }}
+          STRIPE_EVENT_SUBSCRIPTION_PRICE_ID: ${{ secrets.STRIPE_EVENT_SUBSCRIPTION_PRICE_ID }}
+          STRIPE_SK_E2E: ${{ secrets.STRIPE_SK_E2E }}
+          STRIPE_PK_E2E: ${{ secrets.STRIPE_PK_E2E }}
+
+      - name: Start E2E Services
+        run: docker compose -f docker-compose.e2e.yml -f /tmp/docker-compose.e2e.override.yml up -d --build
+
+      - name: Check E2E Containers
+        run: docker compose -f docker-compose.e2e.yml ps
+
+      - name: Wait for app
+        run: |
+          for i in {1..15}; do
+            if curl -fsS http://localhost:3000/ >/dev/null; then
+              echo "App is ready."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "App did not become ready in time."
+          exit 1
+
+      - name: Start App Log Tail
+        run: |
+          mkdir -p ./e2e/artifacts
+          nohup docker compose -f docker-compose.e2e.yml logs -f --no-color app > ./e2e/artifacts/app.log 2>&1 &
+          echo $! > /tmp/app-log-tail.pid
+
+      - name: Dump E2E Logs
+        if: failure()
+        continue-on-error: true
+        run: |
+          docker compose -f docker-compose.e2e.yml ps -a
+          docker compose -f docker-compose.e2e.yml logs --no-color app
+          docker compose -f docker-compose.e2e.yml logs --no-color db
+          docker compose -f docker-compose.e2e.yml logs --no-color minio
+
+      - name: Run Cypress E2E
+        working-directory: ./e2e
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/eventpilot_e2e?schema=public
+          STRIPE_SK_E2E: ${{ secrets.STRIPE_SK_E2E }}
+        run: npx cypress run
+
+      - name: Stop App Log Tail
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -f /tmp/app-log-tail.pid ]; then
+            kill "$(cat /tmp/app-log-tail.pid)" || true
+          fi
+
+      - name: Upload E2E Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs
+          path: |
+            e2e/artifacts/app.log
+            e2e/cypress/screenshots
+            e2e/cypress/videos
 
   docker:
     runs-on: ubuntu-latest

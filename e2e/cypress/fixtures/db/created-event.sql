@@ -190,4 +190,3 @@ INSERT INTO public."Logs" (id, "userId", type, "createdAt", "updatedAt", ip, "em
 --
 
 \unrestrict p5uZKA8HmgJoUpRFJpahNxYir0QgTBmAtZvecMNUgBbkKQ8TdjuJudOhGe4Dozj
-

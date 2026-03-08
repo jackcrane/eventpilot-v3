@@ -6,6 +6,7 @@ import { eventSchema } from "./index.js";
 import { serializeError } from "#serializeError";
 import { LogType } from "@prisma/client";
 import { reportApiError } from "#util/reportApiError.js";
+import { e2eLog } from "#util/log.js";
 
 const finalizeSchema = eventSchema
   .omit({
@@ -22,8 +23,21 @@ const finalizeSchema = eventSchema
 export const post = [
   verifyAuth(["manager"]),
   async (req, res) => {
+    e2eLog("POST /api/events/:eventId/finalize started", {
+      requestId: req.id,
+      userId: req.user?.id,
+      eventId: req.params?.eventId,
+      hasDefaultPaymentMethodId: Boolean(req.body?.defaultPaymentMethodId),
+    });
+
     const parse = finalizeSchema.safeParse(req.body);
     if (!parse.success) {
+      e2eLog("POST /api/events/:eventId/finalize validation failed", {
+        requestId: req.id,
+        userId: req.user?.id,
+        eventId: req.params?.eventId,
+        issues: parse.error?.issues,
+      });
       return res.status(400).json({ message: serializeError(parse) });
     }
 
@@ -40,10 +54,21 @@ export const post = [
     });
 
     if (!event) {
+      e2eLog("POST /api/events/:eventId/finalize event not found", {
+        requestId: req.id,
+        userId: req.user?.id,
+        eventId: req.params?.eventId,
+      });
       return res.status(404).json({ message: "Event not found" });
     }
 
     if (event.stripe_subscriptionId) {
+      e2eLog("POST /api/events/:eventId/finalize already finalized", {
+        requestId: req.id,
+        userId: req.user?.id,
+        eventId: event?.id,
+        subscriptionId: event?.stripe_subscriptionId,
+      });
       return res
         .status(400)
         .json({ message: "Event is already finalized and subscribed." });
@@ -63,6 +88,11 @@ export const post = [
       await prisma.event.update({
         where: { id: event.id },
         data: normalizedEventData,
+      });
+      e2eLog("POST /api/events/:eventId/finalize event details updated", {
+        requestId: req.id,
+        userId: req.user?.id,
+        eventId: event?.id,
       });
 
       if (instance) {
@@ -149,12 +179,28 @@ export const post = [
             customer: customerId,
           });
         } else if (pmCustomer !== customerId) {
+          e2eLog(
+            "POST /api/events/:eventId/finalize payment method belongs to different customer",
+            {
+              requestId: req.id,
+              userId: req.user?.id,
+              eventId: event?.id,
+              paymentMethodCustomer: pmCustomer,
+              customerId,
+            }
+          );
           return res.status(400).json({
             message:
               "Payment method is not attached to the selected customer. Please add a new card in the wizard and try again.",
           });
         }
       } catch (e) {
+        e2eLog("POST /api/events/:eventId/finalize invalid payment method", {
+          requestId: req.id,
+          userId: req.user?.id,
+          eventId: event?.id,
+          error: e?.message || e,
+        });
         return res
           .status(400)
           .json({ message: e?.message || "Invalid payment method" });
@@ -202,6 +248,14 @@ export const post = [
           },
         ],
       });
+      e2eLog("POST /api/events/:eventId/finalize subscription created", {
+        requestId: req.id,
+        userId: req.user?.id,
+        eventId: event?.id,
+        customerId,
+        subscriptionId: subscription?.id,
+        subscriptionStatus: subscription?.status,
+      });
 
       const updatedEvent = await prisma.event.findUnique({
         where: { id: event.id },
@@ -211,9 +265,22 @@ export const post = [
         event: updatedEvent,
       });
     } catch (error) {
+      e2eLog("POST /api/events/:eventId/finalize failed", {
+        requestId: req.id,
+        userId: req.user?.id,
+        eventId: event?.id || req.params?.eventId,
+        subscriptionId: subscription?.id,
+        error: error?.message || error,
+      });
       if (subscription?.id) {
         try {
           await stripe.subscriptions.cancel(subscription.id);
+          e2eLog("POST /api/events/:eventId/finalize cleanup canceled subscription", {
+            requestId: req.id,
+            userId: req.user?.id,
+            eventId: event?.id || req.params?.eventId,
+            subscriptionId: subscription?.id,
+          });
         } catch (e) {
           void e;
         }
