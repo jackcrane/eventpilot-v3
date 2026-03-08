@@ -15,6 +15,10 @@ const client = new pg.Client({
 });
 import { z } from "zod";
 
+const DEFAULT_BASE_URL = "http://localhost:3000";
+const DEFAULT_BILLING_ASSERTION_TIMEOUT_MS = 20000;
+const DEFAULT_BILLING_ASSERTION_INTERVAL_MS = 1000;
+
 registerCommand("sql", (query) => {
   return [`cy.task('sql', ${JSON.stringify(query)})`];
 });
@@ -43,6 +47,33 @@ registerCommand(
     schema: z.object({
       email: z.string().min(1, "email is required"),
       password: z.string().min(1, "password is required"),
+    }),
+  },
+);
+
+registerCommand(
+  "assertEventChargedAmount",
+  ({ slug, amount, timeoutMs, intervalMs }) => {
+    const encodedOptions = JSON.stringify({
+      slug,
+      amount,
+      ...(timeoutMs ? { timeoutMs } : {}),
+      ...(intervalMs ? { intervalMs } : {}),
+    });
+    const expectedAmountCents = Math.round(amount * 100);
+
+    return [
+      `cy.task('billing:assertEventChargedAmount', ${encodedOptions}).then((actualAmountCents) => {`,
+      `  expect(actualAmountCents).to.equal(${expectedAmountCents});`,
+      `});`,
+    ];
+  },
+  {
+    schema: z.object({
+      slug: z.string().min(1, "slug is required"),
+      amount: z.number().nonnegative("amount must be non-negative"),
+      timeoutMs: z.number().int().positive().optional(),
+      intervalMs: z.number().int().positive().optional(),
     }),
   },
 );
@@ -172,6 +203,56 @@ const dumpDb = (label) => {
   }
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function authenticateAgainstBaseUrl(baseUrl, { email, password }) {
+  if (!email || !password) {
+    throw new Error(`authenticateUser requires both email and password`);
+  }
+
+  const loginUrl = new URL("/api/auth/login", baseUrl);
+  const response = await fetch(loginUrl, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+    }),
+  });
+
+  let body = null;
+  try {
+    body = await response.json();
+  } catch {
+    // handled below
+  }
+
+  if (!response.ok || !body?.token) {
+    const statusText = response.statusText || "";
+    throw new Error(
+      `Failed to authenticate user ${email}: ${response.status} ${statusText}`.trim(),
+    );
+  }
+
+  return body.token;
+}
+
+async function listPaidInvoiceTotalForEvent({ customerId, subscriptionId }) {
+  const { stripe } = await import("../api/util/stripe.js");
+  const invoices = await stripe.invoices.list({
+    customer: customerId,
+    ...(subscriptionId ? { subscription: subscriptionId } : {}),
+    limit: 100,
+  });
+
+  return (invoices?.data || [])
+    .filter((invoice) => invoice?.status === "paid")
+    .reduce((sum, invoice) => sum + Number(invoice?.amount_paid || 0), 0);
+}
+
 export default defineConfig({
   e2e: {
     baseUrl: "http://localhost:3000",
@@ -227,40 +308,67 @@ export default defineConfig({
         },
 
         authenticateUser: async ({ email, password }) => {
-          if (!email || !password) {
-            throw new Error(
-              `authenticateUser requires both email and password`,
-            );
-          }
-
-          const loginUrl = new URL("/api/auth/login", resolvedBaseUrl);
-          const response = await fetch(loginUrl, {
-            method: "POST",
-            headers: {
-              "content-type": "application/json",
-              accept: "application/json",
-            },
-            body: JSON.stringify({
-              email,
-              password,
-            }),
+          return authenticateAgainstBaseUrl(resolvedBaseUrl, {
+            email,
+            password,
           });
+        },
 
-          let body = null;
-          try {
-            body = await response.json();
-          } catch {
-            // handled below
+        "billing:assertEventChargedAmount": async ({
+          slug,
+          amount,
+          timeoutMs = DEFAULT_BILLING_ASSERTION_TIMEOUT_MS,
+          intervalMs = DEFAULT_BILLING_ASSERTION_INTERVAL_MS,
+        }) => {
+          if (!slug) {
+            throw new Error(`assertEventChargedAmount requires a slug`);
           }
 
-          if (!response.ok || !body?.token) {
-            const statusText = response.statusText || "";
+          const expectedAmountCents = Math.round(Number(amount) * 100);
+          if (!Number.isFinite(expectedAmountCents)) {
             throw new Error(
-              `Failed to authenticate user ${email}: ${response.status} ${statusText}`.trim(),
+              `assertEventChargedAmount requires a numeric amount`,
             );
           }
 
-          return body.token;
+          const deadline = Date.now() + timeoutMs;
+          let lastObservedAmountCents = null;
+
+          while (Date.now() <= deadline) {
+            const eventResult = await client.query(
+              `
+                SELECT e.id, e."stripe_customerId", e."stripe_subscriptionId"
+                FROM "Event" e
+                WHERE e.slug = $1
+              `,
+              [slug],
+            );
+
+            if (eventResult.rowCount === 1) {
+              const event = eventResult.rows[0];
+
+              if (!event.stripe_customerId) {
+                throw new Error(
+                  `Event ${slug} does not have a stripe_customerId yet`,
+                );
+              }
+
+              lastObservedAmountCents = await listPaidInvoiceTotalForEvent({
+                customerId: event.stripe_customerId,
+                subscriptionId: event.stripe_subscriptionId || null,
+              });
+
+              if (lastObservedAmountCents === expectedAmountCents) {
+                return lastObservedAmountCents;
+              }
+            }
+
+            await sleep(intervalMs);
+          }
+
+          throw new Error(
+            `Expected paid invoice total of ${expectedAmountCents} cents for event ${slug}, but observed ${lastObservedAmountCents ?? "no amount"} cents.`,
+          );
         },
       });
     },
