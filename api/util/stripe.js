@@ -35,12 +35,11 @@ const createStripeMock = () => {
         );
       },
       update: async (id, data = {}) => {
-        const current =
-          customers.get(id) || {
-            id,
-            metadata: {},
-            invoice_settings: { default_payment_method: null },
-          };
+        const current = customers.get(id) || {
+          id,
+          metadata: {},
+          invoice_settings: { default_payment_method: null },
+        };
         const next = {
           ...current,
           ...data,
@@ -151,7 +150,7 @@ const createStripeMock = () => {
   return api;
 };
 
-const shouldMock = process.env.STRIPE_MOCK === "true" || !process.env.STRIPE_SK;
+const shouldMock = false;
 
 export const stripe = shouldMock
   ? createStripeMock()
