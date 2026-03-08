@@ -8,9 +8,16 @@ import Stripe from "../api/node_modules/stripe/esm/stripe.esm.node.js";
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import pg from "pg";
-dotenv.config();
+const currentFilePath = fileURLToPath(import.meta.url);
+const currentDir = path.dirname(currentFilePath);
+const apiDir = path.resolve(currentDir, "../api");
+
+// Load local e2e env first, then fall back to the app env when running locally.
+dotenv.config({ path: path.resolve(currentDir, ".env") });
+dotenv.config({ path: path.resolve(apiDir, ".env"), override: false });
 const client = new pg.Client({
   connectionString: process.env.DATABASE_URL,
 });
@@ -20,6 +27,11 @@ const DEFAULT_BASE_URL = "http://localhost:3000";
 const DEFAULT_BILLING_ASSERTION_TIMEOUT_MS = 20000;
 const DEFAULT_BILLING_ASSERTION_INTERVAL_MS = 1000;
 let stripeClient = null;
+let resolvedStripeSecretKey =
+  process.env.STRIPE_SK ||
+  process.env.STRIPE_SK_E2E ||
+  process.env.CYPRESS_STRIPE_SK ||
+  null;
 
 registerCommand("sql", (query) => {
   return [`cy.task('sql', ${JSON.stringify(query)})`];
@@ -244,7 +256,11 @@ async function authenticateAgainstBaseUrl(baseUrl, { email, password }) {
 
 async function listPaidInvoiceTotalForEvent({ customerId, subscriptionId }) {
   if (!stripeClient) {
-    const stripeSecretKey = process.env.STRIPE_SK;
+    const stripeSecretKey =
+      resolvedStripeSecretKey ||
+      process.env.STRIPE_SK ||
+      process.env.STRIPE_SK_E2E ||
+      process.env.CYPRESS_STRIPE_SK;
 
     if (!stripeSecretKey) {
       throw new Error(
@@ -307,6 +323,22 @@ export default defineConfig({
 
       yamlPreprocessor(on);
       const resolvedBaseUrl = config?.baseUrl || DEFAULT_BASE_URL;
+      resolvedStripeSecretKey =
+        config?.env?.STRIPE_SK ||
+        config?.env?.STRIPE_SK_E2E ||
+        process.env.STRIPE_SK ||
+        process.env.STRIPE_SK_E2E ||
+        process.env.CYPRESS_STRIPE_SK ||
+        null;
+      config.env = {
+        ...(config.env || {}),
+        ...(resolvedStripeSecretKey
+          ? {
+              STRIPE_SK: resolvedStripeSecretKey,
+              STRIPE_SK_E2E: resolvedStripeSecretKey,
+            }
+          : {}),
+      };
 
       on("task", {
         "db:seed": (relativeSqlPath) => {
@@ -392,6 +424,8 @@ export default defineConfig({
           );
         },
       });
+
+      return config;
     },
     specPattern: "cypress/specs/**/*.yaml",
   },
