@@ -172,7 +172,7 @@ export const get = [
       const phoneFieldId =
         fields.find((field) => field.fieldType === "participantPhone")?.id ??
         fields.find((field) =>
-          (field.label || "").toLowerCase().includes("phone")
+          (field.label || "").toLowerCase().includes("phone"),
         )?.id ??
         null;
 

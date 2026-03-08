@@ -39,7 +39,7 @@ export const verifyAuth =
       const authHeader = req.headers.authorization;
       const token = authHeader?.split(" ")[1];
       const isDayOfDashboard = parseDayOfHeader(
-        req.headers["x-isdayofdashboard"]
+        req.headers["x-isdayofdashboard"],
       );
 
       if (isDayOfDashboard) {
@@ -104,7 +104,7 @@ export const verifyAuth =
           }
 
           const dayOfRoles = allowedRoles.filter((role) =>
-            role.startsWith("dod:")
+            role.startsWith("dod:"),
           );
 
           if (
@@ -126,13 +126,25 @@ export const verifyAuth =
           const hasRequiredPermission =
             requiredPermissions.length === 0 ||
             requiredPermissions.some((permission) =>
-              accountPermissions.has(permission)
+              accountPermissions.has(permission),
             );
 
           if (!hasRequiredPermission && !allowUnauthenticated) {
             return res.status(403).json({
               message: "Access forbidden: insufficient permissions",
             });
+          }
+
+          const dayOfInstanceId =
+            typeof account.instanceId === "string" && account.instanceId.trim()
+              ? account.instanceId.trim()
+              : typeof decoded.iid === "string" && decoded.iid.trim()
+                ? decoded.iid.trim()
+                : null;
+
+          if (dayOfInstanceId) {
+            req.headers["x-instance"] = dayOfInstanceId;
+            req.instanceId = dayOfInstanceId;
           }
 
           req.dayOfDashboardAccount = buildDayOfAccountResponse(account);
@@ -174,7 +186,7 @@ export const verifyAuth =
               ROLE_HIERARCHY[user.accountType?.toLowerCase()] || 0;
 
             const requiredRoleLevels = allowedRoles.map(
-              (role) => ROLE_HIERARCHY[role] || 0
+              (role) => ROLE_HIERARCHY[role] || 0,
             );
             const minRequiredRoleLevel = Math.min(...requiredRoleLevels);
 

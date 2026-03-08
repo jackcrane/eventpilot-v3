@@ -2,10 +2,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "#prisma";
 import { verifyAuth } from "#verifyAuth";
-import {
-  formatFormResponse,
-  groupByLocationAndJob,
-} from "./[volunteerId]";
+import { formatFormResponse, groupByLocationAndJob } from "./[volunteerId]";
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -371,7 +368,7 @@ const mapVolunteerRecord = ({ record, fields, nameField, emailField }) => {
 };
 
 export const get = [
-  verifyAuth(["manager"], true),
+  verifyAuth(["manager", "dod:volunteer"]),
   async (req, res) => {
     const { eventId } = req.params;
     const instanceId = req.instanceId;
@@ -389,7 +386,7 @@ export const get = [
 
     const { fields, byId, byPilotType } = await getVolunteerFields(
       eventId,
-      instanceId
+      instanceId,
     );
 
     if (!byId.size) {
@@ -555,7 +552,7 @@ ${fragment}`;
           fields,
           nameField,
           emailField,
-        })
+        }),
       );
 
     return res.json({
