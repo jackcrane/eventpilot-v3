@@ -66,8 +66,6 @@ export const get = [
         },
       });
 
-      console.log(customerSession);
-
       res.json({
         intent: {
           id: intent.id,
