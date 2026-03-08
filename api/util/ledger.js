@@ -43,6 +43,47 @@ export async function createLedgerItemForRegistration({
   }
   if (!personId) return null; // Enforce that all ledger items have a CRM person
 
+  if (stripe_paymentIntentId) {
+    const existing = await prisma.ledgerItem.findFirst({
+      where: {
+        eventId,
+        stripe_paymentIntentId,
+      },
+    });
+
+    if (existing) {
+      const updateData = {};
+
+      if (!existing.crmPersonId || existing.crmPersonId !== personId) {
+        updateData.crmPersonId = personId;
+      }
+      if (!existing.registrationId) {
+        updateData.registrationId = registrationId;
+      }
+      if (existing.instanceId !== instanceId) {
+        updateData.instanceId = instanceId;
+      }
+      if (
+        computedOriginal != null &&
+        Number(existing.originalAmount) !== Number(computedOriginal)
+      ) {
+        updateData.originalAmount = computedOriginal;
+      }
+      if (Number(existing.amount) !== Number(amount)) {
+        updateData.amount = amount;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        return prisma.ledgerItem.update({
+          where: { id: existing.id },
+          data: updateData,
+        });
+      }
+
+      return existing;
+    }
+  }
+
   const item = await prisma.ledgerItem.create({
     data: {
       eventId,
