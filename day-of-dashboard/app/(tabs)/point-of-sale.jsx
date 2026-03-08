@@ -59,7 +59,7 @@ const PointOfSaleScreen = () => {
   const [localMessage, setLocalMessage] = useState(null);
   const [transactionModal, setTransactionModal] = useState(null);
 
-  const { account, permissions, hydrated } = useDayOfSessionContext();
+  const { permissions, hydrated } = useDayOfSessionContext();
 
   const {
     initializeTerminal,
@@ -71,7 +71,6 @@ const PointOfSaleScreen = () => {
     connecting,
     processingPayment,
     connectedReader,
-    connectionStatus,
     lastError,
     resetError,
     tapToPaySupported,
@@ -232,36 +231,6 @@ const PointOfSaleScreen = () => {
     }
     return "Collect Payment";
   }, [amountInCents, formattedAmount, processingPayment]);
-
-  const connectionSummary = useMemo(() => {
-    if (!tapToPaySupported) {
-      return "Tap to Pay is not supported on this device.";
-    }
-    if (connectedReader) {
-      const label =
-        connectedReader.label ||
-        connectedReader.serialNumber ||
-        "Tap to Pay reader";
-      return `Reader ready: ${label}`;
-    }
-    if (initializing) {
-      return "Initializing Stripe Terminal…";
-    }
-    if (discovering || connecting) {
-      return "Activating Tap to Pay…";
-    }
-    if (connectionStatus && connectionStatus !== "notConnected") {
-      return `Status: ${connectionStatus}`;
-    }
-    return "Waiting for Tap to Pay reader…";
-  }, [
-    connectedReader,
-    connecting,
-    connectionStatus,
-    discovering,
-    initializing,
-    tapToPaySupported,
-  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -427,14 +396,6 @@ const PointOfSaleScreen = () => {
         <View style={styles.topSection}>
           <View style={styles.header}>
             <Text style={styles.title}>Pay {merchantDisplayName}</Text>
-            <Text style={styles.subtitle}>
-              {account?.name
-                ? `Station: ${account.name}`
-                : "Tap to Pay station"}
-            </Text>
-            {connectionSummary ? (
-              <Text style={styles.statusText}>{connectionSummary}</Text>
-            ) : null}
             {defaultLocationId ? null : (
               <Text style={styles.statusText}>
                 Stripe location not configured.
