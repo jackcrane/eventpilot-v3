@@ -24,12 +24,13 @@ import { EventChecklist } from "../../../components/EventChecklist/EventChecklis
 import { useAuth } from "../../../hooks";
 import SetupForm from "../../../components/stripe/Stripe";
 import { Elements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
 // Hosted email comparison is deprecated in favor of Google options
 // import { HostedEmailComparisonPopoverContent } from "../../../components/HostedEmailComparison/HostedEmailComparison";
 import { useEvents } from "../../../hooks/useEvents";
 import { useEventStripeSetupIntent } from "../../../hooks/useEventStripeSetupIntent";
 import { useEventBuilder } from "../../../hooks/useEventBuilder";
+import { useStripeConfig } from "../../../hooks/useStripeConfig";
+import { getStripePromise } from "../../../util/stripe";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 // Gmail connection is now initiated from the event dashboard, not here
@@ -425,7 +426,16 @@ const EventBillingDuringCreation = ({
 
   const { intent, customer_session, loading, error, refetch } =
     useEventStripeSetupIntent({ eventId: event.id });
-  const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK);
+  const {
+    publishableKey,
+    loading: configLoading,
+    error: configError,
+  } = useStripeConfig();
+  const stripePromise = getStripePromise(publishableKey);
+  const elementsKey =
+    intent?.client_secret && customer_session?.client_secret
+      ? `${intent.client_secret}:${customer_session.client_secret}`
+      : null;
 
   return (
     <>
@@ -454,10 +464,18 @@ const EventBillingDuringCreation = ({
           {String(error?.message || "Failed to load Stripe setup")}
         </Alert>
       )}
-      {loading && event.id ? (
+      {configError && (
+        <Alert variant="danger" title="Error loading billing">
+          Failed to load Stripe configuration.
+        </Alert>
+      )}
+      {(configLoading || (loading && event.id)) ? (
         <Typography.Text>Loading…</Typography.Text>
-      ) : intent?.client_secret && customer_session?.client_secret ? (
+      ) : intent?.client_secret &&
+        customer_session?.client_secret &&
+        stripePromise ? (
         <Elements
+          key={elementsKey}
           stripe={stripePromise}
           options={{
             clientSecret: intent.client_secret,

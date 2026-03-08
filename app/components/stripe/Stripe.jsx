@@ -1,6 +1,6 @@
-import { loadStripe } from "@stripe/stripe-js";
 import { useStripeSetupIntent } from "../../hooks/useStripeSetupIntent";
 import { useEventStripeSetupIntent } from "../../hooks/useEventStripeSetupIntent";
+import { useStripeConfig } from "../../hooks/useStripeConfig";
 import {
   Elements,
   PaymentElement,
@@ -12,8 +12,7 @@ import React, { useState } from "react";
 import { useOffcanvas } from "tabler-react-2/dist/offcanvas";
 import { Loading } from "../loading/Loading";
 import toast from "react-hot-toast";
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK);
+import { getStripePromise } from "../../util/stripe";
 
 const SetupForm = ({ onSuccess, buttonText = "Submit" }) => {
   const stripe = useStripe();
@@ -94,13 +93,26 @@ export default SetupForm;
 export const Stripe = ({ onSuccess, eventId }) => {
   const userSI = useStripeSetupIntent();
   const eventSI = useEventStripeSetupIntent({ eventId });
+  const {
+    publishableKey,
+    loading: configLoading,
+    error: configError,
+  } = useStripeConfig();
   const intent = eventId ? eventSI.intent : userSI.intent;
   const customer_session = eventId
     ? eventSI.customer_session
     : userSI.customer_session;
   const loading = eventId ? eventSI.loading : userSI.loading;
+  const stripePromise = getStripePromise(publishableKey);
+  const elementsKey =
+    intent?.client_secret && customer_session?.client_secret
+      ? `${intent.client_secret}:${customer_session.client_secret}`
+      : null;
+  const canRenderElements = Boolean(
+    stripePromise && intent?.client_secret && customer_session?.client_secret
+  );
 
-  if (loading) return <Loading />;
+  if (loading || configLoading) return <Loading />;
 
   return (
     <div>
@@ -117,15 +129,27 @@ export const Stripe = ({ onSuccess, eventId }) => {
         and is never on EventPilot's servers.
       </Typography.Text>
       <Util.Hr />
-      <Elements
-        stripe={stripePromise}
-        options={{
-          clientSecret: intent?.client_secret,
-          customerSessionClientSecret: customer_session?.client_secret,
-        }}
-      >
-        <SetupForm onSuccess={onSuccess} />
-      </Elements>
+      {configError || !stripePromise ? (
+        <Alert variant="danger" title="Error loading billing">
+          Failed to load Stripe configuration.
+        </Alert>
+      ) : null}
+      {canRenderElements ? (
+        <Elements
+          key={elementsKey}
+          stripe={stripePromise}
+          options={{
+            clientSecret: intent?.client_secret,
+            customerSessionClientSecret: customer_session?.client_secret,
+          }}
+        >
+          <SetupForm onSuccess={onSuccess} />
+        </Elements>
+      ) : configError || !stripePromise ? null : (
+        <Alert variant="danger" title="Error loading billing">
+          Failed to initialize Stripe payment setup.
+        </Alert>
+      )}
     </div>
   );
 };
