@@ -76,6 +76,7 @@ jobs:
                 POSTMARK_API_TOKEN: "${POSTMARK_API_TOKEN}"
                 STRIPE_EVENT_SUBSCRIPTION_PRICE_ID: "${STRIPE_EVENT_SUBSCRIPTION_PRICE_ID}"
                 STRIPE_SK: "${STRIPE_SK_E2E}"
+                STRIPE_PK: "${STRIPE_PK_E2E}"
                 VITE_STRIPE_PK: "${STRIPE_PK_E2E}"
           EOF
         env:
