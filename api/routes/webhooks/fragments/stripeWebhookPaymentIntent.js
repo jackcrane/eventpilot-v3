@@ -13,14 +13,19 @@ import {
   syncStripeLogAssociations,
 } from "./stripeWebhookLogs.js";
 
-const logCardMatchAttempt = ({ paymentIntent, eventId, crmPersonId, cardMatchInfo }) => {
+const logCardMatchAttempt = ({
+  paymentIntent,
+  eventId,
+  crmPersonId,
+  cardMatchInfo,
+}) => {
   if (!cardMatchInfo?.attempted) {
     return;
   }
 
   if (cardMatchInfo.matched && crmPersonId) {
     console.log(
-      `[STRIPE][CRM] PaymentIntent ${paymentIntent.id} linked to CRM person ${crmPersonId} via ${cardMatchInfo.matchType}`
+      `[STRIPE][CRM] PaymentIntent ${paymentIntent.id} linked to CRM person ${crmPersonId} via ${cardMatchInfo.matchType}`,
     );
     return;
   }
@@ -36,7 +41,7 @@ const logCardMatchAttempt = ({ paymentIntent, eventId, crmPersonId, cardMatchInf
       expMonth: cardMatchInfo?.context?.expMonth ?? null,
       expYear: cardMatchInfo?.context?.expYear ?? null,
       cardholderName: cardMatchInfo?.context?.cardholderName || null,
-    }
+    },
   );
 };
 
@@ -71,18 +76,22 @@ const ensurePaymentIntentCrmPerson = async ({
 
   if (created) {
     console.log(
-      `[STRIPE][CRM] Created CRM person ${crmPerson.id} for PaymentIntent ${paymentIntent.id}`
+      `[STRIPE][CRM] Created CRM person ${crmPerson.id} for PaymentIntent ${paymentIntent.id}`,
     );
   } else {
     console.log(
-      `[STRIPE][CRM] Linked PaymentIntent ${paymentIntent.id} to CRM person ${crmPerson.id}`
+      `[STRIPE][CRM] Linked PaymentIntent ${paymentIntent.id} to CRM person ${crmPerson.id}`,
     );
   }
 
   return crmPerson.id;
 };
 
-const resolveRegistrationNetAmount = async ({ paymentIntent, eventId, charge }) => {
+const resolveRegistrationNetAmount = async ({
+  paymentIntent,
+  eventId,
+  charge,
+}) => {
   let netAmount = paymentIntent.amount / 100;
 
   try {
@@ -95,14 +104,14 @@ const resolveRegistrationNetAmount = async ({ paymentIntent, eventId, charge }) 
     const balanceTransactionId =
       typeof charge?.balance_transaction === "string"
         ? charge.balance_transaction
-        : charge?.balance_transaction?.id ?? null;
+        : (charge?.balance_transaction?.id ?? null);
 
     if (balanceTransactionId && connectedAccount) {
       const balanceTransaction = await stripe.balanceTransactions.retrieve(
         balanceTransactionId,
         {
           stripeAccount: connectedAccount,
-        }
+        },
       );
 
       if (balanceTransaction && typeof balanceTransaction.net === "number") {
@@ -117,7 +126,7 @@ const resolveRegistrationNetAmount = async ({ paymentIntent, eventId, charge }) 
     } else {
       console.warn(
         "[STRIPE] Failed to retrieve balance transaction for net amount; falling back to gross",
-        error
+        error,
       );
     }
   }
@@ -146,7 +155,7 @@ const handleRegistrationPaymentIntent = async ({
 
   if (!instance) {
     console.warn(
-      `[STRIPE] PaymentIntent ${paymentIntent.id} references unknown instance ${instanceId}; skipping registration ledger item`
+      `[STRIPE] PaymentIntent ${paymentIntent.id} references unknown instance ${instanceId}; skipping registration ledger item`,
     );
     return;
   }
@@ -179,14 +188,14 @@ const handlePointOfSalePaymentIntent = async ({
 }) => {
   if (!eventId || !instanceId) {
     console.warn(
-      `[STRIPE] PaymentIntent ${paymentIntent.id} missing event or instance metadata; skipping POS ledger item`
+      `[STRIPE] PaymentIntent ${paymentIntent.id} missing event or instance metadata; skipping POS ledger item`,
     );
     return;
   }
 
   if (!crmPersonId) {
     console.warn(
-      `[STRIPE] PaymentIntent ${paymentIntent.id} succeeded without a CRM person; skipping POS ledger item`
+      `[STRIPE] PaymentIntent ${paymentIntent.id} succeeded without a CRM person; skipping POS ledger item`,
     );
     return;
   }
@@ -198,7 +207,7 @@ const handlePointOfSalePaymentIntent = async ({
 
   if (!instance) {
     console.warn(
-      `[STRIPE] PaymentIntent ${paymentIntent.id} references unknown instance ${instanceId}; skipping POS ledger item`
+      `[STRIPE] PaymentIntent ${paymentIntent.id} references unknown instance ${instanceId}; skipping POS ledger item`,
     );
     return;
   }
@@ -245,7 +254,7 @@ export const handlePaymentIntentSucceededWebhook = async ({
   } catch (error) {
     console.error(
       `[STRIPE][CRM] Failed to ensure CRM person for PaymentIntent ${paymentIntent.id}`,
-      error
+      error,
     );
   }
 
@@ -289,6 +298,6 @@ export const handlePaymentIntentSucceededWebhook = async ({
   }
 
   console.warn(
-    `[STRIPE] PaymentIntent ${paymentIntent.id} succeeded with unsupported scope ${scope || "undefined"}`
+    `[STRIPE] PaymentIntent ${paymentIntent.id} succeeded with unsupported scope ${scope || "undefined"}`,
   );
 };

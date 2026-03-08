@@ -33,8 +33,8 @@ const extractCardMatchContext = (paymentIntent) => {
     typeof paymentIntent.payment_method === "string"
       ? paymentIntent.payment_method
       : typeof paymentIntent?.charges?.data?.[0]?.payment_method === "string"
-      ? paymentIntent.charges.data[0].payment_method
-      : null;
+        ? paymentIntent.charges.data[0].payment_method
+        : null;
 
   const charges = Array.isArray(paymentIntent?.charges?.data)
     ? paymentIntent.charges.data
@@ -72,7 +72,7 @@ const hasSearchablePaymentMethodDetails = (details) =>
       (details?.brand &&
         details?.last4 &&
         details?.expMonth != null &&
-        details?.expYear != null)
+        details?.expYear != null),
   );
 
 const findCrmPersonFromPriorLogs = async ({
@@ -143,7 +143,7 @@ const findCrmPersonFromPriorLogs = async ({
               "fingerprint",
             ],
           ],
-          fingerprint
+          fingerprint,
         ),
       },
       orderBy: { createdAt: "desc" },
@@ -188,7 +188,7 @@ const findCrmPersonFromPriorLogs = async ({
                 "brand",
               ],
             ],
-            brand
+            brand,
           ),
         },
         {
@@ -213,7 +213,7 @@ const findCrmPersonFromPriorLogs = async ({
                 "last4",
               ],
             ],
-            last4
+            last4,
           ),
         },
         {
@@ -256,7 +256,7 @@ const findCrmPersonFromPriorLogs = async ({
                 "expMonth",
               ],
             ],
-            expMonth
+            expMonth,
           ),
         },
         {
@@ -299,7 +299,7 @@ const findCrmPersonFromPriorLogs = async ({
                 "expYear",
               ],
             ],
-            expYear
+            expYear,
           ),
         },
       ],
@@ -402,13 +402,16 @@ const resolveEventContext = async (stripeObject) => {
 
 export const resolveStripeAffiliations = async (stripeObject) => {
   try {
-    const { eventId, stripeAccountId } = await resolveEventContext(stripeObject);
+    const { eventId, stripeAccountId } =
+      await resolveEventContext(stripeObject);
     let crmPersonId = stripeObject?.metadata?.crmPersonId || null;
     let cardMatchInfo = null;
 
     if (!crmPersonId) {
       const customerId =
-        typeof stripeObject?.customer === "string" ? stripeObject.customer : null;
+        typeof stripeObject?.customer === "string"
+          ? stripeObject.customer
+          : null;
 
       if (customerId) {
         const person = await prisma.crmPerson.findFirst({
