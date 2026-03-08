@@ -9,7 +9,10 @@ import {
   ensureLedgerItemForPointOfSale,
 } from "../../util/ledger";
 import { ensureCrmPersonForPaymentIntent } from "../../util/crmPersonFromPaymentIntent.js";
-import { findCrmPersonByStoredPaymentMethod } from "../../util/paymentMethods.js";
+import {
+  findCrmPersonByStoredPaymentMethod,
+  resolvePaymentMethodDetails,
+} from "../../util/paymentMethods.js";
 import { reportApiError } from "#util/reportApiError.js";
 
 const stripe = new Stripe(process.env.STRIPE_SK, {
@@ -364,6 +367,16 @@ const findCrmPersonFromPayment = async ({
   return null;
 };
 
+const hasSearchablePaymentMethodDetails = (details) =>
+  Boolean(
+    details?.stripePaymentMethodId ||
+      details?.fingerprint ||
+      (details?.brand &&
+        details?.last4 &&
+        details?.expMonth != null &&
+        details?.expYear != null)
+  );
+
 // Best-effort affiliation of Stripe objects to Event and CRM Person
 const resolveAffiliations = async (stripeObject) => {
   try {
@@ -436,19 +449,39 @@ const resolveAffiliations = async (stripeObject) => {
 
     if (!crmPersonId && stripeObject?.object === "payment_intent" && eventId) {
       const cardContext = extractCardMatchContext(stripeObject);
+      const eventRecord = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { stripeConnectedAccountId: true },
+      });
+      const stripeAccountId =
+        eventRecord?.stripeConnectedAccountId?.trim() || null;
+      const paymentMethodDetails = await resolvePaymentMethodDetails({
+        paymentIntent: stripeObject,
+        stripeAccountId,
+        initialDetails: {
+          stripePaymentMethodId: cardContext?.paymentMethodId,
+          fingerprint: cardContext?.fingerprint,
+          brand: cardContext?.brand,
+          last4: cardContext?.last4,
+          expMonth: cardContext?.expMonth,
+          expYear: cardContext?.expYear,
+          nameOnCard: cardContext?.cardholderName,
+        },
+      });
+
       if (
-        cardContext?.chargeCaptured &&
-        cardContext.hasSearchableField
+        stripeObject?.status === "succeeded" &&
+        hasSearchablePaymentMethodDetails(paymentMethodDetails)
       ) {
         const matched = await findCrmPersonFromPayment({
           eventId,
-          paymentMethodId: cardContext.paymentMethodId,
-          fingerprint: cardContext.fingerprint,
-          brand: cardContext.brand,
-          last4: cardContext.last4,
-          expMonth: cardContext.expMonth,
-          expYear: cardContext.expYear,
-          cardholderName: cardContext.cardholderName,
+          paymentMethodId: paymentMethodDetails.stripePaymentMethodId,
+          fingerprint: paymentMethodDetails.fingerprint,
+          brand: paymentMethodDetails.brand,
+          last4: paymentMethodDetails.last4,
+          expMonth: paymentMethodDetails.expMonth,
+          expYear: paymentMethodDetails.expYear,
+          cardholderName: paymentMethodDetails.nameOnCard,
         });
         if (matched?.crmPersonId) {
           crmPersonId = matched.crmPersonId;
@@ -456,13 +489,29 @@ const resolveAffiliations = async (stripeObject) => {
             attempted: true,
             matched: true,
             matchType: matched.matchType,
-            context: cardContext,
+            context: {
+              paymentMethodId: paymentMethodDetails.stripePaymentMethodId,
+              fingerprint: paymentMethodDetails.fingerprint,
+              brand: paymentMethodDetails.brand,
+              last4: paymentMethodDetails.last4,
+              expMonth: paymentMethodDetails.expMonth,
+              expYear: paymentMethodDetails.expYear,
+              cardholderName: paymentMethodDetails.nameOnCard,
+            },
           };
         } else {
           cardMatchInfo = {
             attempted: true,
             matched: false,
-            context: cardContext,
+            context: {
+              paymentMethodId: paymentMethodDetails.stripePaymentMethodId,
+              fingerprint: paymentMethodDetails.fingerprint,
+              brand: paymentMethodDetails.brand,
+              last4: paymentMethodDetails.last4,
+              expMonth: paymentMethodDetails.expMonth,
+              expYear: paymentMethodDetails.expYear,
+              cardholderName: paymentMethodDetails.nameOnCard,
+            },
           };
         }
       }
@@ -488,7 +537,7 @@ export const post = [
       return response.status(200).send("No event ID found");
     }
 
-    await prisma.logs.create({
+    const webhookReceiptLog = await prisma.logs.create({
       data: {
         type: "STRIPE_WEBHOOK_RECEIVED",
         data: event,
@@ -617,7 +666,7 @@ export const post = [
           const affiliations = await resolveAffiliations(paymentIntent);
           const { eventId: piEventId, cardMatchInfo } = affiliations;
           let { crmPersonId: piCrmPersonId } = affiliations;
-          await prisma.logs.create({
+          const paymentIntentSucceededLog = await prisma.logs.create({
             data: {
               type: LogType.STRIPE_PAYMENT_INTENT_SUCCEEDED,
               data: paymentIntent,
@@ -670,6 +719,18 @@ export const post = [
 
                 if (crmPerson?.id) {
                   piCrmPersonId = crmPerson.id;
+                  if (!paymentIntentSucceededLog.crmPersonId) {
+                    await prisma.logs.update({
+                      where: { id: paymentIntentSucceededLog.id },
+                      data: { crmPersonId: crmPerson.id },
+                    });
+                  }
+                  if (!webhookReceiptLog.crmPersonId) {
+                    await prisma.logs.update({
+                      where: { id: webhookReceiptLog.id },
+                      data: { crmPersonId: crmPerson.id },
+                    });
+                  }
                   if (created) {
                     console.log(
                       `[STRIPE][CRM] Created CRM person ${crmPerson.id} for PaymentIntent ${paymentIntent.id}`
