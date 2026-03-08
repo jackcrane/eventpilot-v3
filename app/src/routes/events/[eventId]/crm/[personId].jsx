@@ -1,14 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
 import { useCrmPerson } from "../../../../../hooks/useCrmPerson";
-import { Button, Typography, Util, Badge, Card } from "tabler-react-2";
-import { Row, Col } from "../../../../../util/Flex";
+import { Button } from "tabler-react-2";
 import { Icon } from "../../../../../util/Icon";
-import { TriPanelLayout } from "../../../../../components/TriPanelLayout/TriPanelLayout";
-import { useSelectedInstance } from "../../../../../contexts/SelectedInstanceContext";
-import classNames from "classnames";
-import tabsStyles from "./CrmPersonTabs.module.css";
 import { ActivityCrmPage } from "../../../../../components/ActivityCrmPage/ActivityCrmPage";
 import { NotesCrmPage } from "../../../../../components/NotesCrmPage/NotesCrmPage";
 import { EmailsCrmPage } from "../../../../../components/EmailsCrmPage/EmailsCrmPage";
@@ -16,302 +11,161 @@ import { FinancialCrmPage } from "../../../../../components/FinancialCrmPage/Fin
 import { SettingsCrmPage } from "../../../../../components/SettingsCrmPage/SettingsCrmPage";
 import { useCrmLedger } from "../../../../../hooks/useCrmLedger";
 import { useCrmPersonInvolvement } from "../../../../../hooks/useCrmPersonInvolvement";
+import { CrmPersonHeader } from "../../../../../components/crmPersonPage/CrmPersonHeader";
+import { CrmPersonInvolvementTab } from "../../../../../components/crmPersonPage/CrmPersonInvolvementTab";
+import { CrmPersonSystemTab } from "../../../../../components/crmPersonPage/CrmPersonSystemTab";
+import { CrmPersonWorkspace } from "../../../../../components/crmPersonPage/CrmPersonWorkspace";
+import styles from "../../../../../components/crmPersonPage/crmPersonPage.module.css";
+import {
+  buildInvolvementSummary,
+  buildPersonEmailTimeline,
+  formatCurrency,
+  formatDate,
+  getMostRecentTimestamp,
+  getPrimaryEmail,
+  getPrimaryPhone,
+  getSourceLabel,
+} from "../../../../../components/crmPersonPage/crmPersonPageUtils";
 
 export const CrmPersonPage = () => {
   const { eventId, personId } = useParams();
   const navigate = useNavigate();
   const { crmPerson, loading } = useCrmPerson({ eventId, personId });
-  const { setInstance } = useSelectedInstance();
-
-  const [tab, setTab] = useState({ id: "activity" });
-
   const emails = useMemo(() => crmPerson?.emails || [], [crmPerson]);
-  const phones = useMemo(() => crmPerson?.phones || [], [crmPerson]);
-  const { lifetimeValue } = useCrmLedger({ eventId, personId });
+  const { lifetimeValue, ledgerItems } = useCrmLedger({ eventId, personId });
   const { involvement, loading: involvementLoading } = useCrmPersonInvolvement({
     eventId,
     personId,
   });
-  const formattedLTV = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  }).format(Number(lifetimeValue || 0));
+  const primaryEmail = useMemo(() => getPrimaryEmail(crmPerson), [crmPerson]);
+  const primaryPhone = useMemo(() => getPrimaryPhone(crmPerson), [crmPerson]);
+  const sourceLabel = useMemo(
+    () => getSourceLabel(crmPerson?.source),
+    [crmPerson?.source]
+  );
+  const emailTimeline = useMemo(
+    () => buildPersonEmailTimeline(crmPerson),
+    [crmPerson]
+  );
+  const involvementSummary = useMemo(
+    () => buildInvolvementSummary(involvement),
+    [involvement]
+  );
+  const lastTouchAt = useMemo(
+    () =>
+      getMostRecentTimestamp(
+        crmPerson?.logs?.map((log) => log.createdAt),
+        emailTimeline.map((email) => email.createdAt),
+        ledgerItems.map((item) => item.createdAt)
+      ),
+    [crmPerson?.logs, emailTimeline, ledgerItems]
+  );
+  const stats = useMemo(
+    () => [
+      {
+        icon: "currency-dollar",
+        label: "Lifetime value",
+        value: formatCurrency(lifetimeValue),
+        helper: `${ledgerItems.length} transaction${
+          ledgerItems.length === 1 ? "" : "s"
+        }`,
+      },
+      {
+        icon: "mail",
+        label: "Messages",
+        value: `${emailTimeline.length}`,
+        helper: `${emails.length} saved email${emails.length === 1 ? "" : "s"}`,
+      },
+      {
+        icon: "ticket",
+        label: "Registrations",
+        value: `${crmPerson?.registrations?.length || 0}`,
+        helper: `${involvementSummary.participantRegistrations} participant, ${involvementSummary.volunteerRegistrations} volunteer`,
+      },
+      {
+        icon: "building-community",
+        label: "Instances",
+        value: `${involvementSummary.instanceCount}`,
+        helper: `${involvementSummary.volunteerShifts} volunteer shift${
+          involvementSummary.volunteerShifts === 1 ? "" : "s"
+        }`,
+      },
+    ],
+    [
+      crmPerson?.registrations?.length,
+      emailTimeline.length,
+      emails.length,
+      involvementSummary.instanceCount,
+      involvementSummary.participantRegistrations,
+      involvementSummary.volunteerRegistrations,
+      involvementSummary.volunteerShifts,
+      ledgerItems.length,
+      lifetimeValue,
+    ]
+  );
+  const tabs = useMemo(
+    () => [
+      {
+        title: "Info",
+        content: <SettingsCrmPage crmPerson={crmPerson} />,
+      },
+      {
+        title: "Activity",
+        content: <ActivityCrmPage crmPerson={crmPerson} />,
+      },
+      {
+        title: "Notes",
+        content: <NotesCrmPage crmPerson={crmPerson} />,
+      },
+      {
+        title: "Emails",
+        content: <EmailsCrmPage crmPerson={crmPerson} />,
+      },
+      {
+        title: "Financial",
+        content: <FinancialCrmPage crmPerson={crmPerson} />,
+      },
+      {
+        title: "Involvement",
+        content: (
+          <CrmPersonInvolvementTab
+            involvement={involvement}
+            involvementLoading={involvementLoading}
+          />
+        ),
+      },
+      {
+        title: "System",
+        content: (
+          <CrmPersonSystemTab crmPerson={crmPerson} sourceLabel={sourceLabel} />
+        ),
+      },
+    ],
+    [crmPerson, involvement, involvementLoading, sourceLabel]
+  );
 
   return (
     <EventPage loading={loading}>
-      <Row gap={1} className="mb-2">
-        <Button
-          size="sm"
-          className="p-1"
-          onClick={() => navigate(`/events/${eventId}/crm`)}
-        >
-          <Icon i="arrow-left" /> Back to contacts
-        </Button>
-      </Row>
+      <div className={styles.pageStack}>
+        <div className={styles.backButtonRow}>
+          <Button
+            size="sm"
+            className="p-1"
+            onClick={() => navigate(`/events/${eventId}/crm`)}
+          >
+            <Icon i="arrow-left" /> Back to contacts
+          </Button>
+        </div>
 
-      <TriPanelLayout
-        leftIcon="id-badge-2"
-        leftTitle="Basic Info"
-        leftChildren={
-          <div>
-            <Typography.H2 className="mb-1">
-              {crmPerson?.name || "Contact"}
-            </Typography.H2>
-            {crmPerson?.source && (
-              <Row gap={0.5} align="center" className="mb-2">
-                <Typography.Text className="text-muted mb-0">
-                  Source:
-                </Typography.Text>
-                <Badge outline>{crmPerson.source}</Badge>
-              </Row>
-            )}
-            <Util.Hr text="Identifiers" />
-            <Col gap={0.5} align="flex-start">
-              <Row gap={0.5} align="center">
-                <Icon i="hash" />
-                <Typography.Text className="text-muted mb-0">
-                  CRM Person ID:
-                </Typography.Text>
-              </Row>
-              <code style={{ userSelect: "all" }}>{crmPerson?.id}</code>
-              <Row gap={0.5} align="center" style={{ marginTop: 8 }}>
-                <Icon i="brand-stripe" />
-                <Typography.Text className="text-muted mb-0">
-                  Stripe Customer:
-                </Typography.Text>
-              </Row>
-              <code style={{ userSelect: "all" }}>
-                {crmPerson?.stripe_customerId || "None"}
-              </code>
-            </Col>
-            <Util.Hr text="Lifetime Value" />
-            <Row gap={0.5} align="center" className="mb-2">
-              <Icon i="currency-dollar" />
-              <Typography.H3 className="mb-0">{formattedLTV}</Typography.H3>
-            </Row>
-            <Util.Hr text="Emails" />
-            {emails.length ? (
-              <Col gap={0.5} align="flex-start">
-                {emails.map((e) => (
-                  <Row key={e.id || e.email} gap={0.5} align="center">
-                    <Icon i="mail" />
-                    <span>{e.email}</span>
-                    {e.label && <Badge soft>{e.label}</Badge>}
-                  </Row>
-                ))}
-              </Col>
-            ) : (
-              <Typography.Text className="text-muted">
-                No emails
-              </Typography.Text>
-            )}
-            <Util.Hr text="Phones" />
-            {phones.length ? (
-              <Col gap={0.5} align="flex-start">
-                {phones.map((p) => (
-                  <Row key={p.id || p.phone} gap={0.5} align="center">
-                    <Icon i="phone" />
-                    <span>{p.phone}</span>
-                    {p.label && <Badge soft>{p.label}</Badge>}
-                  </Row>
-                ))}
-              </Col>
-            ) : (
-              <Typography.Text className="text-muted">
-                No phones
-              </Typography.Text>
-            )}
-          </div>
-        }
-        centerIcon="users"
-        // centerTitle={
-        //   <span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
-        //     <span>Contact</span>
-        //     <span className={classNames(tabsStyles.tabsInline)}>
-        //       <button
-        //         type="button"
-        //         onClick={() => setTab({ id: "activity" })}
-        //         className={classNames(
-        //           tabsStyles.button,
-        //           tab.id === "activity" && tabsStyles.active
-        //         )}
-        //       >
-        //         <Row gap={0.5} align="center">
-        //           <Icon i="activity" size={16} />
-        //           <span>Activity</span>
-        //         </Row>
-        //       </button>
-        //       <button
-        //         type="button"
-        //         onClick={() => setTab({ id: "notes" })}
-        //         className={classNames(
-        //           tabsStyles.button,
-        //           tab.id === "notes" && tabsStyles.active
-        //         )}
-        //       >
-        //         <Row gap={0.5} align="center">
-        //           <Icon i="notes" size={16} />
-        //           <span>Notes</span>
-        //         </Row>
-        //       </button>
-        //       <button
-        //         type="button"
-        //         onClick={() => setTab({ id: "emails" })}
-        //         className={classNames(
-        //           tabsStyles.button,
-        //           tab.id === "emails" && tabsStyles.active
-        //         )}
-        //       >
-        //         <Row gap={0.5} align="center">
-        //           <Icon i="mail" size={16} />
-        //           <span>Emails</span>
-        //         </Row>
-        //       </button>
-        //       <button
-        //         type="button"
-        //         onClick={() => setTab({ id: "financial" })}
-        //         className={classNames(
-        //           tabsStyles.button,
-        //           tab.id === "financial" && tabsStyles.active
-        //         )}
-        //       >
-        //         <Row gap={0.5} align="center">
-        //           <Icon i="currency-dollar" size={16} />
-        //           <span>Financial</span>
-        //         </Row>
-        //       </button>
-        //     </span>
-        //   </span>
-        // }
-        // centerChildren={
-        //   <div>
-        //     {tab.id === "activity" && (
-        //       <div>
-        //         <Typography.H3>Activity</Typography.H3>
-        //         <Typography.Text>
-        //           Logs and activity will appear here.
-        //         </Typography.Text>
-        //       </div>
-        //     )}
-        //     {tab.id === "notes" && (
-        //       <div>
-        //         <Typography.H3>Notes</Typography.H3>
-        //         <Typography.Text>
-        //           Notes about this contact will appear here.
-        //         </Typography.Text>
-        //       </div>
-        //     )}
-        //     {tab.id === "emails" && (
-        //       <div>
-        //         <Typography.H3>Emails</Typography.H3>
-        //         <Typography.Text>
-        //           Email threads and messages will appear here.
-        //         </Typography.Text>
-        //       </div>
-        //     )}
-        //     {tab.id === "financial" && (
-        //       <div>
-        //         <Typography.H3>Financial</Typography.H3>
-        //         <Typography.Text>
-        //           Financial details and transactions will appear here.
-        //         </Typography.Text>
-        //       </div>
-        //     )}
-        //   </div>
-        // }
-        centerTabs={[
-          {
-            title: "Activity",
-            icon: "activity",
-            content: <ActivityCrmPage crmPerson={crmPerson} />,
-          },
-          {
-            title: "Notes",
-            icon: "notes",
-            content: <NotesCrmPage crmPerson={crmPerson} />,
-          },
-          {
-            title: "Emails",
-            icon: "mail",
-            content: <EmailsCrmPage crmPerson={crmPerson} />,
-          },
-          {
-            title: "Financial",
-            icon: "currency-dollar",
-            content: <FinancialCrmPage crmPerson={crmPerson} />,
-          },
-          {
-            title: "Settings",
-            icon: "settings",
-            content: <SettingsCrmPage crmPerson={crmPerson} />,
-          },
-        ]}
-        rightIcon="hand-stop"
-        rightTitle="Involvement"
-        rightChildren={
-          <div>
-            <Typography.H3>Involvement</Typography.H3>
-            <Typography.Text className="text-muted">
-              Volunteer and participant activity by instance.
-            </Typography.Text>
-            <Util.Hr />
-            <Col gap={1} align="flex-start" justify="flex-start">
-              {(involvementLoading || loading) && (
-                <Typography.Text className="text-muted">
-                  Loading…
-                </Typography.Text>
-              )}
-              {!involvementLoading && involvement?.length === 0 && (
-                <Typography.Text className="text-muted">
-                  No involvement found.
-                </Typography.Text>
-              )}
-              {involvement?.map((inst) => {
-                const vCount = inst?.volunteer?.registrations?.length || 0;
-                const vShifts = inst?.volunteer?.shiftCount || 0;
-                const pRegs = inst?.participant?.registrations || [];
-                const pCount = pRegs.length;
-                const pTiers = Array.from(
-                  new Set(pRegs.map((r) => r.tierName).filter(Boolean))
-                );
-                const showVolunteer = vCount > 0 && vShifts > 0;
-                const showParticipant = pCount > 0; // hide if not a participant
-                if (!showVolunteer && !showParticipant) return null;
-                return (
-                  <div key={inst.instance.id} style={{ width: "100%" }}>
-                    <Typography.H4 className="mb-1">
-                      {inst.instance.name}
-                    </Typography.H4>
-                    <Card className="mb-2" style={{ width: "100%" }}>
-                      <Col gap={0.5} align="flex-start" justify="flex-start">
-                        {showVolunteer && (
-                          <Row gap={0.5} align="center">
-                            <Icon i="heart" color="var(--tblr-danger)" />
-                            <Typography.Text className="mb-0">
-                              {vShifts} shift{vShifts === 1 ? "" : "s"} across{" "}
-                              {vCount} registration{vCount === 1 ? "" : "s"}
-                            </Typography.Text>
-                          </Row>
-                        )}
-                        {showParticipant && (
-                          <Row gap={0.5} align="center">
-                            <Icon i="ticket" color="var(--tblr-primary)" />
-                            <Typography.Text className="mb-0">
-                              {pCount} registration{pCount === 1 ? "" : "s"}
-                              {pTiers.length ? ` • ${pTiers.join(", ")}` : ""}
-                            </Typography.Text>
-                          </Row>
-                        )}
-                      </Col>
-                    </Card>
-                  </div>
-                );
-              })}
-            </Col>
-          </div>
-        }
-      />
+        <CrmPersonHeader
+          crmPerson={crmPerson}
+          primaryPhone={primaryPhone}
+          stats={stats}
+          lastTouchLabel={formatDate(lastTouchAt, "No activity yet")}
+        />
+
+        <CrmPersonWorkspace tabs={tabs} />
+      </div>
     </EventPage>
   );
 };
