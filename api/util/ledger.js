@@ -1,4 +1,5 @@
 import { prisma } from "#prisma";
+import { stripe } from "#stripe";
 import { LedgerItemSource, LogType } from "@prisma/client";
 
 // Creates a ledger item for a registration payment and logs the creation.
@@ -26,7 +27,7 @@ export async function createLedgerItemForRegistration({
     const regPrice = Number(reg?.priceSnapshot ?? 0);
     const upsellTotal = (reg?.upsells || []).reduce(
       (sum, u) => sum + Number(u.priceSnapshot ?? 0) * Number(u.quantity ?? 1),
-      0
+      0,
     );
     computedOriginal = regPrice + upsellTotal;
   }
@@ -138,4 +139,64 @@ export async function ensureLedgerItemForPointOfSale({
   });
 
   return item;
+}
+
+export async function ensurePointOfSaleLedgerForPaymentIntent({
+  paymentIntent,
+  eventId,
+  instanceId,
+  crmPersonId,
+  stripeAccountId = null,
+  dayOfDashboardAccountId = null,
+}) {
+  if (!paymentIntent || !eventId || !instanceId || !crmPersonId) {
+    return null;
+  }
+
+  const originalAmount =
+    typeof paymentIntent.amount === "number"
+      ? paymentIntent.amount / 100
+      : null;
+
+  if (!Number.isFinite(originalAmount) || originalAmount <= 0) {
+    return null;
+  }
+
+  const charge =
+    paymentIntent?.charges?.data?.[0] ?? paymentIntent?.latest_charge ?? null;
+  let netAmount = originalAmount;
+
+  try {
+    const balanceTxId =
+      typeof charge?.balance_transaction === "string"
+        ? charge.balance_transaction
+        : (charge?.balance_transaction?.id ?? null);
+
+    if (balanceTxId && stripeAccountId) {
+      const balanceTransaction = await stripe.balanceTransactions.retrieve(
+        balanceTxId,
+        {
+          stripeAccount: stripeAccountId,
+        },
+      );
+      if (balanceTransaction && typeof balanceTransaction.net === "number") {
+        netAmount = balanceTransaction.net / 100;
+      }
+    }
+  } catch (error) {
+    console.warn(
+      "[STRIPE] Failed to retrieve balance transaction for POS net amount; using gross",
+      error,
+    );
+  }
+
+  return ensureLedgerItemForPointOfSale({
+    eventId,
+    instanceId,
+    crmPersonId,
+    amount: netAmount,
+    stripe_paymentIntentId: paymentIntent.id,
+    originalAmount,
+    dayOfDashboardAccountId,
+  });
 }

@@ -6,7 +6,7 @@ import { finalizeRegistration } from "../../util/finalizeRegistration";
 import { getCrmPersonByEmail } from "../../util/getCrmPersonByEmail";
 import {
   createLedgerItemForRegistration,
-  ensureLedgerItemForPointOfSale,
+  ensurePointOfSaleLedgerForPaymentIntent,
 } from "../../util/ledger";
 import { ensureCrmPersonForPaymentIntent } from "../../util/crmPersonFromPaymentIntent.js";
 import {
@@ -848,42 +848,17 @@ export const post = [
               break;
             }
 
-            const charge = paymentIntent?.charges?.data?.[0] ?? null;
-            const originalAmount = paymentIntent.amount / 100;
+            const eventRecord = await prisma.event.findUnique({
+              where: { id: eventId },
+              select: { stripeConnectedAccountId: true },
+            });
 
-            let netAmount = originalAmount;
-            try {
-              const eventRecord = await prisma.event.findUnique({
-                where: { id: eventId },
-              });
-              const connectedAccount =
-                eventRecord?.stripeConnectedAccountId || undefined;
-              const balanceTxId = charge?.balance_transaction;
-              if (balanceTxId && connectedAccount) {
-                const bt = await stripe.balanceTransactions.retrieve(
-                  balanceTxId,
-                  {
-                    stripeAccount: connectedAccount,
-                  }
-                );
-                if (bt && typeof bt.net === "number") {
-                  netAmount = bt.net / 100;
-                }
-              }
-            } catch (e) {
-              console.warn(
-                "[STRIPE] Failed to retrieve balance transaction for POS net amount; using gross",
-                e
-              );
-            }
-
-            await ensureLedgerItemForPointOfSale({
+            await ensurePointOfSaleLedgerForPaymentIntent({
+              paymentIntent,
               eventId,
               instanceId: instance.id,
               crmPersonId: piCrmPersonId,
-              amount: netAmount,
-              stripe_paymentIntentId: paymentIntent.id,
-              originalAmount,
+              stripeAccountId: eventRecord?.stripeConnectedAccountId || null,
               dayOfDashboardAccountId: dayOfAccountId,
             });
           } else {

@@ -8,6 +8,7 @@ import {
   ensureCrmPersonForPaymentIntent,
   formatCrmPersonSummary,
 } from "#util/crmPersonFromPaymentIntent.js";
+import { ensurePointOfSaleLedgerForPaymentIntent } from "#util/ledger.js";
 import { resolveEventAccess } from "../../payment-intents.js";
 import { serializeError } from "#serializeError";
 
@@ -77,6 +78,44 @@ const validatePaymentIntentEvent = (paymentIntent, eventId) => {
   return true;
 };
 
+const ensurePointOfSaleLedgerFromResolvedPayment = async ({
+  paymentIntent,
+  event,
+  crmPersonId,
+  dayOfDashboardAccountId = null,
+}) => {
+  if (!paymentIntent || !event || !crmPersonId) {
+    return null;
+  }
+
+  if (paymentIntent?.metadata?.scope !== "EVENTPILOT:POINT_OF_SALE") {
+    return null;
+  }
+
+  const metadataInstanceId =
+    typeof paymentIntent?.metadata?.instanceId === "string"
+      ? paymentIntent.metadata.instanceId.trim()
+      : null;
+  const fallbackInstanceId =
+    typeof event?.assignedInstanceId === "string"
+      ? event.assignedInstanceId.trim()
+      : null;
+  const instanceId = metadataInstanceId || fallbackInstanceId || null;
+
+  if (!instanceId) {
+    return null;
+  }
+
+  return ensurePointOfSaleLedgerForPaymentIntent({
+    paymentIntent,
+    eventId: event.eventId,
+    instanceId,
+    crmPersonId,
+    stripeAccountId: event.stripeConnectedAccountId?.trim() || null,
+    dayOfDashboardAccountId,
+  });
+};
+
 export const get = [
   verifyAuth(["manager", "dod:pointOfSale"]),
   async (req, res) => {
@@ -120,6 +159,13 @@ export const get = [
         paymentIntent,
         eventId: resolvedEventId,
         stripeAccountId,
+        dayOfDashboardAccountId: req.dayOfDashboardAccount?.id ?? null,
+      });
+
+      await ensurePointOfSaleLedgerFromResolvedPayment({
+        paymentIntent,
+        event,
+        crmPersonId: crmPerson?.id ?? null,
         dayOfDashboardAccountId: req.dayOfDashboardAccount?.id ?? null,
       });
 
@@ -268,6 +314,13 @@ export const put = [
       });
 
       const summary = formatCrmPersonSummary(updatedPerson);
+
+      await ensurePointOfSaleLedgerFromResolvedPayment({
+        paymentIntent,
+        event,
+        crmPersonId: crmPerson.id,
+        dayOfDashboardAccountId: req.dayOfDashboardAccount?.id ?? null,
+      });
 
       return res.json({
         paymentIntent: formatPaymentIntentSummary(paymentIntent),
