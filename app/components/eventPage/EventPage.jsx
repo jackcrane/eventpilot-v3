@@ -28,8 +28,15 @@ export const EventPage = ({
     isNew,
     loginUrl,
     startOnboarding,
-    loading: stripeLoading,
+    stripeAccountStatus: liveStripeAccountStatus,
   } = useStripeExpress({ eventId });
+  const stripeAccountStatus =
+    liveStripeAccountStatus || event?.stripeAccountStatus;
+  const showPaymentIneligibleBanner =
+    stripeAccountStatus?.acceptsPayments === false;
+  const paymentIneligibleReason =
+    stripeAccountStatus?.paymentEligibilityReason ||
+    "The connected Stripe account is not currently eligible to accept payments.";
 
   if (eventLoading)
     return (
@@ -309,7 +316,21 @@ export const EventPage = ({
   ];
 
   return (
-    <Page title={title} sidenavItems={sidenavItems}>
+    <Page
+      title={title}
+      sidenavItems={sidenavItems}
+      topBanner={
+        showPaymentIneligibleBanner ? (
+          <div
+            className={"bg-red text-white"}
+            style={{ padding: "5px 10px", fontWeight: "bold" }}
+          >
+            This event is not currently eligible to accept payments.{" "}
+            {paymentIneligibleReason}
+          </div>
+        ) : null
+      }
+    >
       <div
         style={{
           display: "flex",

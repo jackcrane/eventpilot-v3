@@ -2,6 +2,7 @@ import { verifyAuth } from "#verifyAuth";
 import { prisma } from "#prisma";
 import { stripe } from "#stripe";
 import { reportApiError } from "#util/reportApiError.js";
+import { buildStripeAccountStatus } from "#util/getStripeAccountStatus.js";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -81,6 +82,8 @@ export const get = [
         });
         loginUrl = url;
       }
+      const { account: _account, ...stripeAccountStatus } =
+        buildStripeAccountStatus(account);
 
       return res.json({
         url: accountLink.url,
@@ -88,6 +91,7 @@ export const get = [
         account,
         loginUrl,
         isNew,
+        stripeAccountStatus,
       });
     } catch (err) {
       console.error("Stripe error:", err.message);

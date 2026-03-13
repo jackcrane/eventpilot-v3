@@ -28,5 +28,6 @@ export function useStripeExpress({ eventId }) {
     account: data?.account,
     isNew: data?.isNew,
     loginUrl: data?.loginUrl,
+    stripeAccountStatus: data?.stripeAccountStatus,
   };
 }

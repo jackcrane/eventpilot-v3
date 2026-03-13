@@ -45,6 +45,7 @@ export const Page = ({
   allowOverflow = false,
   padding = true,
   showPicker = true,
+  topBanner = null,
 }) => {
   useTitle(title ? `${title} | EventPilot` : "EventPilot");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -64,6 +65,7 @@ export const Page = ({
           event, but you will be making changes to past events.
         </div>
       )}
+      {topBanner}
       <Header
         showPicker={showPicker}
         setMobileNavOpen={setMobileNavOpen}

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { zerialize } from "zodex";
 import { stripe } from "#stripe";
+import { getStripeAccountStatus } from "#util/getStripeAccountStatus.js";
 
 export const eventSchema = z.object({
   name: z.string().min(2),
@@ -98,6 +99,9 @@ export const get = [
     const computed = event.useHostedEmail
       ? `prefix@${event.slug}.geteventpilot.com`
       : event.externalContactEmail;
+    const { account, ...stripeAccountStatus } = await getStripeAccountStatus(
+      event.stripeConnectedAccountId
+    );
 
     res.json({
       event: {
@@ -105,6 +109,7 @@ export const get = [
         computedExternalContactEmail: computed,
         contactEmail: event.contactEmail || computed,
         externalContactEmail: event.externalContactEmail || computed,
+        stripeAccountStatus,
       },
     });
   },
