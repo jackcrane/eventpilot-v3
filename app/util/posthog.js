@@ -74,12 +74,14 @@ export const capturePosthogEvent = (eventName, properties = {}) => {
       eventName,
       compactProperties({
         capture_source: "client",
+        app_environment: import.meta.env.MODE,
+        app_origin: window.location.origin,
+        app_hostname: window.location.hostname,
+        is_local_dev: import.meta.env.DEV,
         ...properties,
       })
     );
-  } catch (error) {
-    console.warn("[posthog] Failed to capture client event", eventName, error);
-  }
+  } catch {}
 };
 
 export const syncPosthogUser = (user) => {
@@ -105,11 +107,13 @@ export const syncPosthogUser = (user) => {
       compactProperties({
         user_id: user.id,
         account_type: user.accountType,
+        app_environment: import.meta.env.MODE,
+        app_origin: window.location.origin,
+        app_hostname: window.location.hostname,
+        is_local_dev: import.meta.env.DEV,
       })
     );
-  } catch (error) {
-    console.warn("[posthog] Failed to sync user", error);
-  }
+  } catch {}
 };
 
 export const resetPosthogUser = () => {
@@ -120,9 +124,7 @@ export const resetPosthogUser = () => {
   try {
     posthog.reset();
     localStorage.removeItem(POSTHOG_ALIAS_KEY);
-  } catch (error) {
-    console.warn("[posthog] Failed to reset user", error);
-  }
+  } catch {}
 };
 
 export const setPosthogGroups = ({ eventId = null, instanceId = null } = {}) => {
@@ -155,7 +157,5 @@ export const setPosthogGroups = ({ eventId = null, instanceId = null } = {}) => 
     } else {
       posthog.unregister("instance_id");
     }
-  } catch (error) {
-    console.warn("[posthog] Failed to set groups", error);
-  }
+  } catch {}
 };

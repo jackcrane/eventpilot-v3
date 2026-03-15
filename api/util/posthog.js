@@ -40,12 +40,16 @@ const compactProperties = (value) => {
     return Object.fromEntries(
       Object.entries(value)
         .map(([key, nestedValue]) => [key, compactProperties(nestedValue)])
-        .filter(([, nestedValue]) => nestedValue !== undefined),
+        .filter(([, nestedValue]) => nestedValue !== undefined)
     );
   }
 
   return value;
 };
+
+const isLocalDev =
+  process.env.NODE_ENV === "development" ||
+  process.env.NODE_ENV === undefined;
 
 const getDistinctId = (req, distinctId) =>
   distinctId ||
@@ -68,16 +72,14 @@ const getUserProperties = (user) =>
     suspended: user?.suspended,
   });
 
-const withErrorLogging = async (label, handler) => {
+const withErrorLogging = async (handler) => {
   if (!posthog) {
     return;
   }
 
   try {
     await handler();
-  } catch (error) {
-    console.warn(`[posthog] ${label} failed`, error);
-  }
+  } catch {}
 };
 
 export const identifyApiUser = async (req, properties = {}, distinctId) => {
@@ -87,11 +89,14 @@ export const identifyApiUser = async (req, properties = {}, distinctId) => {
     return;
   }
 
-  await withErrorLogging("identify", async () => {
+  await withErrorLogging(async () => {
     await posthog.identify({
       distinctId: resolvedDistinctId,
       properties: compactProperties({
         ...getUserProperties(req.user),
+        app_environment: process.env.NODE_ENV || "development",
+        app_runtime: "node-api",
+        is_local_dev: isLocalDev,
         ...properties,
       }),
     });
@@ -100,7 +105,7 @@ export const identifyApiUser = async (req, properties = {}, distinctId) => {
 
 export const identifyApiGroup = async (
   req,
-  { eventId, eventProperties, instanceId, instanceProperties } = {},
+  { eventId, eventProperties, instanceId, instanceProperties } = {}
 ) => {
   if (!posthog) {
     return;
@@ -111,13 +116,16 @@ export const identifyApiGroup = async (
   const resolvedInstanceId = getInstanceId(req, instanceId);
 
   if (resolvedEventId) {
-    await withErrorLogging("event group identify", async () => {
+    await withErrorLogging(async () => {
       await posthog.groupIdentify({
         groupType: "event",
         groupKey: resolvedEventId,
         distinctId: resolvedDistinctId,
         properties: compactProperties({
           event_id: resolvedEventId,
+          app_environment: process.env.NODE_ENV || "development",
+          app_runtime: "node-api",
+          is_local_dev: isLocalDev,
           ...eventProperties,
         }),
       });
@@ -125,7 +133,7 @@ export const identifyApiGroup = async (
   }
 
   if (resolvedInstanceId) {
-    await withErrorLogging("instance group identify", async () => {
+    await withErrorLogging(async () => {
       await posthog.groupIdentify({
         groupType: "instance",
         groupKey: resolvedInstanceId,
@@ -133,6 +141,9 @@ export const identifyApiGroup = async (
         properties: compactProperties({
           event_id: resolvedEventId,
           instance_id: resolvedInstanceId,
+          app_environment: process.env.NODE_ENV || "development",
+          app_runtime: "node-api",
+          is_local_dev: isLocalDev,
           ...instanceProperties,
         }),
       });
@@ -144,13 +155,7 @@ export const captureApiEvent = async (
   req,
   event,
   properties = {},
-  {
-    eventId,
-    instanceId,
-    distinctId,
-    identifyUser = false,
-    identifyGroup = false,
-  } = {},
+  { eventId, instanceId, distinctId, identifyUser = false, identifyGroup = false } = {}
 ) => {
   if (!posthog) {
     return;
@@ -163,7 +168,7 @@ export const captureApiEvent = async (
     Object.entries({
       event: resolvedEventId,
       instance: resolvedInstanceId,
-    }).filter(([, value]) => Boolean(value)),
+    }).filter(([, value]) => Boolean(value))
   );
 
   if (identifyUser) {
@@ -177,12 +182,15 @@ export const captureApiEvent = async (
     });
   }
 
-  await withErrorLogging(`capture ${event}`, async () => {
+  await withErrorLogging(async () => {
     await posthog.capture({
       distinctId: resolvedDistinctId,
       event,
       properties: compactProperties({
         capture_source: "api",
+        app_environment: process.env.NODE_ENV || "development",
+        app_runtime: "node-api",
+        is_local_dev: isLocalDev,
         request_id: req?.id,
         method: req?.method,
         route: req?.route?.path || req?.originalUrl?.split("?")[0],
@@ -201,7 +209,7 @@ export const shutdownPosthog = async () => {
     return;
   }
 
-  await withErrorLogging("shutdown", async () => {
+  await withErrorLogging(async () => {
     await posthog.shutdown();
   });
 };

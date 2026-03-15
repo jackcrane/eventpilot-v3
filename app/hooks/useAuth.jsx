@@ -52,18 +52,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const normalizeEmail = (value) => value?.trim().toLowerCase() || "";
-  const getEmailDomain = (value) =>
-    typeof value === "string" && value.includes("@")
-      ? value.split("@").pop()
-      : null;
 
   const login = async ({ email, password }) => {
     setMutationLoading(true);
     setError(null);
     const normalizedEmail = normalizeEmail(email);
-    capturePosthogEvent("ui_auth_login_attempted", {
-      email_domain: getEmailDomain(normalizedEmail),
-    });
     const r = await fetch(u("/api/auth/login"), {
       method: "POST",
       headers: {
@@ -76,21 +69,13 @@ export const AuthProvider = ({ children }) => {
       const { token } = await r.json();
       localStorage.setItem("token", token);
       setUser(null);
-      const nextUser = await fetchUser();
+      await fetchUser();
       emitter.emit("login");
-      capturePosthogEvent("ui_auth_login_succeeded", {
-        user_id: nextUser?.id,
-        account_type: nextUser?.accountType,
-      });
       setMutationLoading(false);
       document.location.href = "/events";
     } else {
       const { message } = await r.json();
       setError(formatErrorMessage(message));
-      capturePosthogEvent("ui_auth_login_failed", {
-        email_domain: getEmailDomain(normalizedEmail),
-        reason: formatErrorMessage(message),
-      });
       setMutationLoading(false);
     }
     setMutationLoading(false);
@@ -110,9 +95,7 @@ export const AuthProvider = ({ children }) => {
 
     if (r.ok) {
       setRegistered(true);
-      capturePosthogEvent("ui_auth_registered", {
-        email_domain: getEmailDomain(normalizedEmail),
-      });
+      capturePosthogEvent("ui_auth_registered");
     } else {
       const { message } = await r.json();
       setError(formatErrorMessage(message));
@@ -134,11 +117,8 @@ export const AuthProvider = ({ children }) => {
     if (r.ok) {
       const { token, name } = await r.json();
       localStorage.setItem("token", token);
-      const nextUser = await fetchUser();
+      await fetchUser();
       toast.success(`Email verified, ${name}! We are logging you in now.`);
-      capturePosthogEvent("ui_auth_email_verified", {
-        user_id: nextUser?.id,
-      });
       await new Promise((resolve) => setTimeout(resolve, 1000));
       window.location.href = "/";
     } else {
@@ -163,9 +143,6 @@ export const AuthProvider = ({ children }) => {
 
     if (r.ok) {
       toast.success("Verification email sent!");
-      capturePosthogEvent("ui_auth_verification_resent", {
-        email_domain: getEmailDomain(normalizedEmail),
-      });
       setMutationLoading(false);
     } else {
       const { message } = await r.json();
@@ -243,9 +220,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    capturePosthogEvent("ui_auth_logged_out", {
-      user_id: user?.id,
-    });
     resetPosthogUser();
     localStorage.removeItem("token");
     setUser(null);
@@ -268,9 +242,6 @@ export const AuthProvider = ({ children }) => {
     if (r.ok) {
       const { message } = await r.json();
       toast.success(message);
-      capturePosthogEvent("ui_auth_forgot_password_requested", {
-        email_domain: getEmailDomain(normalizedEmail),
-      });
       setMutationLoading(false);
       setForgotPasswordWaiting(true);
     } else {
@@ -296,7 +267,6 @@ export const AuthProvider = ({ children }) => {
     if (r.ok) {
       const { message } = await r.json();
       toast.success(message);
-      capturePosthogEvent("ui_auth_forgot_password_completed");
       setMutationLoading(false);
       setForgotPasswordWaiting(false);
       localStorage.removeItem("token");

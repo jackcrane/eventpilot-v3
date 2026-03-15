@@ -11,7 +11,9 @@ import { captureApiEvent, identifyApiUser } from "#util/posthog.js";
 // No longer creating Stripe customers at the user level
 
 const getEmailDomain = (email) =>
-  typeof email === "string" && email.includes("@") ? email.split("@").pop() : null;
+  typeof email === "string" && email.includes("@")
+    ? email.split("@").pop()
+    : null;
 
 export const post = async (req, res) => {
   try {
@@ -154,15 +156,6 @@ export const put = async (req, res) => {
       ip: req.ip,
     },
   });
-
-  await captureApiEvent(
-    { ...req, user },
-    "api_auth_verification_resent",
-    {
-      email_domain: getEmailDomain(email),
-    },
-    { distinctId: user.id }
-  );
 
   return res.status(200).json({ message: "Verification email sent" });
 };
