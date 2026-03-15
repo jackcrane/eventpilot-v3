@@ -4,6 +4,7 @@ import { authFetch, u } from "../util/url";
 import { emitter } from "../util/mitt";
 import toast from "react-hot-toast";
 import { Link } from "tabler-react-2";
+import { capturePosthogEvent, resetPosthogUser } from "../util/posthog";
 
 // Create Auth Context
 const AuthContext = createContext();
@@ -68,7 +69,7 @@ export const AuthProvider = ({ children }) => {
       const { token } = await r.json();
       localStorage.setItem("token", token);
       setUser(null);
-      fetchUser();
+      await fetchUser();
       emitter.emit("login");
       setMutationLoading(false);
       document.location.href = "/events";
@@ -94,6 +95,7 @@ export const AuthProvider = ({ children }) => {
 
     if (r.ok) {
       setRegistered(true);
+      capturePosthogEvent("ui_auth_registered");
     } else {
       const { message } = await r.json();
       setError(formatErrorMessage(message));
@@ -115,7 +117,7 @@ export const AuthProvider = ({ children }) => {
     if (r.ok) {
       const { token, name } = await r.json();
       localStorage.setItem("token", token);
-      fetchUser();
+      await fetchUser();
       toast.success(`Email verified, ${name}! We are logging you in now.`);
       await new Promise((resolve) => setTimeout(resolve, 1000));
       window.location.href = "/";
@@ -157,7 +159,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       setLoggedIn(false);
       setUser(null);
-      return;
+      return null;
     }
 
     const r = await fetch(u("/api/auth/me"), {
@@ -171,9 +173,11 @@ export const AuthProvider = ({ children }) => {
       setUser(user);
       setLoggedIn(true);
       setLoading(false);
+      return user;
     }
 
     setLoading(false);
+    return null;
   };
 
   const updateUser = async (data) => {
@@ -197,6 +201,10 @@ export const AuthProvider = ({ children }) => {
       if (!user.emailVerified) {
         resendVerificationEmail({ email: user.email });
       }
+      capturePosthogEvent("ui_auth_profile_updated", {
+        user_id: user.id,
+        changed_fields: Object.keys(data || {}),
+      });
       setLoading(false);
       setMutationLoading(false);
     } else {
@@ -212,6 +220,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    resetPosthogUser();
     localStorage.removeItem("token");
     setUser(null);
     setLoggedIn(false);

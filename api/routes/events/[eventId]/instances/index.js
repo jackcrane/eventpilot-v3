@@ -5,6 +5,7 @@ import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { zerialize } from "zodex";
 import { cloneInstanceFromTemplate } from "#util/cloneInstance/cloneInstanceFromTemplate.js";
+import { captureApiEvent, identifyApiGroup } from "#util/posthog.js";
 
 export const instanceSchema = z.object({
   name: z.string().min(2).max(50),
@@ -90,6 +91,34 @@ export const post = [
 
       console.log(cloneOp);
     }
+
+    await identifyApiGroup(req, {
+      eventId,
+      instanceId: instance.id,
+      instanceProperties: {
+        instance_name: instance.name,
+      },
+    });
+    await captureApiEvent(
+      req,
+      "api_instance_created",
+      {
+        instance_id: instance.id,
+        instance_name: instance.name,
+        template_instance_id: parsed.data.templateInstanceId,
+        cloned_sections: [
+          parsed.data.locationJobsShifts && "location_jobs_shifts",
+          parsed.data.formField && "form_field",
+          parsed.data.registration && "registration",
+          parsed.data.registrationPeriod && "registration_period",
+          parsed.data.registrationTier && "registration_tier",
+          parsed.data.registrationPeriodPricing &&
+            "registration_period_pricing",
+          parsed.data.upsellItem && "upsell_item",
+        ].filter(Boolean),
+      },
+      { eventId, instanceId: instance.id, identifyGroup: true }
+    );
 
     res.json({ instance });
     // res.json({ message: "Not implemented" });

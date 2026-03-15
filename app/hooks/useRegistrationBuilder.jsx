@@ -3,6 +3,7 @@ import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
 import z from "zod";
+import { capturePosthogEvent } from "../util/posthog";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
@@ -58,6 +59,12 @@ export const useRegistrationBuilder = ({ eventId }) => {
         loading: "Saving...",
         success: "Saved successfully",
         error: "Error",
+      });
+
+      capturePosthogEvent("ui_registration_builder_saved", {
+        event_id: eventId,
+        tier_count: data?.tiers?.length || 0,
+        period_count: data?.periods?.length || 0,
       });
 
       await mutate(key); // Invalidate and refetch

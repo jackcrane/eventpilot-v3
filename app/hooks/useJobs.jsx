@@ -3,6 +3,7 @@ import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import { useLocation } from "./useLocation";
+import { capturePosthogEvent } from "../util/posthog";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
@@ -47,6 +48,18 @@ export const useJobs = ({ eventId, locationId }) => {
         error: "Error creating job",
       });
 
+      capturePosthogEvent("ui_job_created", {
+        event_id: eventId,
+        location_id: locationId,
+        job_name: data?.name,
+        shift_count: data?.shifts?.length || 0,
+        total_shift_capacity:
+          data?.shifts?.reduce(
+            (total, shift) => total + (Number(shift?.capacity) || 0),
+            0
+          ) || 0,
+      });
+
       setMutationLoading(false);
 
       refetch();
@@ -75,6 +88,12 @@ export const useJobs = ({ eventId, locationId }) => {
       await toast.promise(promise, {
         loading: "Deleting job...",
         success: "Deleted job",
+      });
+
+      capturePosthogEvent("ui_job_deleted", {
+        event_id: eventId,
+        location_id: locationId,
+        job_id: jobId,
       });
 
       setMutationLoading(false);
@@ -107,6 +126,14 @@ export const useJobs = ({ eventId, locationId }) => {
         loading: "Updating job...",
         success: "Updated job",
         error: "Error updating job",
+      });
+
+      capturePosthogEvent("ui_job_updated", {
+        event_id: eventId,
+        location_id: locationId,
+        job_id: jobId,
+        changed_fields: Object.keys(data || {}),
+        shift_count: data?.shifts?.length || 0,
       });
 
       setMutationLoading(false);

@@ -8,6 +8,7 @@ import { Consumer } from "./consumer/Consumer";
 import { SelectedInstanceProvider } from "../contexts/SelectedInstanceContext";
 import { useReducedSubdomain } from "../hooks/useReducedSubdomain";
 import { AppSWRProvider } from "../contexts/AppSWRProvider";
+import { AppPostHogTracker } from "../components/analytics/PostHogTracker";
 
 /** Background prefetchers for lazy-loaded route bundles */
 const routePrefetchers = [
@@ -325,6 +326,7 @@ export default () => {
       <SelectedInstanceProvider>
         <AppSWRProvider>
           <Router>
+            <AppPostHogTracker />
             <Suspense fallback={<Loader />}>
               <Routes>
                 <Route path="/" element={<Home />} />

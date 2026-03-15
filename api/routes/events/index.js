@@ -7,6 +7,7 @@ import { eventSchema } from "./[eventId]";
 import { zerialize } from "zodex";
 import { reportApiError } from "#util/reportApiError.js";
 import { e2eLog } from "#util/log.js";
+import { captureApiEvent, identifyApiGroup } from "#util/posthog.js";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -149,6 +150,26 @@ export const post = [
           userId: req.user?.id,
           eventId: event?.id,
         });
+        await identifyApiGroup(req, {
+          eventId: event.id,
+          eventProperties: {
+            event_name: event.name,
+            event_slug: event.slug,
+            finalized: false,
+          },
+        });
+        await captureApiEvent(
+          req,
+          "api_event_created",
+          {
+            event_id: event.id,
+            event_name: event.name,
+            event_slug: event.slug,
+            finalized: false,
+            instance_count: instance ? 1 : 0,
+          },
+          { eventId: event.id, identifyGroup: true }
+        );
         return res.json({
           event,
         });
@@ -373,6 +394,29 @@ export const post = [
         userId: req.user?.id,
         eventId: event?.id,
       });
+      await identifyApiGroup(req, {
+        eventId: event.id,
+        eventProperties: {
+          event_name: event.name,
+          event_slug: event.slug,
+          finalized: true,
+        },
+      });
+      await captureApiEvent(
+        req,
+        "api_event_created",
+        {
+          event_id: event.id,
+          event_name: event.name,
+          event_slug: event.slug,
+          finalized: true,
+          subscription_status: subscription?.status || null,
+          good_payment_standing: ["active", "trialing"].includes(
+            subscription?.status || ""
+          ),
+        },
+        { eventId: event.id, identifyGroup: true }
+      );
       res.json({
         event,
       });

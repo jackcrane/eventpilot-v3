@@ -6,6 +6,7 @@ import * as Sentry from "@sentry/node";
 import registerRoutes from "./util/router.js";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import { shutdownPosthog } from "./util/posthog.js";
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -132,6 +133,12 @@ if (process.env.NODE_ENV !== "test" || process.env.E2E) {
     isShuttingDown = true;
 
     console.log(`Received ${signal}; shutting down server gracefully.`);
+
+    try {
+      await shutdownPosthog();
+    } catch (error) {
+      console.error("[shutdown] Failed to stop PostHog", error);
+    }
 
     try {
       await shutdownOtel();

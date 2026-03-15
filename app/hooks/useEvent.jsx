@@ -3,6 +3,7 @@ import { authFetch } from "../util/url";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useConfirm } from "tabler-react-2";
+import { capturePosthogEvent } from "../util/posthog";
 
 const fetcher = async (url) => {
   const res = await authFetch(url);
@@ -59,6 +60,11 @@ export const useEvent = ({ eventId, refreshInterval = 0 }) => {
         error: "Error",
       });
 
+      capturePosthogEvent("ui_event_updated", {
+        event_id: eventId,
+        changed_fields: Object.keys(data || {}),
+      });
+
       await boundMutate(key); // Invalidate and refetch
       return true;
     } catch {
@@ -82,6 +88,10 @@ export const useEvent = ({ eventId, refreshInterval = 0 }) => {
           loading: "Deleting...",
           success: "Deleted successfully",
           error: "Error deleting",
+        });
+
+        capturePosthogEvent("ui_event_deleted", {
+          event_id: eventId,
         });
 
         await boundMutate(key); // Invalidate and refetch

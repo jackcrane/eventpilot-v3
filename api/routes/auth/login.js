@@ -9,6 +9,7 @@ import { forceTestError } from "#forceError";
 import LoginEmail from "#emails/login.jsx";
 import { render } from "@react-email/render";
 import { reportApiError } from "#util/reportApiError.js";
+import { identifyApiUser } from "#util/posthog.js";
 
 dotenv.config();
 
@@ -70,6 +71,11 @@ export const post = async (req, res) => {
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
       expiresIn: "12h",
+    });
+
+    const posthogReq = { ...req, user };
+    await identifyApiUser(posthogReq, {
+      last_login_at: new Date().toISOString(),
     });
 
     return res.status(200).json({ token });

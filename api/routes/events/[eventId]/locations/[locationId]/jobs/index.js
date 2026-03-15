@@ -3,6 +3,7 @@ import { verifyAuth } from "#verifyAuth";
 import { LogType } from "@prisma/client";
 import { z } from "zod";
 import { reportApiError } from "#util/reportApiError.js";
+import { captureApiEvent, identifyApiGroup } from "#util/posthog.js";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -94,6 +95,28 @@ export const post = [
         },
       });
 
+      await identifyApiGroup(req, {
+        instanceId,
+        instanceProperties: {
+          event_id: eventId,
+        },
+      });
+      await captureApiEvent(
+        req,
+        "api_job_created",
+        {
+          job_id: job.id,
+          location_id: locationId,
+          shift_count: job.shifts?.length || 0,
+          total_shift_capacity:
+            job.shifts?.reduce(
+              (total, shift) => total + (Number(shift?.capacity) || 0),
+              0
+            ) || 0,
+        },
+        { eventId, instanceId, identifyGroup: true }
+      );
+
       return res.status(201).json({ message: "Job created", job });
     } catch (error) {
       console.log(error);
@@ -152,6 +175,11 @@ export const del = [
           locationId: req.params.locationId,
           jobId: jobId,
         },
+      });
+
+      await captureApiEvent(req, "api_job_deleted", {
+        job_id: jobId,
+        location_id: req.params.locationId,
       });
 
       return res.status(204).end();

@@ -4,6 +4,7 @@ import { verifyAuth } from "#verifyAuth";
 import { instanceSchema } from "./index";
 import { zerialize } from "zodex";
 import { reportApiError } from "#util/reportApiError.js";
+import { captureApiEvent, identifyApiGroup } from "#util/posthog.js";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -53,6 +54,20 @@ export const put = [
         data: parsed.data,
       });
 
+      await identifyApiGroup(req, {
+        instanceProperties: {
+          instance_name: instance.name,
+        },
+      });
+      await captureApiEvent(
+        req,
+        "api_instance_updated",
+        {
+          changed_fields: Object.keys(parsed.data || {}),
+        },
+        { identifyGroup: true }
+      );
+
       res.json({ instance });
     } catch (error) {
       console.error(error);
@@ -71,6 +86,10 @@ export const del = [
       await prisma.eventInstance.update({
         where: { id: instanceId, eventId },
         data: { deleted: true },
+      });
+
+      await captureApiEvent(req, "api_instance_deleted", {
+        instance_id: instanceId,
       });
 
       res.json({ message: "Instance deleted successfully" });

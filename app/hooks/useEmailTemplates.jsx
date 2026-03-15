@@ -2,6 +2,7 @@ import useSWR, { useSWRConfig } from "swr";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
 import { authFetch } from "../util/url";
+import { capturePosthogEvent } from "../util/posthog";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 const fetchSchema = async ([url]) => {
@@ -68,6 +69,12 @@ export const useEmailTemplates = ({ eventId, includeDeleted } = {}) => {
         error: (e) => e?.message || "Error creating template",
       });
 
+      capturePosthogEvent("ui_email_template_created", {
+        event_id: eventId,
+        template_id: template?.id,
+        template_name: template?.name || parsed?.data?.name,
+      });
+
       await refetch();
       if (template?.id) {
         await boundMutate(`/api/events/${eventId}/templates/${template.id}`);
@@ -103,6 +110,12 @@ export const useEmailTemplates = ({ eventId, includeDeleted } = {}) => {
         error: (e) => e?.message || "Error updating template",
       });
 
+      capturePosthogEvent("ui_email_template_updated", {
+        event_id: eventId,
+        template_id: templateId,
+        changed_fields: Object.keys(parsed?.data || {}),
+      });
+
       await refetch();
       await boundMutate(templateUrl);
 
@@ -131,6 +144,11 @@ export const useEmailTemplates = ({ eventId, includeDeleted } = {}) => {
         loading: "Deleting template…",
         success: "Template deleted",
         error: (e) => e?.message || "Error deleting template",
+      });
+
+      capturePosthogEvent("ui_email_template_deleted", {
+        event_id: eventId,
+        template_id: templateId,
       });
 
       await refetch();

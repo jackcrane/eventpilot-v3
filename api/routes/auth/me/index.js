@@ -4,6 +4,7 @@ import { serializeError } from "#serializeError";
 // User-level billing deprecated
 import { verifyAuth } from "#verifyAuth";
 import { z } from "zod";
+import { captureApiEvent, identifyApiUser } from "#util/posthog.js";
 
 export const get = [
   verifyAuth(["manager"]),
@@ -66,6 +67,18 @@ export const put = [
           data: changedKeys,
         },
       });
+
+      await identifyApiUser({ ...req, user }, {
+        last_profile_update_at: new Date().toISOString(),
+      });
+      await captureApiEvent(
+        { ...req, user },
+        "api_auth_profile_updated",
+        {
+          changed_fields: Object.keys(changedKeys),
+        },
+        { distinctId: user.id }
+      );
     }
 
     res.json({
