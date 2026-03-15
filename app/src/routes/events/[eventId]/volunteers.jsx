@@ -11,35 +11,17 @@ import { useColumnConfig } from "../../../../hooks/useColumnConfig";
 import { buildVolunteerColumns } from "../../../../util/roster/volunteerColumns";
 import { ColumnsPicker } from "../../../../components/columnsPicker/ColumnsPicker";
 import { Row } from "../../../../util/Flex";
-import { Filters } from "../../../../components/filters/Filters";
-import { useVolunteerFilterDefinitions } from "../../../../hooks/useVolunteerFilterDefinitions";
 
 export const EventVolunteers = () => {
   const { eventId } = useParams();
   const { event } = useEvent({ eventId });
   const [searchInput, setSearchInput] = useState("");
-  const [filterState, setFilterState] = useState([]);
 
   const searchQuery = useMemo(() => searchInput.trim(), [searchInput]);
-
-  const serverFilters = useMemo(
-    () =>
-      (filterState || [])
-        .map((entry) => {
-          const path = entry?.field?.path || entry?.field?.label;
-          const operation = entry?.operation;
-          if (!path || !operation) return null;
-          const value = entry?.value ?? null;
-          return { path, operation, value };
-        })
-        .filter(Boolean),
-    [filterState]
-  );
 
   const roster = useVolunteerRoster({
     eventId,
     search: searchQuery,
-    filters: serverFilters,
   });
 
   const { offcanvas, OffcanvasElement } = useOffcanvas({
@@ -81,10 +63,6 @@ export const EventVolunteers = () => {
       }),
     [roster.fields, handleOpenDetails]
   );
-
-  const filterDefinitions = useVolunteerFilterDefinitions({
-    fields: roster.fields,
-  });
 
   const storageKey = eventId ? `volunteer-roster:${eventId}` : null;
 
@@ -186,15 +164,7 @@ export const EventVolunteers = () => {
     [roster]
   );
 
-  const handleFilterChange = useCallback(
-    (next) => {
-      setFilterState(next || []);
-      roster.setPage(1);
-    },
-    [roster]
-  );
-
-  const isFiltering = Boolean(searchQuery) || serverFilters.length > 0;
+  const isFiltering = Boolean(searchQuery);
   const showInitialEmpty =
     !roster.loading &&
     !roster.validating &&
@@ -233,10 +203,6 @@ export const EventVolunteers = () => {
                 style={{ minWidth: 220 }}
                 className="mb-0"
               />
-              <Filters
-                fields={filterDefinitions}
-                onFilterChange={handleFilterChange}
-              />
             </Row>
             <ColumnsPicker
               columns={columnConfig}
@@ -260,7 +226,7 @@ export const EventVolunteers = () => {
             loading={roster.loading || roster.validating}
             emptyState={() => (
               <div className="py-4 text-center text-muted">
-                No volunteers match your current filters.
+                No volunteers match your current search.
               </div>
             )}
           />

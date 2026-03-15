@@ -15,7 +15,6 @@ const buildKey = ({
   orderBy,
   order,
   search,
-  filters,
 }) => {
   if (!eventId) return null;
   const params = new URLSearchParams();
@@ -24,7 +23,6 @@ const buildKey = ({
   if (orderBy) params.set("orderBy", orderBy);
   if (order) params.set("order", order);
   if (search) params.set("q", search);
-  if (filters) params.set("filters", filters);
   return `/api/events/${eventId}/volunteers?${params.toString()}`;
 };
 
@@ -32,7 +30,6 @@ export const useVolunteerRoster = ({
   eventId,
   initialPageSize = 25,
   search = "",
-  filters = [],
 } = {}) => {
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(initialPageSize);
@@ -44,16 +41,6 @@ export const useVolunteerRoster = ({
     return search.trim();
   }, [search]);
 
-  const serializedFilters = useMemo(() => {
-    if (!Array.isArray(filters) || !filters.length) return "";
-    try {
-      return JSON.stringify(filters);
-    } catch (error) {
-      console.warn("Failed to serialize volunteer filters", error);
-      return "";
-    }
-  }, [filters]);
-
   const key = useMemo(
     () =>
       buildKey({
@@ -63,17 +50,8 @@ export const useVolunteerRoster = ({
         orderBy,
         order,
         search: normalizedSearch,
-        filters: serializedFilters,
       }),
-    [
-      eventId,
-      page,
-      size,
-      orderBy,
-      order,
-      normalizedSearch,
-      serializedFilters,
-    ]
+    [eventId, page, size, orderBy, order, normalizedSearch]
   );
 
   const { data, error, isLoading, isValidating, mutate } = useSWR(key, fetcher, {
