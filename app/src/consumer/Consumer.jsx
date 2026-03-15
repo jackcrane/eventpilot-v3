@@ -2,12 +2,14 @@ import { Toaster } from "react-hot-toast";
 import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
 import { VolunteerRegistrationPage } from "./routes/volunteer";
 import { RegisterPage } from "./routes/register";
+import { ConsumerPostHogTracker } from "../../components/analytics/PostHogTracker";
 
 export const Consumer = ({ subdomain }) => {
   return (
     <div>
       <Toaster />
       <Router>
+        <ConsumerPostHogTracker subdomain={subdomain} />
         <Routes>
           <Route path="/" element={<Navigate to="/register" replace />} />
           <Route path="/volunteer" element={<VolunteerRegistrationPage />} />

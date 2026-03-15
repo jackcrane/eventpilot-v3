@@ -7,7 +7,11 @@ import { forceTestError } from "#forceError";
 import WelcomeEmail from "#emails/welcome.jsx";
 import { render } from "@react-email/render";
 import { reportApiError } from "#util/reportApiError.js";
+import { captureApiEvent, identifyApiUser } from "#util/posthog.js";
 // No longer creating Stripe customers at the user level
+
+const getEmailDomain = (email) =>
+  typeof email === "string" && email.includes("@") ? email.split("@").pop() : null;
 
 export const post = async (req, res) => {
   try {
@@ -89,6 +93,19 @@ export const post = async (req, res) => {
       },
     });
 
+    const posthogReq = { ...req, user };
+    await identifyApiUser(posthogReq, {
+      registered_at: new Date().toISOString(),
+    });
+    await captureApiEvent(
+      posthogReq,
+      "api_auth_registered",
+      {
+        email_domain: getEmailDomain(email),
+      },
+      { distinctId: user.id }
+    );
+
     return res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     console.error(error);
@@ -137,6 +154,15 @@ export const put = async (req, res) => {
       ip: req.ip,
     },
   });
+
+  await captureApiEvent(
+    { ...req, user },
+    "api_auth_verification_resent",
+    {
+      email_domain: getEmailDomain(email),
+    },
+    { distinctId: user.id }
+  );
 
   return res.status(200).json({ message: "Verification email sent" });
 };

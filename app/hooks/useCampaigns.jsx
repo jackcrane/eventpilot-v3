@@ -2,6 +2,7 @@ import useSWR, { mutate as mutateGlobal } from "swr";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
 import { authFetch } from "../util/url";
+import { capturePosthogEvent } from "../util/posthog";
 
 const fetcher = (url) => authFetch(url).then((res) => res.json());
 
@@ -103,6 +104,12 @@ export const useCampaigns = ({
         error: (err) => err?.message || "Error creating campaign",
       });
 
+      capturePosthogEvent("ui_campaign_created", {
+        event_id: eventId,
+        campaign_id: campaign?.id,
+        campaign_name: campaign?.name || parsed?.data?.name,
+      });
+
       await refetch();
       return campaign ?? null;
     } catch (error) {
@@ -135,6 +142,12 @@ export const useCampaigns = ({
         loading: "Updating campaign...",
         success: "Campaign updated",
         error: (err) => err?.message || "Error updating campaign",
+      });
+
+      capturePosthogEvent("ui_campaign_updated", {
+        event_id: eventId,
+        campaign_id: campaignId,
+        changed_fields: Object.keys(parsed?.data || {}),
       });
 
       await refetch();
@@ -172,6 +185,14 @@ export const useCampaigns = ({
         }
       }
 
+      capturePosthogEvent("ui_campaign_sent", {
+        event_id: eventId,
+        campaign_id: campaignId,
+        result_status: result?.status || null,
+        delivered_count: result?.deliveredCount ?? null,
+        queued_count: result?.queuedCount ?? null,
+      });
+
       return result;
     } catch (error) {
       await refetch();
@@ -200,6 +221,11 @@ export const useCampaigns = ({
         loading: "Deleting campaign...",
         success: "Campaign deleted",
         error: (err) => err?.message || "Error deleting campaign",
+      });
+
+      capturePosthogEvent("ui_campaign_deleted", {
+        event_id: eventId,
+        campaign_id: campaignId,
       });
 
       await refetch();

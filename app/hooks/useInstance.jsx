@@ -4,6 +4,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { useConfirm } from "tabler-react-2";
 import { dezerialize } from "zodex";
+import { capturePosthogEvent } from "../util/posthog";
 
 const fetcher = (url) => authFetch(url, null, false).then((r) => r.json());
 
@@ -64,6 +65,12 @@ export const useInstance = ({ eventId, instanceId }) => {
         error: "Error",
       });
 
+      capturePosthogEvent("ui_instance_updated", {
+        event_id: eventId,
+        instance_id: instanceId,
+        changed_fields: Object.keys(data || {}),
+      });
+
       await boundMutate(key);
       await boundMutate(`/api/events/${eventId}/instances`);
       // Invalidate all event-scoped keys to refresh dependent data
@@ -96,6 +103,11 @@ export const useInstance = ({ eventId, instanceId }) => {
           loading: "Deleting...",
           success: "Deleted successfully",
           error: "Error deleting",
+        });
+
+        capturePosthogEvent("ui_instance_deleted", {
+          event_id: eventId,
+          instance_id: instanceId,
         });
 
         await boundMutate(key);

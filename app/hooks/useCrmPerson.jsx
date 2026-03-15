@@ -3,6 +3,7 @@ import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { useConfirm } from "tabler-react-2";
 import { useState } from "react";
+import { capturePosthogEvent } from "../util/posthog";
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
 export const useCrmPerson = ({ eventId, personId }) => {
@@ -32,6 +33,12 @@ export const useCrmPerson = ({ eventId, personId }) => {
         error: "Error",
       });
 
+      capturePosthogEvent("ui_crm_person_updated", {
+        event_id: eventId,
+        crm_person_id: personId,
+        changed_fields: Object.keys(data || {}),
+      });
+
       await mutate(key);
       await mutate(`/api/events/${eventId}/crm/person`);
       return true;
@@ -57,6 +64,11 @@ export const useCrmPerson = ({ eventId, personId }) => {
           loading: "Deleting...",
           success: "Deleted successfully",
           error: "Error deleting",
+        });
+
+        capturePosthogEvent("ui_crm_person_deleted", {
+          event_id: eventId,
+          crm_person_id: personId,
         });
 
         await mutate(key);

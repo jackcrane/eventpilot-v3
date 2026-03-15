@@ -8,6 +8,7 @@ import { useSlugChecker } from "./useSlugChecker";
 import { TzPicker } from "../components/tzDateTime/tzDateTime";
 import { useNavigate } from "react-router-dom";
 import { dezerialize } from "zodex";
+import { capturePosthogEvent } from "../util/posthog";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
@@ -51,6 +52,14 @@ export const useEvents = () => {
         loading: "Creating event...",
         success: "Event created successfully",
         error: "Error creating event",
+      });
+
+      capturePosthogEvent("ui_event_created", {
+        event_id: response?.event?.id,
+        event_name: response?.event?.name || data?.name,
+        event_slug: response?.event?.slug || data?.slug,
+        default_tz: data?.defaultTz,
+        has_logo: Boolean(data?.logoFileId),
       });
 
       if (redirect) {

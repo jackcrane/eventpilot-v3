@@ -5,6 +5,7 @@ import { serializeError } from "#serializeError";
 import { LogType } from "@prisma/client";
 import { getChangedKeys } from "#getChangedKeys";
 import { reportApiError } from "#util/reportApiError.js";
+import { captureApiEvent } from "#util/posthog.js";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -194,6 +195,13 @@ export const put = [
           jobId: jobId,
           data: changedKeys,
         },
+      });
+
+      await captureApiEvent(req, "api_job_updated", {
+        job_id: jobId,
+        location_id,
+        changed_fields: Object.keys(changedKeys || {}),
+        shift_count: job.shifts?.filter((shift) => !shift.deleted)?.length || 0,
       });
 
       return res.json({ job });

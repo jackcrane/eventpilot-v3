@@ -5,6 +5,7 @@ import { locationSchema as schema } from "..";
 import { getChangedKeys } from "#getChangedKeys";
 import { LogType } from "@prisma/client";
 import { reportApiError } from "#util/reportApiError.js";
+import { captureApiEvent } from "#util/posthog.js";
 
 export const get = [
   verifyAuth(["manager"], true),
@@ -102,6 +103,11 @@ export const put = [
         },
       });
 
+      await captureApiEvent(req, "api_location_updated", {
+        location_id: locationId,
+        changed_fields: Object.keys(changedKeys || {}),
+      });
+
       return res.json({
         location,
       });
@@ -133,6 +139,10 @@ export const del = [
           eventId: req.params.eventId,
           locationId: locationId,
         },
+      });
+
+      await captureApiEvent(req, "api_location_deleted", {
+        location_id: locationId,
       });
 
       return res.status(204).end();

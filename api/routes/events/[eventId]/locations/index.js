@@ -3,6 +3,7 @@ import { verifyAuth } from "#verifyAuth";
 import { LogType } from "@prisma/client";
 import { z } from "zod";
 import { reportApiError } from "#util/reportApiError.js";
+import { captureApiEvent, identifyApiGroup } from "#util/posthog.js";
 
 const schema = z.object({
   name: z.string().min(2).max(50),
@@ -59,6 +60,22 @@ export const post = [
           data: location,
         },
       });
+
+      await identifyApiGroup(req, {
+        instanceId,
+        instanceProperties: {
+          event_id: eventId,
+        },
+      });
+      await captureApiEvent(
+        req,
+        "api_location_created",
+        {
+          location_id: location.id,
+          location_name: location.name,
+        },
+        { eventId, instanceId, identifyGroup: true }
+      );
 
       return res.status(201).json({ message: "Location created", location });
     } catch (error) {

@@ -2,6 +2,7 @@
 import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
+import { capturePosthogEvent } from "../util/posthog";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
@@ -53,6 +54,13 @@ export const useLocations = ({ eventId }) => {
         error: "Error creating location",
       });
 
+      capturePosthogEvent("ui_location_created", {
+        event_id: eventId,
+        instance_id: newLocation?.location?.instanceId,
+        location_id: newLocation?.location?.id,
+        location_name: newLocation?.location?.name || body?.name,
+      });
+
       await revalidateLocations(eventId, boundMutate);
       return newLocation;
     } catch {
@@ -80,6 +88,13 @@ export const useLocations = ({ eventId }) => {
         error: "Error updating location",
       });
 
+      capturePosthogEvent("ui_location_updated", {
+        event_id: eventId,
+        instance_id: updatedLocation?.instanceId,
+        location_id: locationId,
+        changed_fields: Object.keys(body || {}),
+      });
+
       await revalidateLocations(eventId, boundMutate);
       return updatedLocation ?? true;
     } catch {
@@ -101,6 +116,11 @@ export const useLocations = ({ eventId }) => {
         loading: "Deleting location…",
         success: "Deleted",
         error: "Error deleting",
+      });
+
+      capturePosthogEvent("ui_location_deleted", {
+        event_id: eventId,
+        location_id: locationId,
       });
 
       await revalidateLocations(eventId, boundMutate);

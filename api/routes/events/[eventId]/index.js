@@ -4,6 +4,7 @@ import { z } from "zod";
 import { serializeError } from "#serializeError";
 import { zerialize } from "zodex";
 import { stripe } from "#stripe";
+import { captureApiEvent, identifyApiGroup } from "#util/posthog.js";
 
 export const eventSchema = z.object({
   name: z.string().min(2),
@@ -141,8 +142,23 @@ export const put = [
       where: {
         id: req.params.eventId,
       },
-      data: eventData,
+        data: eventData,
     });
+
+    await identifyApiGroup(req, {
+      eventProperties: {
+        event_name: result.data.name,
+        event_slug: result.data.slug,
+      },
+    });
+    await captureApiEvent(
+      req,
+      "api_event_updated",
+      {
+        changed_fields: Object.keys(eventData || {}),
+      },
+      { identifyGroup: true }
+    );
 
     res.json({
       event,
@@ -180,6 +196,12 @@ export const del = [
       where: {
         id: req.params.eventId,
       },
+    });
+
+    await captureApiEvent(req, "api_event_deleted", {
+      event_id: event.id,
+      event_name: event.name,
+      event_slug: event.slug,
     });
 
     res.json({

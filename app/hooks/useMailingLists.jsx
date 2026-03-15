@@ -2,6 +2,7 @@ import useSWR, { useSWRConfig } from "swr";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
 import { authFetch } from "../util/url";
+import { capturePosthogEvent } from "../util/posthog";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 const fetchSchema = async ([url]) => {
@@ -80,6 +81,12 @@ export const useMailingLists = ({
         error: (e) => e?.message || "Error creating mailing list",
       });
 
+      capturePosthogEvent("ui_mailing_list_created", {
+        event_id: eventId,
+        mailing_list_id: mailingList?.id,
+        mailing_list_name: mailingList?.name || parsed?.data?.name,
+      });
+
       await refetch();
       if (mailingList?.id) {
         await boundMutate(`/api/events/${eventId}/mailing-lists/${mailingList.id}`);
@@ -115,6 +122,12 @@ export const useMailingLists = ({
         error: (e) => e?.message || "Error updating mailing list",
       });
 
+      capturePosthogEvent("ui_mailing_list_updated", {
+        event_id: eventId,
+        mailing_list_id: mailingListId,
+        changed_fields: Object.keys(parsed?.data || {}),
+      });
+
       await refetch();
       await boundMutate(listUrl);
 
@@ -141,6 +154,11 @@ export const useMailingLists = ({
         loading: "Deleting mailing list…",
         success: "Mailing list deleted",
         error: (e) => e?.message || "Error deleting mailing list",
+      });
+
+      capturePosthogEvent("ui_mailing_list_deleted", {
+        event_id: eventId,
+        mailing_list_id: mailingListId,
       });
 
       await refetch();

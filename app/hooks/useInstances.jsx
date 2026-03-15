@@ -7,6 +7,7 @@ import React from "react";
 import { useOffcanvas, useConfirm } from "tabler-react-2";
 import { InstanceCRUD } from "../components/InstanceCRUD/InstanceCRUD";
 import { useSelectedInstance } from "../contexts/SelectedInstanceContext";
+import { capturePosthogEvent } from "../util/posthog";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 const fetchSchema = async ([url]) => {
@@ -71,6 +72,22 @@ export const useInstances = ({ eventId }) => {
         setInstance(result.instance.id);
         toast.success("A new instance has been created & selected");
       }
+
+      capturePosthogEvent("ui_instance_created", {
+        event_id: eventId,
+        instance_id: result?.instance?.id,
+        instance_name: result?.instance?.name || data?.name,
+        template_instance_id: data?.templateInstanceId,
+        cloned_sections: [
+          data?.locationJobsShifts && "location_jobs_shifts",
+          data?.formField && "form_field",
+          data?.registration && "registration",
+          data?.registrationPeriod && "registration_period",
+          data?.registrationTier && "registration_tier",
+          data?.registrationPeriodPricing && "registration_period_pricing",
+          data?.upsellItem && "upsell_item",
+        ].filter(Boolean),
+      });
 
       await boundMutate(key);
       // Invalidate all event-scoped keys to refresh dependent data
@@ -139,6 +156,11 @@ export const useInstances = ({ eventId }) => {
         loading: "Deleting...",
         success: "Deleted successfully",
         error: "Error deleting",
+      });
+
+      capturePosthogEvent("ui_instance_deleted", {
+        event_id: eventId,
+        instance_id: instanceId,
       });
 
       await boundMutate(key);

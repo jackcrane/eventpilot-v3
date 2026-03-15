@@ -2,6 +2,7 @@ import useSWR, { useSWRConfig } from "swr";
 import { authFetch } from "../util/url";
 import toast from "react-hot-toast";
 import { dezerialize } from "zodex";
+import { capturePosthogEvent } from "../util/posthog";
 
 const fetcher = (url) => authFetch(url).then((r) => r.json());
 
@@ -47,6 +48,13 @@ export const useTodos = ({ eventId }) => {
         error: (e) => e?.message || "Error",
       });
 
+      capturePosthogEvent("ui_todo_created", {
+        event_id: eventId,
+        todo_id: todo?.id,
+        todo_title: todo?.title || parsed?.data?.title,
+        todo_status: todo?.status || parsed?.data?.status,
+      });
+
       await refetch();
       if (todo?.id) await boundMutate(`/api/events/${eventId}/todos/${todo.id}`);
       return true;
@@ -77,6 +85,11 @@ export const useTodos = ({ eventId }) => {
 
       // Revalidate list to ensure consistency
       await boundMutate(listKey);
+      capturePosthogEvent("ui_todo_updated", {
+        event_id: eventId,
+        todo_id: todoId,
+        changed_fields: Object.keys(_data || {}),
+      });
       return true;
     } catch (e) {
       // Rollback on error
@@ -100,6 +113,11 @@ export const useTodos = ({ eventId }) => {
         loading: "Deleting...",
         success: "Deleted",
         error: (e) => e?.message || "Error",
+      });
+
+      capturePosthogEvent("ui_todo_deleted", {
+        event_id: eventId,
+        todo_id: todoId,
       });
 
       await refetch();
