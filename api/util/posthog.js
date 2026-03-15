@@ -40,7 +40,7 @@ const compactProperties = (value) => {
     return Object.fromEntries(
       Object.entries(value)
         .map(([key, nestedValue]) => [key, compactProperties(nestedValue)])
-        .filter(([, nestedValue]) => nestedValue !== undefined)
+        .filter(([, nestedValue]) => nestedValue !== undefined),
     );
   }
 
@@ -48,8 +48,7 @@ const compactProperties = (value) => {
 };
 
 const isLocalDev =
-  process.env.NODE_ENV === "development" ||
-  process.env.NODE_ENV === undefined;
+  process.env.NODE_ENV === "development" || process.env.NODE_ENV === undefined;
 
 const getDistinctId = (req, distinctId) =>
   distinctId ||
@@ -105,7 +104,7 @@ export const identifyApiUser = async (req, properties = {}, distinctId) => {
 
 export const identifyApiGroup = async (
   req,
-  { eventId, eventProperties, instanceId, instanceProperties } = {}
+  { eventId, eventProperties, instanceId, instanceProperties } = {},
 ) => {
   if (!posthog) {
     return;
@@ -155,7 +154,13 @@ export const captureApiEvent = async (
   req,
   event,
   properties = {},
-  { eventId, instanceId, distinctId, identifyUser = false, identifyGroup = false } = {}
+  {
+    eventId,
+    instanceId,
+    distinctId,
+    identifyUser = false,
+    identifyGroup = false,
+  } = {},
 ) => {
   if (!posthog) {
     return;
@@ -168,7 +173,7 @@ export const captureApiEvent = async (
     Object.entries({
       event: resolvedEventId,
       instance: resolvedInstanceId,
-    }).filter(([, value]) => Boolean(value))
+    }).filter(([, value]) => Boolean(value)),
   );
 
   if (identifyUser) {

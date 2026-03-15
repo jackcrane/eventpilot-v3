@@ -18,7 +18,7 @@ const schema = z.object({
       "SPECIAL_CERT_REQUIRED",
       "PHYSICAL_ABILITY",
       "OTHER",
-    ])
+    ]),
   ),
   shifts: z.array(
     z.object({
@@ -28,7 +28,7 @@ const schema = z.object({
       startTimeTz: z.string(),
       endTimeTz: z.string(),
       id: z.string().nullable().optional(),
-    })
+    }),
   ),
 });
 
@@ -119,7 +119,7 @@ export const put = [
     });
 
     const deletedShifts = before.shifts.filter(
-      (s) => !submittedIds.includes(s.id)
+      (s) => !submittedIds.includes(s.id),
     );
 
     try {
@@ -199,7 +199,7 @@ export const put = [
 
       await captureApiEvent(req, "api_job_updated", {
         job_id: jobId,
-        location_id,
+        location_id: req.params.locationId,
         changed_fields: Object.keys(changedKeys || {}),
         shift_count: job.shifts?.filter((shift) => !shift.deleted)?.length || 0,
       });
