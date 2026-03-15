@@ -14,7 +14,6 @@ export default [
   },
   {
     rules: {
-      "no-console": "warn",
       "no-unused-vars": "error",
       "max-len": [
         "error",
