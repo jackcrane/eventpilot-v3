@@ -78,7 +78,9 @@ const withErrorLogging = async (handler) => {
 
   try {
     await handler();
-  } catch {}
+  } catch {
+    null;
+  }
 };
 
 export const identifyApiUser = async (req, properties = {}, distinctId) => {
