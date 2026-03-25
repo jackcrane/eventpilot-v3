@@ -1,55 +1,41 @@
-### Direct client networking bypasses the approved hook/fetch layer
-The codebase guide says client-side networking should go through dedicated `useSWR` hooks and the shared fetch wrappers. There are still direct network calls outside that layer in [`app/hooks/usePII.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/usePII.jsx), [`app/hooks/useRrWebRecorder.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useRrWebRecorder.jsx), and [`day-of-dashboard/utils/apiClient.js`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/utils/apiClient.js). These bypass the common auth/error-handling path and create parallel networking conventions.
+Priority order used here:
+- `P0`: security, data exposure, or correctness bugs in live flows
+- `P1`: high-value operational or architectural fixes with broad blast radius
+- `P2`: maintainability debt that materially slows future work
+- `P3`: lower-risk cleanup and hygiene work
 
-### Duplicate Google OAuth callback logic exists in two server routes
-The token exchange and userinfo flow is duplicated in [`api/routes/webhooks/google-oauth.js`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/routes/webhooks/google-oauth.js) and [`api/routes/events/[eventId]/gmail/callback.js`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/routes/events/[eventId]/gmail/callback.js). The two files repeat the same remote calls and error handling, which raises the cost of fixing bugs or changing OAuth behavior.
-
-### Repository keeps an old route file alongside the live app
-[`app/src/home.old.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/home.old.jsx) is a retained legacy file inside the active source tree. Keeping obsolete route implementations in-place makes it harder to tell what is canonical and increases the risk of stale patterns being copied forward.
-
-### Day-of dashboard uses conflicting lockfiles
-The mobile app includes both [`day-of-dashboard/package-lock.json`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/package-lock.json) and [`day-of-dashboard/yarn.lock`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/yarn.lock). Mixed package manager lockfiles are a maintenance smell because they permit drift in dependency resolution and make installs less reproducible.
-
-### Multiple workspaces carry both npm and Yarn lockfiles
-The mixed-lockfile problem is broader than the mobile app. The `api`, `app`, `day-of-dashboard`, and `e2e` workspaces each contain both `package-lock.json` and `yarn.lock`, which means the repository currently supports multiple dependency resolution sources at once.
-
-### usePII relies on an undeclared global and an ad-hoc third-party data call
-[`app/hooks/usePII.jsx:6`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/usePII.jsx) calls `fetch("https://geolocation-db.com/json/")` directly, and [`app/hooks/usePII.jsx:35`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/usePII.jsx) calls `ThumbmarkJS.getFingerprint()` without importing `ThumbmarkJS` anywhere else in the repository. That makes the hook depend on a hidden global and an external service outside the shared networking layer.
-
-### Sensitive authentication data is logged in auth flows
+### [P0] Sensitive authentication data is logged in auth flows
 Several auth paths still write user or token-related data to logs:
 - [`api/routes/auth/login.js:37`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/routes/auth/login.js) logs the full `user` object after password validation.
 - [`api/routes/auth/reset-password.js:76`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/routes/auth/reset-password.js) logs both `user` and `email` during password reset requests.
 - [`api/routes/auth/verify.js:43`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/routes/auth/verify.js) logs `emailVerification.userId`.
 - [`app/src/routes/auth/verify.jsx:23`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/auth/verify.jsx) logs the verification query parameters in the browser.
 
-### Production endpoints are hard-coded as defaults
-The repository hardcodes live environment URLs in places that should be configuration-driven:
-- [`day-of-dashboard/utils/apiClient.js:13`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/utils/apiClient.js) defaults the mobile API base URL to `https://geteventpilot.com`, so a missing env var points the app at production.
-- [`functions/cron/src/index.js:24`](/Users/jackcrane/Documents/programming/eventpilot-v3/functions/cron/src/index.js) posts scheduled events directly to `https://geteventpilot.com/api/webhooks/cron` instead of using environment-specific routing.
-
-### Full-file or targeted lint suppressions hide unresolved issues
-The codebase contains suppressions where the underlying issue has been deferred instead of fixed:
-- [`api/util/google.js:1`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/util/google.js) disables ESLint for the entire file.
-- React hook dependency checks are suppressed in [`app/src/routes/events/[eventId]/conversations/index.jsx:28`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/[eventId]/conversations/index.jsx), [`app/src/routes/events/[eventId]/conversations/index.jsx:86`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/[eventId]/conversations/index.jsx), [`app/src/routes/events/[eventId]/conversations/components/Conversation.jsx:139`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/[eventId]/conversations/components/Conversation.jsx), [`app/components/crmAi/AiSegmentRefinePanel.jsx:60`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/crmAi/AiSegmentRefinePanel.jsx), [`app/components/EmailTemplateEditor/EmailTemplateEditor.jsx:515`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/EmailTemplateEditor/EmailTemplateEditor.jsx), [`app/components/EmailTemplateEditor/EmailTemplateEditor.jsx:523`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/EmailTemplateEditor/EmailTemplateEditor.jsx), [`app/components/filters/Filters.jsx:162`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/filters/Filters.jsx), [`app/hooks/useRrWebRecorder.jsx:283`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useRrWebRecorder.jsx), and [`app/components/SafeHtml/SafeHtml.jsx:87`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/SafeHtml/SafeHtml.jsx).
-
-### Debug logging remains in user-facing client code
-There are many browser and mobile client files still using raw console logging instead of structured diagnostics or user-facing error handling:
-- The day-of POS stack is the heaviest offender: [`day-of-dashboard/hooks/useTapToPay.js`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/hooks/useTapToPay.js), [`day-of-dashboard/app/(tabs)/point-of-sale.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/app/(tabs)/point-of-sale.jsx), [`day-of-dashboard/app/_layout.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/app/_layout.jsx), and [`day-of-dashboard/components/pos/PaymentResultModal.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/components/pos/PaymentResultModal.jsx) contain dense diagnostic logging across the payment lifecycle.
-- Web app examples include [`app/hooks/useLocation.jsx:29`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useLocation.jsx), [`app/hooks/useEvents.jsx:41`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useEvents.jsx), [`app/hooks/useJobs.jsx:70`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useJobs.jsx), [`app/hooks/useJobs.jsx:106`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useJobs.jsx), [`app/hooks/useJobs.jsx:145`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useJobs.jsx), [`app/hooks/useInstance.jsx:44`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useInstance.jsx), [`app/hooks/useInstance.jsx:48`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useInstance.jsx), [`app/hooks/useInstances.jsx:47`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useInstances.jsx), [`app/hooks/useRegistrationUpsell.jsx:43`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useRegistrationUpsell.jsx), [`app/src/routes/events/[eventId]/registration/builder.jsx:92`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/[eventId]/registration/builder.jsx), [`app/src/routes/events/[eventId]/registration/builder.jsx:169`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/[eventId]/registration/builder.jsx), [`app/src/routes/events/[eventId]/registration/builder.jsx:171`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/[eventId]/registration/builder.jsx), [`app/src/routes/events/new.jsx:130`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/new.jsx), [`app/components/EmailsCrmPage/EmailsCrmPage.jsx:39`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/EmailsCrmPage/EmailsCrmPage.jsx), [`app/components/ImageInput/ImageInput.jsx:32`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/ImageInput/ImageInput.jsx), and [`app/components/AiASTViewer/AiASTViewer.jsx:62`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/AiASTViewer/AiASTViewer.jsx).
-
-### Experimental and dev-only code is committed in active source paths
-The repository keeps workbench-style code in source directories instead of isolating or removing it:
-- [`api/experiments/email.js`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/experiments/email.js) is a manual render script with hardcoded sample data and direct `console.log`.
-- [`app/components/AiASTViewer/AiASTViewer.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/AiASTViewer/AiASTViewer.jsx) is an 855-line AST editor whose primary export action is logging JSON to the console.
-- [`app/components/crmAi/AiSegmentRefinePanel.jsx:184`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/crmAi/AiSegmentRefinePanel.jsx) wires `onAstChange={console.log}` into the UI.
-
-### Known gaps are left as TODOs in live registration flow logic
+### [P0] Known gaps are left as TODOs in live registration flow logic
 There are explicit TODO markers in production registration handling where important validation is currently skipped:
 - [`api/routes/events/[eventId]/registration/consumer.js:126`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/routes/events/[eventId]/registration/consumer.js) notes that required field validation is being trusted rather than enforced.
 - [`api/routes/events/[eventId]/registration/consumer.js:213`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/routes/events/[eventId]/registration/consumer.js) notes that upsell availability should be checked before attaching upsells, but currently is not.
 
-### Files exceed the 100-line guide by 500+ lines or more
+### [P1] usePII relies on an undeclared global and an ad-hoc third-party data call
+[`app/hooks/usePII.jsx:6`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/usePII.jsx) calls `fetch("https://geolocation-db.com/json/")` directly, and [`app/hooks/usePII.jsx:35`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/usePII.jsx) calls `ThumbmarkJS.getFingerprint()` without importing `ThumbmarkJS` anywhere else in the repository. That makes the hook depend on a hidden global and an external service outside the shared networking layer.
+
+### [P1] Direct client networking bypasses the approved hook/fetch layer
+The codebase guide says client-side networking should go through dedicated `useSWR` hooks and the shared fetch wrappers. There are still direct network calls outside that layer in [`app/hooks/usePII.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/usePII.jsx), [`app/hooks/useRrWebRecorder.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useRrWebRecorder.jsx), and [`day-of-dashboard/utils/apiClient.js`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/utils/apiClient.js). These bypass the common auth/error-handling path and create parallel networking conventions.
+
+### [P1] Duplicate Google OAuth callback logic exists in two server routes
+The token exchange and userinfo flow is duplicated in [`api/routes/webhooks/google-oauth.js`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/routes/webhooks/google-oauth.js) and [`api/routes/events/[eventId]/gmail/callback.js`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/routes/events/[eventId]/gmail/callback.js). The two files repeat the same remote calls and error handling, which raises the cost of fixing bugs or changing OAuth behavior.
+
+### [P1] Full-file or targeted lint suppressions hide unresolved issues
+The codebase contains suppressions where the underlying issue has been deferred instead of fixed:
+- [`api/util/google.js:1`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/util/google.js) disables ESLint for the entire file.
+- React hook dependency checks are suppressed in [`app/src/routes/events/[eventId]/conversations/index.jsx:28`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/[eventId]/conversations/index.jsx), [`app/src/routes/events/[eventId]/conversations/index.jsx:86`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/[eventId]/conversations/index.jsx), [`app/src/routes/events/[eventId]/conversations/components/Conversation.jsx:139`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/[eventId]/conversations/components/Conversation.jsx), [`app/components/crmAi/AiSegmentRefinePanel.jsx:60`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/crmAi/AiSegmentRefinePanel.jsx), [`app/components/EmailTemplateEditor/EmailTemplateEditor.jsx:515`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/EmailTemplateEditor/EmailTemplateEditor.jsx), [`app/components/EmailTemplateEditor/EmailTemplateEditor.jsx:523`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/EmailTemplateEditor/EmailTemplateEditor.jsx), [`app/components/filters/Filters.jsx:162`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/filters/Filters.jsx), [`app/hooks/useRrWebRecorder.jsx:283`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useRrWebRecorder.jsx), and [`app/components/SafeHtml/SafeHtml.jsx:87`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/SafeHtml/SafeHtml.jsx).
+
+### [P1] Debug logging remains in user-facing client code
+There are many browser and mobile client files still using raw console logging instead of structured diagnostics or user-facing error handling:
+- The day-of POS stack is the heaviest offender: [`day-of-dashboard/hooks/useTapToPay.js`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/hooks/useTapToPay.js), [`day-of-dashboard/app/(tabs)/point-of-sale.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/app/(tabs)/point-of-sale.jsx), [`day-of-dashboard/app/_layout.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/app/_layout.jsx), and [`day-of-dashboard/components/pos/PaymentResultModal.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/components/pos/PaymentResultModal.jsx) contain dense diagnostic logging across the payment lifecycle.
+- Web app examples include [`app/hooks/useLocation.jsx:29`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useLocation.jsx), [`app/hooks/useEvents.jsx:41`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useEvents.jsx), [`app/hooks/useJobs.jsx:70`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useJobs.jsx), [`app/hooks/useJobs.jsx:106`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useJobs.jsx), [`app/hooks/useJobs.jsx:145`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useJobs.jsx), [`app/hooks/useInstance.jsx:44`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useInstance.jsx), [`app/hooks/useInstance.jsx:48`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useInstance.jsx), [`app/hooks/useInstances.jsx:47`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useInstances.jsx), [`app/hooks/useRegistrationUpsell.jsx:43`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useRegistrationUpsell.jsx), [`app/src/routes/events/[eventId]/registration/builder.jsx:92`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/[eventId]/registration/builder.jsx), [`app/src/routes/events/[eventId]/registration/builder.jsx:169`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/[eventId]/registration/builder.jsx), [`app/src/routes/events/[eventId]/registration/builder.jsx:171`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/[eventId]/registration/builder.jsx), [`app/src/routes/events/new.jsx:130`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/routes/events/new.jsx), [`app/components/EmailsCrmPage/EmailsCrmPage.jsx:39`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/EmailsCrmPage/EmailsCrmPage.jsx), [`app/components/ImageInput/ImageInput.jsx:32`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/ImageInput/ImageInput.jsx), and [`app/components/AiASTViewer/AiASTViewer.jsx:62`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/AiASTViewer/AiASTViewer.jsx).
+
+### [P2] Files exceed the 100-line guide by 500+ lines or more
 The project guide sets 100 lines per file as a soft ceiling for readability. These files are far beyond that threshold and are clear maintainability debt hotspots:
 - `api/react-email/emails/volunteer-form-response-thank-you.jsx` (642)
 - `api/routes/events/[eventId]/conversations/v2/threads/[threadId].js` (730)
@@ -81,7 +67,7 @@ The project guide sets 100 lines per file as a soft ceiling for readability. The
 - `day-of-dashboard/components/pos/PaymentResultModal.jsx` (650)
 - `day-of-dashboard/hooks/useTapToPay.js` (898)
 
-### Files exceed the 100-line guide by 300-499 lines
+### [P2] Files exceed the 100-line guide by 300-499 lines
 These files are also well above the project’s readability target and are likely carrying multiple responsibilities:
 - `api/routes/events/[eventId]/billing.js` (447)
 - `api/routes/events/[eventId]/builder.js` (310)
@@ -129,7 +115,13 @@ These files are also well above the project’s readability target and are likel
 - `day-of-dashboard/hooks/useDayOfSession.js` (360)
 - `e2e/cypress.config.js` (432)
 
-### Files exceed the 100-line guide by 101-299 lines
+### [P2] Experimental and dev-only code is committed in active source paths
+The repository keeps workbench-style code in source directories instead of isolating or removing it:
+- [`api/experiments/email.js`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/experiments/email.js) is a manual render script with hardcoded sample data and direct `console.log`.
+- [`app/components/AiASTViewer/AiASTViewer.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/AiASTViewer/AiASTViewer.jsx) is an 855-line AST editor whose primary export action is logging JSON to the console.
+- [`app/components/crmAi/AiSegmentRefinePanel.jsx:184`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/components/crmAi/AiSegmentRefinePanel.jsx) wires `onAstChange={console.log}` into the UI.
+
+### [P2] Files exceed the 100-line guide by 101-299 lines
 This is the remainder of the soft-ceiling violations found in maintained source:
 - `api/index.js` (166)
 - `api/otel/register.js` (117)
@@ -340,3 +332,12 @@ This is the remainder of the soft-ceiling violations found in maintained source:
 - `day-of-dashboard/hooks/useVolunteerRoster.js` (224)
 - `day-of-dashboard/scripts/reset-project.js` (112)
 - `day-of-dashboard/utils/apiClient.js` (147)
+
+### [P3] Multiple workspaces carry both npm and Yarn lockfiles
+The mixed-lockfile problem is broader than the mobile app. The `api`, `app`, `day-of-dashboard`, and `e2e` workspaces each contain both `package-lock.json` and `yarn.lock`, which means the repository currently supports multiple dependency resolution sources at once.
+
+### [P3] Day-of dashboard uses conflicting lockfiles
+The mobile app includes both [`day-of-dashboard/package-lock.json`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/package-lock.json) and [`day-of-dashboard/yarn.lock`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/yarn.lock). Mixed package manager lockfiles are a maintenance smell because they permit drift in dependency resolution and make installs less reproducible.
+
+### [P3] Repository keeps an old route file alongside the live app
+[`app/src/home.old.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/src/home.old.jsx) is a retained legacy file inside the active source tree. Keeping obsolete route implementations in-place makes it harder to tell what is canonical and increases the risk of stale patterns being copied forward.
