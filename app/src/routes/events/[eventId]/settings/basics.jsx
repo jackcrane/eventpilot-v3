@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
 import { Typography, Input, Button, Util, Card, Checkbox } from "tabler-react-2";
@@ -20,9 +20,36 @@ export const EventSettingsBasicsPage = () => {
   } = useEvent({ eventId });
 
   const [localEvent, setLocalEvent] = useState(event);
+  const [highlightNotifications, setHighlightNotifications] = useState(false);
+  const notificationsRef = useRef(null);
+
   useEffect(() => {
     setLocalEvent(event);
   }, [event]);
+
+  useEffect(() => {
+    if (!localEvent) return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("highlight") !== "daily-digest-notifications") return;
+
+    setHighlightNotifications(true);
+    notificationsRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+
+    params.delete("highlight");
+    const nextQuery = params.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
+    window.history.replaceState({}, "", nextUrl);
+
+    const timeout = window.setTimeout(() => {
+      setHighlightNotifications(false);
+    }, 4000);
+
+    return () => window.clearTimeout(timeout);
+  }, [localEvent]);
 
   if (!localEvent) return <></>;
 
@@ -129,19 +156,32 @@ export const EventSettingsBasicsPage = () => {
             value={localEvent.defaultTz}
           />
 
-          <div className="mt-3" />
-          <label className="form-label">Email Notifications</label>
-          <Checkbox
-            label="Send daily digest emails for this event"
-            value={localEvent.dailyDigestEnabled ?? true}
-            onChange={(dailyDigestEnabled) =>
-              setLocalEvent({ ...localEvent, dailyDigestEnabled })
-            }
-          />
-          <Typography.Text className="form-hint">
-            This only affects this event. Other events on your account keep
-            their own daily digest setting.
-          </Typography.Text>
+          <div
+            className="mt-3"
+            ref={notificationsRef}
+            style={{
+              border: highlightNotifications
+                ? "2px solid #0072ce"
+                : "2px solid transparent",
+              borderRadius: 8,
+              padding: highlightNotifications ? 12 : 0,
+              backgroundColor: highlightNotifications ? "#f0f7ff" : "transparent",
+              transition: "background-color 0.25s ease, border-color 0.25s ease",
+            }}
+          >
+            <label className="form-label">Email Notifications</label>
+            <Checkbox
+              label="Send daily digest emails for this event"
+              value={localEvent.dailyDigestEnabled ?? true}
+              onChange={(dailyDigestEnabled) =>
+                setLocalEvent({ ...localEvent, dailyDigestEnabled })
+              }
+            />
+            <Typography.Text className="form-hint">
+              This only affects this event. Other events on your account keep
+              their own daily digest setting.
+            </Typography.Text>
+          </div>
         </div>
 
         <div style={{ flex: 1 }}>

@@ -1,5 +1,4 @@
 import toast from "react-hot-toast";
-import { emitter } from "./mitt";
 
 export const u = (path) =>
   // eslint-disable-next-line no-undef
@@ -21,8 +20,8 @@ export const authFetch = async (url, options, redirect = true) => {
   });
   if (res.status === 401 && redirect) {
     localStorage.removeItem("token");
-    window.logout && window.logout();
-    emitter.emit("logout");
+    const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    window.logout && window.logout(next);
   }
   // 402 (Payment Required) handling is event-scoped now; do not show account-level toasts here
   if (res.status === 500) {
@@ -42,8 +41,8 @@ export const authFetchWithoutContentType = async (url, options) => {
   });
   if (res.status === 401) {
     localStorage.removeItem("token");
-    window.logout && window.logout();
-    emitter.emit("logout");
+    const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    window.logout && window.logout(next);
   }
   return res;
 };

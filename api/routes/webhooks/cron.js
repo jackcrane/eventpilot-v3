@@ -29,6 +29,18 @@ const formatDigestDate = (date, timeZone) =>
     day: "numeric",
   }).format(date);
 
+const getAppBaseUrl = () => {
+  const rawBaseUrl = process.env.BASE_APP_URL || "https://geteventpilot.com";
+  return /^https?:\/\//i.test(rawBaseUrl)
+    ? rawBaseUrl
+    : `https://${rawBaseUrl}`;
+};
+
+const buildDailyDigestSettingsUrl = (event) => {
+  const baseUrl = getAppBaseUrl().replace(/\/$/, "");
+  return `${baseUrl}/events/${event.slug}/settings/basics?highlight=daily-digest-notifications`;
+};
+
 const resolveDefaultInstanceId = async (eventId) => {
   const instances = await prisma.eventInstance.findMany({
     where: { eventId, deleted: false },
@@ -343,6 +355,7 @@ export const post = async (req, res) => {
               newVolunteers,
               newCrmPersons,
               newEmails,
+              settingsUrl: buildDailyDigestSettingsUrl(event),
             })
           ),
           userId: event.user.id,

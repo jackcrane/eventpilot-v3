@@ -52,11 +52,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const normalizeEmail = (value) => value?.trim().toLowerCase() || "";
+  const normalizeNextPath = (value) => {
+    if (!value || typeof value !== "string") return null;
+    if (!value.startsWith("/") || value.startsWith("//")) return null;
+    return value;
+  };
 
-  const login = async ({ email, password }) => {
+  const login = async ({ email, password, next }) => {
     setMutationLoading(true);
     setError(null);
     const normalizedEmail = normalizeEmail(email);
+    const normalizedNext = normalizeNextPath(next);
     const r = await fetch(u("/api/auth/login"), {
       method: "POST",
       headers: {
@@ -72,7 +78,7 @@ export const AuthProvider = ({ children }) => {
       await fetchUser();
       emitter.emit("login");
       setMutationLoading(false);
-      document.location.href = "/events";
+      document.location.href = normalizedNext || "/events";
     } else {
       const { message } = await r.json();
       setError(formatErrorMessage(message));
@@ -219,12 +225,15 @@ export const AuthProvider = ({ children }) => {
     setMutationLoading(false);
   };
 
-  const logout = () => {
+  const logout = (next) => {
     resetPosthogUser();
     localStorage.removeItem("token");
     setUser(null);
     setLoggedIn(false);
-    document.location.href = "/login";
+    const normalizedNext = normalizeNextPath(next);
+    document.location.href = normalizedNext
+      ? `/login?next=${encodeURIComponent(normalizedNext)}`
+      : "/login";
   };
 
   const requestForgotPassword = async ({ email }) => {
