@@ -278,6 +278,9 @@ export const post = async (req, res) => {
       const now = new Date();
       const cutoff = new Date(now.getTime() - DAY_IN_MS);
       const events = await prisma.event.findMany({
+        where: {
+          dailyDigestEnabled: true,
+        },
         include: {
           user: true,
         },

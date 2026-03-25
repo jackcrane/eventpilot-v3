@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { EventPage } from "../../../../../components/eventPage/EventPage";
-import { Typography, Input, Button, Util, Card } from "tabler-react-2";
+import { Typography, Input, Button, Util, Card, Checkbox } from "tabler-react-2";
 import { Row } from "../../../../../util/Flex";
 import { TzPicker } from "../../../../../components/tzDateTime/tzDateTime";
 import { Dropzone } from "../../../../../components/dropzone/Dropzone";
@@ -128,6 +128,20 @@ export const EventSettingsBasicsPage = () => {
             onChange={(d) => setLocalEvent({ ...localEvent, defaultTz: d })}
             value={localEvent.defaultTz}
           />
+
+          <div className="mt-3" />
+          <label className="form-label">Email Notifications</label>
+          <Checkbox
+            label="Send daily digest emails for this event"
+            value={localEvent.dailyDigestEnabled ?? true}
+            onChange={(dailyDigestEnabled) =>
+              setLocalEvent({ ...localEvent, dailyDigestEnabled })
+            }
+          />
+          <Typography.Text className="form-hint">
+            This only affects this event. Other events on your account keep
+            their own daily digest setting.
+          </Typography.Text>
         </div>
 
         <div style={{ flex: 1 }}>
@@ -149,4 +163,3 @@ export const EventSettingsBasicsPage = () => {
     </EventPage>
   );
 };
-
