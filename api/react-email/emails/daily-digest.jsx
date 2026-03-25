@@ -1,4 +1,4 @@
-import { Column, Heading, Row, Text } from "@react-email/components";
+import { Column, Heading, Link, Row, Text } from "@react-email/components";
 import * as React from "react";
 import { Email } from "../components/Email";
 
@@ -25,16 +25,35 @@ const styles = {
     margin: "1rem 0px",
     fontWeight: 600,
   },
+  footer: {
+    color: "#8898aa",
+    fontSize: "12px",
+    lineHeight: "16px",
+    padding: "20px",
+    margin: 0,
+    paddingTop: 0,
+  },
 };
 
 export const DailyDigestEmail = ({
   name,
   event,
   newCrmPersons,
-  newFormResponses,
+  newVolunteers,
   newEmails,
+  settingsUrl,
 }) => (
-  <Email preview="Your EventPilot daily digest">
+  <Email
+    preview="Your EventPilot daily digest"
+    footer={
+      <Text style={styles.footer}>
+        We value your privacy and security. Please do not reply to this email.
+        If you need, you can{" "}
+        <Link href="mailto:support@geteventpilot.com">contact us here</Link>.{" "}
+        <Link href={settingsUrl}>Turn off this notification</Link>.
+      </Text>
+    }
+  >
     <Heading as="h1" style={styles.heading}>
       Your EventPilot Daily Digest
     </Heading>
@@ -46,7 +65,7 @@ export const DailyDigestEmail = ({
     <Row cellSpacing={4}>
       <Column style={styles.stat}>
         <Text style={styles.statTitle}>New Volunteers</Text>
-        <Text style={styles.statValue}>{newFormResponses}</Text>
+        <Text style={styles.statValue}>{newVolunteers}</Text>
       </Column>
       <Column style={styles.stat}>
         <Text style={styles.statTitle}>New CRM Persons</Text>
@@ -65,9 +84,11 @@ DailyDigestEmail.PreviewProps = {
   event: {
     name: "Ohio River Paddlefest",
   },
-  newFormResponses: 2,
+  newVolunteers: 2,
   newCrmPersons: 7,
   newEmails: 10,
+  settingsUrl:
+    "https://geteventpilot.com/events/ohio-river-paddlefest/settings/basics?highlight=daily-digest-notifications",
 };
 
 export default DailyDigestEmail;

@@ -18,6 +18,7 @@ export const eventSchema = z.object({
       message: "Slug can only contain lowercase letters, numbers, and hyphens",
     }),
   defaultTz: z.string(),
+  dailyDigestEnabled: z.boolean().default(true),
   bannerFileId: z.string(),
   contactEmail: z.string().email(),
   externalContactEmail: z.union([z.literal(false), z.string().email()]),

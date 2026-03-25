@@ -408,6 +408,7 @@ model Event {
   coupons     Coupon[]
 
   defaultTz String?
+  dailyDigestEnabled Boolean @default(true)
 
   slug String @unique
 

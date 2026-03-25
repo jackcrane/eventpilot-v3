@@ -16,10 +16,11 @@ export const Login = () => {
   const [password, setPassword] = useState("");
 
   const from = useSearchParam("from");
+  const next = useSearchParam("next");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    login({ email, password });
+    login({ email, password, next });
   };
 
   return (
