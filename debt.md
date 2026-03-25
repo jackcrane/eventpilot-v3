@@ -16,9 +16,6 @@ There are explicit TODO markers in production registration handling where import
 - [`api/routes/events/[eventId]/registration/consumer.js:126`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/routes/events/[eventId]/registration/consumer.js) notes that required field validation is being trusted rather than enforced.
 - [`api/routes/events/[eventId]/registration/consumer.js:213`](/Users/jackcrane/Documents/programming/eventpilot-v3/api/routes/events/[eventId]/registration/consumer.js) notes that upsell availability should be checked before attaching upsells, but currently is not.
 
-### [P1] usePII relies on an undeclared global and an ad-hoc third-party data call
-[`app/hooks/usePII.jsx:6`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/usePII.jsx) calls `fetch("https://geolocation-db.com/json/")` directly, and [`app/hooks/usePII.jsx:35`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/usePII.jsx) calls `ThumbmarkJS.getFingerprint()` without importing `ThumbmarkJS` anywhere else in the repository. That makes the hook depend on a hidden global and an external service outside the shared networking layer.
-
 ### [P1] Direct client networking bypasses the approved hook/fetch layer
 The codebase guide says client-side networking should go through dedicated `useSWR` hooks and the shared fetch wrappers. There are still direct network calls outside that layer in [`app/hooks/usePII.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/usePII.jsx), [`app/hooks/useRrWebRecorder.jsx`](/Users/jackcrane/Documents/programming/eventpilot-v3/app/hooks/useRrWebRecorder.jsx), and [`day-of-dashboard/utils/apiClient.js`](/Users/jackcrane/Documents/programming/eventpilot-v3/day-of-dashboard/utils/apiClient.js). These bypass the common auth/error-handling path and create parallel networking conventions.
 
