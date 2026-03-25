@@ -70,10 +70,13 @@ export const post = async (req, res) => {
     if (submitterEmail) {
       let existingCrmPersonByEmailAndName = await prisma.crmPerson.findFirst({
         where: {
+          eventId: formResponse.eventId,
+          deleted: false,
           name: submitterName || undefined,
           emails: {
             some: {
               email: submitterEmail,
+              deleted: false,
             },
           },
         },

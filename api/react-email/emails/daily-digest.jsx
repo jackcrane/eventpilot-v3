@@ -31,7 +31,7 @@ export const DailyDigestEmail = ({
   name,
   event,
   newCrmPersons,
-  newFormResponses,
+  newVolunteers,
   newEmails,
 }) => (
   <Email preview="Your EventPilot daily digest">
@@ -46,7 +46,7 @@ export const DailyDigestEmail = ({
     <Row cellSpacing={4}>
       <Column style={styles.stat}>
         <Text style={styles.statTitle}>New Volunteers</Text>
-        <Text style={styles.statValue}>{newFormResponses}</Text>
+        <Text style={styles.statValue}>{newVolunteers}</Text>
       </Column>
       <Column style={styles.stat}>
         <Text style={styles.statTitle}>New CRM Persons</Text>
@@ -65,7 +65,7 @@ DailyDigestEmail.PreviewProps = {
   event: {
     name: "Ohio River Paddlefest",
   },
-  newFormResponses: 2,
+  newVolunteers: 2,
   newCrmPersons: 7,
   newEmails: 10,
 };

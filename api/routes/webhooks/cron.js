@@ -19,6 +19,16 @@ const savedSegmentSelection = {
   deleted: true,
 };
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+const formatDigestDate = (date, timeZone) =>
+  new Intl.DateTimeFormat("en-US", {
+    timeZone: timeZone || "UTC",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).format(date);
+
 const resolveDefaultInstanceId = async (eventId) => {
   const instances = await prisma.eventInstance.findMany({
     where: { eventId, deleted: false },
@@ -265,6 +275,8 @@ export const post = async (req, res) => {
     await dispatchDueCampaigns({ reqId: req.id });
 
     if (frequency === "DAILY") {
+      const now = new Date();
+      const cutoff = new Date(now.getTime() - DAY_IN_MS);
       const events = await prisma.event.findMany({
         include: {
           user: true,
@@ -272,43 +284,60 @@ export const post = async (req, res) => {
       });
 
       for (const event of events) {
-        const newFormResponses = await prisma.volunteerRegistration.count({
-          where: {
-            createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-            eventId: event.id,
-            deleted: false,
-          },
-        });
-        const newCrmPersons = await prisma.crmPerson.count({
-          where: {
-            createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-            eventId: event.id,
-            deleted: false,
-          },
-        });
-        const newEmails = await prisma.inboundEmail.count({
-          where: {
-            createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-            // read: false,
-            eventId: event.id,
-            conversation: {
+        const [newVolunteers, newCrmPersons, newEmails] = await Promise.all([
+          prisma.crmPerson.count({
+            where: {
+              eventId: event.id,
+              deleted: false,
+              links: {
+                some: {
+                  createdAt: { gt: cutoff },
+                  formResponse: {
+                    eventId: event.id,
+                    deleted: false,
+                  },
+                },
+                none: {
+                  createdAt: { lte: cutoff },
+                  formResponse: {
+                    eventId: event.id,
+                    deleted: false,
+                  },
+                },
+              },
+            },
+          }),
+          prisma.crmPerson.count({
+            where: {
+              createdAt: { gt: cutoff },
+              eventId: event.id,
               deleted: false,
             },
-          },
-        });
+          }),
+          prisma.inboundEmail.count({
+            where: {
+              createdAt: { gt: cutoff },
+              // read: false,
+              eventId: event.id,
+              conversation: {
+                deleted: false,
+              },
+            },
+          }),
+        ]);
 
         // console.log(
-        //   `[HOURLY] EventPilot daily digest for ${event.name}: ${newFormResponses} new form responses, ${newCrmPersons} new CRM persons, and ${newEmails} new emails`
+        //   `[HOURLY] EventPilot daily digest for ${event.name}: ${newVolunteers} new volunteers, ${newCrmPersons} new CRM persons, and ${newEmails} new emails`
         // );
         await sendEmail({
           From: "EventPilot Daily Digests <daily-digests@geteventpilot.com>",
           To: event.contactEmail || event.user.email,
-          Subject: `Your EventPilot ${event.name} Daily Digest for ${new Date().toLocaleDateString()}`,
+          Subject: `Your EventPilot ${event.name} Daily Digest for ${formatDigestDate(now, event.defaultTz)}`,
           HtmlBody: await render(
             DailyDigestEmail.DailyDigestEmail({
               name: event.user.name,
               event,
-              newFormResponses,
+              newVolunteers,
               newCrmPersons,
               newEmails,
             })
