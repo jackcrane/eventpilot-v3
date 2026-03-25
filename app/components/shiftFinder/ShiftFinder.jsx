@@ -7,7 +7,7 @@ import {
   Alert,
 } from "tabler-react-2";
 import styles from "./shiftfinder.module.css";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useLocations } from "../../hooks/useLocations";
 import moment from "moment-timezone";
 import { useLocation } from "../../hooks/useLocation";
@@ -72,35 +72,103 @@ export const groupByLocationAndJob = (responses) => {
 export const flattenShifts = (locations) =>
   locations.flatMap(({ jobs }) => jobs.flatMap(({ shifts }) => shifts));
 
+const summarizeShift = (shift) => ({
+  type: typeof shift,
+  id: shift?.id ?? null,
+  jobId: shift?.jobId ?? null,
+  locationId: shift?.locationId ?? null,
+  checkedInAt: shift?.checkedInAt ?? null,
+  hasJob: Boolean(shift?.job),
+  keys: shift && typeof shift === "object" ? Object.keys(shift).sort() : [],
+});
+
+const summarizeLocationSelection = (items = []) =>
+  items.map((item) => item?.id || item?.value || null);
+
+const summarizeJobs = (jobs = []) =>
+  jobs.map((job) => ({
+    id: job.id,
+    name: job.name,
+    shiftIds: (job.shifts || []).map((shift) => shift.id),
+  }));
+
+const selectedLocationOptionsFromShifts = (shifts = []) =>
+  groupByLocationAndJob(shifts).map((group) => ({ value: group.id }));
+
+const valueKey = (items = [], getValue) =>
+  JSON.stringify(items.map(getValue).filter(Boolean).sort());
+
 export const ShiftFinder = ({
   eventId,
   onSelectedShiftChange,
   shifts: passedShifts,
   fromRUD = false,
 }) => {
-  const [selectedShifts, setSelectedShifts] = useState(passedShifts);
+  const [selectedShifts, setSelectedShifts] = useState(passedShifts || []);
   const [locations, setLocations] = useState([]);
   const [locationsTouched, setLocationsTouched] = useState(false);
+  const passedShiftKey = valueKey(passedShifts || [], (shift) => shift.id);
+  const passedLocationOptions = selectedLocationOptionsFromShifts(
+    passedShifts || []
+  );
+  const passedLocationKey = valueKey(
+    passedLocationOptions,
+    (location) => location.value
+  );
 
-  // Initialize selected locations from passedShifts once when empty,
-  // but keep them user-controlled afterward.
   useEffect(() => {
+    console.log("[shift-debug] ShiftFinder props", {
+      eventId,
+      fromRUD,
+      passedShiftKey,
+      passedShiftsCount: passedShifts?.length ?? 0,
+      passedShifts: (passedShifts || []).map(summarizeShift),
+      passedLocationOptions: summarizeLocationSelection(passedLocationOptions),
+    });
+  }, [eventId, fromRUD, passedShiftKey]);
+
+  useLayoutEffect(() => {
     const valid = passedShiftSchema.safeParse(passedShifts || []);
     if (!valid.success) {
       console.error("ShiftFinder passedShifts is not valid", passedShifts);
       alert("ShiftFinder passedShifts is not valid");
       return null;
     }
-    if (locationsTouched) return;
-    if ((locations?.length || 0) > 0) return;
-    const grouped = groupByLocationAndJob(passedShifts || []);
-    const _locations = grouped.map((g) => ({ value: g.id }));
-    if (_locations.length > 0) setLocations(_locations);
-  }, [passedShifts, locationsTouched, locations?.length]);
+
+    setSelectedShifts(passedShifts || []);
+    if (!locationsTouched) {
+      setLocations((currentLocations) => {
+        const currentLocationKey = valueKey(
+          currentLocations,
+          (location) => location?.id || location?.value
+        );
+        if (currentLocationKey === passedLocationKey) return currentLocations;
+        return passedLocationOptions;
+      });
+    }
+    console.log("[shift-debug] ShiftFinder hydrate", {
+      passedShiftKey,
+      passedLocationKey,
+      locationsTouched,
+      selectedShiftIds: (passedShifts || []).map((shift) => shift.id),
+    });
+  }, [passedShiftKey]);
 
   // When locations change (user toggles in STEP 1),
   // drop any selected shifts that belong to now-unselected locations.
   useEffect(() => {
+    if (
+      !locationsTouched &&
+      (locations || []).length === 0 &&
+      (passedShifts || []).length > 0
+    ) {
+      console.log("[shift-debug] ShiftFinder prune skipped during hydrate", {
+        locationsTouched,
+        passedShiftIds: (passedShifts || []).map((shift) => shift.id),
+      });
+      return;
+    }
+
     const allowed = new Set(
       (locations || []).map((l) => (l?.id ? l.id : l?.value))
     );
@@ -108,11 +176,19 @@ export const ShiftFinder = ({
       allowed.has(s.locationId)
     );
     if (next.length !== (selectedShifts || []).length) {
+      console.log("[shift-debug] ShiftFinder prune", {
+        allowedLocationIds: Array.from(allowed),
+        beforeShiftIds: (selectedShifts || []).map((shift) => shift.id),
+        afterShiftIds: next.map((shift) => shift.id),
+      });
       setSelectedShifts(next);
     }
-  }, [locations]);
+  }, [locations, locationsTouched, passedShifts, selectedShifts]);
 
   const handleLocationsChange = (v) => {
+    console.log("[shift-debug] ShiftFinder location change", {
+      nextLocations: summarizeLocationSelection(v),
+    });
     setLocationsTouched(true);
     setLocations(v);
   };
@@ -186,12 +262,24 @@ export const ShiftFinder = ({
     }
 
     setSelectedShifts(flattened);
+    console.log("[shift-debug] ShiftFinder setSelectedShifts", {
+      locationId,
+      jobId,
+      incomingShiftIds: shifts.map((shift) => shift.id),
+      flattenedShiftIds: flattened.map((shift) => shift.id),
+    });
   };
 
   useEffect(() => {
-    // console.log("SelectedShiftsChanged", selectedShifts);
+    const selectedShiftKey = valueKey(selectedShifts || [], (shift) => shift.id);
+    if (selectedShiftKey === passedShiftKey) return;
+    console.log("[shift-debug] ShiftFinder emit", {
+      selectedShiftKey,
+      passedShiftKey,
+      selectedShiftIds: (selectedShifts || []).map((shift) => shift.id),
+    });
     onSelectedShiftChange?.(selectedShifts);
-  }, [selectedShifts]);
+  }, [selectedShifts, onSelectedShiftChange, passedShiftKey]);
 
   return (
     <div>
@@ -213,6 +301,14 @@ export const ShiftFinder = ({
 
 const LocationPicker = ({ locations, setLocations, eventId, fromRUD }) => {
   const { locations: locs, loading } = useLocations({ eventId });
+  useEffect(() => {
+    if (loading) return;
+    console.log("[shift-debug] LocationPicker", {
+      eventId,
+      selectedLocationIds: summarizeLocationSelection(locations),
+      availableLocationIds: (locs || []).map((location) => location.id),
+    });
+  }, [eventId, loading, locations, locs]);
   if (loading) return <Spinner />;
   if (!locations) return "No Locations";
 
@@ -325,6 +421,25 @@ const _SingleLocationJobPicker = ({
     }
   }, [selectedShifts]);
 
+  useEffect(() => {
+    if (loading || !location) return;
+    console.log("[shift-debug] JobPicker location payload", {
+      locationId,
+      selectedShiftIdsForLocation: (selectedShifts || [])
+        .filter((shift) => shift.locationId === locationId)
+        .map((shift) => shift.id),
+      selectedByJob: (location.jobs || []).map((job) => ({
+        jobId: job.id,
+        selectedShiftIds: (selectedShifts || [])
+          .filter(
+            (shift) => shift.locationId === locationId && shift.jobId === job.id
+          )
+          .map((shift) => shift.id),
+      })),
+      locationJobs: summarizeJobs(location.jobs || []),
+    });
+  }, [loading, location, locationId, selectedShifts]);
+
   if (loading || !location) return <Spinner />;
 
   const hasConflict = (shiftId, startTime, endTime) => {
@@ -369,6 +484,12 @@ const _SingleLocationJobPicker = ({
       return null;
     }
 
+    console.log("[shift-debug] registerShift", {
+      locationId,
+      jobId,
+      wrapperValues: wrappers.map((wrapper) => wrapper.value),
+      resolvedShiftIds: newWrappers.map((shift) => shift.id),
+    });
     setSelectedShifts(locationId, jobId, newWrappers);
     // setSelectedShifts((prev) => [
     //   // remove existing for this job & location

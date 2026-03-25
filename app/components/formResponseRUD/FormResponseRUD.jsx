@@ -476,6 +476,22 @@ const Shifts = ({
     submissionId
   );
 
+  useEffect(() => {
+    console.log("[shift-debug] Shifts props", {
+      eventId,
+      submissionId,
+      entityLabel,
+      passedShiftsCount: passedShifts?.length ?? 0,
+      passedShifts: (passedShifts || []).map((shift) => ({
+        type: typeof shift,
+        id: shift?.id ?? null,
+        jobId: shift?.jobId ?? null,
+        locationId: shift?.locationId ?? null,
+        keys: shift && typeof shift === "object" ? Object.keys(shift).sort() : [],
+      })),
+    });
+  }, [eventId, submissionId, entityLabel, passedShifts]);
+
   const handleSubmit = () => {
     updateShiftRegistrations(shifts);
   };
@@ -483,6 +499,14 @@ const Shifts = ({
   useEffect(() => {
     setShifts(passedShifts);
   }, [passedShifts]);
+
+  useEffect(() => {
+    console.log("[shift-debug] Shifts local state", {
+      submissionId,
+      localShiftIds: (shifts || []).map((shift) => shift?.id ?? null),
+      localShiftsCount: shifts?.length ?? 0,
+    });
+  }, [submissionId, shifts]);
 
   return (
     <div style={{ position: "relative" }}>
