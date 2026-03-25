@@ -10,35 +10,17 @@ import { useColumnConfig } from "../../../../../hooks/useColumnConfig";
 import { buildParticipantColumns } from "../../../../../util/roster/participantColumns";
 import { ColumnsPicker } from "../../../../../components/columnsPicker/ColumnsPicker";
 import { Row } from "../../../../../util/Flex";
-import { Filters } from "../../../../../components/filters/Filters";
-import { useParticipantFilterDefinitions } from "../../../../../hooks/useParticipantFilterDefinitions";
 import { useRegistrationResponse } from "../../../../../hooks/useRegistrationResponse";
 
 export const RegistrationsPage = () => {
   const { eventId } = useParams();
   const [searchInput, setSearchInput] = useState("");
-  const [filterState, setFilterState] = useState([]);
 
   const searchQuery = useMemo(() => searchInput.trim(), [searchInput]);
-
-  const serverFilters = useMemo(
-    () =>
-      (filterState || [])
-        .map((entry) => {
-          const path = entry?.field?.path || entry?.field?.label;
-          const operation = entry?.operation;
-          if (!path || !operation) return null;
-          const value = entry?.value ?? null;
-          return { path, operation, value };
-        })
-        .filter(Boolean),
-    [filterState]
-  );
 
   const roster = useParticipantRoster({
     eventId,
     search: searchQuery,
-    filters: serverFilters,
   });
 
   const { offcanvas, OffcanvasElement } = useOffcanvas({
@@ -68,10 +50,6 @@ export const RegistrationsPage = () => {
     },
     [offcanvas, confirm]
   );
-
-  const filterDefinitions = useParticipantFilterDefinitions({
-    fields: roster.fields,
-  });
 
   const baseColumns = useMemo(
     () =>
@@ -181,15 +159,7 @@ export const RegistrationsPage = () => {
     [roster]
   );
 
-  const handleFilterChange = useCallback(
-    (next) => {
-      setFilterState(next || []);
-      roster.setPage(1);
-    },
-    [roster]
-  );
-
-  const isFiltering = Boolean(searchQuery) || serverFilters.length > 0;
+  const isFiltering = Boolean(searchQuery);
   const showInitialEmpty =
     !roster.loading &&
     !roster.validating &&
@@ -212,10 +182,6 @@ export const RegistrationsPage = () => {
                 onChange={handleSearchChange}
                 style={{ minWidth: 220 }}
                 className="mb-0"
-              />
-              <Filters
-                fields={filterDefinitions}
-                onFilterChange={handleFilterChange}
               />
             </Row>
             <ColumnsPicker
@@ -240,7 +206,7 @@ export const RegistrationsPage = () => {
             loading={roster.loading || roster.validating}
             emptyState={() => (
               <div className="py-4 text-muted text-center">
-                No registrations match your current filters.
+                No registrations match your current search.
               </div>
             )}
           />

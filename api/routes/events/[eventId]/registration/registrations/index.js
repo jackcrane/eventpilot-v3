@@ -65,115 +65,6 @@ const escapeLike = (value = "") =>
     .replace(/%/g, "\\%")
     .replace(/_/g, "\\_");
 
-const likeExpression = (column, pattern) =>
-  Prisma.sql`${column} ILIKE ${pattern} ESCAPE '\\'`;
-
-const buildDateComparison = (column, operation, rawValue) => {
-  const op = String(operation || "").toLowerCase();
-  if (op === "exists") return Prisma.sql`${column} IS NOT NULL`;
-  if (op === "not-exists") return Prisma.sql`${column} IS NULL`;
-  if (!rawValue) return null;
-  const date = new Date(rawValue);
-  if (Number.isNaN(date.getTime())) return null;
-
-  switch (op) {
-    case "date-after":
-    case "greater-than":
-      return Prisma.sql`${column} > ${date}`;
-    case "date-before":
-    case "less-than":
-      return Prisma.sql`${column} < ${date}`;
-    case "greater-than-or-equal":
-      return Prisma.sql`${column} >= ${date}`;
-    case "less-than-or-equal":
-      return Prisma.sql`${column} <= ${date}`;
-    case "eq":
-      return Prisma.sql`${column} = ${date}`;
-    case "neq":
-      return Prisma.sql`${column} <> ${date}`;
-    default:
-      return null;
-  }
-};
-
-const buildFieldFilterClause = ({ fieldId, operation, value }) => {
-  const op = String(operation || "").toLowerCase();
-  const column = Prisma.sql`COALESCE(
-    reg_field_filter_opt."label",
-    reg_field_filter."value"
-  )`;
-
-  const baseSelect = Prisma.sql`
-    SELECT 1
-    FROM "RegistrationFieldResponse" AS reg_field_filter
-    LEFT JOIN "RegistrationFieldOption" AS reg_field_filter_opt
-      ON reg_field_filter_opt."id" = reg_field_filter."optionId"
-    WHERE reg_field_filter."registrationId" = reg."id"
-      AND reg_field_filter."fieldId" = ${fieldId}
-  `;
-
-  if (op === "exists") {
-    return Prisma.sql`
-      EXISTS (
-        ${baseSelect}
-          AND ${column} IS NOT NULL
-          AND ${column} <> ''
-      )
-    `;
-  }
-
-  if (op === "not-exists") {
-    return Prisma.sql`
-      NOT EXISTS (
-        ${baseSelect}
-          AND ${column} IS NOT NULL
-          AND ${column} <> ''
-      )
-    `;
-  }
-
-  const normalized = value == null ? "" : String(value).trim();
-  if (!normalized) return null;
-
-  const containsPattern = `%${escapeLike(normalized)}%`;
-  const prefixPattern = `${escapeLike(normalized)}%`;
-  const suffixPattern = `%${escapeLike(normalized)}`;
-  const exactPattern = escapeLike(normalized);
-
-  const existsWith = (expression) =>
-    Prisma.sql`
-      EXISTS (
-        ${baseSelect}
-          AND ${expression}
-      )
-    `;
-
-  const notExistsWith = (expression) =>
-    Prisma.sql`
-      NOT EXISTS (
-        ${baseSelect}
-          AND ${expression}
-      )
-    `;
-
-  switch (op) {
-    case "contains":
-      return existsWith(likeExpression(column, containsPattern));
-    case "not-contains":
-      return notExistsWith(likeExpression(column, containsPattern));
-    case "starts-with":
-      return existsWith(likeExpression(column, prefixPattern));
-    case "ends-with":
-      return existsWith(likeExpression(column, suffixPattern));
-    case "eq":
-      return existsWith(likeExpression(column, exactPattern));
-    case "neq":
-      return notExistsWith(likeExpression(column, exactPattern));
-    default:
-      return null;
-  }
-};
-
 const buildSearchClause = (term) => {
   if (!term) return null;
   const pattern = `%${escapeLike(term)}%`;
@@ -221,23 +112,6 @@ const buildSearchClause = (term) => {
         AND search_instance."name" ILIKE ${pattern} ESCAPE '\\'
     )
   )`;
-};
-
-const buildRegistrationFilterClause = ({ filter, fieldById }) => {
-  if (!filter || !filter.path || !filter.operation) return null;
-  const { path, operation, value } = filter;
-  if (path === "createdAt") {
-    return buildDateComparison(Prisma.sql`reg."createdAt"`, operation, value);
-  }
-  if (path === "updatedAt") {
-    return buildDateComparison(Prisma.sql`reg."updatedAt"`, operation, value);
-  }
-  if (path.startsWith("field:")) {
-    const fieldId = path.slice(6);
-    if (!fieldId || !fieldById.has(fieldId)) return null;
-    return buildFieldFilterClause({ fieldId, operation, value });
-  }
-  return null;
 };
 
 const baseWhere = ({ eventId, instanceId }) => {
@@ -461,48 +335,16 @@ export const get = [
     const searchTerm =
       typeof req.query.q === "string" ? req.query.q.trim() : "";
 
-    let parsedFilters = [];
-    if (typeof req.query.filters === "string") {
-      try {
-        const maybe = JSON.parse(req.query.filters);
-        if (Array.isArray(maybe)) parsedFilters = maybe;
-      } catch (error) {
-        void error;
-      }
-    }
-
-    const normalizedFilters = parsedFilters
-      .map((entry) => {
-        if (!entry || typeof entry.path !== "string") return null;
-        if (!entry.operation) return null;
-        return {
-          path: entry.path,
-          operation: entry.operation,
-          value: entry.value ?? null,
-        };
-      })
-      .filter(Boolean);
-
     const searchClause = buildSearchClause(searchTerm);
 
     const baseClause = baseWhere({ eventId, instanceId });
-
-    const filterClauses = normalizedFilters
-      .map((filter) =>
-        buildRegistrationFilterClause({ filter, fieldById: byId })
-      )
-      .filter(Boolean);
 
     const { joins, orderExpr } = buildOrderFragments({
       orderBy,
       order,
       fieldById: byId,
     });
-    const whereClause = combineWithAnd([
-      baseClause,
-      searchClause,
-      ...filterClauses,
-    ]);
+    const whereClause = combineWithAnd([baseClause, searchClause]);
     let joinSql = Prisma.sql``;
     joins.forEach((fragment) => {
       joinSql = Prisma.sql`${joinSql}
