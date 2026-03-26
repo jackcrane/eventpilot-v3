@@ -4,6 +4,8 @@ FROM node:20-bullseye AS base
 # Accept build-time arguments
 ARG DATABASE_URL
 ARG SENTRY_AUTH_TOKEN
+ARG VITE_PUBLIC_POSTHOG_KEY=phc_RIeSEUFcYeTWaHSKTUiwChRq6HEvG9Y7ERDI418mdsV
+ARG VITE_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 
 # Set the working directory to /app for the frontend
 WORKDIR /app
@@ -17,6 +19,8 @@ RUN node -e "const { arch, platform } = process; if (platform !== 'linux') proce
 
 # Make sure NODE_ENV is set to production
 ENV NODE_ENV=production
+ENV VITE_PUBLIC_POSTHOG_KEY=$VITE_PUBLIC_POSTHOG_KEY
+ENV VITE_PUBLIC_POSTHOG_HOST=$VITE_PUBLIC_POSTHOG_HOST
 
 # Build the frontend
 RUN yarn build
