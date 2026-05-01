@@ -113,6 +113,12 @@ const getIsMacLike = () => {
 };
 
 const DEFAULT_FILTER_ID = "all";
+const SOFT_HIDDEN_RESOURCE_TYPES = new Set([
+  "campaign",
+  "email",
+  "emailTemplate",
+  "mailingList",
+]);
 const RESULT_FILTERS = [
   { id: DEFAULT_FILTER_ID, label: "Everything" },
   { id: "crmPerson", label: "CRM People" },
@@ -122,10 +128,6 @@ const RESULT_FILTERS = [
   { id: "todo", label: "Todos" },
   { id: "upsell", label: "Upsells" },
   { id: "coupon", label: "Coupons" },
-  { id: "campaign", label: "Campaigns" },
-  { id: "email", label: "Emails" },
-  { id: "emailTemplate", label: "Templates" },
-  { id: "mailingList", label: "Email Lists" },
   { id: "job", label: "Jobs" },
   { id: "location", label: "Locations" },
 ];
@@ -190,18 +192,30 @@ export const UniversalSearch = ({
     eventId,
     query: debouncedQuery.length >= minChars ? debouncedQuery : "",
   });
+  const visibleModelResults = useMemo(
+    () =>
+      results.filter((result) => {
+        const resourceTypes = Array.isArray(result.resourceType)
+          ? result.resourceType
+          : [result.resourceType];
+        return !resourceTypes.some((type) =>
+          SOFT_HIDDEN_RESOURCE_TYPES.has(type)
+        );
+      }),
+    [results]
+  );
   const filteredResults = useMemo(() => {
     if (activeFilter === DEFAULT_FILTER_ID) {
-      return results;
+      return visibleModelResults;
     }
-    return results.filter((result) => {
+    return visibleModelResults.filter((result) => {
       const resourceType = result.resourceType;
       if (Array.isArray(resourceType)) {
         return resourceType.includes(activeFilter);
       }
       return resourceType === activeFilter;
     });
-  }, [results, activeFilter]);
+  }, [visibleModelResults, activeFilter]);
   const visibleResults = useMemo(
     () => filteredResults.slice(0, 15),
     [filteredResults]
